@@ -2,9 +2,9 @@
   "placeholderImages": [
     {
       "id": "hero-1",
-      "description": "Stylish person wearing sunglasses in a sunny outdoor setting.",
-      "imageUrl": "https://images.unsplash.com/photo-1708245917025-439f493d6571?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bW9kZWwlMjBzdW5nbGFzc2VzfGVufDB8fHx8MTc2Mjk1NzE2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "model sunglasses"
+      "description": "A magazine cover style ad for FocusRobin sunglasses featuring a woman wearing black sunglasses.",
+      "imageUrl": "https://storage.googleapis.com/gweb-aip-us-prod/images/853f3607-b08e-4b47-bce9-6515c13b199e.png",
+      "imageHint": "fashion magazine"
     },
     {
       "id": "bestseller-1",
