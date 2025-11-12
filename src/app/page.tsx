@@ -12,10 +12,12 @@ export default function Home() {
       <Header />
       <main className="flex-grow">
         <HeroSection />
-        <BestsellersSection />
-        <ValuePropsSection />
-        <LensFeatureSection />
-        <InstagramFeedSection />
+        <div className="bg-background">
+          <BestsellersSection />
+          <ValuePropsSection />
+          <LensFeatureSection />
+          <InstagramFeedSection />
+        </div>
       </main>
       <Footer />
     </div>

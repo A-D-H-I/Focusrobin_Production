@@ -55,10 +55,10 @@ export default function Header() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full transition-all duration-300",
+        "fixed top-0 z-50 w-full transition-all duration-300",
         isScrolled
           ? "bg-background/80 backdrop-blur-sm shadow-md"
-          : "bg-transparent"
+          : "bg-transparent text-white"
       )}
     >
       <div className="container mx-auto px-4">
@@ -68,7 +68,7 @@ export default function Header() {
             isScrolled ? "h-16" : "h-24"
           )}
         >
-          <Logo />
+          <Logo className={cn(!isScrolled && "text-white")} />
           
           <nav className={cn(
               "hidden md:flex items-center space-x-8 transition-opacity duration-300",
