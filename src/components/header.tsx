@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ShoppingCart, User, Menu } from "lucide-react";
+import { ShoppingCart, User, Menu, Globe, ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,29 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+const languages = [
+    { code: 'EN', name: 'English' },
+    { code: 'ES', name: 'Español' },
+    { code: 'FR', name: 'Français' },
+];
+
+const currencies = [
+    { code: 'USD', name: 'United States Dollar' },
+    { code: 'EUR', name: 'Euro' },
+    { code: 'GBP', name: 'British Pound' },
+]
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState(languages[0]);
+  const [selectedCurrency, setSelectedCurrency] = useState(currencies[0]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -50,7 +70,10 @@ export default function Header() {
         >
           <Logo />
           
-          <nav className="hidden md:flex items-center space-x-8">
+          <nav className={cn(
+              "hidden md:flex items-center space-x-8 transition-opacity duration-300",
+              isScrolled ? "opacity-100" : "opacity-0"
+              )}>
             {navLinks.map((link) => (
               <Link
                 key={link.href + link.label}
@@ -62,7 +85,40 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="text-sm">
+                  <Globe className="h-4 w-4 mr-1" />
+                  {selectedLanguage.code}
+                  <ChevronDown className="h-4 w-4 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {languages.map((lang) => (
+                  <DropdownMenuItem key={lang.code} onSelect={() => setSelectedLanguage(lang)}>
+                    {lang.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="text-sm">
+                  {selectedCurrency.code}
+                  <ChevronDown className="h-4 w-4 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {currencies.map((currency) => (
+                  <DropdownMenuItem key={currency.code} onSelect={() => setSelectedCurrency(currency)}>
+                    {currency.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button variant="ghost" size="icon">
               <User className="h-5 w-5" />
               <span className="sr-only">Account</span>
