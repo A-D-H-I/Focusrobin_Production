@@ -58,7 +58,7 @@ export default function Header() {
         "fixed top-0 z-50 w-full transition-all duration-300",
         isScrolled
           ? "bg-background/80 backdrop-blur-sm shadow-md"
-          : "bg-transparent text-white"
+          : "bg-transparent"
       )}
     >
       <div className="container mx-auto px-4">
@@ -72,7 +72,7 @@ export default function Header() {
             <Logo className={cn(!isScrolled && "text-white")} />
           </div>
           
-          <nav className="hidden md:flex items-center space-x-8 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <nav className="hidden md:flex flex-1 justify-center items-center space-x-8">
             {navLinks.map((link) => (
               <Link
                 key={link.href + link.label}
