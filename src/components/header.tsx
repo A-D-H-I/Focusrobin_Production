@@ -61,10 +61,10 @@ export default function Header() {
           : "bg-transparent"
       )}
     >
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 md:px-0">
         <div
           className={cn(
-            "relative flex items-center justify-between transition-all duration-300",
+            "relative flex items-center justify-between transition-all duration-300 md:px-4",
             isScrolled ? "h-16" : "h-24"
           )}
         >
