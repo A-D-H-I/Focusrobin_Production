@@ -46,7 +46,15 @@ export default function HeroSection() {
             isMounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           )}
         >
-          
+            <h1 className="text-4xl md:text-6xl font-headline font-bold mb-4 drop-shadow-md">
+                Elevate Your Style,<br /> Enhance Your Vision
+            </h1>
+            <p className="text-lg md:text-xl max-w-2xl mx-auto mb-8 drop-shadow">
+                Discover our new collection of premium eyewear designed for the modern individual.
+            </p>
+            <Button size="lg" className="rounded-full px-8 py-6 text-lg">
+                Shop Now
+            </Button>
         </div>
       </div>
     </section>
