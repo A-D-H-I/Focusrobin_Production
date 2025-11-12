@@ -1,3 +1,94 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-1",
+      "description": "Stylish person wearing sunglasses in a sunny outdoor setting.",
+      "imageUrl": "https://images.unsplash.com/photo-1708245917025-439f493d6571?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8bW9kZWwlMjBzdW5nbGFzc2VzfGVufDB8fHx8MTc2Mjk1NzE2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "model sunglasses"
+    },
+    {
+      "id": "bestseller-1",
+      "description": "Close-up of Aura Aviator sunglasses on a clean background.",
+      "imageUrl": "https://images.unsplash.com/photo-1567473810954-507d59716c25?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhdmlhdG9yJTIwc3VuZ2xhc3Nlc3xlbnwwfHx8fDE3NjI4NDM0Njl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "aviator sunglasses"
+    },
+    {
+      "id": "bestseller-2",
+      "description": "Metro Wayfarer sunglasses displayed on a wooden surface.",
+      "imageUrl": "https://images.unsplash.com/photo-1653038282366-09ae0df227be?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3YXlmYXJlciUyMHN1bmdsYXNzZXN8ZW58MHx8fHwxNzYyOTQyNjQ2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "wayfarer sunglasses"
+    },
+    {
+      "id": "bestseller-3",
+      "description": "Solaris Round sunglasses with a city background.",
+      "imageUrl": "https://images.unsplash.com/photo-1587572070491-0e5448a0cc43?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxyb3VuZCUyMHN1bmdsYXNzZXN8ZW58MHx8fHwxNzYyOTExMjA3fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "round sunglasses"
+    },
+    {
+      "id": "bestseller-4",
+      "description": "Nomad Navigator sunglasses for adventure.",
+      "imageUrl": "https://images.unsplash.com/photo-1693305584727-2a3b052da930?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxuYXZpZ2F0b3IlMjBzdW5nbGFzc2VzfGVufDB8fHx8MTc2Mjk1NzE2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "navigator sunglasses"
+    },
+    {
+      "id": "bestseller-5",
+      "description": "Elegant Catalyst Cat-Eye sunglasses.",
+      "imageUrl": "https://images.unsplash.com/photo-1716443705704-b1065d7b44d3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjYXQtZXllJTIwc3VuZ2xhc3Nlc3xlbnwwfHx8fDE3NjI5MzgyMjB8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "cat-eye sunglasses"
+    },
+    {
+      "id": "bestseller-6",
+      "description": "Modern Urban Explorer sunglasses.",
+      "imageUrl": "https://images.unsplash.com/photo-1760446032732-c042b0d43580?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjBzdW5nbGFzc2VzfGVufDB8fHx8MTc2Mjk1NzE2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "modern sunglasses"
+    },
+    {
+      "id": "ig-1",
+      "description": "User photo with sunglasses at the beach.",
+      "imageUrl": "https://images.unsplash.com/photo-1612536685280-4ed1dd019349?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwZXJzb24lMjBiZWFjaHxlbnwwfHx8fDE3NjI5MjkxMzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person beach"
+    },
+    {
+      "id": "ig-2",
+      "description": "User photo with sunglasses in a cafe.",
+      "imageUrl": "https://images.unsplash.com/photo-1617529503942-e3dd0ef38ee5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxwZXJzb24lMjBjYWZlfGVufDB8fHx8MTc2Mjg2MDc2OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person cafe"
+    },
+    {
+      "id": "ig-3",
+      "description": "User photo with sunglasses hiking.",
+      "imageUrl": "https://images.unsplash.com/photo-1675362339464-a46cdee49885?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8cGVyc29uJTIwaGlraW5nfGVufDB8fHx8MTc2MjkzNjg1MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person hiking"
+    },
+    {
+      "id": "ig-4",
+      "description": "User photo with sunglasses in the city.",
+      "imageUrl": "https://images.unsplash.com/photo-1742935923372-592d2e976221?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwZXJzb24lMjBjaXR5fGVufDB8fHx8MTc2Mjg1MjM1N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person city"
+    },
+    {
+      "id": "ig-5",
+      "description": "User selfie with new glasses.",
+      "imageUrl": "https://images.unsplash.com/photo-1741852379060-bc4f7552fe6c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxwZXJzb24lMjBzZWxmaWV8ZW58MHx8fHwxNzYyOTU3MTYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person selfie"
+    },
+    {
+      "id": "ig-6",
+      "description": "Stylish flatlay of sunglasses and accessories.",
+      "imageUrl": "https://images.unsplash.com/photo-1557901359-71e5668184b1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxzdW5nbGFzc2VzJTIwZmxhdGxheXxlbnwwfHx8fDE3NjI5NTcxNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "sunglasses flatlay"
+    },
+    {
+      "id": "ig-7",
+      "description": "Couple wearing matching sunglasses.",
+      "imageUrl": "https://images.unsplash.com/photo-1522724514897-24b0eb7ba3ea?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8Y291cGxlJTIwc3VuZ2xhc3Nlc3xlbnwwfHx8fDE3NjI5NTcxNjJ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "couple sunglasses"
+    },
+    {
+      "id": "ig-8",
+      "description": "User photo with glasses on a road trip.",
+      "imageUrl": "https://images.unsplash.com/photo-1537211790624-e6f568af4b13?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwZXJzb24lMjBjYXJ8ZW58MHx8fHwxNzYyOTU3MTYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person car"
+    }
+  ]
 }
