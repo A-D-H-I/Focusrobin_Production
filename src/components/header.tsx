@@ -61,18 +61,18 @@ export default function Header() {
           : "bg-transparent"
       )}
     >
-      <div className="container mx-auto px-4 md:px-0">
+      <div className="container mx-auto px-4">
         <div
           className={cn(
-            "relative flex items-center justify-between transition-all duration-300 md:px-4",
+            "relative flex items-center justify-between transition-all duration-300",
             isScrolled ? "h-16" : "h-24"
           )}
         >
-          <div className="flex-1 flex justify-start">
+          <div className="flex justify-start">
             <Logo className={cn(!isScrolled && "text-white")} />
           </div>
           
-          <nav className="hidden md:flex flex-1 justify-center items-center space-x-8">
+          <nav className="hidden md:flex justify-center items-center space-x-8 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             {navLinks.map((link) => (
               <Link
                 key={link.href + link.label}
@@ -84,7 +84,7 @@ export default function Header() {
             ))}
           </nav>
 
-          <div className="hidden md:flex flex-1 justify-end items-center space-x-2">
+          <div className="hidden md:flex justify-end items-center space-x-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className={cn("text-sm", !isScrolled && 'text-white hover:bg-white/10 hover:text-white')}>
