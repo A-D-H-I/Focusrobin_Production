@@ -1,10 +1,12 @@
-import Header from '@/components/header';
-import HeroSection from '@/components/hero-section';
-import BestsellersSection from '@/components/bestsellers-section';
-import ValuePropsSection from '@/components/value-props-section';
-import LensFeatureSection from '@/components/lens-feature-section';
-import InstagramFeedSection from '@/components/instagram-feed-section';
-import Footer from '@/components/footer';
+import Header from '@/components/Landing/header.tsx';
+import HeroSection from '@/components/Landing/hero-section.tsx';
+import IconicSection from '@/components/Landing/iconic-section.tsx';
+import GiftCategoriesSection from '@/components/Landing/gift-categories-section.tsx';
+import BestsellersCarousel from '@/components/Landing/BestsellersCarousel.tsx';
+import ValuePropsSection from '@/components/Landing/value-props-section.tsx';
+import LensFeatureSection from '@/components/Landing/lens-feature-section.tsx';
+import InstagramFeedSection from '@/components/Landing/instagram-feed-section.tsx';
+import Footer from '@/components/Landing/footer.tsx';
 
 export default function Home() {
   return (
@@ -12,8 +14,10 @@ export default function Home() {
       <Header />
       <main className="flex-grow">
         <HeroSection />
+        <IconicSection />
+        <GiftCategoriesSection />
+        <BestsellersCarousel />
         <div className="bg-background">
-          <BestsellersSection />
           <ValuePropsSection />
           <LensFeatureSection />
           <InstagramFeedSection />

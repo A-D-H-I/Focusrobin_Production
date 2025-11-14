@@ -10,11 +10,19 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Space Grotesk', 'sans-serif'],
+        body: ['var(--font-chillax)', 'sans-serif'],
+        headline: ['var(--font-chillax)', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {
+        brand: {
+          white: '#FFFFFF',
+          blue: 'hsl(var(--foreground))',
+          teal: '#4DCECA',
+        },
+        teal: {
+          primary: '#4DCECA',
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {

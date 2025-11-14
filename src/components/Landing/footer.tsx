@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Logo } from "@/components/logo";
+import { Logo } from "@/components/Landing/logo";
 import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
 import Link from 'next/link';
 

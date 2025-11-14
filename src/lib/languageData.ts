@@ -1,0 +1,27 @@
+export const supportedLanguages = [
+  { code: 'bg', name: 'Български (BG)' },
+  { code: 'cs', name: 'Čeština (CS)' },
+  { code: 'da', name: 'Dansk (DA)' },
+  { code: 'de', name: 'Deutsch (DE)' },
+  { code: 'el', name: 'Ελληνικά (EL)' },
+  { code: 'en', name: 'English (EN)' },
+  { code: 'es', name: 'Español (ES)' },
+  { code: 'et', name: 'Eesti (ET)' },
+  { code: 'fi', name: 'Suomi (FI)' },
+  { code: 'fr', name: 'Français (FR)' },
+  { code: 'ga', name: 'Gaeilge (GA)' },
+  { code: 'hr', name: 'Hrvatski (HR)' },
+  { code: 'hu', name: 'Magyar (HU)' },
+  { code: 'it', name: 'Italiano (IT)' },
+  { code: 'lt', name: 'Lietuvių (LT)' },
+  { code: 'lv', name: 'Latviešu (LV)' },
+  { code: 'mt', name: 'Malti (MT)' },
+  { code: 'nl', name: 'Nederlands (NL)' },
+  { code: 'pl', name: 'Polski (PL)' },
+  { code: 'pt', name: 'Português (PT)' },
+  { code: 'ro', name: 'Română (RO)' },
+  { code: 'sk', name: 'Slovenčina (SK)' },
+  { code: 'sl', name: 'Slovenščina (SL)' },
+  { code: 'sv', name: 'Svenska (SV)' }
+];
+
