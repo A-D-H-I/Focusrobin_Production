@@ -78,8 +78,15 @@
   * {
     @apply border-border;
   }
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
   body {
     @apply bg-background text-foreground;
+    scroll-behavior: smooth;
+    overflow-x: hidden;
   }
 }
 
@@ -93,5 +100,52 @@
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Smooth scrolling enhancements */
+  @supports (scroll-behavior: smooth) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  /* Custom scrollbar styling for smoother feel */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 5px;
+    transition: background 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* Smooth scroll animations for sections */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .scroll-fade-in {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  /* Smooth transitions for all elements during scroll */
+  section {
+    transition: opacity 0.3s ease-out, transform 0.3s ease-out;
   }
 }

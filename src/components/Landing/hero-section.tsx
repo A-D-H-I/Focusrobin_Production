@@ -11,13 +11,21 @@ export default function HeroSection() {
   const [offsetY, setOffsetY] = useState(0);
   const [isMounted, setIsMounted] = useState(false);
 
-  const handleScroll = () => {
-    setOffsetY(window.pageYOffset);
-  };
-
   useEffect(() => {
     setIsMounted(true);
-    window.addEventListener("scroll", handleScroll);
+    
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setOffsetY(window.pageYOffset);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 

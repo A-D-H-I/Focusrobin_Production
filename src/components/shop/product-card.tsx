@@ -39,7 +39,7 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
   };
   
   return (
-    <Link href={`/products/${product.id}`} className="block">
+    <Link href={`/products/${product.id}`} prefetch={true} className="block">
       <Card className="overflow-hidden group relative border-none bg-card/50 h-full">
         <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-10 bg-background/50 rounded-full h-8 w-8 hover:bg-background">
               <Heart className="h-4 w-4" />

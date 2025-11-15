@@ -36,7 +36,7 @@ export default function BestsellersSection() {
                 key={product.id}
                 className="pl-4 md:basis-1/2 lg:basis-1/3"
               >
-                <Link href={`/products/${product.id}`}>
+                <Link href={`/products/${product.id}`} prefetch={true}>
                   <div className="p-1">
                     <Card className="overflow-hidden border-none shadow-lg transform transition-transform duration-300 hover:scale-105">
                       <CardContent className="p-0">

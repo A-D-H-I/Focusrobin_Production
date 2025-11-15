@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Minus, Plus, Sun, ParkingCircle, Shield, Droplet, Star, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 type ProductPurchaseFormProps = {
   product: Product;
   onVariantChange?: (variant: typeof product.variants[0]) => void;
+  selectedVariant?: typeof product.variants[0];
 };
 
 const lensFeatures = [
@@ -20,15 +21,25 @@ const lensFeatures = [
   { icon: Droplet, text: "Superhydrophobic" },
 ];
 
-export default function ProductPurchaseForm({ product, onVariantChange }: ProductPurchaseFormProps) {
+export default function ProductPurchaseForm({ product, onVariantChange, selectedVariant: externalSelectedVariant }: ProductPurchaseFormProps) {
   const [selectedColor, setSelectedColor] = useState(product.variants[0]?.hex || '#000000');
-  const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
+  const [internalSelectedVariant, setInternalSelectedVariant] = useState(product.variants[0]);
+  const selectedVariant = externalSelectedVariant || internalSelectedVariant;
   const [quantity, setQuantity] = useState(1);
   
   const price = parseFloat(product.price.replace('€', ''));
 
+  // Sync selectedColor when external variant changes
+  useEffect(() => {
+    if (externalSelectedVariant) {
+      setSelectedColor(externalSelectedVariant.hex);
+    }
+  }, [externalSelectedVariant]);
+
   const handleColorSelect = (variant: typeof product.variants[0]) => {
-    setSelectedVariant(variant);
+    if (!externalSelectedVariant) {
+      setInternalSelectedVariant(variant);
+    }
     setSelectedColor(variant.hex);
     onVariantChange?.(variant);
   };

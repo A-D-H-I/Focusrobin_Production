@@ -9,14 +9,21 @@ export default function IconicSection() {
   const [offsetY, setOffsetY] = useState(0);
   
   // Use the iconic image
-  const backgroundImage = "/iconic/iconicsection.jpg";
-
-  const handleScroll = () => {
-    setOffsetY(window.pageYOffset);
-  };
+  const backgroundImage = "/Iconic/iconicimage3.png";
 
   useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setOffsetY(window.pageYOffset);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -25,21 +32,19 @@ export default function IconicSection() {
       {/* Background Image with Parallax from Below */}
       <div className="absolute inset-0 z-0 overflow-hidden">
         <div
-          className="absolute inset-0 -top-[25%] -bottom-[25%]"
-          style={{ transform: `translateY(${-offsetY * 0.13+50}px)` }}
+          className="absolute inset-0"
+          style={{ transform: `translateY(${-offsetY * 0.10+50}px)` }}
         >
           
           <Image
             src={backgroundImage}
             alt="FocusRobin background"
             fill
-            className="object-cover"
+            className="object-contain"
             priority
             sizes="100vw"
           />
         </div>
-        {/* Dark overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-r from-gray-900/80 via-gray-900/70 to-gray-900/60 z-10" />
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
@@ -51,12 +56,12 @@ export default function IconicSection() {
             </h2>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-              <Link href="/shop">
+              <Link href="/shop" prefetch={true}>
                 <Button size="lg" className="rounded-full px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg">
                   SHOP SUNGLASSES
                 </Button>
               </Link>
-              <Link href="/shop">
+              <Link href="/shop" prefetch={true}>
                 <Button size="lg" className="rounded-full px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg">
                   Virtual Try-On
                 </Button>

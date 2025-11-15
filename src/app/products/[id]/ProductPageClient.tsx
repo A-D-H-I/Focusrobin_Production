@@ -7,34 +7,45 @@ import ProductPurchaseForm from "@/components/shop/product-purchase-form";
 
 type ProductPageClientProps = {
   product: Product;
+  showGalleryOnly?: boolean;
+  showPurchaseFormOnly?: boolean;
 };
 
-export default function ProductPageClient({ product }: ProductPageClientProps) {
+export default function ProductPageClient({ 
+  product, 
+  showGalleryOnly = false,
+  showPurchaseFormOnly = false 
+}: ProductPageClientProps) {
   const [selectedVariant, setSelectedVariant] = useState<ProductColorVariant>(product.variants[0]);
 
-  return (
-    <>
-      {/* Mobile Layout: Gallery -> Purchase Form */}
+  // Mobile Layout: Gallery -> Purchase Form
+  if (!showGalleryOnly && !showPurchaseFormOnly) {
+    return (
       <div className="lg:hidden space-y-8">
         <ProductGallery product={product} selectedVariant={selectedVariant} />
         <ProductPurchaseForm product={product} onVariantChange={setSelectedVariant} />
       </div>
+    );
+  }
 
-      {/* Desktop Grid Layout */}
-      <div className="hidden lg:grid lg:grid-cols-5 gap-12">
-        {/* Left Column - Scrollable */}
-        <div className="lg:col-span-3 space-y-12">
-          <ProductGallery product={product} selectedVariant={selectedVariant} />
-        </div>
-        
-        {/* Right Column - Sticky */}
-        <div className="lg:col-span-2">
-          <div className="lg:sticky lg:top-28">
-            <ProductPurchaseForm product={product} onVariantChange={setSelectedVariant} />
-          </div>
-        </div>
+  // Desktop: Show only Gallery
+  if (showGalleryOnly) {
+    return (
+      <div className="hidden lg:block">
+        <ProductGallery product={product} selectedVariant={selectedVariant} />
       </div>
-    </>
-  );
+    );
+  }
+
+  // Desktop: Show only Purchase Form
+  if (showPurchaseFormOnly) {
+    return (
+      <div className="hidden lg:block">
+        <ProductPurchaseForm product={product} onVariantChange={setSelectedVariant} />
+      </div>
+    );
+  }
+
+  return null;
 }
 

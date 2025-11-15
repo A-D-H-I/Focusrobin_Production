@@ -75,7 +75,7 @@ export default function ProductDetailsTabs({ product }: { product: Product }) {
       <TabsContent value="shipping" className="py-4 sm:py-8 px-2">
         <div className="prose max-w-none text-foreground/80">
             <h3 className="font-bold text-foreground font-headline mb-4 text-base sm:text-lg">Shipping & Returns Policy</h3>
-            <p className="text-sm sm:text-base">We offer free standard shipping on all orders. Expedited shipping options are available at checkout. We want you to be completely satisfied with your purchase. If you're not, you can return it for a full refund or exchange within 30 days of delivery. All returned items must be in their original, unworn condition.</p>
+            <p className="text-sm sm:text-base">We offer free standard shipping on all orders. Expedited shipping options are available at checkout. We provide hassle-free returns and exchanges within 14 days of purchase. Frames must be in their original condition.</p>
         </div>
       </TabsContent>
 

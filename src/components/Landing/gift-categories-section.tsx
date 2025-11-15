@@ -21,6 +21,7 @@ export default function GiftCategoriesSection() {
       {/* SHOP FOR MEN */}
       <Link 
         href="/shop" 
+        prefetch={true}
         className="relative group overflow-hidden cursor-pointer"
         aria-label="Shop for men"
       >
@@ -48,6 +49,7 @@ export default function GiftCategoriesSection() {
       {/* SHOP FOR WOMEN */}
       <Link 
         href="/shop" 
+        prefetch={true}
         className="relative group overflow-hidden cursor-pointer"
         aria-label="Shop for women"
       >
@@ -75,6 +77,7 @@ export default function GiftCategoriesSection() {
       {/* SHOP FOR KIDS */}
       <Link 
         href="/shop" 
+        prefetch={true}
         className="relative group overflow-hidden cursor-pointer"
         aria-label="Shop for kids"
       >

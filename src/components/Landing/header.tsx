@@ -84,6 +84,7 @@ export default function Header() {
               <Link
                 key={link.href + link.label}
                 href={link.href}
+                prefetch={true}
                 className={cn(
                   "text-sm font-bold transition-colors whitespace-nowrap",
                   isScrolled 
@@ -101,7 +102,10 @@ export default function Header() {
             {/* Search Input */}
             <form onSubmit={handleSearch} className="relative hidden xl:block">
               <Search 
-                className={cn("absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5", isScrolled ? 'text-muted-foreground' : 'text-black')} 
+                className={cn(
+                  "absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 z-10 pointer-events-none", 
+                  isScrolled ? 'text-muted-foreground' : 'text-black'
+                )} 
               />
               <Input
                 type="search"

@@ -26,6 +26,7 @@ function ProductCard({ product, showCashback = false, priority = false }: Produc
   return (
     <Link
       href={`/products/${product.id}`}
+      prefetch={true}
       className="group block"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
