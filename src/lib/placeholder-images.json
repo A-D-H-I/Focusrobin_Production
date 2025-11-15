@@ -89,6 +89,30 @@
       "description": "User photo with glasses on a road trip.",
       "imageUrl": "https://images.unsplash.com/photo-1537211790624-e6f568af4b13?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwZXJzb24lMjBjYXJ8ZW58MHx8fHwxNzYyOTU3MTYyfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "person car"
+    },
+    {
+      "id": "feature-polarized",
+      "description": "View of New York City through a polarized lens.",
+      "imageUrl": "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?q=80&w=2940&auto=format&fit=crop",
+      "imageHint": "new york"
+    },
+    {
+      "id": "feature-cat3",
+      "description": "Side view of dark sunglasses lens.",
+      "imageUrl": "https://images.unsplash.com/photo-1614900822606-316279634333?q=80&w=2940&auto=format&fit=crop",
+      "imageHint": "sunglasses side"
+    },
+    {
+      "id": "feature-layers",
+      "description": "Diagram showing the layers of a lens.",
+      "imageUrl": "https://storage.googleapis.com/aifirebase-79f9f.appspot.com/images%2F0001.png",
+      "imageHint": "lens diagram"
+    },
+    {
+      "id": "packaging",
+      "description": "Stylish sunglasses packaging including a box and a case.",
+      "imageUrl": "https://images.unsplash.com/photo-1621991461129-3a3d25b68142?q=80&w=2940&auto=format&fit=crop",
+      "imageHint": "sunglasses packaging"
     }
   ]
 }

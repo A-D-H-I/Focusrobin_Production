@@ -1,0 +1,252 @@
+{
+  "women": {
+    "Agnes": {
+      "Dame Wood": [
+        "/products/women/agnes/dame-wood/1.jpg"
+      ],
+      "Midnight": [
+        "/products/women/agnes/midnight/1.jpg"
+      ],
+      "Shell Marble": [
+        "/products/women/agnes/shell-marble/1.png"
+      ]
+    },
+    "Astrid": {
+      "Ivory": [
+        "/products/women/astrid/ivory/1.png"
+      ],
+      "Tigers Eye": [
+        "/products/women/astrid/tigers-eye/1.png"
+      ]
+    },
+    "Clara": {
+      "Black Temple Milk & Rose Ebony": [
+        "/products/women/clara/black-temple-milk-&-rose-ebony/1.png"
+      ],
+      "Old Lace": [
+        "/products/women/clara/old-lace/1.png"
+      ]
+    },
+    "Claudia": {
+      "Piano Black": [
+        "/products/women/claudia/piano-black/1.png"
+      ],
+      "Tortoise": [
+        "/products/women/claudia/tortoise/1.png"
+      ]
+    },
+    "Colette": {
+      "Milk & Rose Ebony": [
+        "/products/women/colette/milk-&-rose-ebony/1.png"
+      ],
+      "Tigers Eye": [
+        "/products/women/colette/tigers-eye/1.png"
+      ]
+    },
+    "Daphne": {
+      "Ink Tortoise": [
+        "/products/women/daphne/ink-tortoise/1.png"
+      ],
+      "Tortoise Amber": [
+        "/products/women/daphne/tortoise-amber/1.png"
+      ],
+      "Tortoise Brown": [
+        "/products/women/daphne/tortoise-brown/1.png"
+      ]
+    },
+    "Edith": {
+      "Blush Marble": [
+        "/products/women/edith/blush-marble/1.png"
+      ],
+      "Piano Black": [
+        "/products/women/edith/piano-black/1.png"
+      ]
+    },
+    "Elodie": {
+      "Tortoise": [
+        "/products/women/elodie/tortoise/1.png"
+      ],
+      "Transparent & Tortoise": [
+        "/products/women/elodie/transparent-&-tortoise/1.png"
+      ],
+      "Transparent Tan": [
+        "/products/women/elodie/transparent-tan/1.png"
+      ]
+    },
+    "Estelle": {
+      "Tortoise": [
+        "/products/women/estelle/tortoise/1.png"
+      ]
+    },
+    "Evelyn": {
+      "Forest Green": [
+        "/products/women/evelyn/forest-green/1.png"
+      ],
+      "Midnight Black": [
+        "/products/women/evelyn/midnight-black/1.png"
+      ]
+    },
+    "Florence": {
+      "Tigers Eye": [
+        "/products/women/florence/tigers-eye/1.png"
+      ],
+      "Tortoise": [
+        "/products/women/florence/tortoise/1.png"
+      ]
+    },
+    "Grace": {
+      "Classic Rose": [
+        "/products/women/grace/classic-rose/1.png"
+      ],
+      "Tortoise": [
+        "/products/women/grace/tortoise/1.png"
+      ]
+    },
+    "Harlow": {
+      "Ash Marble": [
+        "/products/women/harlow/ash-marble/1.png"
+      ]
+    },
+    "Lydia": {
+      "Midnight Black": [
+        "/products/women/lydia/midnight-black/1.png"
+      ]
+    },
+    "Sienna": {
+      "Antique White": [
+        "/products/women/sienna/antique-white/1.png"
+      ],
+      "Midnight Black": [
+        "/products/women/sienna/midnight-black/1.png"
+      ]
+    }
+  },
+  "men": {
+    "Alfie": {
+      "Piano Black": [
+        "/products/men/alfie/piano-black/1.png"
+      ],
+      "Tortoise": [
+        "/products/men/alfie/tortoise/1.png"
+      ],
+      "Tuscan Red": [
+        "/products/men/alfie/tuscan-red/1.png"
+      ]
+    },
+    "Ellis": {
+      "Alabaster": [
+        "/products/men/ellis/alabaster/1.png"
+      ]
+    },
+    "Jamie": {
+      "Purple Navy": [
+        "/products/men/jamie/purple-navy/1.png"
+      ],
+      "Tortoise": [
+        "/products/men/jamie/tortoise/1.png"
+      ]
+    },
+    "Oscar": {
+      "Ivory Tortoise": [
+        "/products/men/oscar/ivory-tortoise/1.png"
+      ],
+      "Midnight Black": [
+        "/products/men/oscar/midnight-black/1.png"
+      ],
+      "Transparent": [
+        "/products/men/oscar/transparent/1.png"
+      ],
+      "Transparent Crystal Blue": [
+        "/products/men/oscar/transparent-crystal-blue/1.png"
+      ],
+      "Transparent Grey": [
+        "/products/men/oscar/transparent-grey/1.png"
+      ]
+    },
+    "Rex": {
+      "Midnight Black": [
+        "/products/men/rex/midnight-black/1.png"
+      ]
+    },
+    "Riley": {
+      "Tortoise": [
+        "/products/men/riley/tortoise/1.png"
+      ]
+    },
+    "Rupert": {
+      "Tortoise": [
+        "/products/men/rupert/tortoise/1.png"
+      ]
+    },
+    "Sebastian": {},
+    "Theo": {
+      "Midnight Black": [
+        "/products/men/theo/midnight-black/1.png"
+      ]
+    },
+    "Vera": {
+      "Ivory Pearl": [
+        "/products/men/vera/ivory-pearl/1.png"
+      ],
+      "Piano Black": [
+        "/products/men/vera/piano-black/1.png"
+      ],
+      "Tortoise": [
+        "/products/men/vera/tortoise/1.png"
+      ]
+    },
+    "Vivienne": {
+      "Dark Brown": [
+        "/products/men/vivienne/dark-brown/1.png"
+      ],
+      "Midnight Black": [
+        "/products/men/vivienne/midnight-black/1.png"
+      ]
+    }
+  },
+  "kids": {
+    "Elton": {
+      "Piano Black": [
+        "/products/kids/elton/piano-black/1.png"
+      ]
+    },
+    "Finley": {
+      "Tortoise": [
+        "/products/kids/finley/tortoise/1.png"
+      ]
+    },
+    "Lenny": {
+      "Piano Black": [
+        "/products/kids/lenny/piano-black/1.png"
+      ],
+      "Tortoise": [
+        "/products/kids/lenny/tortoise/1.png"
+      ]
+    },
+    "Marnie": {
+      "Matte Black & Grey-White": [
+        "/products/kids/marnie/matte-black-&-grey-white/1.png"
+      ]
+    },
+    "Nico": {
+      "Black & Grey Tortoise": [
+        "/products/kids/nico/black-&-grey-tortoise/1.png"
+      ]
+    },
+    "Poppy": {
+      "Black & Blue": [
+        "/products/kids/poppy/black-&-blue/1.png"
+      ]
+    },
+    "Rudy": {
+      "Tortoise": [
+        "/products/kids/rudy/tortoise/1.png"
+      ]
+    },
+    "Toby": {
+      "Grey Tortoise": [
+        "/products/kids/toby/grey-tortoise/1.png"
+      ]
+    }
+  }
+}

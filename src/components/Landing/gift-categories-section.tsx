@@ -30,7 +30,7 @@ export default function GiftCategoriesSection() {
             style={{ transform: `translateY(${-offsetY * 0.10+50}px)` }}
           >
             <Image
-              src="/heroimage/hero1.jpg"
+              src="/shopcategory/Men.jpg"
               alt="Shop for men"
               fill
               className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
@@ -57,7 +57,7 @@ export default function GiftCategoriesSection() {
             style={{ transform: `translateY(${-offsetY * 0.10+50}px)` }}
           >
             <Image
-              src="/heroimage/heroimage.jpg"
+              src="/shopcategory/Women.ARW"
               alt="Shop for women"
               fill
               className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
@@ -84,7 +84,7 @@ export default function GiftCategoriesSection() {
             style={{ transform: `translateY(${-offsetY * 0.10+50}px)` }}
           >
             <Image
-              src="/heroimage/hero1.jpg"
+              src="/shopcategory/kids.jpg"
               alt="Shop for kids"
               fill
               className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"

@@ -60,12 +60,12 @@ export default function BestsellersCarousel() {
           ref={scrollContainerRef}
           className="flex overflow-x-auto scroll-smooth snap-x snap-mandatory gap-6 pb-4 hide-scrollbar"
         >
-          {products.map((product) => (
+          {products.map((product, index) => (
             <div
               key={product.id}
               className="flex-shrink-0 w-80 snap-start"
             >
-              <ProductCard product={product} />
+              <ProductCard product={product} priority={index < 2} />
             </div>
           ))}
         </div>

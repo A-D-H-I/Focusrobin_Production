@@ -52,7 +52,7 @@ export default function Header() {
   };
 
   const navLinks = [
-    { href: "#", label: "Shop" },
+    { href: "/shop", label: "Shop" },
     { href: "#", label: "About" },
     { href: "#", label: "Contact" },
   ];
@@ -84,7 +84,12 @@ export default function Header() {
               <Link
                 key={link.href + link.label}
                 href={link.href}
-                className={cn("text-sm font-medium transition-colors whitespace-nowrap", isScrolled ? 'text-foreground hover:text-primary' : 'text-white hover:text-white/80')}
+                className={cn(
+                  "text-sm font-bold transition-colors whitespace-nowrap",
+                  isScrolled 
+                    ? 'text-black hover:text-primary' 
+                    : 'text-black hover:text-black/80'
+                )}
               >
                 {link.label}
               </Link>
@@ -95,17 +100,19 @@ export default function Header() {
           <div className="hidden lg:flex flex-shrink-0 flex-1 justify-end items-center space-x-2 xl:space-x-4">
             {/* Search Input */}
             <form onSubmit={handleSearch} className="relative hidden xl:block">
-              <Search className={cn("absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5", isScrolled ? 'text-muted-foreground' : 'text-white/70')} />
+              <Search 
+                className={cn("absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5", isScrolled ? 'text-muted-foreground' : 'text-black')} 
+              />
               <Input
                 type="search"
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className={cn(
-                  "pl-7 pr-3 h-8 w-32 text-xs",
+                  "pl-7 pr-3 h-8 w-32 text-xs font-semibold",
                   isScrolled 
                     ? "bg-background border-input text-foreground" 
-                    : "bg-white/10 border-white/20 text-white placeholder:text-white/50 backdrop-blur-sm"
+                    : "bg-white/10 border-white/20 text-black placeholder:text-black/50 backdrop-blur-sm"
                 )}
               />
             </form>
@@ -114,21 +121,21 @@ export default function Header() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className={cn("xl:hidden h-8 w-8 xl:h-10 xl:w-10", !isScrolled && 'text-white hover:bg-white/10 hover:text-white')}
+              className={cn("xl:hidden h-8 w-8 xl:h-10 xl:w-10", !isScrolled && 'text-black hover:bg-white/10 hover:text-black')}
               onClick={() => setIsSearchOpen(!isSearchOpen)}
             >
               <Search className="h-4 w-4 xl:h-5 xl:w-5" />
               <span className="sr-only">Search</span>
             </Button>
 
-            <LanguageSwitcher className={cn(isScrolled ? 'text-foreground border-foreground/20' : 'text-white border-white/30')} />
-            <CurrencySwitcher className={cn(isScrolled ? 'text-foreground border-foreground/20' : 'text-white border-white/30')} />
+            <LanguageSwitcher className={cn(isScrolled ? 'text-foreground border-foreground/20' : 'text-black border-black/30 font-bold')} />
+            <CurrencySwitcher className={cn(isScrolled ? 'text-foreground border-foreground/20' : 'text-black border-black/30 font-bold')} />
 
-            <Button variant="ghost" size="icon" className={cn("h-8 w-8 xl:h-10 xl:w-10", !isScrolled && 'text-white hover:bg-white/10 hover:text-white')}>
+            <Button variant="ghost" size="icon" className={cn("h-8 w-8 xl:h-10 xl:w-10", !isScrolled && 'text-black hover:bg-white/10 hover:text-black')}>
               <User className="h-4 w-4 xl:h-5 xl:w-5" />
               <span className="sr-only">Account</span>
             </Button>
-            <Button variant="ghost" size="icon" className={cn("h-8 w-8 xl:h-10 xl:w-10", !isScrolled && 'text-white hover:bg-white/10 hover:text-white')}>
+            <Button variant="ghost" size="icon" className={cn("h-8 w-8 xl:h-10 xl:w-10", !isScrolled && 'text-black hover:bg-white/10 hover:text-black')}>
               <ShoppingCart className="h-4 w-4 xl:h-5 xl:w-5" />
               <span className="sr-only">Cart</span>
             </Button>
@@ -156,7 +163,15 @@ export default function Header() {
           <div className="lg:hidden flex-1 flex justify-end">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className={cn(!isScrolled && 'text-white hover:bg-white/10 hover:text-white')}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className={cn(
+                    !isScrolled 
+                      ? 'text-white hover:bg-white/10 hover:text-white bg-black/20 backdrop-blur-sm' 
+                      : 'text-foreground hover:bg-accent'
+                  )}
+                >
                   <Menu className="h-6 w-6" />
                   <span className="sr-only">Open menu</span>
                 </Button>

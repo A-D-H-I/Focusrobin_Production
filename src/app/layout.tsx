@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import localFont from 'next/font/local';
 import { Toaster } from "@/components/ui/toaster";
 import { CurrencyProvider } from "@/context/CurrencyContext";
+import { CartProvider } from "@/context/CartContext";
 import './globals.css';
 
 const chillax = localFont({
@@ -24,8 +25,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${chillax.variable} font-body antialiased`}>
         <CurrencyProvider>
-          {children}
-          <Toaster />
+          <CartProvider>
+            {children}
+            <Toaster />
+          </CartProvider>
         </CurrencyProvider>
       </body>
     </html>

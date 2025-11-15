@@ -9,7 +9,7 @@ export default function IconicSection() {
   const [offsetY, setOffsetY] = useState(0);
   
   // Use the iconic image
-  const backgroundImage = "/heroimage/iconic.jpg";
+  const backgroundImage = "/iconic/iconicsection.jpg";
 
   const handleScroll = () => {
     setOffsetY(window.pageYOffset);

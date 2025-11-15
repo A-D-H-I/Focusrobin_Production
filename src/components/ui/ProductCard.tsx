@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, memo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Heart } from "lucide-react";
@@ -10,16 +10,18 @@ import { cn } from "@/lib/utils";
 interface ProductCardProps {
   product: Product;
   showCashback?: boolean;
+  priority?: boolean; // For above-the-fold images
 }
 
-export default function ProductCard({ product, showCashback = false }: ProductCardProps) {
+function ProductCard({ product, showCashback = false, priority = false }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
+  const [hoveredVariant, setHoveredVariant] = useState<typeof product.variants[0] | null>(null);
   
-  const firstVariant = product.variants[0];
-  const mainImage = firstVariant?.images[0] || "/images/placeholder.jpg";
-  const hoverImage = firstVariant?.images[1] || mainImage;
-  const hasSecondImage = firstVariant?.images[1] !== undefined;
+  // Use the hovered variant's image if hovering over a color, otherwise use selected variant
+  const displayVariant = hoveredVariant || selectedVariant;
+  const mainImage = displayVariant?.thumbnail || displayVariant?.images[0] || "/images/placeholder.jpg";
 
   return (
     <Link
@@ -55,30 +57,33 @@ export default function ProductCard({ product, showCashback = false }: ProductCa
           />
         </button>
 
-        {/* Product Image with Hover Effect */}
-        <div className="aspect-[4/3] relative bg-muted overflow-hidden">
-          <div className="relative w-full h-full">
+        {/* Product Image with Hover Effect - Zoom and show right side */}
+        <div 
+          className="aspect-[4/3] relative bg-muted overflow-hidden"
+          onMouseEnter={() => {
+            setIsHovered(true);
+          }}
+          onMouseLeave={() => {
+            setIsHovered(false);
+          }}
+        >
+          <div className="relative w-full h-full overflow-hidden">
             <Image
+              key={displayVariant?.hex || 'default'} // Force re-render when variant changes
               src={mainImage}
-              alt={product.name}
+              alt={`${product.name} - ${displayVariant?.name || ''}`}
               fill
+              priority={priority}
+              loading={priority ? undefined : "lazy"}
               className={cn(
-                "object-cover transition-opacity duration-300",
-                isHovered && hasSecondImage ? "opacity-0" : "opacity-100"
+                "object-cover transition-all duration-500 ease-out",
+                isHovered || hoveredVariant ? "scale-150" : "scale-100"
               )}
-              priority
+              style={{
+                objectPosition: (isHovered || hoveredVariant) ? 'right center' : 'center center'
+              }}
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
-            {hasSecondImage && (
-              <Image
-                src={hoverImage}
-                alt={`${product.name} - alternate view`}
-                fill
-                className={cn(
-                  "object-cover transition-opacity duration-300 absolute inset-0",
-                  isHovered ? "opacity-100" : "opacity-0"
-                )}
-              />
-            )}
           </div>
         </div>
 
@@ -101,12 +106,31 @@ export default function ProductCard({ product, showCashback = false }: ProductCa
             </p>
           )}
 
-          {/* Color Swatches */}
+          {/* Color Swatches - Clickable */}
           <div className="flex items-center space-x-1.5 pt-1">
             {product.variants.map((variant) => (
-              <span
+              <button
                 key={variant.hex}
-                className="block h-4 w-4 rounded-full border border-border/50 hover:scale-110 transition-transform"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setSelectedVariant(variant);
+                  setHoveredVariant(null); // Reset hover on click
+                }}
+                onMouseEnter={() => {
+                  setHoveredVariant(variant); // Change image to this variant
+                  setIsHovered(true); // Also trigger zoom effect
+                }}
+                onMouseLeave={() => {
+                  setHoveredVariant(null); // Revert to selected variant
+                  setIsHovered(false); // Remove zoom effect
+                }}
+                className={cn(
+                  "block h-4 w-4 rounded-full border transition-all cursor-pointer",
+                  selectedVariant?.hex === variant.hex
+                    ? "border-primary ring-1 ring-primary scale-125"
+                    : "border-border/50 hover:scale-110"
+                )}
                 style={{ backgroundColor: variant.hex }}
                 title={variant.name}
                 aria-label={`Color: ${variant.name}`}
@@ -118,4 +142,7 @@ export default function ProductCard({ product, showCashback = false }: ProductCa
     </Link>
   );
 }
+
+// Memoize to prevent unnecessary re-renders
+export default memo(ProductCard);
 
