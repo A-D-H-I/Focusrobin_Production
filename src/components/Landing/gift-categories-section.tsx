@@ -1,106 +1,80 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { normalizeImageUrl } from "@/lib/normalize-image-url";
 
-export default function GiftCategoriesSection() {
-  const [offsetY, setOffsetY] = useState(0);
+interface CategoryImageData {
+  id: string;
+  category: string;
+  imageUrl: string;
+  alt: string;
+  link: string;
+}
 
-  const handleScroll = () => {
-    setOffsetY(window.pageYOffset);
-  };
+interface GiftCategoriesSectionProps {
+  categoryImages: CategoryImageData[];
+}
 
-  useEffect(() => {
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+const categoryLabels: Record<string, string> = {
+  MEN: 'SHOP FOR MEN',
+  WOMEN: 'SHOP FOR WOMEN',
+  KIDS: 'SHOP FOR KIDS',
+};
+
+const categoryRoutes: Record<string, string> = {
+  MEN: '/shop/men',
+  WOMEN: '/shop/women',
+  KIDS: '/shop/kids',
+};
+
+export default function GiftCategoriesSection({ categoryImages }: GiftCategoriesSectionProps) {
+  if (categoryImages.length === 0) {
+    return null;
+  }
+
+  // Get images for each category
+  const menImage = categoryImages.find(img => img.category === 'MEN');
+  const womenImage = categoryImages.find(img => img.category === 'WOMEN');
+  const kidsImage = categoryImages.find(img => img.category === 'KIDS');
+
+  const categories = [
+    { image: menImage, category: 'MEN' },
+    { image: womenImage, category: 'WOMEN' },
+    { image: kidsImage, category: 'KIDS' },
+  ].filter(item => item.image);
+
+  if (categories.length === 0) {
+    return null;
+  }
 
   return (
-    <section className="grid grid-cols-3 min-h-[600px]">
-      {/* SHOP FOR MEN */}
-      <Link 
-        href="/shop" 
-        prefetch={true}
-        className="relative group overflow-hidden cursor-pointer"
-        aria-label="Shop for men"
-      >
-        <div className="absolute inset-0 overflow-hidden">
-          <div
-            className="absolute inset-0 -top-[25%] -bottom-[25%]"
-            style={{ transform: `translateY(${-offsetY * 0.10+50}px)` }}
-          >
+    <section className="grid grid-cols-1 md:grid-cols-3 min-h-[600px]">
+      {categories.map(({ image, category }) => (
+        <Link 
+          key={image.id}
+          href={categoryRoutes[category] || '/shop'} 
+          prefetch={true}
+          className="relative group overflow-hidden cursor-pointer min-h-[300px] md:min-h-0"
+          aria-label={`Shop for ${category.toLowerCase()}`}
+        >
+          <div className="absolute inset-0 overflow-hidden">
             <Image
-              src="/shopcategory/Men.jpg"
-              alt="Shop for men"
+              src={normalizeImageUrl(image.imageUrl)}
+              alt={image.alt}
               fill
               className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+              unoptimized
             />
           </div>
-        </div>
-        <div className="absolute bottom-8 left-0 right-0 text-center z-10">
-          <h3 className="text-white font-headline text-2xl font-bold uppercase tracking-wider drop-shadow-lg">
-            SHOP FOR MEN
-          </h3>
-        </div>
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 z-10" />
-      </Link>
-
-      {/* SHOP FOR WOMEN */}
-      <Link 
-        href="/shop" 
-        prefetch={true}
-        className="relative group overflow-hidden cursor-pointer"
-        aria-label="Shop for women"
-      >
-        <div className="absolute inset-0 overflow-hidden">
-          <div
-            className="absolute inset-0 -top-[25%] -bottom-[25%]"
-            style={{ transform: `translateY(${-offsetY * 0.10+50}px)` }}
-          >
-            <Image
-              src="/shopcategory/Women.ARW"
-              alt="Shop for women"
-              fill
-              className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
-            />
+          <div className="absolute bottom-8 left-0 right-0 text-center z-10">
+            <h3 className="text-white font-headline text-2xl font-bold uppercase tracking-wider drop-shadow-lg">
+              {categoryLabels[category] || `SHOP FOR ${category}`}
+            </h3>
           </div>
-        </div>
-        <div className="absolute bottom-8 left-0 right-0 text-center z-10">
-          <h3 className="text-white font-headline text-2xl font-bold uppercase tracking-wider drop-shadow-lg">
-            SHOP FOR WOMEN
-          </h3>
-        </div>
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 z-10" />
-      </Link>
-
-      {/* SHOP FOR KIDS */}
-      <Link 
-        href="/shop" 
-        prefetch={true}
-        className="relative group overflow-hidden cursor-pointer"
-        aria-label="Shop for kids"
-      >
-        <div className="absolute inset-0 overflow-hidden">
-          <div
-            className="absolute inset-0 -top-[25%] -bottom-[25%]"
-            style={{ transform: `translateY(${-offsetY * 0.10+50}px)` }}
-          >
-            <Image
-              src="/shopcategory/kids.jpg"
-              alt="Shop for kids"
-              fill
-              className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
-            />
-          </div>
-        </div>
-        <div className="absolute bottom-8 left-0 right-0 text-center z-10">
-          <h3 className="text-white font-headline text-2xl font-bold uppercase tracking-wider drop-shadow-lg">
-            SHOP FOR KIDS
-          </h3>
-        </div>
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 z-10" />
-      </Link>
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 z-10" />
+        </Link>
+      ))}
     </section>
   );
 }

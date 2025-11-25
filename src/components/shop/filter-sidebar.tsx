@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 
 const filters = {
-  Gender: ["Men", "Women", "Unisex"],
+  Gender: ["Men", "Women", "Kids", "Unisex"],
   Shape: ["Aviator", "Wayfarer", "Round", "Cat-Eye", "Navigator"],
   Color: ["Black", "Brown", "Gold", "Silver", "Tortoise"],
   Rim: ["Full Rim", "Semi-Rimless", "Rimless"],

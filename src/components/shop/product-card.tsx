@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import type { Product, ProductColorVariant } from "@/lib/productData";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 
 type ProductCardProps = {
@@ -20,13 +21,29 @@ type ProductCardProps = {
 function ProductCard({ product, onColorClick, priority = false }: ProductCardProps) {
   const [hoveredVariant, setHoveredVariant] = useState<ProductColorVariant | null>(null);
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isImageHovered, setIsImageHovered] = useState(false);
   const { addToCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
   
-  // Use the hovered variant's image if hovering over a color, otherwise use selected variant
+  const isWishlisted = isInWishlist(product.id, selectedVariant.hex);
+  
+  // Determine which image to display
+  // If hovering a color: show that color's thumbnail
+  // If hovering the image (not a color): show the selected variant's tilted image if available
+  // Otherwise: show the selected variant's thumbnail
   const displayVariant = hoveredVariant || selectedVariant;
-  const mainImage = displayVariant?.thumbnail || displayVariant?.images[0] || '';
+  let mainImage = '';
+  if (hoveredVariant) {
+    // When hovering a color, show its thumbnail (not tilted)
+    mainImage = hoveredVariant.thumbnail || hoveredVariant.images[0] || '';
+  } else if (isImageHovered && selectedVariant?.tilted) {
+    // When hovering the image (and not hovering a color), show the tilted/hover image
+    mainImage = selectedVariant.tilted;
+  } else {
+    // Default: show the selected variant's thumbnail
+    mainImage = selectedVariant?.thumbnail || selectedVariant?.images[0] || '';
+  }
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -39,37 +56,58 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
   };
   
   return (
-    <Link href={`/products/${product.id}`} prefetch={true} className="block">
+    <Link 
+      href={`/products/${encodeURIComponent(product.id)}?viewed=${encodeURIComponent(product.id)}`} 
+      prefetch={true} 
+      className="block"
+    >
       <Card className="overflow-hidden group relative border-none bg-card/50 h-full">
-        <Button variant="ghost" size="icon" className="absolute top-2 right-2 z-10 bg-background/50 rounded-full h-8 w-8 hover:bg-background">
-              <Heart className="h-4 w-4" />
-          </Button>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="absolute top-2 right-2 z-10 bg-background/50 rounded-full h-8 w-8 hover:bg-background"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isWishlisted) {
+              removeFromWishlist(product.id, selectedVariant.hex);
+              toast({
+                title: "Removed from wishlist",
+                description: `${product.name} has been removed from your wishlist.`,
+              });
+            } else {
+              addToWishlist(product, selectedVariant);
+              toast({
+                title: "Added to wishlist",
+                description: `${product.name} has been added to your wishlist.`,
+              });
+            }
+          }}
+        >
+          <Heart className={cn("h-4 w-4", isWishlisted && "fill-red-500 text-red-500")} />
+        </Button>
         <CardContent className="p-0 flex flex-col h-full">
           <div 
-            className="aspect-square relative bg-muted overflow-hidden"
+            className="aspect-square relative bg-muted overflow-hidden group/image"
             onMouseEnter={() => {
-              setIsHovered(true);
+              if (!hoveredVariant) {
+                setIsImageHovered(true);
+              }
             }}
             onMouseLeave={() => {
-              setIsHovered(false);
+              setIsImageHovered(false);
             }}
           >
             {mainImage && (
               <div className="relative w-full h-full overflow-hidden">
                 <Image
-                  key={displayVariant?.hex || 'default'} // Force re-render when variant changes
+                  key={`${displayVariant?.hex || 'default'}-${isImageHovered && !hoveredVariant && selectedVariant?.tilted ? 'tilted' : 'normal'}`} // Force re-render when image changes
                   src={mainImage}
                   alt={`${product.name} - ${displayVariant?.name || ''}`}
                   fill
                   priority={priority}
                   loading={priority ? undefined : "lazy"}
-                  className={cn(
-                    "object-cover p-4 transition-all duration-500 ease-out",
-                    isHovered || hoveredVariant ? "scale-150" : "scale-100"
-                  )}
-                  style={{
-                    objectPosition: (isHovered || hoveredVariant) ? 'right center' : 'center center'
-                  }}
+                  className="object-contain p-4 transition-all duration-500 ease-in-out"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
               </div>
@@ -77,9 +115,23 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
           </div>
           <div className="p-4 text-center flex flex-col flex-grow">
             <h3 className="text-md font-semibold mb-2">{product.name}</h3>
-            <p className="text-md font-bold text-foreground mb-4">
-              {product.price}
-            </p>
+            <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
+              <p className="text-md font-bold text-foreground">
+                {product.price}
+              </p>
+              {product.originalPrice && product.originalPrice !== product.price && (
+                <>
+                  <p className="text-sm text-muted-foreground line-through">
+                    {product.originalPrice}
+                  </p>
+                  {product.discountPct && (
+                    <span className="text-xs font-semibold text-destructive">
+                      -{product.discountPct}%
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
             <div className="flex items-center justify-center space-x-2 mb-4">
               {product.variants.map((variant) => (
                 <button
@@ -92,12 +144,10 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
                     onColorClick?.(variant);
                   }}
                   onMouseEnter={() => {
-                    setHoveredVariant(variant); // Change image to this variant
-                    setIsHovered(true); // Also trigger zoom effect
+                    setHoveredVariant(variant); // Change image to this variant only
                   }}
                   onMouseLeave={() => {
                     setHoveredVariant(null); // Revert to selected variant
-                    setIsHovered(false); // Remove zoom effect
                   }}
                   className={cn(
                     "block h-5 w-5 rounded-full border-2 transition-all cursor-pointer",

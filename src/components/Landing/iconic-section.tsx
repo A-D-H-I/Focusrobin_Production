@@ -1,50 +1,38 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { normalizeImageUrl } from "@/lib/normalize-image-url";
 
-export default function IconicSection() {
-  const [offsetY, setOffsetY] = useState(0);
-  
-  // Use the iconic image
-  const backgroundImage = "/Iconic/iconicimage3.png";
+interface IconicImageData {
+  id: string;
+  imageUrl: string;
+  alt: string;
+}
 
-  useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          setOffsetY(window.pageYOffset);
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
+interface IconicSectionProps {
+  iconicImage: IconicImageData;
+}
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+export default function IconicSection({ iconicImage }: IconicSectionProps) {
+  if (!iconicImage) {
+    return null;
+  }
 
   return (
     <section className="relative py-16 sm:py-24 overflow-hidden min-h-[600px] flex items-center">
-      {/* Background Image with Parallax from Below */}
+      {/* Background Image */}
       <div className="absolute inset-0 z-0 overflow-hidden">
-        <div
-          className="absolute inset-0"
-          style={{ transform: `translateY(${-offsetY * 0.10+50}px)` }}
-        >
-          
-          <Image
-            src={backgroundImage}
-            alt="FocusRobin background"
-            fill
-            className="object-contain"
-            priority
-            sizes="100vw"
-          />
-        </div>
+        <Image
+          src={normalizeImageUrl(iconicImage.imageUrl)}
+          alt={iconicImage.alt}
+          fill
+          className="object-cover"
+          priority
+          sizes="100vw"
+          unoptimized
+        />
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 relative z-10">

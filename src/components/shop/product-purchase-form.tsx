@@ -5,17 +5,20 @@ import { useState, useEffect } from "react";
 import { Minus, Plus, Sun, ParkingCircle, Shield, Droplet, Star, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Product } from "@/lib/productData";
+import type { Product, ProductColorVariant } from "@/lib/productData";
 import { Badge } from "@/components/ui/badge";
+import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
+import { useToast } from "@/hooks/use-toast";
 
 type ProductPurchaseFormProps = {
   product: Product;
-  onVariantChange?: (variant: typeof product.variants[0]) => void;
-  selectedVariant?: typeof product.variants[0];
+  onVariantChange?: (variant: ProductColorVariant) => void;
+  selectedVariant?: ProductColorVariant;
 };
 
 const lensFeatures = [
-  { icon: Sun, text: "CAT3 (UV400)" },
+  { icon: Sun, text: "100% UV Protection" },
   { icon: ParkingCircle, text: "Polarized lenses" },
   { icon: Shield, text: "Antiscratch coating" },
   { icon: Droplet, text: "Superhydrophobic" },
@@ -27,7 +30,14 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   const selectedVariant = externalSelectedVariant || internalSelectedVariant;
   const [quantity, setQuantity] = useState(1);
   
-  const price = parseFloat(product.price.replace('€', ''));
+  const { addToCart } = useCart();
+  const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
+  const { toast } = useToast();
+  
+  const isWishlisted = selectedVariant ? isInWishlist(product.id, selectedVariant.hex) : false;
+  
+  // Use the final price (already includes discount if applicable)
+  const price = parseFloat(product.price.replace('€', '').replace(',', ''));
 
   // Sync selectedColor when external variant changes
   useEffect(() => {
@@ -36,7 +46,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
     }
   }, [externalSelectedVariant]);
 
-  const handleColorSelect = (variant: typeof product.variants[0]) => {
+  const handleColorSelect = (variant: ProductColorVariant) => {
     if (!externalSelectedVariant) {
       setInternalSelectedVariant(variant);
     }
@@ -48,18 +58,39 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
     <div className="space-y-6">
       <h1 className="text-3xl md:text-4xl font-bold font-headline">{product.name}</h1>
       
-      <div className="flex items-center gap-4">
-        <p className="text-3xl font-bold text-primary">{product.price}</p>
-        <Badge variant="secondary" className="text-sm">{product.cashback}</Badge>
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <p className="text-3xl font-bold text-primary">{product.price}</p>
+          {product.originalPrice && product.originalPrice !== product.price && (
+            <>
+              <p className="text-xl text-muted-foreground line-through">{product.originalPrice}</p>
+              {product.discountPct && (
+                <Badge variant="destructive" className="text-sm">
+                  -{product.discountPct}%
+                </Badge>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center gap-4">
         <div className="flex items-center">
           {[...Array(5)].map((_, i) => (
-            <Star key={i} className={cn("h-5 w-5", i < 4 ? "text-yellow-400 fill-current" : "text-gray-300")} />
+            <Star 
+              key={i} 
+              className={cn(
+                "h-5 w-5", 
+                i < Math.round(product.averageRating || 4) 
+                  ? "text-yellow-400 fill-current" 
+                  : "text-gray-300"
+              )} 
+            />
           ))}
         </div>
-        <p className="text-sm text-muted-foreground hover:underline cursor-pointer">(12 customer reviews)</p>
+        <p className="text-sm text-muted-foreground hover:underline cursor-pointer">
+          ({product.reviewCount || 0} customer review{product.reviewCount !== 1 ? 's' : ''})
+        </p>
       </div>
 
       <div>
@@ -102,10 +133,57 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       </div>
       
       <div className="grid grid-cols-1 gap-4">
-        <Button size="lg" className="h-14 text-lg w-full">Add to Cart</Button>
-        <Button size="lg" variant="outline" className="h-14 text-lg border-2 w-full">
-          <Heart className="mr-2 h-5 w-5" />
-          Add to Wishlist
+        <Button 
+          size="lg" 
+          className="h-14 text-lg w-full"
+          onClick={() => {
+            if (!selectedVariant) {
+              toast({
+                title: "Error",
+                description: "Please select a color variant.",
+                variant: "destructive",
+              });
+              return;
+            }
+            addToCart(product, selectedVariant, quantity);
+            toast({
+              title: "Added to cart",
+              description: `${product.name} (${selectedVariant.name}) has been added to your cart.`,
+            });
+          }}
+        >
+          Add to Cart
+        </Button>
+        <Button 
+          size="lg" 
+          variant="outline" 
+          className={cn("h-14 text-lg border-2 w-full", isWishlisted && "border-primary")}
+          onClick={() => {
+            if (!selectedVariant) {
+              toast({
+                title: "Error",
+                description: "Please select a color variant.",
+                variant: "destructive",
+              });
+              return;
+            }
+            if (isWishlisted) {
+              removeFromWishlist(product.id, selectedVariant.hex);
+              toast({
+                title: "Removed from wishlist",
+                description: `${product.name} has been removed from your wishlist.`,
+              });
+            } else {
+              addToWishlist(product, selectedVariant);
+              toast({
+                title: "Added to wishlist",
+                description: `${product.name} has been added to your wishlist.`,
+              });
+            }
+          }}
+        >
+          <Heart className={cn("mr-2 h-5 w-5", isWishlisted && "fill-red-500 text-red-500")} />
+          {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
         </Button>
       </div>
     </div>

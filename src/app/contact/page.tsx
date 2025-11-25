@@ -1,0 +1,404 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import Header from "@/components/Landing/header";
+import Footer from "@/components/Landing/footer";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Mail, Phone, MessageCircle, MapPin } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+
+export default function ContactPage() {
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    subject: "",
+    message: "",
+  });
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = "First name is required";
+    }
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = "Last name is required";
+    }
+    if (!formData.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    if (!formData.subject) {
+      newErrors.subject = "Please select a subject";
+    }
+    if (!formData.message.trim()) {
+      newErrors.message = "Message is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (validateForm()) {
+      // Here you would typically send the form data to your backend
+      console.log("Form submitted:", formData);
+      setIsSubmitted(true);
+      
+      // Reset form after 3 seconds
+      setTimeout(() => {
+        setIsSubmitted(false);
+        setFormData({
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          subject: "",
+          message: "",
+        });
+      }, 3000);
+    }
+  };
+
+  return (
+    <div className="flex flex-col min-h-screen bg-brand-white">
+      <Header />
+      <main className="flex-grow pt-24 pb-16">
+        <div className="container mx-auto px-4 sm:px-6">
+          <div className="max-w-6xl mx-auto">
+            <h1 className="text-4xl sm:text-5xl font-headline font-bold text-brand-blue mb-4 text-center">
+              Contact Us
+            </h1>
+            <p className="text-center text-brand-blue/80 mb-12 max-w-2xl mx-auto">
+              Have a question? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+            </p>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+              {/* Left Column - Contact Information */}
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-headline font-bold text-brand-blue mb-2">
+                    Get in Touch
+                  </h2>
+                  <p className="text-brand-blue/80">
+                    We are here to help you elevate your style.
+                  </p>
+                </div>
+
+                {/* Contact Cards */}
+                <div className="space-y-4">
+                  {/* Email Card */}
+                  <Card className="border border-gray-200 hover:border-brand-teal/50 transition-colors">
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-brand-teal/10 p-3 rounded-lg">
+                          <Mail className="h-6 w-6 text-brand-teal" />
+                        </div>
+                        <div className="flex-grow">
+                          <h3 className="font-headline font-semibold text-brand-blue mb-1">
+                            Email
+                          </h3>
+                          <a
+                            href="mailto:support@focusrobin.com"
+                            className="text-brand-teal hover:underline"
+                          >
+                            support@focusrobin.com
+                          </a>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Phone Card */}
+                  <Card className="border border-gray-200 hover:border-brand-teal/50 transition-colors">
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-brand-teal/10 p-3 rounded-lg">
+                          <Phone className="h-6 w-6 text-brand-teal" />
+                        </div>
+                        <div className="flex-grow">
+                          <h3 className="font-headline font-semibold text-brand-blue mb-1">
+                            Phone
+                          </h3>
+                          <a
+                            href="tel:+37051234567"
+                            className="text-brand-blue hover:text-brand-teal transition-colors"
+                          >
+                            To be added later
+                          </a>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Live Chat Card */}
+                  <Card className="border border-gray-200 hover:border-brand-teal/50 transition-colors">
+                    <CardContent className="p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="bg-brand-teal/10 p-3 rounded-lg">
+                          <MessageCircle className="h-6 w-6 text-brand-teal" />
+                        </div>
+                        <div className="flex-grow">
+                          <h3 className="font-headline font-semibold text-brand-blue mb-1">
+                            Live Chat
+                          </h3>
+                          <p className="text-brand-blue/80 text-sm mb-3">
+                            Chat with our stylists for instant advice.
+                          </p>
+                          <Link href="/chat" prefetch={true}>
+                            <Button
+                              variant="outline"
+                              className="border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white"
+                            >
+                              Start Chat
+                            </Button>
+                          </Link>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Office Address */}
+                <div className="flex items-start gap-3 pt-4 border-t border-gray-200">
+                  <MapPin className="h-5 w-5 text-brand-blue/60 mt-0.5" />
+                  <div>
+                    <p className="text-sm text-brand-blue/80 font-semibold mb-1">
+                      Office Address
+                    </p>
+                    <p className="text-sm text-brand-blue/80">
+                      Kaunas, Lithuania
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column - Contact Form */}
+              <div>
+                <Card className="border border-gray-200">
+                  <CardContent className="p-6 sm:p-8">
+                    {isSubmitted ? (
+                      <div className="text-center py-8">
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                          <h3 className="text-xl font-headline font-semibold text-brand-blue mb-2">
+                            Message Sent!
+                          </h3>
+                          <p className="text-brand-blue/80">
+                            Thank you for contacting us. We'll get back to you soon.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* First Name & Last Name */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div>
+                            <Label
+                              htmlFor="firstName"
+                              className="text-brand-blue font-semibold mb-2 block"
+                            >
+                              First Name <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id="firstName"
+                              value={formData.firstName}
+                              onChange={(e) =>
+                                handleInputChange("firstName", e.target.value)
+                              }
+                              className={`bg-white border-gray-200 focus:border-brand-teal focus:ring-brand-teal ${
+                                errors.firstName ? "border-red-500" : ""
+                              }`}
+                              placeholder="John"
+                            />
+                            {errors.firstName && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {errors.firstName}
+                              </p>
+                            )}
+                          </div>
+                          <div>
+                            <Label
+                              htmlFor="lastName"
+                              className="text-brand-blue font-semibold mb-2 block"
+                            >
+                              Last Name <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id="lastName"
+                              value={formData.lastName}
+                              onChange={(e) =>
+                                handleInputChange("lastName", e.target.value)
+                              }
+                              className={`bg-white border-gray-200 focus:border-brand-teal focus:ring-brand-teal ${
+                                errors.lastName ? "border-red-500" : ""
+                              }`}
+                              placeholder="Doe"
+                            />
+                            {errors.lastName && (
+                              <p className="text-red-500 text-sm mt-1">
+                                {errors.lastName}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Email */}
+                        <div>
+                          <Label
+                            htmlFor="email"
+                            className="text-brand-blue font-semibold mb-2 block"
+                          >
+                            Email Address <span className="text-red-500">*</span>
+                          </Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) =>
+                              handleInputChange("email", e.target.value)
+                            }
+                            className={`bg-white border-gray-200 focus:border-brand-teal focus:ring-brand-teal ${
+                              errors.email ? "border-red-500" : ""
+                            }`}
+                            placeholder="john.doe@example.com"
+                          />
+                          {errors.email && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.email}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Phone (Optional) */}
+                        <div>
+                          <Label
+                            htmlFor="phone"
+                            className="text-brand-blue font-semibold mb-2 block"
+                          >
+                            Phone Number <span className="text-brand-blue/60 text-sm font-normal">(Optional)</span>
+                          </Label>
+                          <Input
+                            id="phone"
+                            type="tel"
+                            value={formData.phone}
+                            onChange={(e) =>
+                              handleInputChange("phone", e.target.value)
+                            }
+                            className="bg-white border-gray-200 focus:border-brand-teal focus:ring-brand-teal"
+                            placeholder="+370 5 123 4567"
+                          />
+                        </div>
+
+                        {/* Subject */}
+                        <div>
+                          <Label
+                            htmlFor="subject"
+                            className="text-brand-blue font-semibold mb-2 block"
+                          >
+                            Subject <span className="text-red-500">*</span>
+                          </Label>
+                          <Select
+                            value={formData.subject}
+                            onValueChange={(value) =>
+                              handleInputChange("subject", value)
+                            }
+                          >
+                            <SelectTrigger
+                              className={`bg-white border-gray-200 focus:border-brand-teal focus:ring-brand-teal ${
+                                errors.subject ? "border-red-500" : ""
+                              }`}
+                            >
+                              <SelectValue placeholder="Select a subject" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="order-support">
+                                Order Support
+                              </SelectItem>
+                              <SelectItem value="product-inquiry">
+                                Product Inquiry
+                              </SelectItem>
+                              <SelectItem value="returns">Returns</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {errors.subject && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.subject}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Message */}
+                        <div>
+                          <Label
+                            htmlFor="message"
+                            className="text-brand-blue font-semibold mb-2 block"
+                          >
+                            Message <span className="text-red-500">*</span>
+                          </Label>
+                          <Textarea
+                            id="message"
+                            value={formData.message}
+                            onChange={(e) =>
+                              handleInputChange("message", e.target.value)
+                            }
+                            rows={6}
+                            className={`bg-white border-gray-200 focus:border-brand-teal focus:ring-brand-teal resize-none ${
+                              errors.message ? "border-red-500" : ""
+                            }`}
+                            placeholder="Tell us how we can help you..."
+                          />
+                          {errors.message && (
+                            <p className="text-red-500 text-sm mt-1">
+                              {errors.message}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Submit Button */}
+                        <Button
+                          type="submit"
+                          className="w-full bg-brand-teal text-white hover:bg-brand-teal/90 font-semibold py-6 text-lg"
+                        >
+                          Send Message
+                        </Button>
+                      </form>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
+

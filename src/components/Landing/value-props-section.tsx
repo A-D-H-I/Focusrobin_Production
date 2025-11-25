@@ -35,7 +35,12 @@ function ValuePropItem({ prop, index }: { prop: typeof valueProps[0]; index: num
         "flex flex-col items-center text-center p-6 transition-all duration-700 ease-in-out",
         inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
       )}
-      style={{ transitionDelay: `${index * 200}ms` }}
+      style={{ 
+        transitionDelay: `${index * 200}ms`,
+        willChange: "transform, opacity",
+        transform: "translateZ(0)",
+        backfaceVisibility: "hidden"
+      }}
     >
       <div className="bg-primary/10 p-5 rounded-full mb-6">
         <prop.icon className="h-10 w-10 text-primary" />

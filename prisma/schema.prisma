@@ -1,0 +1,165 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id      String    @id @default(cuid())
+  name    String    @unique
+  Product Product[]
+}
+
+model Offer {
+  id          String   @id @default(cuid())
+  name        String
+  discountPct Int?
+  discountAmt Decimal?
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  productId   String   @unique
+  Product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id             String           @id @default(cuid())
+  name           String
+  slug           String           @unique
+  description    String
+  basePrice      Decimal          @db.Decimal(10, 2)
+  discountPct    Int?             @default(0)
+  gender         Gender[]
+  tags           String[]
+  frameWidth     Float
+  lensWidth      Float
+  lensHeight     Float
+  bridgeWidth    Float
+  templeLength   Float
+  weightBg       Float
+  frameMaterial  String
+  lensMaterial   String?          @default("Polycarbonate")
+  uvProtection   String
+  averageRating  Float            @default(0)
+  reviewCount    Int              @default(0)
+  categoryId     String
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  Offer          Offer?
+  Category       Category         @relation(fields: [categoryId], references: [id])
+  ProductVariant ProductVariant[]
+  Review         Review[]
+}
+
+model ProductAsset {
+  id             String         @id @default(cuid())
+  variantId      String
+  url            String
+  type           AssetType
+  isPrimary      Boolean        @default(false)
+  createdAt      DateTime       @default(now())
+  ProductVariant ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+}
+
+model ProductVariant {
+  id           String         @id @default(cuid())
+  productId    String
+  name         String
+  sku          String         @unique
+  colorName    String
+  colorHex     String
+  lensColor    String
+  stock        Int            @default(0)
+  price        Decimal?       @db.Decimal(10, 2)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  ProductAsset ProductAsset[]
+  Product      Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Review {
+  id        String    @id @default(cuid())
+  rating    Int
+  title     String
+  comment   String
+  images    String[]
+  productId String?
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  Product   Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  role      String   @default("USER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Review    Review[]
+}
+
+model HeroImage {
+  id            String   @id @default(cuid())
+  desktopImageUrl String
+  mobileImageUrl  String
+  title         String
+  subtitle      String
+  ctaText       String
+  ctaLink       String
+  isActive      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model InstagramImage {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  alt       String
+  link      String   @default("https://www.instagram.com/p/DQwrNF9ikKg/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==")
+  isActive  Boolean  @default(true)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CategoryImage {
+  id        String   @id @default(cuid())
+  category  String   @unique // "MEN", "WOMEN", "KIDS"
+  imageUrl  String
+  alt       String
+  link      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model IconicImage {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  alt       String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum AssetType {
+  GALLERY // Standard photos for the product details slider
+  NO_BG // Transparent background (for Landing Page 3D effect)
+  GLB // 3D Model File (for Live Camera AR)
+  TRY_ON_2D // Front-view photo (for "Upload Photo" Try-On)
+  HOVER // Tilted/Secondary image (for Shop Card hover effect)
+}
+
+enum Gender {
+  MEN
+  WOMEN
+  UNISEX
+  KIDS
+}

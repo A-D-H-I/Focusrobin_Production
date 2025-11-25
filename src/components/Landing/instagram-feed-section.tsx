@@ -3,10 +3,21 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useInView } from "react-intersection-observer";
-import { allInstagramImages, shuffleArray } from "@/lib/instagramData";
 import { cn } from "@/lib/utils";
+import { normalizeImageUrl } from "@/lib/normalize-image-url";
 
-function InstagramImage({ item, index }: { item: { id: number; src: string; alt: string; link: string }, index: number }) {
+interface InstagramImageData {
+  id: string;
+  imageUrl: string;
+  alt: string;
+  link: string;
+}
+
+interface InstagramFeedSectionProps {
+  instagramImages: InstagramImageData[];
+}
+
+function CommunityImage({ item, index }: { item: InstagramImageData, index: number }) {
   const { ref, inView } = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -21,59 +32,80 @@ function InstagramImage({ item, index }: { item: { id: number; src: string; alt:
       )}
       style={{ transitionDelay: `${index * 100}ms` }}
     >
-      <div className="relative group overflow-hidden rounded-lg shadow-lg aspect-square">
-        <a
-          href={item.link}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+      <a
+        href={item.link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block relative group overflow-hidden w-full h-full"
+      >
+        <div className="relative aspect-[3/4] w-full h-full overflow-hidden">
           <Image
-            src={item.src}
+            src={normalizeImageUrl(item.imageUrl)}
             alt={item.alt}
             fill
             className="object-cover transform transition-transform duration-300 group-hover:scale-105"
+            unoptimized
           />
-          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <p className="text-white text-lg font-bold">@focusrobin</p>
-          </div>
-        </a>
-      </div>
+        </div>
+      </a>
     </div>
   );
 }
 
-export default function InstagramFeedSection() {
-  const [shuffledImages, setShuffledImages] = useState<Array<{ id: number; src: string; alt: string; link: string }>>([]);
+// Helper function to shuffle array
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+export default function InstagramFeedSection({ instagramImages }: InstagramFeedSectionProps) {
+  const [displayImages, setDisplayImages] = useState<InstagramImageData[]>([]);
 
   useEffect(() => {
-    // Create 9 images by repeating and shuffling
-    const shuffled = shuffleArray(allInstagramImages);
-    const repeatedImages = [];
-    for (let i = 0; i < 9; i++) {
+    if (instagramImages.length === 0) {
+      setDisplayImages([]);
+      return;
+    }
+
+    // Create 8 images by repeating and shuffling (2 rows x 4 columns)
+    const shuffled = shuffleArray(instagramImages);
+    const repeatedImages: InstagramImageData[] = [];
+    for (let i = 0; i < 8; i++) {
       repeatedImages.push(shuffled[i % shuffled.length]);
     }
-    const finalShuffled = shuffleArray(repeatedImages).map((img, index) => ({
-      id: index + 1,
-      src: img.src,
-      alt: `${img.alt} ${index + 1}`,
-      link: 'https://www.instagram.com/p/DQwrNF9ikKg/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==',
-    }));
-    setShuffledImages(finalShuffled);
-  }, []);
+    const finalShuffled = shuffleArray(repeatedImages);
+    setDisplayImages(finalShuffled);
+  }, [instagramImages]);
+
+  if (displayImages.length === 0) {
+    return null;
+  }
 
   return (
-    <section className="py-16 sm:py-24 bg-secondary"> 
-      <div className="container mx-auto px-4">
-        <h2 className="text-3xl sm:text-4xl font-headline font-bold text-center mb-12">
-          Seen on You
-        </h2>
-        
-        <div className="grid grid-cols-3 gap-4">
-          {shuffledImages.map((item, index) => (
-            <InstagramImage key={item.id} item={item} index={index} />
-          ))}
+    <section className="w-full bg-background overflow-hidden"> 
+      <div className="w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[600px]">
+          {/* Left Panel - Text Section */}
+          <div className="bg-black text-white flex flex-col justify-center px-8 sm:px-12 lg:px-16 py-12 lg:py-0">
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-headline font-bold mb-6 lg:mb-8">
+              Community Lookbook
+            </h2>
+            <p className="text-base sm:text-lg md:text-xl text-white/90 leading-relaxed max-w-md">
+              Shop and share your favorite looks. Use the hashtag <span className="font-semibold">#FocusRobin</span> for a chance to be featured here.
+            </p>
+          </div>
+
+          {/* Right Panel - Image Grid */}
+          <div className="grid grid-cols-4 grid-rows-2 w-full h-full">
+            {displayImages.map((item, index) => (
+              <CommunityImage key={`${item.id}-${index}`} item={item} index={index} />
+            ))}
+          </div>
         </div>
-        
       </div>
     </section>
   );

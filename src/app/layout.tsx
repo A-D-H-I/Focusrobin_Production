@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import { Toaster } from "@/components/ui/toaster";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { CartProvider } from "@/context/CartContext";
+import { WishlistProvider } from "@/context/WishlistContext";
 import './globals.css';
 
 const chillax = localFont({
@@ -23,11 +24,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js" async></script>
+      </head>
       <body className={`${chillax.variable} font-body antialiased`}>
         <CurrencyProvider>
           <CartProvider>
-            {children}
-            <Toaster />
+            <WishlistProvider>
+              {children}
+              <Toaster />
+            </WishlistProvider>
           </CartProvider>
         </CurrencyProvider>
       </body>
