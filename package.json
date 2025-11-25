@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p 9002 -H 0.0.0.0",
+    "dev": "node scripts/show-network-info.js && next dev --turbopack -p 9002 -H 0.0.0.0",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "get-ip": "node scripts/get-local-ip.js"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.20.0",

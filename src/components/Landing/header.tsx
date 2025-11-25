@@ -91,25 +91,11 @@ export default function Header() {
   return (
     <header
       className={cn(
-        "fixed top-0 left-0 right-0 z-[100] w-full transition-colors duration-300 will-change-[transform,background-color]",
+        "fixed top-0 left-0 right-0 z-[100] w-full transition-colors duration-300",
         isScrolled
           ? "bg-white/90 backdrop-blur-md shadow-sm"
           : "bg-transparent border-transparent"
       )}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        width: '100%',
-        zIndex: 100,
-        transform: 'translateZ(0)',
-        WebkitTransform: 'translateZ(0)',
-        backfaceVisibility: 'hidden',
-        display: 'block',
-        visibility: 'visible',
-        margin: 0,
-      }}
     >
       <div className="container mx-auto px-4 sm:px-6 max-w-full">
         <div
