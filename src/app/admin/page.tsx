@@ -109,6 +109,38 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
+          {/* Shop Banners Card */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-primary" />
+                <CardTitle>Shop Banners</CardTitle>
+              </div>
+              <CardDescription>Manage banners for shop category pages (Men, Women, Kids, Unisex)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/shop-banners">
+                <Button variant="outline" className="w-full">Manage Shop Banners</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Custom Shop Pages Card */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-primary" />
+                <CardTitle>Custom Shop Pages</CardTitle>
+              </div>
+              <CardDescription>Create custom pages like "Offers", "New Arrivals", etc. with banners and products</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/custom-shop-pages">
+                <Button variant="outline" className="w-full">Manage Custom Shop Pages</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
           {/* Orders Card */}
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>

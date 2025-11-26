@@ -110,6 +110,14 @@
     will-change: background-color;
   }
 
+  /* Hide header when 3D viewer is open */
+  body.viewer-3d-open header {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
   /* Custom scrollbar styling for smoother feel */
   ::-webkit-scrollbar {
     width: 10px;
@@ -153,5 +161,45 @@
   /* Optimize backdrop blur performance */
   .backdrop-blur-md {
     will-change: backdrop-filter;
+  }
+
+  /* Logo gradient animation for loading screens */
+  @keyframes gradient-shift {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .logo-gradient-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 20;
+  }
+
+  .logo-gradient-overlay::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      hsl(var(--primary) / 0.4) 30%,
+      hsl(var(--primary)) 50%,
+      hsl(var(--primary) / 0.4) 70%,
+      transparent 100%
+    );
+    animation: gradient-shift 2s ease-in-out infinite;
+    mix-blend-mode: screen;
   }
 }

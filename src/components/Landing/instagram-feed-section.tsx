@@ -92,10 +92,10 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
           {/* Left Panel - Text Section */}
           <div className="bg-black text-white flex flex-col justify-center px-8 sm:px-12 lg:px-16 py-12 lg:py-0">
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-headline font-bold mb-6 lg:mb-8">
-              Community Lookbook
+            The Golden Edit
             </h2>
             <p className="text-base sm:text-lg md:text-xl text-white/90 leading-relaxed max-w-md">
-              Shop and share your favorite looks. Use the hashtag <span className="font-semibold">#FocusRobin</span> for a chance to be featured here.
+            Catch the light in style. Frame your brightest moments with <span className="font-semibold">#FocusRobin</span> for a chance to be featured.
             </p>
           </div>
 

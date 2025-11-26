@@ -73,6 +73,20 @@ export default function Product3DViewer({ modelUrl, productName, isOpen, onClose
     }
   }, [isOpen]);
 
+  // Hide navbar when 3D viewer is open
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      if (isOpen) {
+        document.body.classList.add('viewer-3d-open');
+      } else {
+        document.body.classList.remove('viewer-3d-open');
+      }
+      return () => {
+        document.body.classList.remove('viewer-3d-open');
+      };
+    }
+  }, [isOpen]);
+
   const resetCamera = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (modelViewerRef.current) {

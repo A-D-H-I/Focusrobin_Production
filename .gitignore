@@ -44,3 +44,7 @@ next-env.d.ts
 firebase-debug.log
 firestore-debug.log
 /src/generated/prisma
+
+# Large files
+*.7z
+out.7z

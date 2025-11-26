@@ -266,57 +266,69 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                       transition={isActive ? { duration: 6, repeat: Infinity, ease: "easeInOut" } : {}}
                     >
                       {/* Inner card handles perspective & tilt, image wrapper handles parallax */}
-                      <div
-                        ref={(el) => {
-                          cardInnerRefs.current[index] = el;
-                        }}
-                        onMouseMove={(e) => {
-                          // Only center/active slide should tilt
-                          if (!isActive) return;
-                          handleMouseMove(index, e);
-                        }}
-                        onMouseLeave={() => {
-                          if (!isActive) return;
-                          handleMouseLeave(index);
-                        }}
+                      <Link
+                        href={`/products/${product.id}`}
+                        prefetch={true}
                         className="absolute inset-0 flex items-center justify-center"
                         style={{
                           willChange: "transform",
                           borderRadius: 12,
                           padding: 0,
-                          // keep pointer events for inner interactions but don't block Link clicks
-                          pointerEvents: "auto",
+                          cursor: "pointer",
                         }}
                       >
                         <div
                           ref={(el) => {
-                            imgRefs.current[index] = el;
+                            cardInnerRefs.current[index] = el;
                           }}
-                          className="relative w-full h-full flex items-center justify-center"
+                          onMouseMove={(e) => {
+                            // Only center/active slide should tilt
+                            if (!isActive) return;
+                            handleMouseMove(index, e);
+                          }}
+                          onMouseLeave={() => {
+                            if (!isActive) return;
+                            handleMouseLeave(index);
+                          }}
+                          className="absolute inset-0 flex items-center justify-center"
                           style={{
                             willChange: "transform",
-                            overflow: "visible",
-                            transform: "scale(1.15)",
+                            borderRadius: 12,
+                            padding: 0,
+                            // keep pointer events for inner interactions but don't block Link clicks
+                            pointerEvents: "auto",
                           }}
                         >
-                          {mainImage ? (
-                            <Image
-                              key={`${product.id}-${selectedVariantIndex}-${mainImage}`}
-                              src={mainImage}
-                              alt={`${product.name} - ${selectedVariant?.name || ""}`}
-                              fill
-                              priority={index === midIndex}
-                              className="object-contain drop-shadow-2xl transition-transform duration-200"
-                              sizes="(max-width: 768px) 85vw, 50vw"
-                              unoptimized
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg">
-                              <span className="text-sm">No image available</span>
-                            </div>
-                          )}
+                          <div
+                            ref={(el) => {
+                              imgRefs.current[index] = el;
+                            }}
+                            className="relative w-full h-full flex items-center justify-center"
+                            style={{
+                              willChange: "transform",
+                              overflow: "visible",
+                              transform: "scale(1.15)",
+                            }}
+                          >
+                            {mainImage ? (
+                              <Image
+                                key={`${product.id}-${selectedVariantIndex}-${mainImage}`}
+                                src={mainImage}
+                                alt={`${product.name} - ${selectedVariant?.name || ""}`}
+                                fill
+                                priority={index === midIndex}
+                                className="object-contain drop-shadow-2xl transition-transform duration-200"
+                                sizes="(max-width: 768px) 85vw, 50vw"
+                                unoptimized
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg">
+                                <span className="text-sm">No image available</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      </Link>
                     </motion.div>
 
                     <div className="text-center relative z-40 drop-shadow-lg pt-0">
