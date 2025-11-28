@@ -1,9 +1,22 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { auth } from '@/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, Plus, Settings, BarChart3, Users, ShoppingCart, Image as ImageIcon } from 'lucide-react';
+import { Package, Plus, Settings, BarChart3, Users, ShoppingCart, Image as ImageIcon, Trash2 } from 'lucide-react';
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  const session = await auth();
+  
+  // Server-side check: redirect if not logged in or not admin
+  if (!session?.user) {
+    redirect('/');
+  }
+
+  const userRole = (session.user as any)?.role;
+  if (userRole !== 'ADMIN') {
+    redirect('/');
+  }
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="mx-auto max-w-6xl">
@@ -183,9 +196,9 @@ export default function AdminDashboard() {
               <CardDescription>Manage user accounts and permissions</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full" disabled>
-                Coming Soon
-              </Button>
+              <Link href="/admin/users">
+                <Button variant="outline" className="w-full">Manage Users</Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -199,9 +212,25 @@ export default function AdminDashboard() {
               <CardDescription>Configure store settings and preferences</CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full" disabled>
-                Coming Soon
-              </Button>
+              <Link href="/admin/settings">
+                <Button variant="outline" className="w-full">Manage Settings</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Deleted Users Card */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-primary" />
+                <CardTitle>Deleted Users</CardTitle>
+              </div>
+              <CardDescription>View and manage archived deleted user accounts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/deleted-users">
+                <Button variant="outline" className="w-full">View Deleted Users</Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

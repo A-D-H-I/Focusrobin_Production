@@ -1,6 +1,7 @@
 import type {Metadata} from 'next';
 import localFont from 'next/font/local';
 import { Toaster } from "@/components/ui/toaster";
+import SessionProvider from "@/components/providers/SessionProvider";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
@@ -28,14 +29,16 @@ export default function RootLayout({
         <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js" async></script>
       </head>
       <body className={`${chillax.variable} font-body antialiased`}>
-        <CurrencyProvider>
-          <CartProvider>
-            <WishlistProvider>
-              {children}
-              <Toaster />
-            </WishlistProvider>
-          </CartProvider>
-        </CurrencyProvider>
+        <SessionProvider>
+          <CurrencyProvider>
+            <CartProvider>
+              <WishlistProvider>
+                {children}
+                <Toaster />
+              </WishlistProvider>
+            </CartProvider>
+          </CurrencyProvider>
+        </SessionProvider>
       </body>
     </html>
   );

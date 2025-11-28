@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShoppingCart, User, Menu, Search, Heart } from "lucide-react";
+import { ShoppingCart, Menu, Search, Heart, User } from "lucide-react";
+import UserMenu from "@/components/auth/UserMenu";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -203,21 +204,6 @@ export default function Header() {
               </Button>
             </Link>
 
-            <Link href="/account" prefetch={true}>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className={cn(
-                  "h-8 w-8 xl:h-10 xl:w-10 transition-colors duration-300",
-                  isScrolled 
-                    ? 'text-brand-blue hover:bg-accent hover:text-brand-blue' 
-                    : 'text-white hover:bg-white/10 hover:text-white'
-                )}
-              >
-                <User className="h-4 w-4 xl:h-5 xl:w-5" />
-                <span className="sr-only">Account</span>
-              </Button>
-            </Link>
             <Link href="/cart" prefetch={true}>
               <Button 
                 variant="ghost" 
@@ -236,6 +222,8 @@ export default function Header() {
                 <span className="sr-only">Cart</span>
               </Button>
             </Link>
+
+            <UserMenu />
           </div>
           
           {/* Search Input for smaller desktop screens */}
@@ -356,12 +344,6 @@ export default function Header() {
                             <span className="sr-only">Wishlist</span>
                           </Button>
                         </Link>
-                        <Link href="/account" prefetch={true} className="flex-1">
-                          <Button variant="ghost" size="icon" className="w-full">
-                            <User className="h-6 w-6" />
-                            <span className="sr-only">Account</span>
-                          </Button>
-                        </Link>
                         <Link href="/cart" prefetch={true} className="flex-1">
                           <Button variant="ghost" size="icon" className="w-full relative">
                             <ShoppingCart className="h-6 w-6" />
@@ -369,6 +351,12 @@ export default function Header() {
                               <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full border border-white"></span>
                             )}
                             <span className="sr-only">Cart</span>
+                          </Button>
+                        </Link>
+                        <Link href="/account" prefetch={true} className="flex-1">
+                          <Button variant="ghost" size="icon" className="w-full">
+                            <User className="h-6 w-6" />
+                            <span className="sr-only">Account</span>
                           </Button>
                         </Link>
                     </div>

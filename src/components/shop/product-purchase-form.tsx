@@ -33,8 +33,14 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
+  const [isWishlisted, setIsWishlisted] = useState(false);
   
-  const isWishlisted = selectedVariant ? isInWishlist(product.id, selectedVariant.hex) : false;
+  // Check wishlist status when variant changes
+  useEffect(() => {
+    if (selectedVariant) {
+      setIsWishlisted(isInWishlist(product.id, selectedVariant.hex));
+    }
+  }, [product.id, selectedVariant, isInWishlist]);
   
   // Use the final price (already includes discount if applicable)
   const price = parseFloat(product.price.replace('€', '').replace(',', ''));
@@ -168,16 +174,22 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
               return;
             }
             if (isWishlisted) {
-              removeFromWishlist(product.id, selectedVariant.hex);
-              toast({
-                title: "Removed from wishlist",
-                description: `${product.name} has been removed from your wishlist.`,
+              removeFromWishlist(product.id, selectedVariant.hex).then(() => {
+                toast({
+                  title: "Removed from wishlist",
+                  description: `${product.name} has been removed from your wishlist.`,
+                });
+              }).catch((error) => {
+                console.error('Error removing from wishlist:', error);
               });
             } else {
-              addToWishlist(product, selectedVariant);
-              toast({
-                title: "Added to wishlist",
-                description: `${product.name} has been added to your wishlist.`,
+              addToWishlist(product, selectedVariant).then(() => {
+                toast({
+                  title: "Added to wishlist",
+                  description: `${product.name} has been added to your wishlist.`,
+                });
+              }).catch((error) => {
+                console.error('Error adding to wishlist:', error);
               });
             }
           }}

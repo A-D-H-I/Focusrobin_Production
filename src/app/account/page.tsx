@@ -1,6 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
@@ -16,12 +19,24 @@ import {
   Settings,
   Star,
   Upload,
-  X as XIcon
+  X as XIcon,
+  User,
+  Plus,
+  Edit,
+  Trash2
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -32,10 +47,47 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { getWalletBalance, getWalletTransactions, getAddresses, addAddress, updateAddress, deleteAddress, setDefaultAddress, deleteMyAccount } from "@/app/actions/user";
+import { signOut } from "next-auth/react";
+import { format } from "date-fns";
 
 type TabType = 'dashboard' | 'orders' | 'addresses' | 'wallet' | 'reviews' | 'account-details' | 'logout';
 
+// Schengen countries list
+const SCHENGEN_COUNTRIES = [
+  'Austria',
+  'Belgium',
+  'Croatia',
+  'Czech Republic',
+  'Denmark',
+  'Estonia',
+  'Finland',
+  'France',
+  'Germany',
+  'Greece',
+  'Hungary',
+  'Iceland',
+  'Ireland',
+  'Italy',
+  'Latvia',
+  'Liechtenstein',
+  'Lithuania',
+  'Luxembourg',
+  'Malta',
+  'Netherlands',
+  'Norway',
+  'Poland',
+  'Portugal',
+  'Slovakia',
+  'Slovenia',
+  'Spain',
+  'Sweden',
+  'Switzerland',
+];
+
 export default function AccountPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
@@ -50,28 +102,116 @@ export default function AccountPage() {
   const [reviewUploadedImages, setReviewUploadedImages] = useState<File[]>([]);
   const [reviewImagePreviews, setReviewImagePreviews] = useState<string[]>([]);
   
-  // Form state
+  // Get user name from session
+  const userName = session?.user?.name || session?.user?.email?.split('@')[0] || "User";
+  
+  // Form state - initialize with session data
   const [formData, setFormData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    displayName: 'John Doe',
-    email: 'john.doe@example.com',
+    firstName: '',
+    lastName: '',
+    displayName: '',
+    email: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: '',
   });
 
+  // Update form data when session loads
+  useEffect(() => {
+    if (session?.user) {
+      const nameParts = session.user.name?.split(' ') || [];
+      setFormData(prev => ({
+        ...prev,
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || '',
+        displayName: session.user.name || '',
+        email: session.user.email || '',
+      }));
+    }
+  }, [session]);
+
   // Original data for cancel functionality
-  const [originalData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    displayName: 'John Doe',
-    email: 'john.doe@example.com',
+  const [originalData, setOriginalData] = useState({
+    firstName: '',
+    lastName: '',
+    displayName: '',
+    email: '',
   });
 
-  // Dummy user data
-  const userName = "John Doe";
-  const walletBalance = 12.50;
+  // Update original data when session loads
+  useEffect(() => {
+    if (session?.user) {
+      const nameParts = session.user.name?.split(' ') || [];
+      setOriginalData({
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || '',
+        displayName: session.user.name || '',
+        email: session.user.email || '',
+      });
+    }
+  }, [session]);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletTransactions, setWalletTransactions] = useState<any[]>([]);
+  const [isLoadingWallet, setIsLoadingWallet] = useState(true);
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
+  const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<any | null>(null);
+  const [addressForm, setAddressForm] = useState({
+    fullName: '',
+    phone: '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    country: 'Ireland',
+    isDefault: false,
+  });
+
+  // Fetch wallet data
+  useEffect(() => {
+    const loadWalletData = async () => {
+      setIsLoadingWallet(true);
+      try {
+        const [balanceResult, transactionsResult] = await Promise.all([
+          getWalletBalance(),
+          getWalletTransactions(),
+        ]);
+        if (balanceResult.balance !== undefined) {
+          setWalletBalance(balanceResult.balance);
+        }
+        if (transactionsResult.transactions) {
+          setWalletTransactions(transactionsResult.transactions);
+        }
+      } catch (error) {
+        console.error("Error loading wallet data:", error);
+      } finally {
+        setIsLoadingWallet(false);
+      }
+    };
+    loadWalletData();
+  }, [activeTab === 'wallet']);
+
+  // Fetch addresses
+  useEffect(() => {
+    const loadAddresses = async () => {
+      if (status === 'authenticated' && session?.user) {
+        setIsLoadingAddresses(true);
+        try {
+          const result = await getAddresses();
+          if (result.addresses) {
+            setAddresses(result.addresses);
+          }
+        } catch (error) {
+          console.error("Error loading addresses:", error);
+        } finally {
+          setIsLoadingAddresses(false);
+        }
+      }
+    };
+    loadAddresses();
+  }, [status, session, activeTab === 'addresses']);
 
   // Dummy orders with product items
   const recentOrders = [
@@ -163,14 +303,51 @@ export default function AccountPage() {
     setIsEditing(false);
   };
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
     const confirmed = window.confirm(
-      'Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.'
+      'Are you sure you want to delete your account? This action cannot be undone. All your data will be archived and then permanently deleted.'
     );
-    if (confirmed) {
-      console.log('Account Deleted');
-      // Here you would typically make an API call to delete the account
-      alert('Account deletion initiated. This is a demo - no actual account was deleted.');
+    
+    if (!confirmed) {
+      return;
+    }
+
+    // Double confirmation
+    const doubleConfirm = window.confirm(
+      'This is your final warning. Your account and all associated data will be permanently deleted. This cannot be undone. Are you absolutely sure?'
+    );
+
+    if (!doubleConfirm) {
+      return;
+    }
+
+    try {
+      const result = await deleteMyAccount();
+      
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Account Deleted",
+          description: "Your account has been successfully deleted. You will be signed out.",
+        });
+        
+        // Sign out and redirect after a short delay
+        setTimeout(async () => {
+          await signOut({ callbackUrl: "/" });
+        }, 2000);
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete account. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -291,6 +468,58 @@ export default function AccountPage() {
     { id: 'account-details' as TabType, label: 'Account Details', icon: Settings },
     { id: 'logout' as TabType, label: 'Logout', icon: LogOut },
   ];
+
+  // Show loading state while checking session
+  if (status === "loading") {
+    return (
+      <div className="flex flex-col min-h-screen bg-brand-white">
+        <Header />
+        <main className="flex-grow pt-24 pb-16">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading...</p>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Redirect to sign in if not authenticated
+  if (status === "unauthenticated" || !session?.user) {
+    return (
+      <div className="flex flex-col min-h-screen bg-brand-white">
+        <Header />
+        <main className="flex-grow pt-24 pb-16">
+          <div className="container mx-auto px-4 sm:px-6">
+            <div className="max-w-md mx-auto mt-12">
+              <div className="bg-white border border-border rounded-lg p-8 text-center">
+                <div className="mb-6">
+                  <User className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+                  <h1 className="text-2xl font-headline font-bold text-brand-blue mb-2">
+                    Sign In Required
+                  </h1>
+                  <p className="text-muted-foreground">
+                    Please sign in to access your account
+                  </p>
+                </div>
+                <Button
+                  onClick={() => signIn("google", { callbackUrl: "/account" })}
+                  className="w-full"
+                  size="lg"
+                >
+                  <User className="h-4 w-4 mr-2" />
+                  Sign In with Google
+                </Button>
+              </div>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-white">
@@ -475,10 +704,374 @@ export default function AccountPage() {
 
               {activeTab === 'addresses' && (
                 <div className="bg-white border border-border rounded-lg p-6">
-                  <h2 className="text-2xl font-headline font-bold text-brand-blue mb-4">
-                    Addresses
-                  </h2>
-                  <p className="text-muted-foreground">Manage your shipping addresses here.</p>
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-2xl font-headline font-bold text-brand-blue mb-2">
+                        Addresses
+                      </h2>
+                      <p className="text-muted-foreground">Manage your shipping addresses here.</p>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        setEditingAddress(null);
+                        setAddressForm({
+                          fullName: '',
+                          phone: '',
+                          addressLine1: '',
+                          addressLine2: '',
+                          city: '',
+                          state: '',
+                          postalCode: '',
+                          country: 'Ireland',
+                          isDefault: false,
+                        });
+                        setIsAddressDialogOpen(true);
+                      }}
+                      className="gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Address
+                    </Button>
+                  </div>
+
+                  {isLoadingAddresses ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>Loading addresses...</p>
+                    </div>
+                  ) : addresses.length === 0 ? (
+                    <div className="text-center py-12 border-2 border-dashed rounded-lg">
+                      <MapPin className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                      <p className="text-muted-foreground mb-4">No addresses saved yet</p>
+                      <Button
+                        onClick={() => {
+                          setEditingAddress(null);
+                          setAddressForm({
+                            fullName: '',
+                            phone: '',
+                            addressLine1: '',
+                            addressLine2: '',
+                            city: '',
+                            state: '',
+                            postalCode: '',
+                            country: 'Ireland',
+                            isDefault: false,
+                          });
+                          setIsAddressDialogOpen(true);
+                        }}
+                        variant="outline"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Your First Address
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {addresses.map((address) => (
+                        <div
+                          key={address.id}
+                          className={cn(
+                            "border rounded-lg p-4 relative",
+                            address.isDefault && "border-brand-teal border-2"
+                          )}
+                        >
+                          {address.isDefault && (
+                            <div className="absolute top-2 right-2">
+                              <Badge className="bg-brand-teal text-white">
+                                <Star className="h-3 w-3 mr-1" />
+                                Default
+                              </Badge>
+                            </div>
+                          )}
+                          <div className="mb-4">
+                            <h3 className="font-semibold text-brand-blue mb-1">{address.fullName}</h3>
+                            <p className="text-sm text-muted-foreground">{address.phone}</p>
+                          </div>
+                          <div className="text-sm text-muted-foreground mb-4 space-y-1">
+                            <p>{address.addressLine1}</p>
+                            {address.addressLine2 && <p>{address.addressLine2}</p>}
+                            <p>
+                              {address.city}
+                              {address.state && `, ${address.state}`}
+                              {address.postalCode && ` ${address.postalCode}`}
+                            </p>
+                            <p>{address.country}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setEditingAddress(address);
+                                setAddressForm({
+                                  fullName: address.fullName,
+                                  phone: address.phone,
+                                  addressLine1: address.addressLine1,
+                                  addressLine2: address.addressLine2 || '',
+                                  city: address.city,
+                                  state: address.state || '',
+                                  postalCode: address.postalCode,
+                                  country: address.country,
+                                  isDefault: address.isDefault,
+                                });
+                                setIsAddressDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            {!address.isDefault && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={async () => {
+                                  try {
+                                    const result = await setDefaultAddress(address.id);
+                                    if (result.error) {
+                                      toast({
+                                        title: "Error",
+                                        description: result.error,
+                                        variant: "destructive",
+                                      });
+                                    } else {
+                                      toast({
+                                        title: "Success",
+                                        description: "Default address updated",
+                                      });
+                                      const addressesResult = await getAddresses();
+                                      if (addressesResult.addresses) {
+                                        setAddresses(addressesResult.addresses);
+                                      }
+                                    }
+                                  } catch (error) {
+                                    toast({
+                                      title: "Error",
+                                      description: "Failed to set default address",
+                                      variant: "destructive",
+                                    });
+                                  }
+                                }}
+                              >
+                                Set Default
+                              </Button>
+                            )}
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={async () => {
+                                if (!confirm('Are you sure you want to delete this address?')) {
+                                  return;
+                                }
+                                try {
+                                  const result = await deleteAddress(address.id);
+                                  if (result.error) {
+                                    toast({
+                                      title: "Error",
+                                      description: result.error,
+                                      variant: "destructive",
+                                    });
+                                  } else {
+                                    toast({
+                                      title: "Success",
+                                      description: "Address deleted",
+                                    });
+                                    const addressesResult = await getAddresses();
+                                    if (addressesResult.addresses) {
+                                      setAddresses(addressesResult.addresses);
+                                    }
+                                  }
+                                } catch (error) {
+                                  toast({
+                                    title: "Error",
+                                    description: "Failed to delete address",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add/Edit Address Dialog */}
+                  <Dialog open={isAddressDialogOpen} onOpenChange={setIsAddressDialogOpen}>
+                    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle>
+                          {editingAddress ? 'Edit Address' : 'Add New Address'}
+                        </DialogTitle>
+                        <DialogDescription>
+                          {editingAddress ? 'Update your shipping address' : 'Add a new shipping address'}
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="fullName">Full Name *</Label>
+                          <Input
+                            id="fullName"
+                            value={addressForm.fullName}
+                            onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })}
+                            placeholder="John Doe"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="phone">Phone Number *</Label>
+                          <Input
+                            id="phone"
+                            value={addressForm.phone}
+                            onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                            placeholder="+353 123 456 7890"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="addressLine1">Address Line 1 *</Label>
+                          <Input
+                            id="addressLine1"
+                            value={addressForm.addressLine1}
+                            onChange={(e) => setAddressForm({ ...addressForm, addressLine1: e.target.value })}
+                            placeholder="Street address, P.O. box"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="addressLine2">Address Line 2</Label>
+                          <Input
+                            id="addressLine2"
+                            value={addressForm.addressLine2}
+                            onChange={(e) => setAddressForm({ ...addressForm, addressLine2: e.target.value })}
+                            placeholder="Apartment, suite, unit, building, floor, etc."
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="city">City *</Label>
+                            <Input
+                              id="city"
+                              value={addressForm.city}
+                              onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                              placeholder="Dublin"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="state">State/Province</Label>
+                            <Input
+                              id="state"
+                              value={addressForm.state}
+                              onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
+                              placeholder="Leinster"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="postalCode">Postal Code *</Label>
+                            <Input
+                              id="postalCode"
+                              value={addressForm.postalCode}
+                              onChange={(e) => setAddressForm({ ...addressForm, postalCode: e.target.value })}
+                              placeholder="D02 XY12"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="country">Country *</Label>
+                            <Select
+                              value={addressForm.country}
+                              onValueChange={(value) => setAddressForm({ ...addressForm, country: value })}
+                            >
+                              <SelectTrigger id="country">
+                                <SelectValue placeholder="Select country" />
+                              </SelectTrigger>
+                              <SelectContent className="max-h-[300px]">
+                                {SCHENGEN_COUNTRIES.map((country) => (
+                                  <SelectItem key={country} value={country}>
+                                    {country}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="isDefault"
+                            checked={addressForm.isDefault}
+                            onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="isDefault" className="cursor-pointer">
+                            Set as default address
+                          </Label>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setIsAddressDialogOpen(false);
+                            setEditingAddress(null);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={async () => {
+                            if (!addressForm.fullName || !addressForm.phone || !addressForm.addressLine1 || !addressForm.city || !addressForm.postalCode) {
+                              toast({
+                                title: "Error",
+                                description: "Please fill in all required fields",
+                                variant: "destructive",
+                              });
+                              return;
+                            }
+
+                            try {
+                              let result;
+                              if (editingAddress) {
+                                result = await updateAddress(editingAddress.id, addressForm);
+                              } else {
+                                result = await addAddress(addressForm);
+                              }
+
+                              if (result.error) {
+                                toast({
+                                  title: "Error",
+                                  description: result.error,
+                                  variant: "destructive",
+                                });
+                              } else {
+                                toast({
+                                  title: "Success",
+                                  description: editingAddress ? "Address updated" : "Address added",
+                                });
+                                setIsAddressDialogOpen(false);
+                                setEditingAddress(null);
+                                const addressesResult = await getAddresses();
+                                if (addressesResult.addresses) {
+                                  setAddresses(addressesResult.addresses);
+                                }
+                              }
+                            } catch (error) {
+                              toast({
+                                title: "Error",
+                                description: "Failed to save address",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                        >
+                          {editingAddress ? 'Update Address' : 'Add Address'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               )}
 
@@ -489,11 +1082,43 @@ export default function AccountPage() {
                   </h2>
                   <div className="bg-gradient-to-br from-brand-teal to-brand-teal/80 rounded-lg p-6 text-white mb-6">
                     <p className="text-sm opacity-90 mb-1">Current Balance</p>
-                    <p className="text-4xl font-headline font-bold">€{walletBalance.toFixed(2)}</p>
+                    {isLoadingWallet ? (
+                      <p className="text-4xl font-headline font-bold">Loading...</p>
+                    ) : (
+                      <p className="text-4xl font-headline font-bold">€{walletBalance.toFixed(2)}</p>
+                    )}
                   </div>
-                  <p className="text-muted-foreground">
-                    Your cashback earnings and transaction history will be displayed here.
-                  </p>
+                  
+                  {walletTransactions.length > 0 ? (
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold mb-4">Transaction History</h3>
+                      <div className="space-y-3">
+                        {walletTransactions.map((transaction) => (
+                          <div
+                            key={transaction.id}
+                            className="flex items-center justify-between p-4 border rounded-lg"
+                          >
+                            <div className="flex-1">
+                              <p className="font-medium">{transaction.description}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {format(new Date(transaction.createdAt), 'PPp')}
+                              </p>
+                            </div>
+                            <div className={cn(
+                              "text-lg font-semibold",
+                              transaction.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'
+                            )}>
+                              {transaction.type === 'CREDIT' ? '+' : '-'}€{transaction.amount.toFixed(2)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      {isLoadingWallet ? 'Loading transaction history...' : 'No transactions yet. Your cashback earnings and transaction history will be displayed here.'}
+                    </p>
+                  )}
                 </div>
               )}
 

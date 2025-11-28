@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "node scripts/show-network-info.js && next dev --turbopack -p 9002 -H 0.0.0.0",
+    "dev:tunnel": "node scripts/show-network-info.js && next dev --turbopack -p 9002 -H 0.0.0.0",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "next build",
@@ -13,6 +14,7 @@
     "get-ip": "node scripts/get-local-ip.js"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.11.1",
     "@genkit-ai/google-genai": "^1.20.0",
     "@genkit-ai/next": "^1.20.0",
     "@google/model-viewer": "^4.1.0",
@@ -50,6 +52,7 @@
     "gsap": "^3.13.0",
     "lucide-react": "^0.475.0",
     "next": "15.3.3",
+    "next-auth": "^5.0.0-beta.30",
     "patch-package": "^8.0.0",
     "pg": "^8.16.3",
     "react": "^18.3.1",

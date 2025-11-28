@@ -53,6 +53,8 @@ model Product {
   Category       Category         @relation(fields: [categoryId], references: [id])
   ProductVariant ProductVariant[]
   Review         Review[]
+  CartItem       CartItem[]
+  Wishlist       Wishlist[]
 }
 
 model ProductAsset {
@@ -96,13 +98,159 @@ model Review {
 }
 
 model User {
+  id            String       @id @default(cuid())
+  email         String       @unique
+  name          String?
+  emailVerified DateTime?
+  image         String?
+  role          String       @default("USER")
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  cart          Cart?
+  wishlist      Wishlist[]
+  Review        Review[]
+  wallet        Wallet?
+  addresses     Address[]
+}
+
+// NextAuth Models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Cart Models
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  User      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+}
+
+model CartItem {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
-  role      String   @default("USER")
+  cartId    String
+  productId String
+  variantId String
+  quantity Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  Review    Review[]
+  Cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  Product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId, variantId])
+}
+
+// Wishlist Model
+model Wishlist {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+// Wallet Models
+model Wallet {
+  id        String            @id @default(cuid())
+  userId    String            @unique
+  balance   Decimal           @default(0) @db.Decimal(10, 2)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  User      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id          String   @id @default(cuid())
+  walletId    String
+  amount      Decimal  @db.Decimal(10, 2)
+  type        TransactionType
+  description String
+  createdAt   DateTime @default(now())
+  Wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+
+enum TransactionType {
+  CREDIT // Money added (cashback, admin credit, refund)
+  DEBIT  // Money spent (purchase, admin deduction)
+}
+
+// Address Model
+model Address {
+  id           String   @id @default(cuid())
+  userId       String
+  fullName     String
+  phone        String
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String?
+  postalCode   String
+  country      String   @default("Ireland")
+  isDefault    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Deleted User Archive Model - Stores complete user data before deletion
+model DeletedUser {
+  id            String   @id @default(cuid())
+  originalUserId String  @unique // Original user ID before deletion
+  email         String
+  name          String?
+  image         String?
+  role          String
+  emailVerified DateTime?
+  createdAt     DateTime // Original user creation date
+  deletedAt     DateTime @default(now())
+  
+  // Store all related data as JSON
+  userData      Json     // Complete user object
+  accountsData  Json     // All OAuth accounts
+  sessionsData  Json     // All sessions
+  cartData      Json?    // Cart and cart items
+  wishlistData  Json     // All wishlist items
+  walletData    Json?    // Wallet and transactions
+  reviewsData   Json     // All reviews
+  addressesData Json     // All addresses
 }
 
 model HeroImage {
@@ -149,6 +297,28 @@ model IconicImage {
   updatedAt DateTime @updatedAt
 }
 
+model GiftBanner {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  title     String
+  subtitle  String?
+  link      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ShopBanner {
+  id        String   @id @default(cuid())
+  category  String   @unique // "MEN", "WOMEN", "KIDS", "UNISEX"
+  imageUrl  String
+  alt       String
+  link      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum AssetType {
   GALLERY // Standard photos for the product details slider
   NO_BG // Transparent background (for Landing Page 3D effect)
@@ -162,4 +332,13 @@ enum Gender {
   WOMEN
   UNISEX
   KIDS
+}
+
+// Settings Model for Admin Configuration
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
