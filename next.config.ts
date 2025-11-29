@@ -62,6 +62,8 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+    // Allow unoptimized images for local file paths
+    unoptimized: false,
   },
 };
 

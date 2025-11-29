@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
@@ -17,8 +18,11 @@ import {
 } from "@/components/ui/select";
 import { Mail, Phone, MessageCircle, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import ContactChat from "@/components/ContactChat";
+import { sendContactEmail } from "@/app/actions/contact";
 
 export default function ContactPage() {
+  const { data: session } = useSession();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -28,7 +32,29 @@ export default function ContactPage() {
     message: "",
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitError, setSubmitError] = useState<string>("");
+
+  // Auto-fill form data from user session
+  useEffect(() => {
+    if (session?.user) {
+      const userName = session.user.name || "";
+      const userEmail = session.user.email || "";
+      
+      // Split name into first and last name
+      const nameParts = userName.trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      setFormData((prev) => ({
+        ...prev,
+        email: userEmail,
+        firstName: prev.firstName || firstName,
+        lastName: prev.lastName || lastName,
+      }));
+    }
+  }, [session]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -63,26 +89,43 @@ export default function ContactPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError("");
     
-    if (validateForm()) {
-      // Here you would typically send the form data to your backend
-      console.log("Form submitted:", formData);
-      setIsSubmitted(true);
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const result = await sendContactEmail(formData);
       
-      // Reset form after 3 seconds
-      setTimeout(() => {
-        setIsSubmitted(false);
-        setFormData({
-          firstName: "",
-          lastName: "",
-          email: "",
-          phone: "",
-          subject: "",
-          message: "",
-        });
-      }, 3000);
+      if (result.success) {
+        setIsSubmitted(true);
+        setSubmitError("");
+        
+        // Reset form after 3 seconds
+        setTimeout(() => {
+          setIsSubmitted(false);
+          setFormData({
+            firstName: "",
+            lastName: "",
+            email: "",
+            phone: "",
+            subject: "",
+            message: "",
+          });
+        }, 3000);
+      } else {
+        setSubmitError(result.error || "Failed to send message. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setSubmitError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -147,10 +190,10 @@ export default function ContactPage() {
                             Phone
                           </h3>
                           <a
-                            href="tel:+37051234567"
+                            href="tel:+37060966069"
                             className="text-brand-blue hover:text-brand-teal transition-colors"
                           >
-                            To be added later
+                            +370 609 66069
                           </a>
                         </div>
                       </div>
@@ -169,7 +212,7 @@ export default function ContactPage() {
                             Live Chat
                           </h3>
                           <p className="text-brand-blue/80 text-sm mb-3">
-                            Chat with our stylists for instant advice.
+                          Need assistance? Contact support or chat with a stylist for instant advice.
                           </p>
                           <Link href="/chat" prefetch={true}>
                             <Button
@@ -311,7 +354,7 @@ export default function ContactPage() {
                               handleInputChange("phone", e.target.value)
                             }
                             className="bg-white border-gray-200 focus:border-brand-teal focus:ring-brand-teal"
-                            placeholder="+370 5 123 4567"
+                            placeholder="+370 609 66069"
                           />
                         </div>
 
@@ -381,12 +424,20 @@ export default function ContactPage() {
                           )}
                         </div>
 
+                        {/* Error Message */}
+                        {submitError && (
+                          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <p className="text-red-600 text-sm">{submitError}</p>
+                          </div>
+                        )}
+
                         {/* Submit Button */}
                         <Button
                           type="submit"
-                          className="w-full bg-brand-teal text-white hover:bg-brand-teal/90 font-semibold py-6 text-lg"
+                          disabled={isSubmitting}
+                          className="w-full bg-brand-teal text-white hover:bg-brand-teal/90 font-semibold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Send Message
+                          {isSubmitting ? "Sending..." : "Send Message"}
                         </Button>
                       </form>
                     )}
@@ -398,6 +449,7 @@ export default function ContactPage() {
         </div>
       </main>
       <Footer />
+      <ContactChat />
     </div>
   );
 }

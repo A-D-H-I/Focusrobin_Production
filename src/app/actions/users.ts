@@ -393,6 +393,207 @@ export async function getWalletDetails(userId: string) {
   }
 }
 
+/**
+ * Revoke a wallet transaction (admin only)
+ * This will reverse the transaction and update the wallet balance
+ */
+export async function revokeWalletTransaction(transactionId: string) {
+  const session = await auth();
+  
+  if (!session?.user) {
+    return { error: "You must be logged in" };
+  }
+
+  const userRole = (session.user as any)?.role;
+  if (userRole !== "ADMIN") {
+    return { error: "Only admins can revoke transactions" };
+  }
+
+  try {
+    // Get the transaction
+    const transaction = await prisma.walletTransaction.findUnique({
+      where: { id: transactionId },
+      include: { Wallet: true },
+    });
+
+    if (!transaction) {
+      return { error: "Transaction not found" };
+    }
+
+    const wallet = transaction.Wallet;
+    const currentBalance = Number(wallet.balance);
+    const transactionAmount = Number(transaction.amount);
+    
+    // Calculate new balance by reversing the transaction
+    // If it was a CREDIT, subtract it; if it was a DEBIT, add it back
+    const adjustment = transaction.type === 'CREDIT' ? -transactionAmount : transactionAmount;
+    const newBalance = currentBalance + adjustment;
+
+    if (newBalance < 0) {
+      return { error: "Cannot revoke transaction: would result in negative balance" };
+    }
+
+    // Update wallet balance
+    await prisma.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: newBalance },
+    });
+
+    // Delete the transaction
+    await prisma.walletTransaction.delete({
+      where: { id: transactionId },
+    });
+
+    revalidatePath("/admin/users");
+    revalidatePath("/account");
+    return { success: true, newBalance };
+  } catch (error) {
+    console.error("Error revoking transaction:", error);
+    return { error: "Failed to revoke transaction" };
+  }
+}
+
+/**
+ * Update a wallet transaction (admin only)
+ * This updates the transaction details and recalculates the wallet balance
+ */
+export async function updateWalletTransaction(
+  transactionId: string,
+  amount: number,
+  type: 'CREDIT' | 'DEBIT',
+  description: string
+) {
+  const session = await auth();
+  
+  if (!session?.user) {
+    return { error: "You must be logged in" };
+  }
+
+  const userRole = (session.user as any)?.role;
+  if (userRole !== "ADMIN") {
+    return { error: "Only admins can update transactions" };
+  }
+
+  if (amount <= 0) {
+    return { error: "Amount must be positive" };
+  }
+
+  try {
+    // Get the transaction with wallet
+    const transaction = await prisma.walletTransaction.findUnique({
+      where: { id: transactionId },
+      include: { Wallet: true },
+    });
+
+    if (!transaction) {
+      return { error: "Transaction not found" };
+    }
+
+    const wallet = transaction.Wallet;
+    const currentBalance = Number(wallet.balance);
+    const oldAmount = Number(transaction.amount);
+    const oldType = transaction.type;
+    
+    // Calculate the adjustment needed
+    // First, reverse the old transaction effect
+    const oldAdjustment = oldType === 'CREDIT' ? -oldAmount : oldAmount;
+    // Then, apply the new transaction effect
+    const newAdjustment = type === 'CREDIT' ? amount : -amount;
+    // Total adjustment
+    const totalAdjustment = oldAdjustment + newAdjustment;
+    const newBalance = currentBalance + totalAdjustment;
+
+    if (newBalance < 0) {
+      return { error: "Cannot update transaction: would result in negative balance" };
+    }
+
+    // Update the transaction
+    await prisma.walletTransaction.update({
+      where: { id: transactionId },
+      data: {
+        amount,
+        type,
+        description,
+      },
+    });
+
+    // Update wallet balance
+    await prisma.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: newBalance },
+    });
+
+    revalidatePath("/admin/users");
+    revalidatePath("/account");
+    return { success: true, newBalance };
+  } catch (error) {
+    console.error("Error updating transaction:", error);
+    return { error: "Failed to update transaction" };
+  }
+}
+
+/**
+ * Set wallet balance directly (admin only)
+ * This sets the balance to a specific amount and creates a transaction record
+ */
+export async function setWalletBalance(userId: string, newBalance: number, description: string) {
+  const session = await auth();
+  
+  if (!session?.user) {
+    return { error: "You must be logged in" };
+  }
+
+  const userRole = (session.user as any)?.role;
+  if (userRole !== "ADMIN") {
+    return { error: "Only admins can set wallet balances" };
+  }
+
+  if (newBalance < 0) {
+    return { error: "Balance cannot be negative" };
+  }
+
+  try {
+    // Get or create wallet
+    let wallet = await prisma.wallet.findUnique({
+      where: { userId },
+    });
+
+    if (!wallet) {
+      wallet = await prisma.wallet.create({
+        data: { userId, balance: newBalance },
+      });
+    } else {
+      const currentBalance = Number(wallet.balance);
+      const difference = newBalance - currentBalance;
+
+      // Update wallet balance
+      await prisma.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: newBalance },
+      });
+
+      // Create transaction record for the adjustment
+      if (difference !== 0) {
+        await prisma.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            amount: Math.abs(difference),
+            type: difference > 0 ? 'CREDIT' : 'DEBIT',
+            description: description || `Admin balance adjustment to €${newBalance.toFixed(2)}`,
+          },
+        });
+      }
+    }
+
+    revalidatePath("/admin/users");
+    revalidatePath("/account");
+    return { success: true, newBalance };
+  } catch (error) {
+    console.error("Error setting wallet balance:", error);
+    return { error: "Failed to set wallet balance" };
+  }
+}
+
 // Settings Management Actions (Admin Only)
 export async function getWelcomeBonusAmount() {
   const session = await auth();

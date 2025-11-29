@@ -114,7 +114,9 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     price: finalPrice, // Final price after discount
     originalPrice: hasDiscount ? originalPrice : undefined, // Original price if discounted
     discountPct: hasDiscount ? discountPct : undefined, // Discount percentage if applicable
-    cashback: '5%', // Default or calculate from offer if exists
+    cashback: prismaProduct.cashbackAmount && Number(prismaProduct.cashbackAmount) > 0 
+      ? `€${Number(prismaProduct.cashbackAmount).toFixed(2)}` 
+      : undefined, // Cashback amount in Euros (only if > 0)
     variants,
     categories: Array.isArray(prismaProduct.gender) 
       ? prismaProduct.gender.map(g => g === 'MEN' ? 'Men' : g === 'WOMEN' ? 'Women' : g === 'KIDS' ? 'Kids' : 'Unisex')

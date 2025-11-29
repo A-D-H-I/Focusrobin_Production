@@ -8,6 +8,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Product } from "@/lib/productData";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface BestsellersCarouselProps {
   products: Product[];
@@ -353,6 +354,14 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                                  </>
                                )}
                              </div>
+
+                      {product.cashback && (
+                        <div className="flex justify-center mb-4 relative z-40">
+                          <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
+                            🎁 {product.cashback} cashback
+                          </Badge>
+                        </div>
+                      )}
 
                       {product.variants && product.variants.length > 1 && (
                         <div className="flex items-center justify-center gap-4 mb-8 flex-wrap relative z-40">

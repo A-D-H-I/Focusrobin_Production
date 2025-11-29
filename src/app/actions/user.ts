@@ -258,6 +258,61 @@ export async function getCart() {
   const session = await auth();
   
   if (!session?.user?.id) {
+    return { items: [] };
+  }
+
+  try {
+    const cart = await prisma.cart.findUnique({
+      where: { userId: session.user.id },
+      include: {
+        items: {
+          include: {
+            Product: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                basePrice: true,
+                discountPct: true,
+                cashbackAmount: true,
+                ProductVariant: {
+                  select: {
+                    id: true,
+                    sku: true,
+                    name: true,
+                    price: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!cart) {
+      return { items: [] };
+    }
+
+    return {
+      items: cart.items.map((item) => ({
+        id: item.id,
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        Product: item.Product,
+      })),
+    };
+  } catch (error) {
+    console.error("Error fetching cart:", error);
+    return { items: [] };
+  }
+}
+
+export async function getCartOld() {
+  const session = await auth();
+  
+  if (!session?.user?.id) {
     return { items: [], total: 0 };
   }
 

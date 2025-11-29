@@ -53,12 +53,23 @@ import {
   deleteReview,
   deleteSession,
   deleteAccount,
-  updateWalletBalance
+  updateWalletBalance,
+  revokeWalletTransaction,
+  setWalletBalance,
+  updateWalletTransaction
 } from '@/app/actions/users';
 import { useToast } from '@/hooks/use-toast';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 interface UserData {
   id: string;
@@ -130,6 +141,13 @@ export default function UserManagement({ users }: UserManagementProps) {
   const [editingWallet, setEditingWallet] = useState<string | null>(null);
   const [walletAmount, setWalletAmount] = useState<number>(0);
   const [walletDescription, setWalletDescription] = useState<string>('');
+  const [settingWalletBalance, setSettingWalletBalance] = useState<string | null>(null);
+  const [newWalletBalance, setNewWalletBalance] = useState<number>(0);
+  const [revokingTransaction, setRevokingTransaction] = useState<string | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
+  const [transactionAmount, setTransactionAmount] = useState<number>(0);
+  const [transactionType, setTransactionType] = useState<'CREDIT' | 'DEBIT'>('CREDIT');
+  const [transactionDescription, setTransactionDescription] = useState<string>('');
   const { toast } = useToast();
 
   const toggleUser = (userId: string) => {
@@ -459,6 +477,134 @@ export default function UserManagement({ users }: UserManagementProps) {
       toast({
         title: "Error",
         description: "Failed to update wallet balance",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSetWalletBalance = async (userId: string) => {
+    if (newWalletBalance < 0) {
+      toast({
+        title: "Error",
+        description: "Balance cannot be negative",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const result = await setWalletBalance(userId, newWalletBalance, walletDescription || `Admin set balance to €${newWalletBalance.toFixed(2)}`);
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: `Wallet balance set to €${result.newBalance?.toFixed(2)}`,
+        });
+        setSettingWalletBalance(null);
+        setNewWalletBalance(0);
+        setWalletDescription('');
+        window.location.reload();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to set wallet balance",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRevokeTransaction = async (transactionId: string, userId: string) => {
+    if (!confirm("Are you sure you want to revoke this transaction? This action cannot be undone.")) {
+      return;
+    }
+
+    setRevokingTransaction(transactionId);
+    try {
+      const result = await revokeWalletTransaction(transactionId);
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: `Transaction revoked. New balance: €${result.newBalance?.toFixed(2)}`,
+        });
+        window.location.reload();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to revoke transaction",
+        variant: "destructive",
+      });
+    } finally {
+      setRevokingTransaction(null);
+    }
+  };
+
+  const handleEditTransaction = (transaction: any) => {
+    setEditingTransaction(transaction.id);
+    setTransactionAmount(Number(transaction.amount));
+    setTransactionType(transaction.type);
+    setTransactionDescription(transaction.description);
+  };
+
+  const handleUpdateTransaction = async (transactionId: string) => {
+    if (transactionAmount <= 0) {
+      toast({
+        title: "Error",
+        description: "Amount must be greater than zero",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!transactionDescription.trim()) {
+      toast({
+        title: "Error",
+        description: "Description is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const result = await updateWalletTransaction(
+        transactionId,
+        transactionAmount,
+        transactionType,
+        transactionDescription
+      );
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: `Transaction updated. New balance: €${result.newBalance?.toFixed(2)}`,
+        });
+        setEditingTransaction(null);
+        setTransactionAmount(0);
+        setTransactionType('CREDIT');
+        setTransactionDescription('');
+        window.location.reload();
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update transaction",
         variant: "destructive",
       });
     }
@@ -1000,56 +1146,109 @@ export default function UserManagement({ users }: UserManagementProps) {
                           <div>
                             <h3 className="font-semibold mb-2 flex items-center gap-2">
                               <Wallet className="h-4 w-4" /> Wallet
-                              <Dialog open={editingWallet === user.id} onOpenChange={(open) => {
-                                if (!open) {
-                                  setEditingWallet(null);
-                                  setWalletAmount(0);
-                                  setWalletDescription('');
-                                } else {
-                                  setEditingWallet(user.id);
-                                  setWalletAmount(0);
-                                  setWalletDescription('');
-                                }
-                              }}>
-                                <DialogTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="ml-2">
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                  <DialogHeader>
-                                    <DialogTitle>Update Wallet Balance</DialogTitle>
-                                    <DialogDescription>
-                                      Enter positive amount to add funds, negative to deduct. Current balance: €{user.wallet ? Number(user.wallet.balance).toFixed(2) : '0.00'}
-                                    </DialogDescription>
-                                  </DialogHeader>
-                                  <div className="space-y-4">
-                                    <div>
-                                      <Label htmlFor="wallet-amount">Amount (€)</Label>
-                                      <Input
-                                        id="wallet-amount"
-                                        type="number"
-                                        step="0.01"
-                                        value={walletAmount}
-                                        onChange={(e) => setWalletAmount(parseFloat(e.target.value) || 0)}
-                                        placeholder="Enter amount (positive to add, negative to deduct)"
-                                      />
-                                    </div>
-                                    <div>
-                                      <Label htmlFor="wallet-description">Description</Label>
-                                      <Input
-                                        id="wallet-description"
-                                        value={walletDescription}
-                                        onChange={(e) => setWalletDescription(e.target.value)}
-                                        placeholder="Transaction description (optional)"
-                                      />
-                                    </div>
-                                    <Button onClick={() => handleUpdateWallet(user.id)}>
-                                      Update Wallet
+                              <div className="flex gap-1 ml-2">
+                                <Dialog open={editingWallet === user.id} onOpenChange={(open) => {
+                                  if (!open) {
+                                    setEditingWallet(null);
+                                    setWalletAmount(0);
+                                    setWalletDescription('');
+                                  } else {
+                                    setEditingWallet(user.id);
+                                    setWalletAmount(0);
+                                    setWalletDescription('');
+                                  }
+                                }}>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <Edit className="h-4 w-4" />
                                     </Button>
-                                  </div>
-                                </DialogContent>
-                              </Dialog>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Add/Subtract Wallet Balance</DialogTitle>
+                                      <DialogDescription>
+                                        Enter positive amount to add funds, negative to deduct. Current balance: €{user.wallet ? Number(user.wallet.balance).toFixed(2) : '0.00'}
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                      <div>
+                                        <Label htmlFor="wallet-amount">Amount (€)</Label>
+                                        <Input
+                                          id="wallet-amount"
+                                          type="number"
+                                          step="0.01"
+                                          value={walletAmount}
+                                          onChange={(e) => setWalletAmount(parseFloat(e.target.value) || 0)}
+                                          placeholder="Enter amount (positive to add, negative to deduct)"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label htmlFor="wallet-description">Description</Label>
+                                        <Input
+                                          id="wallet-description"
+                                          value={walletDescription}
+                                          onChange={(e) => setWalletDescription(e.target.value)}
+                                          placeholder="Transaction description (optional)"
+                                        />
+                                      </div>
+                                      <Button onClick={() => handleUpdateWallet(user.id)}>
+                                        Update Wallet
+                                      </Button>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                                <Dialog open={settingWalletBalance === user.id} onOpenChange={(open) => {
+                                  if (!open) {
+                                    setSettingWalletBalance(null);
+                                    setNewWalletBalance(user.wallet ? Number(user.wallet.balance) : 0);
+                                    setWalletDescription('');
+                                  } else {
+                                    setSettingWalletBalance(user.id);
+                                    setNewWalletBalance(user.wallet ? Number(user.wallet.balance) : 0);
+                                    setWalletDescription('');
+                                  }
+                                }}>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <Shield className="h-4 w-4" />
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent>
+                                    <DialogHeader>
+                                      <DialogTitle>Set Wallet Balance</DialogTitle>
+                                      <DialogDescription>
+                                        Set the wallet balance to a specific amount. Current balance: €{user.wallet ? Number(user.wallet.balance).toFixed(2) : '0.00'}
+                                      </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="space-y-4">
+                                      <div>
+                                        <Label htmlFor="new-wallet-balance">New Balance (€)</Label>
+                                        <Input
+                                          id="new-wallet-balance"
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          value={newWalletBalance}
+                                          onChange={(e) => setNewWalletBalance(parseFloat(e.target.value) || 0)}
+                                          placeholder="Enter new balance"
+                                        />
+                                      </div>
+                                      <div>
+                                        <Label htmlFor="set-balance-description">Description</Label>
+                                        <Input
+                                          id="set-balance-description"
+                                          value={walletDescription}
+                                          onChange={(e) => setWalletDescription(e.target.value)}
+                                          placeholder="Transaction description (optional)"
+                                        />
+                                      </div>
+                                      <Button onClick={() => handleSetWalletBalance(user.id)}>
+                                        Set Balance
+                                      </Button>
+                                    </div>
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
                             </h3>
                             <div className="bg-gradient-to-br from-brand-teal to-brand-teal/80 rounded-lg p-4 text-white mb-4">
                               <p className="text-sm opacity-90 mb-1">Current Balance</p>
@@ -1061,20 +1260,116 @@ export default function UserManagement({ users }: UserManagementProps) {
                               <div className="mt-4">
                                 <h4 className="text-sm font-semibold mb-2">Recent Transactions</h4>
                                 <div className="space-y-2">
-                                  {user.wallet.transactions.slice(0, 5).map((transaction) => (
-                                    <div key={transaction.id} className="flex items-center justify-between p-2 border rounded text-sm">
-                                      <div>
-                                        <p className="font-medium">{transaction.description}</p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {format(new Date(transaction.createdAt), 'PPp')}
-                                        </p>
-                                      </div>
-                                      <div className={cn(
-                                        "font-semibold",
-                                        transaction.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'
-                                      )}>
-                                        {transaction.type === 'CREDIT' ? '+' : '-'}€{Number(transaction.amount).toFixed(2)}
-                                      </div>
+                                  {user.wallet.transactions.slice(0, 10).map((transaction) => (
+                                    <div key={transaction.id}>
+                                      {editingTransaction === transaction.id ? (
+                                        <Dialog open={true} onOpenChange={(open) => {
+                                          if (!open) {
+                                            setEditingTransaction(null);
+                                            setTransactionAmount(0);
+                                            setTransactionType('CREDIT');
+                                            setTransactionDescription('');
+                                          }
+                                        }}>
+                                          <DialogContent>
+                                            <DialogHeader>
+                                              <DialogTitle>Edit Transaction</DialogTitle>
+                                              <DialogDescription>
+                                                Update transaction details. The wallet balance will be recalculated automatically.
+                                              </DialogDescription>
+                                            </DialogHeader>
+                                            <div className="space-y-4">
+                                              <div>
+                                                <Label htmlFor="edit-transaction-amount">Amount (€)</Label>
+                                                <Input
+                                                  id="edit-transaction-amount"
+                                                  type="number"
+                                                  step="0.01"
+                                                  min="0.01"
+                                                  value={transactionAmount}
+                                                  onChange={(e) => setTransactionAmount(parseFloat(e.target.value) || 0)}
+                                                  placeholder="Enter amount"
+                                                />
+                                              </div>
+                                              <div>
+                                                <Label htmlFor="edit-transaction-type">Type</Label>
+                                                <Select value={transactionType} onValueChange={(value: 'CREDIT' | 'DEBIT') => setTransactionType(value)}>
+                                                  <SelectTrigger>
+                                                    <SelectValue />
+                                                  </SelectTrigger>
+                                                  <SelectContent>
+                                                    <SelectItem value="CREDIT">Credit (Add Money)</SelectItem>
+                                                    <SelectItem value="DEBIT">Debit (Deduct Money)</SelectItem>
+                                                  </SelectContent>
+                                                </Select>
+                                              </div>
+                                              <div>
+                                                <Label htmlFor="edit-transaction-description">Description</Label>
+                                                <Input
+                                                  id="edit-transaction-description"
+                                                  value={transactionDescription}
+                                                  onChange={(e) => setTransactionDescription(e.target.value)}
+                                                  placeholder="Transaction description"
+                                                />
+                                              </div>
+                                              <div className="flex gap-2">
+                                                <Button onClick={() => handleUpdateTransaction(transaction.id)}>
+                                                  Save Changes
+                                                </Button>
+                                                <Button
+                                                  variant="outline"
+                                                  onClick={() => {
+                                                    setEditingTransaction(null);
+                                                    setTransactionAmount(0);
+                                                    setTransactionType('CREDIT');
+                                                    setTransactionDescription('');
+                                                  }}
+                                                >
+                                                  Cancel
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          </DialogContent>
+                                        </Dialog>
+                                      ) : (
+                                        <div className="flex items-center justify-between p-2 border rounded text-sm">
+                                          <div className="flex-1">
+                                            <p className="font-medium">{transaction.description}</p>
+                                            <p className="text-xs text-muted-foreground">
+                                              {format(new Date(transaction.createdAt), 'PPp')}
+                                            </p>
+                                          </div>
+                                          <div className="flex items-center gap-2">
+                                            <div className={cn(
+                                              "font-semibold",
+                                              transaction.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'
+                                            )}>
+                                              {transaction.type === 'CREDIT' ? '+' : '-'}€{Number(transaction.amount).toFixed(2)}
+                                            </div>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleEditTransaction(transaction)}
+                                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                            >
+                                              <Edit className="h-3 w-3" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="sm"
+                                              onClick={() => handleRevokeTransaction(transaction.id, user.id)}
+                                              disabled={revokingTransaction === transaction.id}
+                                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            >
+                                              {revokingTransaction === transaction.id ? (
+                                                "Revoking..."
+                                              ) : (
+                                                <Trash2 className="h-3 w-3" />
+                                              )}
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>

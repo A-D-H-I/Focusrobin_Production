@@ -35,6 +35,7 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
   );
   const [basePrice, setBasePrice] = useState<string>(Number(product.basePrice).toString());
   const [discountPct, setDiscountPct] = useState<string>((product.discountPct || 0).toString());
+  const [cashbackAmount, setCashbackAmount] = useState<string>((product.cashbackAmount ? Number(product.cashbackAmount).toString() : '0'));
   const [variants, setVariants] = useState<VariantData[]>(() => {
     // Initialize variants from product data
     return product.ProductVariant?.map((variant: any) => {
@@ -276,7 +277,23 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
                 onChange={(e) => setDiscountPct(e.target.value)}
               />
             </div>
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
+              <Label htmlFor="cashbackAmount">Cashback Amount (€) *</Label>
+              <Input
+                id="cashbackAmount"
+                name="cashbackAmount"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={cashbackAmount}
+                onChange={(e) => setCashbackAmount(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Fixed Euro amount returned to customer wallet per purchase
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label>Discounted Price</Label>
               <div className="h-10 px-3 py-2 bg-muted rounded-md border border-input flex items-center">
                 <span className="text-lg font-semibold">

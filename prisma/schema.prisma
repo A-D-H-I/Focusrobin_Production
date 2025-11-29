@@ -33,6 +33,7 @@ model Product {
   description    String
   basePrice      Decimal          @db.Decimal(10, 2)
   discountPct    Int?             @default(0)
+  cashbackAmount Decimal?         @db.Decimal(10, 2) @default(0) // Cashback amount in Euros (e.g., 2.00 for €2)
   gender         Gender[]
   tags           String[]
   frameWidth     Float
@@ -55,6 +56,7 @@ model Product {
   Review         Review[]
   CartItem       CartItem[]
   Wishlist       Wishlist[]
+  OrderItems     OrderItem[]
 }
 
 model ProductAsset {
@@ -113,6 +115,8 @@ model User {
   Review        Review[]
   wallet        Wallet?
   addresses     Address[]
+  chats         Chat[]
+  orders        Order[]
 }
 
 // NextAuth Models
@@ -308,6 +312,14 @@ model GiftBanner {
   updatedAt DateTime @updatedAt
 }
 
+model GiftForLovedOnesBanner {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model ShopBanner {
   id        String   @id @default(cuid())
   category  String   @unique // "MEN", "WOMEN", "KIDS", "UNISEX"
@@ -341,4 +353,175 @@ model Settings {
   value     String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// Chat Models
+model Chat {
+  id              String        @id @default(cuid())
+  userId          String?
+  userEmail       String        // Store email for non-authenticated users
+  userName        String?       // Store name for non-authenticated users
+  userLanguage    String        @default("en") // User's detected language
+  status          ChatStatus    @default(OPEN)
+  forceClosed     Boolean       @default(false) // If true, user cannot reopen this chat
+  forceClosedAt   DateTime?     // When the chat was force closed
+  forceClosedBy   String?       // Admin ID who force closed it
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  lastMessageAt   DateTime      @default(now())
+  User            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages        ChatMessage[]
+  
+  @@index([userId])
+  @@index([status])
+  @@index([lastMessageAt])
+  @@index([userEmail])
+}
+
+model UserBlock {
+  id            String   @id @default(cuid())
+  userId        String?  // If null, blocks by email
+  userEmail     String?  // For anonymous users
+  blockedUntil DateTime  // Block expires at this time
+  reason        String?  // Reason for blocking
+  blockedBy    String   // Admin ID who blocked
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([userEmail])
+  @@index([blockedUntil])
+}
+
+model ChatMessage {
+  id                String   @id @default(cuid())
+  chatId            String
+  sender            MessageSender
+  originalText      String   @db.Text // Original message in sender's language
+  translatedText    String   @db.Text // Translated message (to English for admin, to user language for user)
+  language          String   // Language code of the original text
+  createdAt         DateTime @default(now())
+  Chat              Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  
+  @@index([chatId])
+  @@index([createdAt])
+}
+
+enum ChatStatus {
+  OPEN
+  CLOSED
+  PENDING
+  FORCE_CLOSED
+}
+
+enum MessageSender {
+  USER
+  ADMIN
+}
+
+// Contact Form Submissions
+model ContactSubmission {
+  id        String   @id @default(cuid())
+  firstName String
+  lastName  String
+  email     String
+  phone     String?
+  subject   String
+  message   String   @db.Text
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+  @@index([read])
+  @@index([createdAt])
+}
+
+// Order Models
+model Order {
+  id              String      @id @default(cuid())
+  userId          String
+  orderNumber     String      @unique // Human-readable order number (e.g., ORD-2024-001)
+  status          OrderStatus @default(PENDING)
+  paymentMethod   String      // card, paypal, apple-pay, google-pay, revolut-pay, bank-transfer
+  paymentStatus   PaymentStatus @default(PENDING)
+  subtotal        Decimal     @db.Decimal(10, 2)
+  shipping        Decimal     @db.Decimal(10, 2) @default(0)
+  total           Decimal     @db.Decimal(10, 2)
+  currency        String      @default("EUR")
+  shippingProvider String     @default("DHL") // Omniva for Latvia, Lithuania, Estonia; DHL for others
+  trackingNumber  String?     // Tracking number for delivery
+  
+  // Shipping Address
+  shippingName    String
+  shippingPhone   String
+  shippingAddressLine1 String
+  shippingAddressLine2 String?
+  shippingCity    String
+  shippingState   String?
+  shippingPostalCode String
+  shippingCountry String      @default("Ireland")
+  
+  // Billing Address (can be same as shipping)
+  billingName     String?
+  billingPhone    String?
+  billingAddressLine1 String?
+  billingAddressLine2 String?
+  billingCity     String?
+  billingState    String?
+  billingPostalCode String?
+  billingCountry  String?
+  
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  
+  User            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items           OrderItem[]
+  
+  @@index([userId])
+  @@index([orderNumber])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  orderId       String
+  productId     String
+  variantId     String
+  productName   String   // Snapshot of product name at time of order
+  variantName   String   // Snapshot of variant name at time of order
+  sku           String   // Snapshot of SKU at time of order
+  quantity      Int
+  price         Decimal  @db.Decimal(10, 2) // Price per unit at time of order
+  total         Decimal  @db.Decimal(10, 2) // Total for this line item
+  imageUrl      String?  // Snapshot of product image at time of order
+  
+  createdAt     DateTime @default(now())
+  
+  Order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  Product       Product  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  
+  @@index([orderId])
+  @@index([productId])
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
 }

@@ -1,0 +1,329 @@
+'use client';
+
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Package, Plus, Image as ImageIcon, ShoppingBag, BarChart3, Users, Settings, Trash2, MessageCircle, Mail, ChevronDown, ChevronRight, Layout, Box } from 'lucide-react';
+import { useState } from 'react';
+
+export function AdminDashboardSections() {
+  const [isLandingOpen, setIsLandingOpen] = useState(true);
+  const [isProductsOpen, setIsProductsOpen] = useState(true);
+
+  return (
+    <div className="space-y-6">
+      {/* Products Section */}
+      <Collapsible open={isProductsOpen} onOpenChange={setIsProductsOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Box className="h-5 w-5 text-primary" />
+                  <CardTitle>Products</CardTitle>
+                </div>
+                {isProductsOpen ? (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Add Product Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Plus className="h-5 w-5 text-primary" />
+                      <CardTitle>Add Product</CardTitle>
+                    </div>
+                    <CardDescription>Create a new product with variants and assets</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/add">
+                      <Button className="w-full">Add New Product</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Products Management Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Package className="h-5 w-5 text-primary" />
+                      <CardTitle>Products</CardTitle>
+                    </div>
+                    <CardDescription>View and manage all products</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/products">
+                      <Button variant="outline" className="w-full">Manage Products</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Landing Page Section */}
+      <Collapsible open={isLandingOpen} onOpenChange={setIsLandingOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Layout className="h-5 w-5 text-primary" />
+                  <CardTitle>Landing Page</CardTitle>
+                </div>
+                {isLandingOpen ? (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Hero Images Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Hero Images</CardTitle>
+                    </div>
+                    <CardDescription>Manage homepage hero images</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/hero">
+                      <Button variant="outline" className="w-full">Manage Hero Images</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Instagram Images Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Instagram Images</CardTitle>
+                    </div>
+                    <CardDescription>Manage Instagram feed images</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/instagram">
+                      <Button variant="outline" className="w-full">Manage Instagram Images</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Category Images Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Category Images</CardTitle>
+                    </div>
+                    <CardDescription>Manage category section images</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/category-images">
+                      <Button variant="outline" className="w-full">Manage Category Images</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Iconic Images Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Iconic Images</CardTitle>
+                    </div>
+                    <CardDescription>Manage iconic section background</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/iconic">
+                      <Button variant="outline" className="w-full">Manage Iconic Images</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Shop Banners Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Shop Banners</CardTitle>
+                    </div>
+                    <CardDescription>Manage banners for shop category pages</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/shop-banners">
+                      <Button variant="outline" className="w-full">Manage Shop Banners</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Gift for Loved Ones Banner Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Gift for Loved Ones Banner</CardTitle>
+                    </div>
+                    <CardDescription>Manage banner below best sellers section</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/gift-for-loved-ones-banner">
+                      <Button variant="outline" className="w-full">Manage Banner</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Custom Shop Pages Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Custom Shop Pages</CardTitle>
+                    </div>
+                    <CardDescription>Create custom pages like "Offers", "New Arrivals", etc.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/custom-shop-pages">
+                      <Button variant="outline" className="w-full">Manage Custom Shop Pages</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Other Sections - Always Visible */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Orders Card */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-primary" />
+              <CardTitle>Orders</CardTitle>
+            </div>
+            <CardDescription>View and manage customer orders</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/orders">
+              <Button variant="outline" className="w-full">Manage Orders</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Analytics Card */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              <CardTitle>Analytics</CardTitle>
+            </div>
+            <CardDescription>View sales and performance metrics</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" className="w-full" disabled>
+              Coming Soon
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Users Card */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle>Users</CardTitle>
+            </div>
+            <CardDescription>Manage user accounts and permissions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/users">
+              <Button variant="outline" className="w-full">Manage Users</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Settings Card */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Settings className="h-5 w-5 text-primary" />
+              <CardTitle>Settings</CardTitle>
+            </div>
+            <CardDescription>Configure store settings and preferences</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/settings">
+              <Button variant="outline" className="w-full">Manage Settings</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Deleted Users Card */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Trash2 className="h-5 w-5 text-primary" />
+              <CardTitle>Deleted Users</CardTitle>
+            </div>
+            <CardDescription>View and manage archived deleted user accounts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/deleted-users">
+              <Button variant="outline" className="w-full">View Deleted Users</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Chat Management Card */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              <CardTitle>Chat Management</CardTitle>
+            </div>
+            <CardDescription>View and reply to customer messages</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/chats">
+              <Button variant="outline" className="w-full">Manage Chats</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Contact Submissions Card */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Mail className="h-5 w-5 text-primary" />
+              <CardTitle>Contact Submissions</CardTitle>
+            </div>
+            <CardDescription>View and manage contact form submissions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/contact-submissions">
+              <Button variant="outline" className="w-full">View Submissions</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+

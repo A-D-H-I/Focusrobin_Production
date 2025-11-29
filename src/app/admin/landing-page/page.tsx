@@ -82,6 +82,22 @@ export default function AdminLandingPage() {
             </CardContent>
           </Card>
 
+          {/* Gift for Loved Ones Banner Card */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-primary" />
+                <CardTitle>Gift for Loved Ones Banner</CardTitle>
+              </div>
+              <CardDescription>Manage banner below best sellers section (links to unisex page)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/gift-for-loved-ones-banner">
+                <Button variant="outline" className="w-full">Manage Banner</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
           {/* Instagram Images Card */}
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>

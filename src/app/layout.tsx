@@ -16,6 +16,22 @@ const chillax = localFont({
 export const metadata: Metadata = {
   title: 'FocusRobin Interactive',
   description: 'Elevate Your Style, Enhance Your Vision',
+  icons: {
+    icon: [
+      {
+        url: '/Symbol Wide Primary light (Teal).svg',
+        type: 'image/svg+xml',
+        sizes: 'any',
+      },
+    ],
+    apple: [
+      {
+        url: '/Symbol Wide Primary light (Teal).svg',
+        sizes: '180x180',
+        type: 'image/svg+xml',
+      },
+    ],
+  },
 };
 
 export default function RootLayout({

@@ -3,6 +3,7 @@ import HeroSection from '@/components/Landing/hero-section.tsx';
 import IconicSection from '@/components/Landing/iconic-section.tsx';
 import GiftCategoriesSection from '@/components/Landing/gift-categories-section.tsx';
 import GiftBannerSection from '@/components/Landing/gift-banner-section.tsx';
+import GiftForLovedOnesBanner from '@/components/Landing/gift-for-loved-ones-banner.tsx';
 import BestsellersCarousel from '@/components/Landing/BestsellersCarousel.tsx';
 import ValuePropsSection from '@/components/Landing/value-props-section.tsx';
 import LensFeatureSection from '@/components/Landing/lens-feature-section.tsx';
@@ -113,6 +114,21 @@ export default async function Home() {
     console.error('Error fetching gift banner:', error);
   }
 
+  // Fetch gift for loved ones banner from database
+  let giftForLovedOnesBanner: any = null;
+  try {
+    // @ts-ignore
+    if (prisma.giftForLovedOnesBanner && typeof prisma.giftForLovedOnesBanner.findFirst === 'function') {
+      // @ts-ignore
+      giftForLovedOnesBanner = await prisma.giftForLovedOnesBanner.findFirst({
+        where: { isActive: true },
+        orderBy: { updatedAt: 'desc' },
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching gift for loved ones banner:', error);
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
@@ -121,6 +137,8 @@ export default async function Home() {
         {iconicImage && <IconicSection iconicImage={iconicImage} />}
         {categoryImages.length > 0 && <GiftCategoriesSection categoryImages={categoryImages} />}
         <BestsellersCarousel products={products} />
+        {/* Gift for Loved Ones Banner - Always show below best sellers */}
+        <GiftForLovedOnesBanner bannerData={giftForLovedOnesBanner} />
         {giftBanner && <GiftBannerSection giftBanner={giftBanner} />}
         <div className="bg-background">
           <ValuePropsSection />

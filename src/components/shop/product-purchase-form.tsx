@@ -78,6 +78,11 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             </>
           )}
         </div>
+        {product.cashback && (
+          <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
+            🎁 {product.cashback} cashback
+          </Badge>
+        )}
       </div>
 
       <div className="flex items-center gap-4">

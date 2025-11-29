@@ -34,6 +34,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     const description = formData.get('description') as string;
     const basePrice = parseFloat(formData.get('basePrice') as string);
     const discountPct = parseInt(formData.get('discountPct') as string) || 0;
+    const cashbackAmount = parseFloat(formData.get('cashbackAmount') as string) || 0;
     
     // Parse multiple genders from formData
     const genderCount = parseInt(formData.get('genderCount') as string) || 0;
@@ -187,6 +188,7 @@ export async function updateProduct(productId: string, formData: FormData) {
         description,
         basePrice,
         discountPct: discountPct || 0,
+        cashbackAmount: cashbackAmount || 0,
         gender: genders,
         tags,
         frameWidth,

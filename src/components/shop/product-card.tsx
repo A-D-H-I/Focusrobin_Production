@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Heart, ShoppingCart } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Product, ProductColorVariant } from "@/lib/productData";
 import Link from "next/link";
@@ -160,6 +161,13 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
                 ></button>
               ))}
             </div>
+            {product.cashback && (
+              <div className="mb-4 flex justify-center">
+                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                  🎁 {product.cashback} cashback
+                </Badge>
+              </div>
+            )}
             <div className="flex gap-2 mt-auto">
               <Button 
                 onClick={handleAddToCart}
