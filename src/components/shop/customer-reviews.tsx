@@ -22,48 +22,12 @@ type Review = {
     name: string | null;
     email: string;
   };
-  createdAt: Date;
+  createdAt: string | Date; // Can be ISO string or Date
 };
 
 interface CustomerReviewsProps {
   reviews?: Review[];
 }
-
-const defaultReviews = [
-  {
-    author: "Jane D.",
-    avatar: "https://i.pravatar.cc/150?img=1",
-    rating: 5,
-    title: "Absolutely love them!",
-    content: "The quality is amazing for the price. They feel sturdy and look so stylish. I've received so many compliments already! The virtual try-on was surprisingly accurate too.",
-    productName: undefined,
-    date: "2 weeks ago",
-    likes: 12,
-    dislikes: 0,
-  },
-  {
-    author: "Mike P.",
-    avatar: "https://i.pravatar.cc/150?img=3",
-    rating: 4,
-    title: "Great value, comfortable fit.",
-    content: "Really happy with my purchase. They're lightweight and comfortable for all-day wear. The only minor issue is they smudge a bit easily, but it's not a big deal.",
-    productName: undefined,
-    date: "1 month ago",
-    likes: 8,
-    dislikes: 1,
-  },
-  {
-    author: "Sarah K.",
-    avatar: "https://i.pravatar.cc/150?img=5",
-    rating: 5,
-    title: "Exceeded my expectations!",
-    content: "I was hesitant to buy glasses online, but I'm so glad I did. These are fantastic. The lens clarity is top-notch and the frame style is exactly what I was looking for. Highly recommend!",
-    productName: undefined,
-    date: "3 weeks ago",
-    likes: 5,
-    dislikes: 0,
-  },
-];
 
 function calculateRatingDistribution(reviews: Review[]) {
   const distribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
@@ -78,30 +42,32 @@ function calculateRatingDistribution(reviews: Review[]) {
 }
 
 export default function CustomerReviews({ reviews }: CustomerReviewsProps) {
+  // Only show real reviews, no dummy data
   const displayReviews = reviews && reviews.length > 0 
     ? reviews.map((review) => ({
-        author: review.User?.name || review.User?.email.split('@')[0] || 'Anonymous',
-        avatar: `https://i.pravatar.cc/150?u=${review.User?.email || 'user'}`,
+        author: review.User?.name || review.User?.email?.split('@')[0] || 'Anonymous',
+        avatar: review.User?.image || `https://i.pravatar.cc/150?u=${review.User?.email || 'user'}`,
         rating: review.rating,
         title: review.title,
         content: review.comment,
-        productName: review.Product?.name || 'Product no longer available',
+        images: review.images || [],
+        productName: review.Product?.name || undefined, // Don't show "Product no longer available" on product page
         date: formatDistanceToNow(new Date(review.createdAt), { addSuffix: true }),
         likes: 0,
         dislikes: 0,
       }))
-    : defaultReviews;
+    : [];
 
   const averageRating = displayReviews.length > 0
     ? displayReviews.reduce((sum, r) => sum + r.rating, 0) / displayReviews.length
-    : 4.8;
+    : 0;
 
   const ratingDistribution = reviews && reviews.length > 0
     ? calculateRatingDistribution(reviews)
     : [
-        { stars: 5, percentage: 80 },
-        { stars: 4, percentage: 15 },
-        { stars: 3, percentage: 5 },
+        { stars: 5, percentage: 0 },
+        { stars: 4, percentage: 0 },
+        { stars: 3, percentage: 0 },
         { stars: 2, percentage: 0 },
         { stars: 1, percentage: 0 },
       ];
@@ -150,17 +116,29 @@ export default function CustomerReviews({ reviews }: CustomerReviewsProps) {
                             ))}
                         </div>
                         <h5 className="font-semibold mb-2">{review.title}</h5>
-                        {review.productName && review.productName !== 'Product no longer available' && (
+                        {review.productName && (
                           <p className="text-xs text-muted-foreground mb-1">
                             Product: {review.productName}
                           </p>
                         )}
-                        {review.productName === 'Product no longer available' && (
-                          <p className="text-xs text-muted-foreground italic mb-1">
-                            Product: Product no longer available
-                          </p>
-                        )}
                         <p className="text-sm text-foreground/80 mb-4">{review.content}</p>
+                        {review.images && review.images.length > 0 && (
+                          <div className="flex gap-2 mb-4 flex-wrap">
+                            {review.images.map((image, imgIndex) => (
+                              <div key={imgIndex} className="relative w-24 h-24 rounded-lg overflow-hidden border">
+                                <img
+                                  src={image}
+                                  alt={`Review image ${imgIndex + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    // Hide broken images
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                         <div className="flex items-center gap-4 text-sm text-muted-foreground">
                             <span>Was this review helpful?</span>
                             <div className="flex items-center gap-2">

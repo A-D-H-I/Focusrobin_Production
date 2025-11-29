@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import useSWR from "swr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,10 +55,35 @@ interface ChatManagementProps {
   initialChats: Chat[];
 }
 
+// Fetcher function for SWR
+const fetcher = async () => {
+  const result = await getAdminChats();
+  if (result.success && result.chats) {
+    return result.chats;
+  }
+  throw new Error(result.error || "Failed to load chats");
+};
+
+// Fetcher function for chat messages
+const messagesFetcher = async (chatId: string) => {
+  const result = await getAdminChatMessages(chatId);
+  if (result.success && result.messages && result.chat) {
+    return {
+      messages: result.messages.map((msg) => ({
+        ...msg,
+        timestamp: new Date(msg.timestamp),
+      })),
+      chat: {
+        ...result.chat,
+        forceClosed: result.chat.forceClosed || false,
+      },
+    };
+  }
+  throw new Error(result.error || "Failed to load messages");
+};
+
 export default function ChatManagement({ initialChats }: ChatManagementProps) {
-  const [chats, setChats] = useState<Chat[]>(initialChats);
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [chatInfo, setChatInfo] = useState<{
     id: string;
     userEmail: string;
@@ -76,43 +102,60 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
     reason?: string;
   } | null>(null);
   const [inputValue, setInputValue] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load chat messages when a chat is selected (only depends on selectedChatId)
-  useEffect(() => {
-    if (selectedChatId) {
-      loadChatMessages(selectedChatId);
+  // Use SWR for fetching chats with automatic polling
+  const { data: chats = initialChats, mutate: mutateChats } = useSWR<Chat[]>(
+    "admin-chats",
+    fetcher,
+    {
+      refreshInterval: 5000, // Poll every 5 seconds
+      fallbackData: initialChats, // Use initialChats as fallback
+      revalidateOnFocus: true, // Revalidate when window gains focus
+      revalidateOnReconnect: true, // Revalidate when network reconnects
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedChatId]); // Only run when selectedChatId changes
+  );
 
-  // Set up polling for live updates (every 5 seconds)
-  useEffect(() => {
-    // Clear any existing interval
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
+  // Use SWR for fetching messages when a chat is selected
+  const {
+    data: messagesData,
+    mutate: mutateMessages,
+    isLoading: isLoadingMessages,
+  } = useSWR(
+    selectedChatId ? `admin-chat-messages-${selectedChatId}` : null,
+    selectedChatId ? () => messagesFetcher(selectedChatId) : null,
+    {
+      refreshInterval: selectedChatId ? 5000 : 0, // Poll every 5 seconds when chat is selected
+      revalidateOnFocus: true,
+      revalidateOnReconnect: true,
     }
+  );
 
-    // Set up new polling interval
-    pollIntervalRef.current = setInterval(() => {
-      // Refresh chat list
-      loadChats();
-      // Refresh messages if a chat is selected
-      if (selectedChatId) {
-        loadChatMessagesQuiet(selectedChatId);
-      }
-    }, 5000); // Poll every 5 seconds
+  const messages = messagesData?.messages || [];
+  const isLoading = isLoadingMessages;
 
-    // Cleanup on unmount
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
+  // Update chatInfo when messages data changes
+  useEffect(() => {
+    if (messagesData?.chat) {
+      setChatInfo({
+        ...messagesData.chat,
+        forceClosed: messagesData.chat.forceClosed || false,
+      });
+      // Check block status after loading chat info
+      if (messagesData.chat.userEmail) {
+        checkUserBlockStatus(undefined, messagesData.chat.userEmail).then((blockResult) => {
+          if (blockResult.success) {
+            setUserBlockStatus({
+              blocked: blockResult.blocked,
+              blockedUntil: blockResult.blockedUntil ? new Date(blockResult.blockedUntil) : undefined,
+              reason: blockResult.reason,
+            });
+          }
+        });
       }
-    };
-  }, [selectedChatId]);
+    }
+  }, [messagesData]);
 
   // Auto-scroll only when messages length increases (new message)
   const prevMessagesLengthRef = useRef(0);
@@ -127,13 +170,6 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const loadChats = async () => {
-    const result = await getAdminChats();
-    if (result.success && result.chats) {
-      setChats(result.chats);
-    }
-  };
-
   const checkBlockStatus = useCallback(async () => {
     if (!chatInfo) return;
     // Extract userId from chat if available
@@ -146,72 +182,6 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
       });
     }
   }, [chatInfo]);
-
-  const loadChatMessages = async (chatId: string) => {
-    setIsLoading(true);
-    try {
-      const result = await getAdminChatMessages(chatId);
-      if (result.success && result.messages && result.chat) {
-        setMessages(
-          result.messages.map((msg) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp),
-          }))
-        );
-        setChatInfo({
-          ...result.chat,
-          forceClosed: result.chat.forceClosed || false,
-        });
-        // Check block status after loading chat info
-        if (result.chat.userEmail) {
-          const blockResult = await checkUserBlockStatus(undefined, result.chat.userEmail);
-          if (blockResult.success) {
-            setUserBlockStatus({
-              blocked: blockResult.blocked,
-              blockedUntil: blockResult.blockedUntil ? new Date(blockResult.blockedUntil) : undefined,
-              reason: blockResult.reason,
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error loading chat messages:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Quiet version for polling (doesn't show loading state)
-  const loadChatMessagesQuiet = async (chatId: string) => {
-    try {
-      const result = await getAdminChatMessages(chatId);
-      if (result.success && result.messages && result.chat) {
-        setMessages(
-          result.messages.map((msg) => ({
-            ...msg,
-            timestamp: new Date(msg.timestamp),
-          }))
-        );
-        setChatInfo({
-          ...result.chat,
-          forceClosed: result.chat.forceClosed || false,
-        });
-        // Check block status
-        if (result.chat.userEmail) {
-          const blockResult = await checkUserBlockStatus(undefined, result.chat.userEmail);
-          if (blockResult.success) {
-            setUserBlockStatus({
-              blocked: blockResult.blocked,
-              blockedUntil: blockResult.blockedUntil ? new Date(blockResult.blockedUntil) : undefined,
-              reason: blockResult.reason,
-            });
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error loading chat messages:", error);
-    }
-  };
 
   const handleSendReply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,9 +204,9 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
       const result = await sendAdminReply(selectedChatId, messageText);
 
       if (result.success) {
-        // Reload messages to get the actual saved message
-        await loadChatMessages(selectedChatId);
-        await loadChats(); // Refresh chat list
+        // Reload messages and chats using SWR mutate
+        await mutateMessages();
+        await mutateChats();
       } else {
         // Remove optimistic message on error
         setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
@@ -257,7 +227,7 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
 
     const result = await updateChatStatus(selectedChatId, "CLOSED");
     if (result.success) {
-      await loadChats();
+      await mutateChats();
       if (chatInfo) {
         setChatInfo({ ...chatInfo, status: "CLOSED" });
       }
@@ -272,7 +242,8 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
 
     const result = await updateChatStatus(selectedChatId, "FORCE_CLOSED");
     if (result.success) {
-      await loadChats();
+      await mutateChats();
+      await mutateMessages();
       if (chatInfo) {
         setChatInfo({ ...chatInfo, status: "FORCE_CLOSED", forceClosed: true });
       }
@@ -301,7 +272,7 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
         setBlockDuration(24);
         setBlockReason("");
         await checkBlockStatus();
-        await loadChats();
+        await mutateChats();
         const untilDate = result.blockedUntil 
           ? new Date(result.blockedUntil).toLocaleString()
           : "indefinitely";
@@ -329,7 +300,7 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
       const result = await unblockUser(undefined, chatInfo.userEmail);
       if (result.success) {
         await checkBlockStatus();
-        await loadChats();
+        await mutateChats();
         alert("User unblocked successfully");
       } else {
         alert(result.error || "Failed to unblock user");
@@ -372,13 +343,13 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-200px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ minHeight: 'calc(100vh - 200px)' }}>
           {/* Chat List */}
-          <Card className="lg:col-span-1 flex flex-col">
-            <CardHeader>
+          <Card className="lg:col-span-1 flex flex-col" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+            <CardHeader className="flex-shrink-0">
               <CardTitle>Chats</CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 overflow-y-auto p-0">
+            <CardContent className="flex-1 overflow-y-auto p-0 min-h-0">
               {chats.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
                   No chats yet
@@ -433,10 +404,10 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
           </Card>
 
           {/* Chat Messages */}
-          <Card className="lg:col-span-2 flex flex-col">
+          <Card className="lg:col-span-2 flex flex-col" style={{ maxHeight: 'calc(100vh - 200px)' }}>
             {selectedChatId && chatInfo ? (
               <>
-                <CardHeader className="border-b">
+                <CardHeader className="border-b flex-shrink-0">
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-lg">{chatInfo.userName}</CardTitle>
@@ -544,9 +515,9 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col p-0">
+                <CardContent className="flex-1 flex flex-col p-0 min-h-0 overflow-hidden">
                   {/* Messages Area */}
-                  <div className="flex-1 overflow-y-auto p-4 bg-muted/30 space-y-4">
+                  <div className="flex-1 overflow-y-auto p-4 bg-muted/30 space-y-4 min-h-0">
                     {isLoading ? (
                       <div className="text-center text-muted-foreground py-8">
                         Loading messages...
@@ -611,7 +582,7 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
                   </div>
 
                   {/* Input Area */}
-                  <div className="border-t p-4 bg-background">
+                  <div className="border-t p-4 bg-background flex-shrink-0">
                     {chatInfo.forceClosed ? (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
                         <p className="text-sm font-semibold text-red-800 mb-2">

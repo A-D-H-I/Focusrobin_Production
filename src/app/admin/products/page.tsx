@@ -110,7 +110,14 @@ export default async function AdminProductsPage() {
                     <p className="text-sm text-muted-foreground mb-2">
                       {product.categories.join(', ')}
                     </p>
-                    <p className="text-lg font-bold mb-4">{product.price}</p>
+                    <div className="flex items-center gap-2 mb-4">
+                      <p className="text-lg font-bold">{product.price}</p>
+                      {product.cashback && (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                          🎁 {product.cashback}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex gap-2">
                       <Link href={`/admin/products/${product.id}`} className="flex-1">
                         <Button variant="outline" className="w-full gap-2" size="sm">

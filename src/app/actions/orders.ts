@@ -430,7 +430,12 @@ export async function getUserOrders() {
         paymentStatus: order.paymentStatus,
         total: Number(order.total),
         currency: order.currency,
+        shippingProvider: order.shippingProvider,
+        trackingNumber: order.trackingNumber,
+        trackingMessage: order.trackingMessage,
         createdAt: order.createdAt,
+        shippedAt: order.shippedAt,
+        deliveredAt: order.deliveredAt,
         items: order.items.map((item) => ({
           id: item.id,
           productId: item.productId,
@@ -631,6 +636,56 @@ export async function updatePaymentStatus(
     console.error("Error updating payment status:", error);
     return {
       error: "Failed to update payment status. Please try again.",
+    };
+  }
+}
+
+/**
+ * Update tracking information (admin only)
+ */
+export async function updateTracking(
+  orderId: string,
+  trackingNumber?: string,
+  trackingMessage?: string
+) {
+  try {
+    const session = await auth();
+
+    if (!session?.user) {
+      return { error: "You must be logged in" };
+    }
+
+    const userRole = (session.user as any)?.role;
+    if (userRole !== "ADMIN") {
+      return { error: "Only admins can update tracking" };
+    }
+
+    const updateData: any = {};
+    if (trackingNumber !== undefined) {
+      updateData.trackingNumber = trackingNumber || null;
+    }
+    if (trackingMessage !== undefined) {
+      updateData.trackingMessage = trackingMessage || null;
+    }
+
+    const order = await prisma.order.update({
+      where: { id: orderId },
+      data: updateData,
+    });
+
+    return {
+      success: true,
+      order: {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        trackingNumber: order.trackingNumber,
+        trackingMessage: order.trackingMessage,
+      },
+    };
+  } catch (error) {
+    console.error("Error updating tracking:", error);
+    return {
+      error: "Failed to update tracking. Please try again.",
     };
   }
 }

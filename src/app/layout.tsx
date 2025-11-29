@@ -5,6 +5,7 @@ import SessionProvider from "@/components/providers/SessionProvider";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
+import { SupportChat } from "@/components/chat/SupportChat";
 import './globals.css';
 
 const chillax = localFont({
@@ -51,6 +52,7 @@ export default function RootLayout({
               <WishlistProvider>
                 {children}
                 <Toaster />
+                <SupportChat />
               </WishlistProvider>
             </CartProvider>
           </CurrencyProvider>

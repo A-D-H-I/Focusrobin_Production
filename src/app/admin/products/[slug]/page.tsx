@@ -366,6 +366,14 @@ export default async function AdminProductDetailPage({ params }: { params: { slu
                     </p>
                   </div>
                 )}
+                <div>
+                  <span className="text-sm text-muted-foreground">Cashback Amount</span>
+                  <p className="font-medium">
+                    {prismaProduct.cashbackAmount && Number(prismaProduct.cashbackAmount) > 0 
+                      ? `€${Number(prismaProduct.cashbackAmount).toFixed(2)}` 
+                      : '€0.00'}
+                  </p>
+                </div>
                 {prismaProduct.tags.length > 0 && (
                   <div>
                     <span className="text-sm text-muted-foreground">Tags</span>

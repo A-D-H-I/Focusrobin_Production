@@ -274,15 +274,26 @@ export async function getCart() {
                 slug: true,
                 basePrice: true,
                 discountPct: true,
-                cashbackAmount: true,
+                cashbackAmount: true, // Explicitly include cashbackAmount
+                gender: true,
+                frameMaterial: true,
+                lensMaterial: true,
+                uvProtection: true,
+                description: true,
+                frameWidth: true,
+                lensWidth: true,
+                lensHeight: true,
+                bridgeWidth: true,
+                templeLength: true,
+                weightBg: true,
+                averageRating: true,
+                reviewCount: true,
                 ProductVariant: {
-                  select: {
-                    id: true,
-                    sku: true,
-                    name: true,
-                    price: true,
+                  include: {
+                    ProductAsset: true,
                   },
                 },
+                Category: true,
               },
             },
           },
@@ -300,7 +311,17 @@ export async function getCart() {
         productId: item.productId,
         variantId: item.variantId,
         quantity: item.quantity,
-        Product: item.Product,
+        Product: {
+          ...item.Product,
+          // Convert Decimal to number for JSON serialization
+          cashbackAmount: item.Product.cashbackAmount ? Number(item.Product.cashbackAmount) : 0,
+          basePrice: Number(item.Product.basePrice),
+          // Serialize ProductVariant prices as well
+          ProductVariant: item.Product.ProductVariant.map((variant: any) => ({
+            ...variant,
+            price: variant.price ? Number(variant.price) : null,
+          })),
+        },
       })),
     };
   } catch (error) {
@@ -445,7 +466,21 @@ export async function getWishlist() {
       },
     });
 
-    return { items: wishlistItems };
+    // Serialize Decimal fields to prevent "Decimal objects are not supported" error
+    return {
+      items: wishlistItems.map((item) => ({
+        ...item,
+        Product: {
+          ...item.Product,
+          basePrice: Number(item.Product.basePrice),
+          cashbackAmount: item.Product.cashbackAmount ? Number(item.Product.cashbackAmount) : 0,
+          ProductVariant: item.Product.ProductVariant.map((variant) => ({
+            ...variant,
+            price: variant.price ? Number(variant.price) : null,
+          })),
+        },
+      })),
+    };
   } catch (error) {
     console.error("Error fetching wishlist:", error);
     return { items: [] };

@@ -90,13 +90,19 @@ model Review {
   rating    Int
   title     String
   comment   String
-  images    String[]
+  images    String[]  // Array of image URLs
   productId String?
+  orderId   String?   // Link review to order (only delivered orders can be reviewed)
   userId    String
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   Product   Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  Order     Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
   User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([productId])
+  @@index([orderId])
+  @@index([userId])
 }
 
 model User {
@@ -355,6 +361,16 @@ model Settings {
   updatedAt DateTime @updatedAt
 }
 
+// Navbar Settings Model
+model NavbarSettings {
+  id                    String   @id @default(cuid())
+  iconColorNotScrolled  String   @default("white") // Color for navbar icons when not scrolled (e.g., "white", "black", "#ffffff")
+  logoColorNotScrolled  String   @default("white") // Color for logo when not scrolled (e.g., "white", "black", "#ffffff")
+  isActive              Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
 // Chat Models
 model Chat {
   id              String        @id @default(cuid())
@@ -451,6 +467,7 @@ model Order {
   currency        String      @default("EUR")
   shippingProvider String     @default("DHL") // Omniva for Latvia, Lithuania, Estonia; DHL for others
   trackingNumber  String?     // Tracking number for delivery
+  trackingMessage String?     @db.Text // Admin message/update about tracking
   
   // Shipping Address
   shippingName    String
@@ -479,6 +496,7 @@ model Order {
   
   User            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   items           OrderItem[]
+  Review          Review[]    // Reviews for this order
   
   @@index([userId])
   @@index([orderNumber])

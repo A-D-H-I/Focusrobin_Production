@@ -38,7 +38,12 @@ type Review = {
     name: string | null;
     email: string;
   };
-  createdAt: Date;
+  createdAt: string; // Serialized as ISO string
+  Product?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 };
 
 interface ProductPageContentProps {

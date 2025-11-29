@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useCart } from "@/context/CartContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import Header from "@/components/Landing/header";
@@ -8,17 +10,66 @@ import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
 import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
+import { getCart } from "@/app/actions/user";
 
 export default function CartPage() {
+  const { data: session } = useSession();
   const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
   const { currency } = useCurrency();
+  const [totalCashback, setTotalCashback] = useState<number>(0);
 
   const subtotal = getCartTotal();
   const shipping = 0; // Free shipping
   const total = subtotal + shipping;
-  
-  // Calculate cashback (5% of total)
-  const cashback = total * 0.05;
+
+  // Calculate cashback from actual product cashback amounts
+  useEffect(() => {
+    const calculateCashback = async () => {
+      if (!session?.user || !cartItems || cartItems.length === 0) {
+        setTotalCashback(0);
+        return;
+      }
+
+      try {
+        const cart = await getCart();
+        
+        if (!cart || !cart.items || cart.items.length === 0) {
+          // Fallback: try to parse from cartItems if available
+          let cashback = 0;
+          for (const item of cartItems) {
+            if (item.product.cashback) {
+              const cashbackStr = item.product.cashback.replace(/[€,\s]/g, '').trim();
+              const cashbackAmount = parseFloat(cashbackStr);
+              if (!isNaN(cashbackAmount) && cashbackAmount > 0) {
+                cashback += cashbackAmount * item.quantity;
+              }
+            }
+          }
+          setTotalCashback(cashback);
+          return;
+        }
+
+        // Calculate from database values (cashbackAmount is already a number)
+        let cashback = 0;
+        for (const item of cart.items) {
+          if (item.Product) {
+            const cashbackAmount = (item.Product as any).cashbackAmount || 0;
+            if (cashbackAmount > 0) {
+              const itemCashback = cashbackAmount * item.quantity;
+              cashback += itemCashback;
+            }
+          }
+        }
+        
+        setTotalCashback(cashback);
+      } catch (error) {
+        console.error("Error calculating cashback:", error);
+        setTotalCashback(0);
+      }
+    };
+
+    calculateCashback();
+  }, [cartItems, session]);
 
   const formatPrice = (price: number) => {
     const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£';
@@ -163,13 +214,13 @@ export default function CartPage() {
                 </div>
 
                 {/* Cashback Preview */}
-                {cashback > 0 && (
+                {totalCashback > 0 && (
                   <div className="bg-brand-teal/10 border border-brand-teal/20 rounded-lg p-4 mb-6">
                     <p className="text-sm text-brand-blue font-semibold">
                       🎁 Robin Wallet
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
-                      You will earn {formatPrice(cashback)} on this order
+                      You will earn {formatPrice(totalCashback)} on this order
                     </p>
                   </div>
                 )}

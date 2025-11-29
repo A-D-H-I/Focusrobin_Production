@@ -8,6 +8,7 @@ import {
   getAllOrders,
   updateOrderStatus,
   updatePaymentStatus,
+  updateTracking,
 } from "@/app/actions/orders";
 import {
   Package,
@@ -36,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
@@ -100,6 +102,9 @@ interface Order {
   shippingState: string | null;
   shippingPostalCode: string;
   shippingCountry: string;
+  shippingProvider: string;
+  trackingNumber: string | null;
+  trackingMessage: string | null;
   createdAt: Date;
   updatedAt: Date;
   shippedAt: Date | null;
@@ -472,6 +477,100 @@ export default function OrdersManagement({
                       {` ${selectedOrder.shippingPostalCode}`}
                     </p>
                     <p>{selectedOrder.shippingCountry}</p>
+                  </div>
+                </div>
+
+                {/* Tracking Information */}
+                <div>
+                  <h3 className="font-semibold text-lg mb-3">Tracking Information</h3>
+                  <div className="space-y-4 p-4 bg-muted rounded-lg">
+                    <div>
+                      <Label className="text-sm font-semibold mb-2 block">
+                        Shipping Provider
+                      </Label>
+                      <p className="text-sm">{selectedOrder.shippingProvider || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <Label htmlFor="tracking-number" className="text-sm font-semibold mb-2 block">
+                        Tracking Number
+                      </Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="tracking-number"
+                          value={selectedOrder.trackingNumber || ''}
+                          onChange={(e) => {
+                            setSelectedOrder({
+                              ...selectedOrder,
+                              trackingNumber: e.target.value,
+                            });
+                          }}
+                          placeholder="Enter tracking number"
+                        />
+                        <Button
+                          onClick={async () => {
+                            const result = await updateTracking(
+                              selectedOrder.id,
+                              selectedOrder.trackingNumber || undefined,
+                              undefined
+                            );
+                            if (result.success) {
+                              await loadOrders();
+                              const updatedOrder = orders.find((o) => o.id === selectedOrder.id);
+                              if (updatedOrder) {
+                                setSelectedOrder(updatedOrder);
+                              }
+                              alert('Tracking number updated successfully');
+                            } else {
+                              alert(result.error || 'Failed to update tracking number');
+                            }
+                          }}
+                          variant="outline"
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="tracking-message" className="text-sm font-semibold mb-2 block">
+                        Tracking Message/Update
+                      </Label>
+                      <div className="flex gap-2">
+                        <Textarea
+                          id="tracking-message"
+                          value={selectedOrder.trackingMessage || ''}
+                          onChange={(e) => {
+                            setSelectedOrder({
+                              ...selectedOrder,
+                              trackingMessage: e.target.value,
+                            });
+                          }}
+                          placeholder="Enter tracking update message for customer"
+                          rows={3}
+                        />
+                        <Button
+                          onClick={async () => {
+                            const result = await updateTracking(
+                              selectedOrder.id,
+                              undefined,
+                              selectedOrder.trackingMessage || undefined
+                            );
+                            if (result.success) {
+                              await loadOrders();
+                              const updatedOrder = orders.find((o) => o.id === selectedOrder.id);
+                              if (updatedOrder) {
+                                setSelectedOrder(updatedOrder);
+                              }
+                              alert('Tracking message updated successfully');
+                            } else {
+                              alert(result.error || 'Failed to update tracking message');
+                            }
+                          }}
+                          variant="outline"
+                        >
+                          Save
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

@@ -131,7 +131,8 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
 
       // New Blur Logic: Multiplier (1.2) makes it reach 0 blur SOONER (at 83% centered)
       // This prevents the blurry look when it's "almost" centered
-      const blur = Math.max(0, (1 - tweenValue * 1.2) * 6);
+      // Reduced max blur from 6px to 2px for a subtler effect
+      const blur = Math.max(0, (1 - tweenValue * 1.2) * 2);
 
       styles[index] = {
         scale,
@@ -206,7 +207,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                 slideStyles[index] ||
                 (index === midIndex
                   ? { scale: 1.2, opacity: 1, zIndex: 20, filter: "none" }
-                  : { scale: 0.6, opacity: 0.4, zIndex: 10, filter: "blur(2px)" });
+                  : { scale: 0.6, opacity: 0.4, zIndex: 10, filter: "blur(0.5px)" });
 
               const currentFilter = isActive ? "none" : style.filter;
 

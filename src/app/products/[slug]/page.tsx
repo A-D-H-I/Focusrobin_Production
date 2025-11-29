@@ -33,7 +33,24 @@ export default async function ProductPage({ params }: { params: { slug: string }
       },
       Review: {
         include: {
-          User: true,
+          User: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          },
+          Product: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
         },
       },
     },
@@ -47,6 +64,26 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
   // Map Prisma product to frontend Product type
   const product = mapPrismaProductToProduct(prismaProduct);
+
+  // Serialize reviews to ensure all Date and nested objects are properly converted
+  const reviews = prismaProduct.Review.map((review: any) => ({
+    id: review.id,
+    rating: review.rating,
+    title: review.title,
+    comment: review.comment,
+    images: review.images || [],
+    User: {
+      name: review.User?.name || null,
+      email: review.User?.email || "",
+    },
+    createdAt: review.createdAt instanceof Date ? review.createdAt.toISOString() : review.createdAt,
+    // Only include Product relation if it exists, and ensure it's serialized
+    Product: review.Product ? {
+      id: review.Product.id,
+      name: review.Product.name,
+      slug: review.Product.slug,
+    } : null,
+  }));
 
   // Fetch related products based on gender
   const currentProductGenders = prismaProduct.gender || [];
@@ -126,7 +163,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
           {/* Main Product Content */}
           <ProductPageContent 
             product={product} 
-            reviews={prismaProduct.Review} 
+            reviews={reviews} 
             relatedProducts={relatedProducts}
           />
         </div>

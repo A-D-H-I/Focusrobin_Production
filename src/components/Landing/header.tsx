@@ -17,6 +17,7 @@ import { supportedCurrencies } from "@/lib/currencyData";
 import { useCurrency } from "@/context/CurrencyContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
+import { getNavbarSettings } from "@/app/actions/navbarSettings";
 import {
   Sheet,
   SheetContent,
@@ -40,6 +41,44 @@ export default function Header() {
   const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [navbarSettings, setNavbarSettings] = useState<{
+    iconColorNotScrolled: string;
+    logoColorNotScrolled: string;
+  } | null>(null);
+
+  // Load navbar settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      const result = await getNavbarSettings();
+      if (result.success && result.settings) {
+        setNavbarSettings(result.settings);
+      }
+    };
+    loadSettings();
+  }, []);
+
+  // Helper function to get color style
+  const getIconColor = () => {
+    if (!isScrolled && navbarSettings) {
+      return navbarSettings.iconColorNotScrolled;
+    }
+    return 'text-brand-blue';
+  };
+
+  // Helper function to get logo filter
+  const getLogoFilter = () => {
+    if (!isScrolled && navbarSettings) {
+      const logoColor = navbarSettings.logoColorNotScrolled.toLowerCase();
+      if (logoColor === 'white' || logoColor === '#ffffff') {
+        return 'brightness-0 invert';
+      } else if (logoColor === 'black' || logoColor === '#000000') {
+        return 'brightness-0';
+      }
+      // For custom colors, you might need to use CSS filters or inline styles
+      return '';
+    }
+    return '';
+  };
 
   useEffect(() => {
     // Only track scroll on home page
@@ -107,10 +146,10 @@ export default function Header() {
         >
           {/* Left Section - Logo */}
           <div className="flex-shrink-0 flex-1">
-            <Logo className={cn(
-              "transition-all duration-300",
-              !isScrolled && "brightness-0 invert"
-            )} />
+            <Logo 
+              className="transition-all duration-300"
+              logoColor={!isScrolled && navbarSettings ? navbarSettings.logoColorNotScrolled : undefined}
+            />
           </div>
           
           {/* Center Section - Navigation Links */}
@@ -124,8 +163,16 @@ export default function Header() {
                   "text-sm font-bold transition-colors duration-300 whitespace-nowrap",
                   isScrolled 
                     ? 'text-brand-blue hover:text-primary' 
-                    : 'text-white hover:text-white/80'
+                    : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                      ? 'text-white hover:text-white/80'
+                      : navbarSettings.iconColorNotScrolled === 'black'
+                      ? 'text-black hover:text-black/80'
+                      : ''
                 )}
+                style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                  ? { color: navbarSettings.iconColorNotScrolled }
+                  : undefined
+                }
               >
                 {link.label}
               </Link>
@@ -139,8 +186,18 @@ export default function Header() {
               <Search 
                 className={cn(
                   "absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 z-10 pointer-events-none transition-colors duration-300", 
-                  isScrolled ? 'text-brand-blue' : 'text-white'
-                )} 
+                  isScrolled 
+                    ? 'text-brand-blue' 
+                    : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                      ? 'text-white'
+                      : navbarSettings.iconColorNotScrolled === 'black'
+                      ? 'text-black'
+                      : ''
+                )}
+                style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black' 
+                  ? { color: navbarSettings.iconColorNotScrolled }
+                  : undefined
+                }
               />
               <Input
                 type="search"
@@ -151,8 +208,20 @@ export default function Header() {
                   "pl-7 pr-3 h-8 w-32 text-xs font-semibold transition-colors duration-300 backdrop-blur-sm",
                   isScrolled 
                     ? "bg-gray-100 border-brand-blue/20 text-brand-blue placeholder:text-brand-blue/50" 
-                    : "bg-white/15 border-white/30 text-white placeholder:text-white/70"
+                    : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                      ? "bg-white/15 border-white/30 text-white placeholder:text-white/70"
+                      : navbarSettings.iconColorNotScrolled === 'black'
+                      ? "bg-black/15 border-black/30 text-black placeholder:text-black/70"
+                      : "bg-white/15 border-white/30"
                 )}
+                style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                  ? { 
+                      color: navbarSettings.iconColorNotScrolled,
+                      borderColor: `${navbarSettings.iconColorNotScrolled}30`,
+                      backgroundColor: `${navbarSettings.iconColorNotScrolled}15`
+                    }
+                  : undefined
+                }
               />
             </form>
             
@@ -164,26 +233,76 @@ export default function Header() {
                 "xl:hidden h-8 w-8 xl:h-10 xl:w-10 transition-colors duration-300",
                 isScrolled 
                   ? 'text-brand-blue hover:bg-accent hover:text-brand-blue' 
-                  : 'text-white hover:bg-white/10 hover:text-white'
+                  : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                    ? 'text-white hover:bg-white/10 hover:text-white'
+                    : navbarSettings.iconColorNotScrolled === 'black'
+                    ? 'text-black hover:bg-black/10 hover:text-black'
+                    : ''
               )}
+              style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                ? { color: navbarSettings.iconColorNotScrolled }
+                : undefined
+              }
               onClick={() => setIsSearchOpen(!isSearchOpen)}
             >
               <Search className="h-4 w-4 xl:h-5 xl:w-5" />
               <span className="sr-only">Search</span>
             </Button>
 
-            <LanguageSwitcher className={cn(
-              "transition-colors duration-300",
-              isScrolled 
-                ? 'text-brand-blue border-foreground/20' 
-                : 'text-white border-white/30 font-bold'
-            )} />
-            <CurrencySwitcher className={cn(
-              "transition-colors duration-300",
-              isScrolled 
-                ? 'text-brand-blue border-foreground/20' 
-                : 'text-white border-white/30 font-bold'
-            )} />
+            <div
+              className={cn(
+                "transition-colors duration-300",
+                isScrolled 
+                  ? 'text-brand-blue' 
+                  : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                    ? 'text-white'
+                    : navbarSettings.iconColorNotScrolled === 'black'
+                    ? 'text-black'
+                    : ''
+              )}
+              style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                ? { color: navbarSettings.iconColorNotScrolled }
+                : undefined
+              }
+            >
+              <LanguageSwitcher className={cn(
+                "transition-colors duration-300",
+                isScrolled 
+                  ? 'text-brand-blue border-foreground/20' 
+                  : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                    ? 'text-white border-white/30 font-bold'
+                    : navbarSettings.iconColorNotScrolled === 'black'
+                    ? 'text-black border-black/30 font-bold'
+                    : ''
+              )} />
+            </div>
+            <div
+              className={cn(
+                "transition-colors duration-300",
+                isScrolled 
+                  ? 'text-brand-blue' 
+                  : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                    ? 'text-white'
+                    : navbarSettings.iconColorNotScrolled === 'black'
+                    ? 'text-black'
+                    : ''
+              )}
+              style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                ? { color: navbarSettings.iconColorNotScrolled }
+                : undefined
+              }
+            >
+              <CurrencySwitcher className={cn(
+                "transition-colors duration-300",
+                isScrolled 
+                  ? 'text-brand-blue border-foreground/20' 
+                  : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                    ? 'text-white border-white/30 font-bold'
+                    : navbarSettings.iconColorNotScrolled === 'black'
+                    ? 'text-black border-black/30 font-bold'
+                    : ''
+              )} />
+            </div>
 
             <Link href="/wishlist" prefetch={true}>
               <Button 
@@ -193,8 +312,16 @@ export default function Header() {
                   "h-8 w-8 xl:h-10 xl:w-10 transition-colors duration-300 relative",
                   isScrolled 
                     ? 'text-brand-blue hover:bg-accent hover:text-brand-blue' 
-                    : 'text-white hover:bg-white/10 hover:text-white'
+                    : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                      ? 'text-white hover:bg-white/10 hover:text-white'
+                      : navbarSettings.iconColorNotScrolled === 'black'
+                      ? 'text-black hover:bg-black/10 hover:text-black'
+                      : ''
                 )}
+                style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                  ? { color: navbarSettings.iconColorNotScrolled }
+                  : undefined
+                }
               >
                 <Heart className="h-4 w-4 xl:h-5 xl:w-5" />
                 {wishlistItems.length > 0 && (
@@ -212,8 +339,16 @@ export default function Header() {
                   "h-8 w-8 xl:h-10 xl:w-10 transition-colors duration-300 relative",
                   isScrolled 
                     ? 'text-brand-blue hover:bg-accent hover:text-brand-blue' 
-                    : 'text-white hover:bg-white/10 hover:text-white'
+                    : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                      ? 'text-white hover:bg-white/10 hover:text-white'
+                      : navbarSettings.iconColorNotScrolled === 'black'
+                      ? 'text-black hover:bg-black/10 hover:text-black'
+                      : ''
                 )}
+                style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                  ? { color: navbarSettings.iconColorNotScrolled }
+                  : undefined
+                }
               >
                 <ShoppingCart className="h-4 w-4 xl:h-5 xl:w-5" />
                 {getCartItemCount() > 0 && (
@@ -230,8 +365,21 @@ export default function Header() {
           {isSearchOpen && (
             <div className="hidden lg:block xl:hidden absolute top-full left-0 right-0 w-full p-4 bg-background/95 backdrop-blur-sm border-b z-50">
               <div className="container mx-auto px-4 sm:px-6">
-                <form onSubmit={handleSearch} className="relative max-w-md mx-auto">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <form onSubmit={handleSearch} className="relative max-w-md mx-auto">
+                  <Search className={cn(
+                    "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors duration-300",
+                    isScrolled 
+                      ? 'text-muted-foreground' 
+                      : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                        ? 'text-white'
+                        : navbarSettings.iconColorNotScrolled === 'black'
+                        ? 'text-black'
+                        : ''
+                  )}
+                  style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                    ? { color: navbarSettings.iconColorNotScrolled }
+                    : undefined
+                  } />
                   <Input
                     type="search"
                     placeholder="Search..."
@@ -254,9 +402,17 @@ export default function Header() {
                   className={cn(
                     "transition-colors duration-300",
                     !isScrolled 
-                      ? 'text-white hover:bg-white/10 hover:text-white bg-black/20 backdrop-blur-sm' 
+                      ? navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                        ? 'text-white hover:bg-white/10 hover:text-white bg-black/20 backdrop-blur-sm'
+                        : navbarSettings.iconColorNotScrolled === 'black'
+                        ? 'text-black hover:bg-black/10 hover:text-black bg-white/20 backdrop-blur-sm'
+                        : 'bg-black/20 backdrop-blur-sm'
                       : 'text-brand-blue hover:bg-accent hover:text-brand-blue'
                   )}
+                  style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                    ? { color: navbarSettings.iconColorNotScrolled }
+                    : undefined
+                  }
                 >
                   <Menu className="h-6 w-6" />
                   <span className="sr-only">Open menu</span>
@@ -284,7 +440,7 @@ export default function Header() {
                         <Link
                             key={link.href + link.label}
                             href={link.href}
-                            className="font-medium hover:text-primary transition-colors"
+                            className="font-medium hover:text-primary transition-colors text-foreground"
                         >
                             {link.label}
                         </Link>

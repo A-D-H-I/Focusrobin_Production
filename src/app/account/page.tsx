@@ -48,6 +48,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { getWalletBalance, getWalletTransactions, getAddresses, addAddress, updateAddress, deleteAddress, setDefaultAddress, deleteMyAccount } from "@/app/actions/user";
+import { getUserOrders } from "@/app/actions/orders";
+import { getReviewableOrders, createReview, getUserReviews } from "@/app/actions/reviews";
 import { signOut } from "next-auth/react";
 import { format } from "date-fns";
 
@@ -94,7 +96,8 @@ export default function AccountPage() {
   
   // Review form state
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
-  const [reviewingProduct, setReviewingProduct] = useState<{ productName: string; productId: string } | null>(null);
+  const [reviewingProduct, setReviewingProduct] = useState<{ productName: string; productId: string; orderId: string } | null>(null);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewHoveredRating, setReviewHoveredRating] = useState(0);
   const [reviewTitle, setReviewTitle] = useState("");
@@ -213,58 +216,60 @@ export default function AccountPage() {
     loadAddresses();
   }, [status, session, activeTab === 'addresses']);
 
-  // Dummy orders with product items
-  const recentOrders = [
-    {
-      id: "ORD-2024-001",
-      date: "2024-01-15",
-      status: "Delivered",
-      total: 89.99,
-      items: [
-        { productId: "agnes-dame-wood", productName: "Agnes - Dame Wood", variant: "Dame Wood", quantity: 1, price: 89.99 },
-      ],
-    },
-    {
-      id: "ORD-2024-002",
-      date: "2024-01-10",
-      status: "Delivered",
-      total: 129.99,
-      items: [
-        { productId: "alfie-piano-black", productName: "Alfie - Piano Black", variant: "Piano Black", quantity: 1, price: 129.99 },
-      ],
-    },
-  ];
+  // Orders state
+  const [orders, setOrders] = useState<any[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
+  const [reviewableItems, setReviewableItems] = useState<any[]>([]);
+  const [userReviews, setUserReviews] = useState<any[]>([]);
 
-  const allOrders = [
-    {
-      id: "ORD-2024-001",
-      date: "2024-01-15",
-      status: "Delivered",
-      total: 89.99,
-      items: [
-        { productId: "agnes-dame-wood", productName: "Agnes - Dame Wood", variant: "Dame Wood", quantity: 1, price: 89.99 },
-      ],
-    },
-    {
-      id: "ORD-2024-002",
-      date: "2024-01-10",
-      status: "Delivered",
-      total: 129.99,
-      items: [
-        { productId: "alfie-piano-black", productName: "Alfie - Piano Black", variant: "Piano Black", quantity: 1, price: 129.99 },
-      ],
-    },
-    {
-      id: "ORD-2024-003",
-      date: "2024-01-05",
-      status: "Delivered",
-      total: 159.98,
-      items: [
-        { productId: "astrid-ivory", productName: "Astrid - Ivory", variant: "Ivory", quantity: 1, price: 139.99 },
-        { productId: "clara-black-temple-milk-rose-ebony", productName: "Clara - Black Temple Milk & Rose Ebony", variant: "Black Temple Milk & Rose Ebony", quantity: 1, price: 19.99 },
-      ],
-    },
-  ];
+  // Fetch orders (for both dashboard and orders tab)
+  useEffect(() => {
+    const loadOrders = async () => {
+      if (status === 'authenticated' && session?.user && (activeTab === 'orders' || activeTab === 'dashboard')) {
+        setIsLoadingOrders(true);
+        try {
+          const result = await getUserOrders();
+          if (result.orders) {
+            setOrders(result.orders);
+          } else {
+            setOrders([]);
+          }
+        } catch (error) {
+          console.error("Error loading orders:", error);
+          setOrders([]);
+        } finally {
+          setIsLoadingOrders(false);
+        }
+      }
+    };
+    loadOrders();
+  }, [status, session, activeTab]);
+
+  // Fetch reviewable items and user reviews
+  useEffect(() => {
+    const loadReviewData = async () => {
+      if (status === 'authenticated' && session?.user && (activeTab === 'reviews' || activeTab === 'orders')) {
+        try {
+          const [reviewableResult, reviewsResult] = await Promise.all([
+            getReviewableOrders(),
+            getUserReviews(),
+          ]);
+          if (reviewableResult.items) {
+            setReviewableItems(reviewableResult.items);
+          }
+          if (reviewsResult.reviews) {
+            setUserReviews(reviewsResult.reviews);
+          }
+        } catch (error) {
+          console.error("Error loading review data:", error);
+        }
+      }
+    };
+    loadReviewData();
+  }, [status, session, activeTab === 'reviews' || activeTab === 'orders']);
+
+  const recentOrders = orders.slice(0, 2);
+  const allOrders = orders;
 
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
@@ -352,8 +357,8 @@ export default function AccountPage() {
   };
 
   // Review form handlers
-  const openReviewDialog = (productName: string, productId: string) => {
-    setReviewingProduct({ productName, productId });
+  const openReviewDialog = (productName: string, productId: string, orderId: string) => {
+    setReviewingProduct({ productName, productId, orderId });
     setReviewDialogOpen(true);
   };
 
@@ -420,9 +425,11 @@ export default function AccountPage() {
     setReviewImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleReviewSubmit = (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!reviewingProduct) return;
+
     if (reviewRating === 0) {
       toast({
         title: "Rating required",
@@ -450,13 +457,65 @@ export default function AccountPage() {
       return;
     }
 
-    // Here you would typically send the data to your backend
-    toast({
-      title: "Review submitted!",
-      description: "Thank you for your review. It will be published after moderation.",
-    });
+    setIsSubmittingReview(true);
 
-    closeReviewDialog();
+    try {
+      // Upload images first (for now, we'll store as base64 URLs - in production, upload to cloud storage)
+      const imageUrls: string[] = [];
+      for (const file of reviewUploadedImages) {
+        // Convert to base64 for now (in production, upload to S3/Cloudinary/etc)
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        imageUrls.push(base64);
+      }
+
+      const result = await createReview(
+        reviewingProduct.orderId,
+        reviewingProduct.productId,
+        reviewRating,
+        reviewTitle,
+        reviewContent,
+        imageUrls
+      );
+
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Review submitted!",
+          description: "Thank you for your review.",
+        });
+        closeReviewDialog();
+        // Reload review data
+        const [reviewableResult, reviewsResult] = await Promise.all([
+          getReviewableOrders(),
+          getUserReviews(),
+        ]);
+        if (reviewableResult.items) {
+          setReviewableItems(reviewableResult.items);
+        }
+        if (reviewsResult.reviews) {
+          setUserReviews(reviewsResult.reviews);
+        }
+      }
+    } catch (error) {
+      console.error("Error submitting review:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit review. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingReview(false);
+    }
   };
 
   const sidebarTabs = [
@@ -621,25 +680,39 @@ export default function AccountPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {recentOrders.map((order) => (
-                            <tr key={order.id} className="border-b border-border last:border-0">
-                              <td className="py-3 px-4 text-sm text-brand-blue font-medium">
-                                {order.id}
-                              </td>
-                              <td className="py-3 px-4 text-sm text-muted-foreground">
-                                {order.date}
-                              </td>
-                              <td className="py-3 px-4 text-sm">
-                                <div className="flex items-center gap-2">
-                                  {getStatusIcon(order.status)}
-                                  <span className="text-muted-foreground">{order.status}</span>
-                                </div>
-                              </td>
-                              <td className="py-3 px-4 text-sm text-right font-semibold text-brand-blue">
-                                €{order.total.toFixed(2)}
+                          {isLoadingOrders ? (
+                            <tr>
+                              <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                                Loading orders...
                               </td>
                             </tr>
-                          ))}
+                          ) : recentOrders.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="py-8 text-center text-muted-foreground">
+                                No orders yet
+                              </td>
+                            </tr>
+                          ) : (
+                            recentOrders.map((order) => (
+                              <tr key={order.id} className="border-b border-border last:border-0">
+                                <td className="py-3 px-4 text-sm text-brand-blue font-medium">
+                                  {order.orderNumber}
+                                </td>
+                                <td className="py-3 px-4 text-sm text-muted-foreground">
+                                  {format(new Date(order.createdAt), 'MMM dd, yyyy')}
+                                </td>
+                                <td className="py-3 px-4 text-sm">
+                                  <div className="flex items-center gap-2">
+                                    {getStatusIcon(order.status)}
+                                    <span className="text-muted-foreground">{order.status}</span>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-4 text-sm text-right font-semibold text-brand-blue">
+                                  {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.total.toFixed(2)}
+                                </td>
+                              </tr>
+                            ))
+                          )}
                         </tbody>
                       </table>
                     </div>
@@ -659,46 +732,97 @@ export default function AccountPage() {
                   <h2 className="text-2xl font-headline font-bold text-brand-blue mb-4">
                     Orders
                   </h2>
-                  {allOrders.map((order) => (
-                    <div key={order.id} className="bg-white border border-border rounded-lg p-6">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 pb-4 border-b border-border">
-                        <div>
-                          <h3 className="text-lg font-semibold text-brand-blue">Order {order.id}</h3>
-                          <p className="text-sm text-muted-foreground">Placed on {order.date}</p>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            {getStatusIcon(order.status)}
-                            <span className="text-sm text-muted-foreground">{order.status}</span>
+                  {isLoadingOrders ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      Loading orders...
+                    </div>
+                  ) : allOrders.length === 0 ? (
+                    <div className="bg-white border border-border rounded-lg p-12 text-center">
+                      <Package className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+                      <p className="text-muted-foreground mb-4">No orders yet</p>
+                      <Link href="/shop">
+                        <Button>Start Shopping</Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    allOrders.map((order) => (
+                      <div key={order.id} className="bg-white border border-border rounded-lg p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 pb-4 border-b border-border">
+                          <div>
+                            <h3 className="text-lg font-semibold text-brand-blue">Order {order.orderNumber}</h3>
+                            <p className="text-sm text-muted-foreground">Placed on {format(new Date(order.createdAt), 'MMM dd, yyyy')}</p>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm text-muted-foreground">Total</p>
-                            <p className="text-lg font-semibold text-brand-blue">€{order.total.toFixed(2)}</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        {order.items.map((item, itemIndex) => (
-                          <div key={itemIndex} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-muted/30 rounded-lg">
-                            <div className="flex-grow">
-                              <h4 className="font-semibold text-brand-blue">{item.productName}</h4>
-                              <p className="text-sm text-muted-foreground">Variant: {item.variant}</p>
-                              <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-                              <p className="text-sm font-semibold text-brand-blue mt-1">€{item.price.toFixed(2)}</p>
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(order.status)}
+                              <span className="text-sm text-muted-foreground">{order.status}</span>
                             </div>
-                            {order.status === "Delivered" && (
-                              <Button
-                                onClick={() => openReviewDialog(item.productName, item.productId)}
-                                className="bg-brand-teal text-white hover:bg-brand-teal/90 text-xs py-1 px-2 whitespace-nowrap"
-                              >
-                                Write a Review
-                              </Button>
+                            <div className="text-right">
+                              <p className="text-sm text-muted-foreground">Total</p>
+                              <p className="text-lg font-semibold text-brand-blue">
+                                {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.total.toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Tracking Information */}
+                        {(order.trackingNumber || order.trackingMessage) && (
+                          <div className="mb-4 p-4 bg-brand-teal/10 border border-brand-teal/20 rounded-lg">
+                            <h4 className="font-semibold text-brand-blue mb-2">Tracking Information</h4>
+                            {order.shippingProvider && (
+                              <p className="text-sm text-muted-foreground mb-1">
+                                <span className="font-medium">Shipping Provider:</span> {order.shippingProvider}
+                              </p>
+                            )}
+                            {order.trackingNumber && (
+                              <p className="text-sm text-muted-foreground mb-1">
+                                <span className="font-medium">Tracking Number:</span> {order.trackingNumber}
+                              </p>
+                            )}
+                            {order.trackingMessage && (
+                              <p className="text-sm text-muted-foreground mt-2">
+                                <span className="font-medium">Update:</span> {order.trackingMessage}
+                              </p>
                             )}
                           </div>
-                        ))}
+                        )}
+
+                        <div className="space-y-4">
+                          {order.items.map((item: any, itemIndex: number) => (
+                            <div key={itemIndex} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-muted/30 rounded-lg">
+                              <div className="flex-grow">
+                                <h4 className="font-semibold text-brand-blue">{item.productName}</h4>
+                                <p className="text-sm text-muted-foreground">Variant: {item.variantName}</p>
+                                <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
+                                <p className="text-sm font-semibold text-brand-blue mt-1">
+                                  {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{item.price.toFixed(2)} each
+                                </p>
+                              </div>
+                              {order.status === "DELIVERED" && (() => {
+                                // Check if this product has already been reviewed for this order
+                                const hasReview = userReviews.some(
+                                  (review) => review.Product?.id === item.productId && review.Order?.id === order.id
+                                );
+                                const canReview = !hasReview;
+                                
+                                return canReview ? (
+                                  <Button
+                                    onClick={() => openReviewDialog(item.productName, item.productId, order.id)}
+                                    className="bg-brand-teal text-white hover:bg-brand-teal/90 text-xs py-1 px-2 whitespace-nowrap"
+                                  >
+                                    Write a Review
+                                  </Button>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground italic">Already reviewed</span>
+                                );
+                              })()}
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               )}
 
@@ -1473,8 +1597,8 @@ export default function AccountPage() {
               >
                 Cancel
               </Button>
-              <Button type="submit" className="bg-brand-teal text-white hover:bg-brand-teal/90">
-                Submit Review
+              <Button type="submit" className="bg-brand-teal text-white hover:bg-brand-teal/90" disabled={isSubmittingReview}>
+                {isSubmittingReview ? "Submitting..." : "Submit Review"}
               </Button>
             </DialogFooter>
           </form>

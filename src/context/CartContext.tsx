@@ -119,12 +119,24 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           });
         } else {
           // Reload cart from database to ensure sync
-          const cartResult = await getCart();
-          if (cartResult.items && cartResult.items.length > 0) {
-            const mappedItems: CartItem[] = cartResult.items
-              .map((item: any) => mapDbCartItemToCartItem(item))
-              .filter((item: CartItem | null): item is CartItem => item !== null);
-            setCartItems(mappedItems);
+          try {
+            const cartResult = await getCart();
+            if (cartResult.items && cartResult.items.length > 0) {
+              const mappedItems: CartItem[] = cartResult.items
+                .map((item: any) => mapDbCartItemToCartItem(item))
+                .filter((item: CartItem | null): item is CartItem => item !== null);
+              
+              // Only update if we successfully mapped items
+              if (mappedItems.length > 0) {
+                setCartItems(mappedItems);
+              } else {
+                // If mapping failed, keep the optimistic update to prevent cart from disappearing
+                console.warn('Cart mapping failed, keeping optimistic update');
+              }
+            }
+          } catch (reloadError) {
+            // If reload fails, keep the optimistic update
+            console.error('Error reloading cart:', reloadError);
           }
         }
       } catch (error) {
