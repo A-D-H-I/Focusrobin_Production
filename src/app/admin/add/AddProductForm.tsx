@@ -174,9 +174,13 @@ export function AddProductForm() {
               id="description"
               name="description"
               required
-              placeholder="Product description..."
+              placeholder="Enter a detailed product description (minimum 10 characters)..."
               rows={4}
+              minLength={10}
             />
+            <p className="text-xs text-muted-foreground">
+              Minimum 10 characters required. Describe the product features, materials, and benefits.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

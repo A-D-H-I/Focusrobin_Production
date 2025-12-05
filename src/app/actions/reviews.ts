@@ -1,10 +1,24 @@
 "use server";
 
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireAuth, requireAdmin, safeAction } from "@/lib/security";
+import { rateLimit, getIdentifier } from "@/lib/rate-limit";
+import { z } from "zod";
+
+// Validation schemas
+const reviewSchema = z.object({
+  orderId: z.string().min(1).max(30),
+  productId: z.string().min(1).max(30),
+  rating: z.number().int().min(1).max(5),
+  title: z.string().trim().max(200),
+  comment: z.string().trim().max(2000),
+  images: z.array(z.string().url()).max(5).optional().default([]),
+});
+
+const idSchema = z.string().min(1).max(30);
 
 /**
- * Create a review for a delivered order
+ * Create a review for a delivered order (User action - rate limited)
  */
 export async function createReview(
   orderId: string,
@@ -14,23 +28,32 @@ export async function createReview(
   comment: string,
   images: string[] = []
 ) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+    const userId = session.user.id;
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
+    // Rate limit review submissions
+    const rateLimitResult = rateLimit(
+      getIdentifier(null, userId, "review"),
+      "REVIEW_SUBMIT"
+    );
+    if (!rateLimitResult.success) {
+      return { error: `Too many reviews. Please try again in ${rateLimitResult.retryAfter} seconds.` };
     }
 
-    const userId = (session.user as any)?.id;
-    if (!userId) {
-      return { error: "User ID not found" };
+    // Validate input
+    const validatedInput = reviewSchema.safeParse({ orderId, productId, rating, title, comment, images });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
-    // Verify order belongs to user and is delivered
+    const { orderId: oid, productId: pid, rating: r, title: t, comment: c, images: imgs } = validatedInput.data;
+
+    // IDOR Protection: Verify order belongs to user and is delivered
     const order = await prisma.order.findFirst({
       where: {
-        id: orderId,
-        userId,
+        id: oid,
+        userId, // IDOR protected
         status: "DELIVERED",
       },
     });
@@ -42,8 +65,8 @@ export async function createReview(
     // Check if product is in the order
     const orderItem = await prisma.orderItem.findFirst({
       where: {
-        orderId,
-        productId,
+        orderId: oid,
+        productId: pid,
       },
     });
 
@@ -51,12 +74,12 @@ export async function createReview(
       return { error: "Product not found in this order" };
     }
 
-    // Check if review already exists for this order and product
+    // Check if review already exists
     const existingReview = await prisma.review.findFirst({
       where: {
-        orderId,
-        productId,
-        userId,
+        orderId: oid,
+        productId: pid,
+        userId, // IDOR protected
       },
     });
 
@@ -67,12 +90,12 @@ export async function createReview(
     // Create review
     const review = await prisma.review.create({
       data: {
-        rating,
-        title,
-        comment,
-        images,
-        productId,
-        orderId: orderId || null, // Allow null if orderId is not provided
+        rating: r,
+        title: t,
+        comment: c,
+        images: imgs,
+        productId: pid,
+        orderId: oid,
         userId,
       },
       include: {
@@ -94,9 +117,9 @@ export async function createReview(
       },
     });
 
-    // Update product average rating and review count
+    // Update product average rating
     const productReviews = await prisma.review.findMany({
-      where: { productId },
+      where: { productId: pid },
     });
 
     const averageRating =
@@ -104,7 +127,7 @@ export async function createReview(
       productReviews.length;
 
     await prisma.product.update({
-      where: { id: productId },
+      where: { id: pid },
       data: {
         averageRating,
         reviewCount: productReviews.length,
@@ -124,27 +147,21 @@ export async function createReview(
         Product: review.Product,
       },
     };
-  } catch (error: any) {
-    console.error("Error creating review:", error);
-    // Return more specific error message
-    const errorMessage = error?.message || "Failed to create review. Please try again.";
-    return {
-      error: errorMessage.includes("Unique constraint") 
-        ? "You have already reviewed this product from this order"
-        : errorMessage.includes("Foreign key constraint")
-        ? "Invalid order or product. Please refresh and try again."
-        : errorMessage,
-    };
-  }
+  });
 }
 
 /**
- * Get reviews for a product
+ * Get reviews for a product (Public)
  */
 export async function getProductReviews(productId: string) {
   try {
+    const validatedId = idSchema.safeParse(productId);
+    if (!validatedId.success) {
+      return { error: "Invalid product ID" };
+    }
+
     const reviews = await prisma.review.findMany({
-      where: { productId },
+      where: { productId: validatedId.data },
       include: {
         User: {
           select: {
@@ -181,21 +198,14 @@ export async function getProductReviews(productId: string) {
 }
 
 /**
- * Get user's reviews
+ * Get user's reviews (User action - IDOR protected)
  */
 export async function getUserReviews() {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+    const userId = session.user.id;
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userId = (session.user as any)?.id;
-    if (!userId) {
-      return { error: "User ID not found" };
-    }
-
+    // IDOR Protection: Only fetch reviews for current user
     const reviews = await prisma.review.findMany({
       where: { userId },
       include: {
@@ -231,29 +241,15 @@ export async function getUserReviews() {
         Order: review.Order,
       })),
     };
-  } catch (error) {
-    console.error("Error fetching user reviews:", error);
-    return {
-      error: "Failed to load reviews. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Get all reviews (admin only)
+ * Get all reviews (Admin only)
  */
 export async function getAllReviews() {
-  try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can view all reviews" };
-    }
+  return safeAction(async () => {
+    await requireAdmin();
 
     const reviews = await prisma.review.findMany({
       include: {
@@ -298,16 +294,11 @@ export async function getAllReviews() {
         Order: review.Order,
       })),
     };
-  } catch (error) {
-    console.error("Error fetching all reviews:", error);
-    return {
-      error: "Failed to load reviews. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Update a review (admin only)
+ * Update a review (Admin only)
  */
 export async function updateReview(
   reviewId: string,
@@ -316,26 +307,37 @@ export async function updateReview(
   comment?: string,
   images?: string[]
 ) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
+    // Validate ID
+    const validatedId = idSchema.safeParse(reviewId);
+    if (!validatedId.success) {
+      return { error: "Invalid review ID" };
     }
 
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can update reviews" };
-    }
-
+    // Validate optional fields
     const updateData: any = {};
-    if (rating !== undefined) updateData.rating = rating;
-    if (title !== undefined) updateData.title = title;
-    if (comment !== undefined) updateData.comment = comment;
-    if (images !== undefined) updateData.images = images;
+    if (rating !== undefined) {
+      const ratingSchema = z.number().int().min(1).max(5);
+      const validatedRating = ratingSchema.safeParse(rating);
+      if (!validatedRating.success) {
+        return { error: "Rating must be between 1 and 5" };
+      }
+      updateData.rating = validatedRating.data;
+    }
+    if (title !== undefined) {
+      updateData.title = title.trim().slice(0, 200);
+    }
+    if (comment !== undefined) {
+      updateData.comment = comment.trim().slice(0, 2000);
+    }
+    if (images !== undefined) {
+      updateData.images = images.slice(0, 5);
+    }
 
     const review = await prisma.review.update({
-      where: { id: reviewId },
+      where: { id: validatedId.data },
       data: updateData,
       include: {
         Product: {
@@ -346,7 +348,7 @@ export async function updateReview(
       },
     });
 
-    // Update product average rating and review count
+    // Update product average rating
     const productReviews = await prisma.review.findMany({
       where: { productId: review.productId },
     });
@@ -373,32 +375,23 @@ export async function updateReview(
         images: review.images,
       },
     };
-  } catch (error) {
-    console.error("Error updating review:", error);
-    return {
-      error: "Failed to update review. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Delete a review (admin only)
+ * Delete a review (Admin only)
  */
 export async function deleteReview(reviewId: string) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can delete reviews" };
+    const validatedId = idSchema.safeParse(reviewId);
+    if (!validatedId.success) {
+      return { error: "Invalid review ID" };
     }
 
     const review = await prisma.review.findUnique({
-      where: { id: reviewId },
+      where: { id: validatedId.data },
       select: {
         productId: true,
       },
@@ -409,10 +402,10 @@ export async function deleteReview(reviewId: string) {
     }
 
     await prisma.review.delete({
-      where: { id: reviewId },
+      where: { id: validatedId.data },
     });
 
-    // Update product average rating and review count
+    // Update product average rating
     const productReviews = await prisma.review.findMany({
       where: { productId: review.productId },
     });
@@ -442,30 +435,18 @@ export async function deleteReview(reviewId: string) {
     return {
       success: true,
     };
-  } catch (error) {
-    console.error("Error deleting review:", error);
-    return {
-      error: "Failed to delete review. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Get delivered orders that can be reviewed by user
+ * Get delivered orders that can be reviewed by user (User action - IDOR protected)
  */
 export async function getReviewableOrders() {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+    const userId = session.user.id;
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userId = (session.user as any)?.id;
-    if (!userId) {
-      return { error: "User ID not found" };
-    }
-
+    // IDOR Protection: Only fetch user's orders
     const orders = await prisma.order.findMany({
       where: {
         userId,
@@ -517,11 +498,6 @@ export async function getReviewableOrders() {
       success: true,
       items: reviewableItems,
     };
-  } catch (error) {
-    console.error("Error fetching reviewable orders:", error);
-    return {
-      error: "Failed to load reviewable orders. Please try again.",
-    };
-  }
+  });
 }
 

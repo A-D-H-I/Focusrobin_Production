@@ -47,6 +47,8 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { usePrice } from "@/hooks/usePrice";
+import { useCurrency } from "@/context/CurrencyContext";
 import { getWalletBalance, getWalletTransactions, getAddresses, addAddress, updateAddress, deleteAddress, setDefaultAddress, deleteMyAccount } from "@/app/actions/user";
 import { getUserOrders } from "@/app/actions/orders";
 import { getReviewableOrders, createReview, getUserReviews } from "@/app/actions/reviews";
@@ -93,6 +95,8 @@ export default function AccountPage() {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [isEditing, setIsEditing] = useState(false);
   const { toast } = useToast();
+  const { formatPrice, currency } = usePrice();
+  const isNonEurCurrency = currency !== 'EUR';
   
   // Review form state
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
@@ -254,31 +258,86 @@ export default function AccountPage() {
             getReviewableOrders(),
             getUserReviews(),
           ]);
-          if (reviewableResult.items) {
+          if (reviewableResult && !reviewableResult.error && reviewableResult.items) {
             setReviewableItems(reviewableResult.items);
           }
-          if (reviewsResult.reviews) {
+          if (reviewsResult && !reviewsResult.error && reviewsResult.reviews) {
             setUserReviews(reviewsResult.reviews);
+          } else if (reviewsResult?.error) {
+            console.error("Error loading reviews:", reviewsResult.error);
+            setUserReviews([]);
           }
         } catch (error) {
           console.error("Error loading review data:", error);
+          setUserReviews([]);
         }
       }
     };
     loadReviewData();
-  }, [status, session, activeTab === 'reviews' || activeTab === 'orders']);
+  }, [status, session, activeTab]);
 
   const recentOrders = orders.slice(0, 2);
   const allOrders = orders;
 
   const getStatusIcon = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'delivered':
+    switch (status.toUpperCase()) {
+      case 'DELIVERED':
         return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-      case 'processing':
+      case 'PAID':
+      case 'CONFIRMED':
+        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
+      case 'SHIPPED':
+        return <Package className="h-4 w-4 text-blue-600" />;
+      case 'PROCESSING':
+      case 'PENDING':
         return <Clock className="h-4 w-4 text-yellow-600" />;
-      default:
+      case 'CANCELLED':
+      case 'REFUNDED':
         return <XCircle className="h-4 w-4 text-red-600" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-500" />;
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'DELIVERED':
+        return 'Delivered';
+      case 'PAID':
+        return 'Paid';
+      case 'CONFIRMED':
+        return 'Confirmed';
+      case 'SHIPPED':
+        return 'Shipped';
+      case 'PROCESSING':
+        return 'Processing';
+      case 'PENDING':
+        return 'Pending';
+      case 'CANCELLED':
+        return 'Cancelled';
+      case 'REFUNDED':
+        return 'Refunded';
+      default:
+        return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toUpperCase()) {
+      case 'DELIVERED':
+      case 'PAID':
+      case 'CONFIRMED':
+        return 'text-green-600';
+      case 'SHIPPED':
+        return 'text-blue-600';
+      case 'PROCESSING':
+      case 'PENDING':
+        return 'text-yellow-600';
+      case 'CANCELLED':
+      case 'REFUNDED':
+        return 'text-red-600';
+      default:
+        return 'text-gray-600';
     }
   };
 
@@ -499,10 +558,10 @@ export default function AccountPage() {
           getReviewableOrders(),
           getUserReviews(),
         ]);
-        if (reviewableResult.items) {
+        if (reviewableResult && !reviewableResult.error && reviewableResult.items) {
           setReviewableItems(reviewableResult.items);
         }
-        if (reviewsResult.reviews) {
+        if (reviewsResult && !reviewsResult.error && reviewsResult.reviews) {
           setUserReviews(reviewsResult.reviews);
         }
       }
@@ -645,7 +704,10 @@ export default function AccountPage() {
                     </div>
                     <div className="mb-4">
                       <p className="text-sm opacity-90 mb-1">Current Balance</p>
-                      <p className="text-4xl font-headline font-bold">€{walletBalance.toFixed(2)}</p>
+                      <p className="text-4xl font-headline font-bold">{formatPrice(walletBalance)}</p>
+                      {isNonEurCurrency && (
+                        <p className="text-sm opacity-75 mt-1">€{walletBalance.toFixed(2)} (stored in EUR)</p>
+                      )}
                     </div>
                     <Button
                       variant="secondary"
@@ -702,11 +764,11 @@ export default function AccountPage() {
                                   {format(new Date(order.createdAt), 'MMM dd, yyyy')}
                                 </td>
                                 <td className="py-3 px-4 text-sm">
-                                  <div className="flex items-center gap-2">
-                                    {getStatusIcon(order.status)}
-                                    <span className="text-muted-foreground">{order.status}</span>
-                                  </div>
-                                </td>
+                                                  <div className="flex items-center gap-2">
+                                                    {getStatusIcon(order.status)}
+                                                    <span className={getStatusColor(order.status)}>{getStatusLabel(order.status)}</span>
+                                                  </div>
+                                                </td>
                                 <td className="py-3 px-4 text-sm text-right font-semibold text-brand-blue">
                                   {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.total.toFixed(2)}
                                 </td>
@@ -755,7 +817,7 @@ export default function AccountPage() {
                           <div className="flex items-center gap-4">
                             <div className="flex items-center gap-2">
                               {getStatusIcon(order.status)}
-                              <span className="text-sm text-muted-foreground">{order.status}</span>
+                              <span className={`text-sm font-medium ${getStatusColor(order.status)}`}>{getStatusLabel(order.status)}</span>
                             </div>
                             <div className="text-right">
                               <p className="text-sm text-muted-foreground">Total</p>
@@ -1209,7 +1271,12 @@ export default function AccountPage() {
                     {isLoadingWallet ? (
                       <p className="text-4xl font-headline font-bold">Loading...</p>
                     ) : (
-                      <p className="text-4xl font-headline font-bold">€{walletBalance.toFixed(2)}</p>
+                      <>
+                        <p className="text-4xl font-headline font-bold">{formatPrice(walletBalance)}</p>
+                        {isNonEurCurrency && (
+                          <p className="text-sm opacity-75 mt-1">€{walletBalance.toFixed(2)} (stored in EUR)</p>
+                        )}
+                      </>
                     )}
                   </div>
                   
@@ -1232,7 +1299,10 @@ export default function AccountPage() {
                               "text-lg font-semibold",
                               transaction.type === 'CREDIT' ? 'text-green-600' : 'text-red-600'
                             )}>
-                              {transaction.type === 'CREDIT' ? '+' : '-'}€{transaction.amount.toFixed(2)}
+                              {transaction.type === 'CREDIT' ? '+' : '-'}{formatPrice(transaction.amount)}
+                              {isNonEurCurrency && (
+                                <span className="text-xs opacity-70 ml-1">(€{transaction.amount.toFixed(2)})</span>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1249,15 +1319,77 @@ export default function AccountPage() {
               {activeTab === 'reviews' && (
                 <div className="bg-white border border-border rounded-lg p-6">
                   <h2 className="text-2xl font-headline font-bold text-brand-blue mb-4">
-                    My Reviews
+                    My Reviews {userReviews.length > 0 && `(${userReviews.length})`}
                   </h2>
                   <p className="text-muted-foreground mb-4">
                     View all your product reviews here. Reviews for deleted products will show as "Product no longer available".
                   </p>
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Star className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No reviews yet. Write a review from your orders page!</p>
-                  </div>
+                  {userReviews.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Star className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No reviews yet. Write a review from your orders page!</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {userReviews.map((review: any) => (
+                        <div key={review.id} className="border rounded-lg p-4">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-lg">{review.title}</h3>
+                                <Badge variant="outline" className="text-xs">
+                                  {review.rating}/5
+                                </Badge>
+                              </div>
+                              <div className="flex items-center gap-1 mb-2">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-4 w-4 ${
+                                      i < review.rating
+                                        ? 'text-yellow-400 fill-current'
+                                        : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                              {review.Product ? (
+                                <Link
+                                  href={`/products/${review.Product.slug}`}
+                                  className="text-sm text-brand-blue hover:underline"
+                                >
+                                  Product: {review.Product.name}
+                                </Link>
+                              ) : (
+                                <p className="text-sm text-muted-foreground italic">
+                                  Product: Product no longer available
+                                </p>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(review.createdAt), 'MMM d, yyyy')}
+                            </p>
+                          </div>
+                          <p className="text-sm text-foreground/80 mt-2">{review.comment}</p>
+                          {review.images && review.images.length > 0 && (
+                            <div className="mt-3 flex gap-2 flex-wrap">
+                              {review.images.map((image: string, index: number) => (
+                                <img
+                                  key={index}
+                                  src={image}
+                                  alt={`Review image ${index + 1}`}
+                                  className="w-20 h-20 object-cover rounded border"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

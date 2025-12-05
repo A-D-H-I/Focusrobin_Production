@@ -1,5 +1,9 @@
 import { AddProductForm } from './AddProductForm';
 
+// Force dynamic rendering - prevents static generation
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function AddProductPage() {
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">

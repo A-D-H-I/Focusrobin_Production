@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Heart } from "lucide-react";
 import { Product } from "@/lib/productData";
 import { cn } from "@/lib/utils";
+import { usePrice } from "@/hooks/usePrice";
 
 interface ProductCardProps {
   product: Product;
@@ -18,6 +19,11 @@ function ProductCard({ product, showCashback = false, priority = false }: Produc
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
   const [hoveredVariant, setHoveredVariant] = useState<typeof product.variants[0] | null>(null);
+  const { formatPrice, parseEurPrice } = usePrice();
+  
+  // Parse EUR prices from product
+  const priceInEur = parseEurPrice(product.price);
+  const cashbackInEur = product.cashback ? parseEurPrice(product.cashback) : null;
   
   // Use the hovered variant's image if hovering over a color, otherwise use selected variant
   const displayVariant = hoveredVariant || selectedVariant;
@@ -96,14 +102,14 @@ function ProductCard({ product, showCashback = false, priority = false }: Produc
               {product.name}
             </h3>
             <p className="font-body text-foreground font-bold text-base ml-2">
-              {product.price}
+              {formatPrice(priceInEur)}
             </p>
           </div>
 
           {/* Cashback (optional, for related products) */}
-          {showCashback && (
+          {showCashback && cashbackInEur && cashbackInEur > 0 && (
             <p className="font-body text-primary font-medium text-sm mb-2">
-              {product.cashback}
+              {formatPrice(cashbackInEur)} cashback
             </p>
           )}
 

@@ -1,8 +1,7 @@
 
 "use client";
 
-import { Star, ThumbsUp, ThumbsDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
@@ -21,6 +20,7 @@ type Review = {
   User: {
     name: string | null;
     email: string;
+    image: string | null;
   };
   createdAt: string | Date; // Can be ISO string or Date
 };
@@ -45,16 +45,15 @@ export default function CustomerReviews({ reviews }: CustomerReviewsProps) {
   // Only show real reviews, no dummy data
   const displayReviews = reviews && reviews.length > 0 
     ? reviews.map((review) => ({
+        id: review.id,
         author: review.User?.name || review.User?.email?.split('@')[0] || 'Anonymous',
-        avatar: review.User?.image || `https://i.pravatar.cc/150?u=${review.User?.email || 'user'}`,
+        avatar: review.User?.image || null,
         rating: review.rating,
         title: review.title,
         content: review.comment,
         images: review.images || [],
         productName: review.Product?.name || undefined, // Don't show "Product no longer available" on product page
         date: formatDistanceToNow(new Date(review.createdAt), { addSuffix: true }),
-        likes: 0,
-        dislikes: 0,
       }))
     : [];
 
@@ -98,8 +97,9 @@ export default function CustomerReviews({ reviews }: CustomerReviewsProps) {
             </div>
           </div>
           <div className="md:w-2/3">
-            {displayReviews.map((review, index) => (
-              <div key={index} className="border-b py-6 last:border-none">
+            {displayReviews.length > 0 ? (
+              displayReviews.map((review) => (
+                <div key={review.id} className="border-b py-6 last:border-none">
                 <div className="flex items-start gap-4">
                     <Avatar>
                         <AvatarImage src={review.avatar} alt={review.author}/>
@@ -139,23 +139,16 @@ export default function CustomerReviews({ reviews }: CustomerReviewsProps) {
                             ))}
                           </div>
                         )}
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>Was this review helpful?</span>
-                            <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="sm" className="h-auto px-2 py-1">
-                                    <ThumbsUp className="h-4 w-4 mr-1" />
-                                    {review.likes}
-                                </Button>
-                                <Button variant="ghost" size="sm" className="h-auto px-2 py-1">
-                                    <ThumbsDown className="h-4 w-4 mr-1" />
-                                    {review.dislikes}
-                                </Button>
-                            </div>
-                        </div>
                     </div>
                 </div>
               </div>
-            ))}
+              ))
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                <Star className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No reviews yet. Be the first to review this product!</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

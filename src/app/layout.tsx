@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import { Toaster } from "@/components/ui/toaster";
 import SessionProvider from "@/components/providers/SessionProvider";
 import { CurrencyProvider } from "@/context/CurrencyContext";
+import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { SupportChat } from "@/components/chat/SupportChat";
@@ -47,15 +48,17 @@ export default function RootLayout({
       </head>
       <body className={`${chillax.variable} font-body antialiased`}>
         <SessionProvider>
-          <CurrencyProvider>
-            <CartProvider>
-              <WishlistProvider>
-                {children}
-                <Toaster />
-                <SupportChat />
-              </WishlistProvider>
-            </CartProvider>
-          </CurrencyProvider>
+          <LanguageProvider>
+            <CurrencyProvider>
+              <CartProvider>
+                <WishlistProvider>
+                  {children}
+                  <Toaster />
+                  <SupportChat />
+                </WishlistProvider>
+              </CartProvider>
+            </CurrencyProvider>
+          </LanguageProvider>
         </SessionProvider>
       </body>
     </html>

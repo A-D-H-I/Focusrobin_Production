@@ -15,6 +15,7 @@ import CurrencySwitcher from "@/components/ui/CurrencySwitcher";
 import { supportedLanguages } from "@/lib/languageData";
 import { supportedCurrencies } from "@/lib/currencyData";
 import { useCurrency } from "@/context/CurrencyContext";
+import { useLanguage } from "@/context/LanguageContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
 import { getNavbarSettings } from "@/app/actions/navbarSettings";
@@ -36,9 +37,9 @@ export default function Header() {
   const isHomePage = pathname === "/";
   const [isScrolled, setIsScrolled] = useState(!isHomePage);
   const { currency, setCurrency } = useCurrency();
+  const { language, setLanguage } = useLanguage();
   const { wishlistItems } = useWishlist();
   const { getCartItemCount } = useCart();
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [navbarSettings, setNavbarSettings] = useState<{
@@ -449,7 +450,7 @@ export default function Header() {
                     <div className="mt-8 space-y-4">
                       <div>
                         <label className="text-sm font-semibold mb-2 block">Language</label>
-                        <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                        <Select value={language} onValueChange={setLanguage}>
                           <SelectTrigger className="w-full">
                             <SelectValue placeholder="Select language" />
                           </SelectTrigger>
@@ -458,11 +459,11 @@ export default function Header() {
                             side="bottom" 
                             sideOffset={4}
                             align="start"
-                            className="max-h-[200px] w-[var(--radix-select-trigger-width)] overflow-y-auto"
+                            className="max-h-[300px] w-[var(--radix-select-trigger-width)] overflow-y-auto"
                           >
                             {supportedLanguages.map((lang) => (
                               <SelectItem key={lang.code} value={lang.code}>
-                                {lang.name}
+                                {lang.nativeName} {lang.name !== lang.nativeName && `(${lang.name})`}
                               </SelectItem>
                             ))}
                           </SelectContent>

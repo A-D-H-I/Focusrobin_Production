@@ -1,43 +1,35 @@
 "use server";
 
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { getShippingProvider } from '@/lib/shipping-provider';
+import { requireAuth, requireAdmin, safeAction } from "@/lib/security";
+import { rateLimit, getIdentifier } from "@/lib/rate-limit";
+import { createOrderSchema, updateOrderStatusSchema, updatePaymentStatusSchema, updateTrackingSchema } from "@/lib/validations";
+import { z } from "zod";
 
-// Helper function to normalize image URLs (same as in prisma-product-mapper.ts)
+// Helper function to normalize image URLs
 function normalizeImageUrl(url: string | null): string | null {
   if (!url) return null;
-  
-  // If it's already a relative path starting with /, return as is
   if (url.startsWith('/')) return url;
-  
-  // If it's already a full URL (http/https), return as is
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   
-  // Handle Windows absolute paths
-  // Convert G:\Dev\...\public\image.jpg to /image.jpg
-  // Or C:\...\public\images\product.jpg to /images/product.jpg
   const publicPathMatch = url.match(/[\\/]public[\\/](.+)$/i);
   if (publicPathMatch) {
-    // Normalize path separators and ensure it starts with /
     return '/' + publicPathMatch[1].replace(/\\/g, '/');
   }
   
-  // If it doesn't match any pattern, try to extract just the filename
-  // and assume it's in the root of public folder
   const filenameMatch = url.match(/[\\/]([^\\/]+\.(jpg|jpeg|png|gif|webp|svg|glb))$/i);
   if (filenameMatch) {
     return '/' + filenameMatch[1];
   }
   
-  // Fallback: return as is (might be a relative path without leading /)
   return url.startsWith('./') ? url.slice(1) : '/' + url;
 }
 
 interface CreateOrderData {
   paymentMethod: string;
-  walletAmount?: number; // Amount to deduct from wallet
-  shippingProvider?: string; // Shipping provider (Omniva or DHL)
+  walletAmount?: number;
+  shippingProvider?: string;
   shippingAddress: {
     name: string;
     phone: string;
@@ -60,9 +52,6 @@ interface CreateOrderData {
   };
 }
 
-/**
- * Generate a unique order number
- */
 function generateOrderNumber(): string {
   const year = new Date().getFullYear();
   const random = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
@@ -70,28 +59,31 @@ function generateOrderNumber(): string {
 }
 
 /**
- * Create a new order from cart items
+ * Create a new order from cart items (User action - rate limited)
  */
 export async function createOrder(orderData: CreateOrderData) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+    const userId = session.user.id;
 
-    if (!session?.user) {
-      return { error: "You must be logged in to create an order" };
+    // Rate limit order creation
+    const rateLimitResult = rateLimit(
+      getIdentifier(null, userId, "order"),
+      "ORDER_CREATE"
+    );
+    if (!rateLimitResult.success) {
+      return { error: `Too many order attempts. Please try again in ${rateLimitResult.retryAfter} seconds.` };
     }
 
-    const userId = (session.user as any)?.id;
-    if (!userId) {
-      return { error: "User ID not found" };
+    // Validate input with Zod
+    const validatedInput = createOrderSchema.safeParse(orderData);
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid order data" };
     }
 
-    console.log("Creating order for user:", userId);
-    console.log("Order data:", {
-      paymentMethod: orderData.paymentMethod,
-      shippingAddress: orderData.shippingAddress,
-    });
+    const validData = validatedInput.data;
 
-    // Get cart items with product details
+    // Get cart items (IDOR protected - uses session userId)
     const cart = await prisma.cart.findUnique({
       where: { userId },
       include: {
@@ -114,8 +106,6 @@ export async function createOrder(orderData: CreateOrderData) {
       },
     });
 
-    console.log("Cart found:", cart ? `Yes, ${cart.items.length} items` : "No");
-    
     if (!cart || cart.items.length === 0) {
       return { error: "Cart is empty" };
     }
@@ -125,23 +115,12 @@ export async function createOrder(orderData: CreateOrderData) {
     const orderItems = [];
 
     for (const cartItem of cart.items) {
-      console.log("Processing cart item:", {
-        productId: cartItem.productId,
-        variantId: cartItem.variantId,
-        productName: cartItem.Product.name,
-        variantsCount: cartItem.Product.ProductVariant.length,
-      });
-
       const variant = cartItem.Product.ProductVariant.find(
         (v) => v.id === cartItem.variantId
       );
       
       if (!variant) {
-        console.error("Variant not found:", {
-          cartItemVariantId: cartItem.variantId,
-          availableVariants: cartItem.Product.ProductVariant.map((v: any) => ({ id: v.id, name: v.name })),
-        });
-        return { error: `Variant not found for product ${cartItem.Product.name}. Please refresh your cart and try again.` };
+        return { error: `Variant not found for product ${cartItem.Product.name}. Please refresh your cart.` };
       }
 
       const basePrice = Number(cartItem.Product.basePrice);
@@ -151,16 +130,7 @@ export async function createOrder(orderData: CreateOrderData) {
       subtotal += itemTotal;
 
       const primaryAsset = variant.ProductAsset[0];
-      // Normalize image URL - convert absolute paths to relative paths from public folder
       const imageUrl = normalizeImageUrl(primaryAsset?.url || null);
-
-      console.log("Order item calculated:", {
-        productName: cartItem.Product.name,
-        variantName: variant.name,
-        quantity: cartItem.quantity,
-        price,
-        itemTotal,
-      });
 
       orderItems.push({
         productId: cartItem.productId,
@@ -175,31 +145,12 @@ export async function createOrder(orderData: CreateOrderData) {
       });
     }
 
-    console.log("Order items prepared:", orderItems.length);
-    console.log("Subtotal:", subtotal);
-
-    const shipping = 0; // Free shipping for now
-    const walletAmount = orderData.walletAmount || 0;
+    const shipping = 0;
+    const walletAmount = validData.walletAmount || 0;
     const total = Math.max(0, subtotal + shipping - walletAmount);
 
-    console.log("Creating order with:", {
-      userId,
-      orderNumber: generateOrderNumber(),
-      itemCount: orderItems.length,
-      subtotal,
-      total,
-    });
-
-    // Check if Order model is available
-    if (!prisma.order || typeof (prisma.order as any).create !== 'function') {
-      console.error("Order model not available. Prisma client needs to be regenerated.");
-      return { 
-        error: "Order system is not ready. Please restart your development server and try again." 
-      };
-    }
-
-    // Determine shipping provider based on country (if not provided)
-    const shippingProvider = orderData.shippingProvider || getShippingProvider(orderData.shippingAddress.country);
+    // Determine shipping provider
+    const shippingProvider = validData.shippingProvider || getShippingProvider(validData.shippingAddress.country);
 
     // Create order
     const order = await prisma.order.create({
@@ -207,29 +158,29 @@ export async function createOrder(orderData: CreateOrderData) {
         userId,
         orderNumber: generateOrderNumber(),
         status: "PENDING",
-        paymentMethod: orderData.paymentMethod,
+        paymentMethod: validData.paymentMethod,
         paymentStatus: "PENDING",
         subtotal,
         shipping,
         total,
         currency: "EUR",
         shippingProvider,
-        shippingName: orderData.shippingAddress.name,
-        shippingPhone: orderData.shippingAddress.phone,
-        shippingAddressLine1: orderData.shippingAddress.addressLine1,
-        shippingAddressLine2: orderData.shippingAddress.addressLine2 || null,
-        shippingCity: orderData.shippingAddress.city,
-        shippingState: orderData.shippingAddress.state || null,
-        shippingPostalCode: orderData.shippingAddress.postalCode,
-        shippingCountry: orderData.shippingAddress.country,
-        billingName: orderData.billingAddress?.name || orderData.shippingAddress.name,
-        billingPhone: orderData.billingAddress?.phone || orderData.shippingAddress.phone,
-        billingAddressLine1: orderData.billingAddress?.addressLine1 || orderData.shippingAddress.addressLine1,
-        billingAddressLine2: orderData.billingAddress?.addressLine2 || orderData.shippingAddress.addressLine2 || null,
-        billingCity: orderData.billingAddress?.city || orderData.shippingAddress.city,
-        billingState: orderData.billingAddress?.state || orderData.shippingAddress.state || null,
-        billingPostalCode: orderData.billingAddress?.postalCode || orderData.shippingAddress.postalCode,
-        billingCountry: orderData.billingAddress?.country || orderData.shippingAddress.country,
+        shippingName: validData.shippingAddress.name,
+        shippingPhone: validData.shippingAddress.phone,
+        shippingAddressLine1: validData.shippingAddress.addressLine1,
+        shippingAddressLine2: validData.shippingAddress.addressLine2 || null,
+        shippingCity: validData.shippingAddress.city,
+        shippingState: validData.shippingAddress.state || null,
+        shippingPostalCode: validData.shippingAddress.postalCode,
+        shippingCountry: validData.shippingAddress.country,
+        billingName: validData.billingAddress?.name || validData.shippingAddress.name,
+        billingPhone: validData.billingAddress?.phone || validData.shippingAddress.phone,
+        billingAddressLine1: validData.billingAddress?.addressLine1 || validData.shippingAddress.addressLine1,
+        billingAddressLine2: validData.billingAddress?.addressLine2 || validData.shippingAddress.addressLine2 || null,
+        billingCity: validData.billingAddress?.city || validData.shippingAddress.city,
+        billingState: validData.billingAddress?.state || validData.shippingAddress.state || null,
+        billingPostalCode: validData.billingAddress?.postalCode || validData.shippingAddress.postalCode,
+        billingCountry: validData.billingAddress?.country || validData.shippingAddress.country,
         items: {
           create: orderItems,
         },
@@ -239,63 +190,49 @@ export async function createOrder(orderData: CreateOrderData) {
       },
     });
 
-    console.log("Order created successfully:", order.id);
-
     // Deduct wallet amount if used
     if (walletAmount > 0) {
-      try {
-        let wallet = await prisma.wallet.findUnique({
-          where: { userId },
+      let wallet = await prisma.wallet.findUnique({
+        where: { userId },
+      });
+
+      if (!wallet) {
+        wallet = await prisma.wallet.create({
+          data: { userId, balance: 0 },
         });
-
-        if (!wallet) {
-          wallet = await prisma.wallet.create({
-            data: { userId, balance: 0 },
-          });
-        }
-
-        const currentBalance = Number(wallet.balance);
-        if (currentBalance < walletAmount) {
-          return { error: "Insufficient wallet balance" };
-        }
-
-        const newBalance = currentBalance - walletAmount;
-
-        await prisma.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: newBalance },
-        });
-
-        await prisma.walletTransaction.create({
-          data: {
-            walletId: wallet.id,
-            amount: walletAmount,
-            type: 'DEBIT',
-            description: `Payment for order ${order.orderNumber}`,
-          },
-        });
-
-        console.log(`Wallet deducted: €${walletAmount.toFixed(2)}`);
-      } catch (error) {
-        console.error("Error deducting wallet amount:", error);
-        return { error: "Failed to process wallet payment" };
       }
+
+      const currentBalance = Number(wallet.balance);
+      if (currentBalance < walletAmount) {
+        return { error: "Insufficient wallet balance" };
+      }
+
+      const newBalance = currentBalance - walletAmount;
+
+      await prisma.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: newBalance },
+      });
+
+      await prisma.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: walletAmount,
+          type: 'DEBIT',
+          description: `Payment for order ${order.orderNumber}`,
+        },
+      });
     }
 
-    // Calculate and add cashback to wallet
+    // Calculate and add cashback
     let totalCashback = 0;
-    const cashbackItems = [];
+    const cashbackItems: { productName: string; amount: number; quantity: number; total: number }[] = [];
 
     for (const cartItem of cart.items) {
       const product = cartItem.Product;
-      const variant = product.ProductVariant.find((v: any) => v.id === cartItem.variantId);
-      
-      if (!variant) continue;
-
       const cashbackAmount = Number(product.cashbackAmount || 0);
       
       if (cashbackAmount > 0) {
-        // Fixed cashback amount per item × quantity
         const itemCashback = cashbackAmount * cartItem.quantity;
         totalCashback += itemCashback;
         cashbackItems.push({
@@ -307,52 +244,39 @@ export async function createOrder(orderData: CreateOrderData) {
       }
     }
 
-    // Add cashback to user's wallet if there's any
     if (totalCashback > 0) {
-      try {
-        // Get or create wallet
-        let wallet = await prisma.wallet.findUnique({
-          where: { userId },
+      let wallet = await prisma.wallet.findUnique({
+        where: { userId },
+      });
+
+      if (!wallet) {
+        wallet = await prisma.wallet.create({
+          data: { userId, balance: 0 },
         });
-
-        if (!wallet) {
-          wallet = await prisma.wallet.create({
-            data: { userId, balance: 0 },
-          });
-        }
-
-        // Update wallet balance
-        const currentBalance = Number(wallet.balance);
-        const newBalance = currentBalance + totalCashback;
-
-        await prisma.wallet.update({
-          where: { id: wallet.id },
-          data: { balance: newBalance },
-        });
-
-        // Create cashback transaction
-        await prisma.walletTransaction.create({
-          data: {
-            walletId: wallet.id,
-            amount: totalCashback,
-            type: 'CREDIT',
-            description: `Cashback from order ${order.orderNumber}${cashbackItems.length > 0 ? ` (${cashbackItems.map((item: any) => `${item.productName}${item.quantity > 1 ? ` x${item.quantity}` : ''}: €${item.total.toFixed(2)}`).join(', ')})` : ''}`,
-          },
-        });
-
-        console.log(`Cashback added: €${totalCashback.toFixed(2)} to wallet`);
-      } catch (error) {
-        console.error("Error adding cashback to wallet:", error);
-        // Don't fail the order if cashback fails, just log it
       }
+
+      const currentBalance = Number(wallet.balance);
+      const newBalance = currentBalance + totalCashback;
+
+      await prisma.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: newBalance },
+      });
+
+      await prisma.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: totalCashback,
+          type: 'CREDIT',
+          description: `Cashback from order ${order.orderNumber}${cashbackItems.length > 0 ? ` (${cashbackItems.map((item) => `${item.productName}${item.quantity > 1 ? ` x${item.quantity}` : ''}: €${item.total.toFixed(2)}`).join(', ')})` : ''}`,
+        },
+      });
     }
 
-    // Clear cart after order creation
+    // Clear cart
     await prisma.cartItem.deleteMany({
       where: { cartId: cart.id },
     });
-
-    console.log("Cart cleared");
 
     return {
       success: true,
@@ -363,45 +287,18 @@ export async function createOrder(orderData: CreateOrderData) {
       },
       cashback: totalCashback > 0 ? totalCashback : undefined,
     };
-  } catch (error: any) {
-    console.error("Error creating order:", error);
-    console.error("Error details:", {
-      message: error?.message,
-      code: error?.code,
-      meta: error?.meta,
-      stack: error?.stack,
-    });
-    
-    // Provide more specific error messages
-    if (error?.code === 'P2002') {
-      return { error: "Order number conflict. Please try again." };
-    }
-    if (error?.code === 'P2003') {
-      return { error: "Invalid product or variant reference. Please refresh your cart and try again." };
-    }
-    
-    return {
-      error: error?.message || "Failed to create order. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Get all orders for the current user
+ * Get all orders for the current user (User action - IDOR protected)
  */
 export async function getUserOrders() {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+    const userId = session.user.id;
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userId = (session.user as any)?.id;
-    if (!userId) {
-      return { error: "User ID not found" };
-    }
-
+    // IDOR Protection: Only fetch orders for current user
     const orders = await prisma.order.findMany({
       where: { userId },
       include: {
@@ -450,29 +347,15 @@ export async function getUserOrders() {
         })),
       })),
     };
-  } catch (error) {
-    console.error("Error fetching user orders:", error);
-    return {
-      error: "Failed to load orders. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Get all orders (admin only)
+ * Get all orders (Admin only)
  */
 export async function getAllOrders() {
-  try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can view all orders" };
-    }
+  return safeAction(async () => {
+    await requireAdmin();
 
     const orders = await prisma.order.findMany({
       include: {
@@ -540,47 +423,38 @@ export async function getAllOrders() {
         })),
       })),
     };
-  } catch (error) {
-    console.error("Error fetching all orders:", error);
-    return {
-      error: "Failed to load orders. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Update order status (admin only)
+ * Update order status (Admin only)
  */
 export async function updateOrderStatus(
   orderId: string,
   status: "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "DELIVERED" | "CANCELLED" | "REFUNDED"
 ) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can update order status" };
+    // Validate input
+    const validatedInput = updateOrderStatusSchema.safeParse({ orderId, status });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     const updateData: any = {
-      status,
+      status: validatedInput.data.status,
     };
 
-    // Set timestamps based on status
-    if (status === "SHIPPED" && !updateData.shippedAt) {
+    if (status === "SHIPPED") {
       updateData.shippedAt = new Date();
     }
-    if (status === "DELIVERED" && !updateData.deliveredAt) {
+    if (status === "DELIVERED") {
       updateData.deliveredAt = new Date();
     }
 
     const order = await prisma.order.update({
-      where: { id: orderId },
+      where: { id: validatedInput.data.orderId },
       data: updateData,
     });
 
@@ -592,36 +466,28 @@ export async function updateOrderStatus(
         status: order.status,
       },
     };
-  } catch (error) {
-    console.error("Error updating order status:", error);
-    return {
-      error: "Failed to update order status. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Update payment status (admin only)
+ * Update payment status (Admin only)
  */
 export async function updatePaymentStatus(
   orderId: string,
   paymentStatus: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED" | "REFUNDED"
 ) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can update payment status" };
+    // Validate input
+    const validatedInput = updatePaymentStatusSchema.safeParse({ orderId, paymentStatus });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     const order = await prisma.order.update({
-      where: { id: orderId },
-      data: { paymentStatus },
+      where: { id: validatedInput.data.orderId },
+      data: { paymentStatus: validatedInput.data.paymentStatus },
     });
 
     return {
@@ -632,44 +498,36 @@ export async function updatePaymentStatus(
         paymentStatus: order.paymentStatus,
       },
     };
-  } catch (error) {
-    console.error("Error updating payment status:", error);
-    return {
-      error: "Failed to update payment status. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Update tracking information (admin only)
+ * Update tracking information (Admin only)
  */
 export async function updateTracking(
   orderId: string,
   trackingNumber?: string,
   trackingMessage?: string
 ) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can update tracking" };
+    // Validate input
+    const validatedInput = updateTrackingSchema.safeParse({ orderId, trackingNumber, trackingMessage });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     const updateData: any = {};
-    if (trackingNumber !== undefined) {
-      updateData.trackingNumber = trackingNumber || null;
+    if (validatedInput.data.trackingNumber !== undefined) {
+      updateData.trackingNumber = validatedInput.data.trackingNumber || null;
     }
-    if (trackingMessage !== undefined) {
-      updateData.trackingMessage = trackingMessage || null;
+    if (validatedInput.data.trackingMessage !== undefined) {
+      updateData.trackingMessage = validatedInput.data.trackingMessage || null;
     }
 
     const order = await prisma.order.update({
-      where: { id: orderId },
+      where: { id: validatedInput.data.orderId },
       data: updateData,
     });
 
@@ -682,33 +540,28 @@ export async function updateTracking(
         trackingMessage: order.trackingMessage,
       },
     };
-  } catch (error) {
-    console.error("Error updating tracking:", error);
-    return {
-      error: "Failed to update tracking. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Get a single order by ID
+ * Get a single order by ID (User action - IDOR protected)
  */
 export async function getOrder(orderId: string) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+    const userId = session.user.id;
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
+    // Validate input
+    const schema = z.string().min(1).max(30);
+    const validatedId = schema.safeParse(orderId);
+    if (!validatedId.success) {
+      return { error: "Invalid order ID" };
     }
 
-    const userId = (session.user as any)?.id;
-    if (!userId) {
-      return { error: "User ID not found" };
-    }
-
+    // IDOR Protection: Only fetch order if it belongs to current user
     const order = await prisma.order.findFirst({
       where: {
-        id: orderId,
+        id: validatedId.data,
         userId,
       },
       include: {
@@ -767,11 +620,5 @@ export async function getOrder(orderId: string) {
         })),
       },
     };
-  } catch (error) {
-    console.error("Error fetching order:", error);
-    return {
-      error: "Failed to load order. Please try again.",
-    };
-  }
+  });
 }
-

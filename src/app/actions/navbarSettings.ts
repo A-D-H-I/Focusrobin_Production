@@ -1,10 +1,17 @@
 "use server";
 
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin, safeAction } from "@/lib/security";
+import { z } from "zod";
+
+// Validation schemas
+const navbarSettingsSchema = z.object({
+  iconColorNotScrolled: z.string().trim().min(1).max(50),
+  logoColorNotScrolled: z.string().trim().min(1).max(50),
+});
 
 /**
- * Get current navbar settings
+ * Get current navbar settings (Public - no auth required)
  */
 export async function getNavbarSettings() {
   try {
@@ -14,7 +21,6 @@ export async function getNavbarSettings() {
     });
 
     if (!settings) {
-      // Return default settings if none exist
       return {
         success: true,
         settings: {
@@ -33,7 +39,6 @@ export async function getNavbarSettings() {
     };
   } catch (error: any) {
     console.error("Error fetching navbar settings:", error);
-    // If table doesn't exist, return defaults
     if (error?.message?.includes("navbarSettings") || error?.code === "P2001") {
       return {
         success: true,
@@ -44,28 +49,25 @@ export async function getNavbarSettings() {
       };
     }
     return {
-      error: error?.message || "Failed to load navbar settings. Please try again.",
+      error: "Failed to load navbar settings. Please try again.",
     };
   }
 }
 
 /**
- * Update navbar settings (admin only)
+ * Update navbar settings (Admin only)
  */
 export async function updateNavbarSettings(
   iconColorNotScrolled: string,
   logoColorNotScrolled: string
 ) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can update navbar settings" };
+    // Validate input
+    const validatedInput = navbarSettingsSchema.safeParse({ iconColorNotScrolled, logoColorNotScrolled });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     // Deactivate all existing settings
@@ -77,8 +79,8 @@ export async function updateNavbarSettings(
     // Create new active settings
     const settings = await prisma.navbarSettings.create({
       data: {
-        iconColorNotScrolled,
-        logoColorNotScrolled,
+        iconColorNotScrolled: validatedInput.data.iconColorNotScrolled,
+        logoColorNotScrolled: validatedInput.data.logoColorNotScrolled,
         isActive: true,
       },
     });
@@ -90,17 +92,5 @@ export async function updateNavbarSettings(
         logoColorNotScrolled: settings.logoColorNotScrolled,
       },
     };
-  } catch (error: any) {
-    console.error("Error updating navbar settings:", error);
-    // Check if it's a Prisma client issue
-    if (error?.message?.includes("navbarSettings") || error?.code === "P2001") {
-      return {
-        error: "Database table not found. Please restart your development server after running the migration.",
-      };
-    }
-    return {
-      error: error?.message || "Failed to update navbar settings. Please try again.",
-    };
-  }
+  });
 }
-

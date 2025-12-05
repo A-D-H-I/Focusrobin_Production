@@ -1,20 +1,18 @@
 "use server";
 
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin, safeAction } from "@/lib/security";
+import { z } from "zod";
 
+// Validation schemas
+const idSchema = z.string().min(1).max(30);
+
+/**
+ * Get all contact submissions (Admin only)
+ */
 export async function getContactSubmissions() {
-  try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can view contact submissions" };
-    }
+  return safeAction(async () => {
+    await requireAdmin();
 
     const submissions = await prisma.contactSubmission.findMany({
       orderBy: {
@@ -37,64 +35,48 @@ export async function getContactSubmissions() {
         updatedAt: submission.updatedAt,
       })),
     };
-  } catch (error) {
-    console.error("Error fetching contact submissions:", error);
-    return {
-      error: "Failed to load contact submissions. Please try again.",
-    };
-  }
+  });
 }
 
+/**
+ * Mark contact submission as read (Admin only)
+ */
 export async function markContactSubmissionAsRead(submissionId: string) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can mark submissions as read" };
+    // Validate input
+    const validatedId = idSchema.safeParse(submissionId);
+    if (!validatedId.success) {
+      return { error: "Invalid submission ID" };
     }
 
     await prisma.contactSubmission.update({
-      where: { id: submissionId },
+      where: { id: validatedId.data },
       data: { read: true },
     });
 
     return { success: true };
-  } catch (error) {
-    console.error("Error marking submission as read:", error);
-    return {
-      error: "Failed to update submission. Please try again.",
-    };
-  }
+  });
 }
 
+/**
+ * Delete contact submission (Admin only)
+ */
 export async function deleteContactSubmission(submissionId: string) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can delete submissions" };
+    // Validate input
+    const validatedId = idSchema.safeParse(submissionId);
+    if (!validatedId.success) {
+      return { error: "Invalid submission ID" };
     }
 
     await prisma.contactSubmission.delete({
-      where: { id: submissionId },
+      where: { id: validatedId.data },
     });
 
     return { success: true };
-  } catch (error) {
-    console.error("Error deleting submission:", error);
-    return {
-      error: "Failed to delete submission. Please try again.",
-    };
-  }
+  });
 }
-

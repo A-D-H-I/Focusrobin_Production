@@ -1,0 +1,154 @@
+/**
+ * CSRF (Cross-Site Request Forgery) Protection
+ * 
+ * Implements Double Submit Cookie pattern for additional CSRF protection
+ * beyond what NextAuth provides for auth routes.
+ */
+
+import 'server-only';
+import { cookies } from "next/headers";
+import { randomBytes, createHmac } from "crypto";
+
+const CSRF_TOKEN_NAME = "__csrf_token";
+const CSRF_SECRET = process.env.CSRF_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret-change-me";
+const CSRF_TOKEN_LENGTH = 32;
+const CSRF_TOKEN_EXPIRY = 60 * 60 * 1000; // 1 hour
+
+interface CSRFToken {
+  token: string;
+  timestamp: number;
+}
+
+/**
+ * Generate a cryptographically secure CSRF token
+ */
+export function generateCSRFToken(): string {
+  const timestamp = Date.now();
+  const randomPart = randomBytes(CSRF_TOKEN_LENGTH).toString("hex");
+  const data = `${randomPart}:${timestamp}`;
+  
+  // Sign the token with HMAC
+  const hmac = createHmac("sha256", CSRF_SECRET);
+  hmac.update(data);
+  const signature = hmac.digest("hex");
+  
+  return `${data}:${signature}`;
+}
+
+/**
+ * Validate a CSRF token
+ */
+export function validateCSRFToken(token: string): boolean {
+  if (!token || typeof token !== "string") {
+    return false;
+  }
+
+  const parts = token.split(":");
+  if (parts.length !== 3) {
+    return false;
+  }
+
+  const [randomPart, timestampStr, providedSignature] = parts;
+  const timestamp = parseInt(timestampStr, 10);
+
+  // Check if token has expired
+  if (isNaN(timestamp) || Date.now() - timestamp > CSRF_TOKEN_EXPIRY) {
+    return false;
+  }
+
+  // Verify signature
+  const data = `${randomPart}:${timestamp}`;
+  const hmac = createHmac("sha256", CSRF_SECRET);
+  hmac.update(data);
+  const expectedSignature = hmac.digest("hex");
+
+  // Constant-time comparison to prevent timing attacks
+  if (providedSignature.length !== expectedSignature.length) {
+    return false;
+  }
+
+  let result = 0;
+  for (let i = 0; i < providedSignature.length; i++) {
+    result |= providedSignature.charCodeAt(i) ^ expectedSignature.charCodeAt(i);
+  }
+
+  return result === 0;
+}
+
+/**
+ * Get or create CSRF token from cookies (for server components)
+ */
+export async function getCSRFToken(): Promise<string> {
+  const cookieStore = await cookies();
+  const existingToken = cookieStore.get(CSRF_TOKEN_NAME)?.value;
+
+  if (existingToken && validateCSRFToken(existingToken)) {
+    return existingToken;
+  }
+
+  // Generate new token
+  const newToken = generateCSRFToken();
+  
+  // Note: Setting cookies in server components requires a response
+  // This token should be set via middleware or API route
+  return newToken;
+}
+
+/**
+ * Verify CSRF token from request
+ * Use this in server actions for sensitive operations
+ */
+export async function verifyCSRFToken(providedToken: string): Promise<boolean> {
+  if (!validateCSRFToken(providedToken)) {
+    console.warn("[Security][CSRF] Invalid CSRF token provided");
+    return false;
+  }
+
+  const cookieStore = await cookies();
+  const cookieToken = cookieStore.get(CSRF_TOKEN_NAME)?.value;
+
+  if (!cookieToken) {
+    console.warn("[Security][CSRF] No CSRF cookie found");
+    return false;
+  }
+
+  // Compare tokens (both should be valid and match)
+  if (providedToken !== cookieToken) {
+    console.warn("[Security][CSRF] CSRF token mismatch");
+    return false;
+  }
+
+  return true;
+}
+
+/**
+ * CSRF protection for server actions
+ * Wraps an action with CSRF verification
+ */
+export function withCSRFProtection<T extends (...args: any[]) => Promise<any>>(
+  action: T
+): (...args: Parameters<T>) => Promise<ReturnType<T> | { error: string }> {
+  return async (...args: Parameters<T>) => {
+    // Extract CSRF token from the first argument if it's FormData
+    const firstArg = args[0];
+    let csrfToken: string | null = null;
+
+    if (firstArg instanceof FormData) {
+      csrfToken = firstArg.get("csrfToken") as string;
+    } else if (typeof firstArg === "object" && firstArg !== null) {
+      csrfToken = (firstArg as any).csrfToken;
+    }
+
+    if (!csrfToken) {
+      return { error: "CSRF token is required" };
+    }
+
+    const isValid = await verifyCSRFToken(csrfToken);
+    if (!isValid) {
+      return { error: "Invalid or expired CSRF token" };
+    }
+
+    return action(...args);
+  };
+}
+

@@ -3,19 +3,43 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { requireAuth, requireAdmin, verifyOwnership, safeAction } from "@/lib/security";
+import { rateLimit, getIdentifier } from "@/lib/rate-limit";
+import { z } from "zod";
+import {
+  addToCartSchema,
+  updateCartItemSchema,
+  addressSchema,
+} from "@/lib/validations";
 
-// Cart Actions
+// ============================================================================
+// CART ACTIONS (User-scoped)
+// ============================================================================
+
 export async function addToCart(productSlugOrId: string, variantSkuOrId: string, quantity: number = 1) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return { error: "You must be logged in to add items to cart" };
-  }
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+    
+    // Rate limit cart operations
+    const rateLimitResult = rateLimit(
+      getIdentifier(null, session.user.id, "cart"),
+      "CART_OPERATIONS"
+    );
+    if (!rateLimitResult.success) {
+      return { error: `Too many requests. Please try again in ${rateLimitResult.retryAfter} seconds.` };
+    }
 
-  try {
-    // Find product by slug (frontend uses slug as id) or by ID
+    // Validate input
+    const validatedInput = addToCartSchema.safeParse({ productSlugOrId, variantSkuOrId, quantity });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
+    }
+
+    const { productSlugOrId: slug, variantSkuOrId: variantId, quantity: qty } = validatedInput.data;
+
+    // Find product by slug or ID
     let product = await prisma.product.findUnique({
-      where: { slug: productSlugOrId },
+      where: { slug },
       include: {
         ProductVariant: {
           select: { id: true, sku: true },
@@ -25,7 +49,7 @@ export async function addToCart(productSlugOrId: string, variantSkuOrId: string,
 
     if (!product) {
       product = await prisma.product.findUnique({
-        where: { id: productSlugOrId },
+        where: { id: slug },
         include: {
           ProductVariant: {
             select: { id: true, sku: true },
@@ -41,8 +65,8 @@ export async function addToCart(productSlugOrId: string, variantSkuOrId: string,
     const actualProductId = product.id;
 
     // Find variant by SKU or ID
-    let variant = product.ProductVariant.find(
-      (v) => v.sku === variantSkuOrId || v.id === variantSkuOrId
+    const variant = product.ProductVariant.find(
+      (v) => v.sku === variantId || v.id === variantId
     );
 
     if (!variant) {
@@ -51,7 +75,7 @@ export async function addToCart(productSlugOrId: string, variantSkuOrId: string,
 
     const actualVariantId = variant.id;
 
-    // Get or create user's cart
+    // Get or create user's cart (IDOR protected - uses session.user.id)
     let cart = await prisma.cart.findUnique({
       where: { userId: session.user.id },
     });
@@ -74,57 +98,50 @@ export async function addToCart(productSlugOrId: string, variantSkuOrId: string,
     });
 
     if (existingItem) {
-      // Update quantity
       await prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + quantity },
+        data: { quantity: Math.min(existingItem.quantity + qty, 99) },
       });
     } else {
-      // Create new cart item
       await prisma.cartItem.create({
         data: {
           cartId: cart.id,
           productId: actualProductId,
           variantId: actualVariantId,
-          quantity,
+          quantity: qty,
         },
       });
     }
 
     revalidatePath("/cart");
     return { success: true };
-  } catch (error) {
-    console.error("Error adding to cart:", error);
-    return { error: "Failed to add item to cart" };
-  }
+  });
 }
 
 export async function removeFromCart(productSlugOrId: string, variantSkuOrId: string) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return { error: "You must be logged in" };
-  }
+  return safeAction(async () => {
+    const { session } = await requireAuth();
 
-  try {
-    // Find product by slug or ID
+    // Validate input
+    const schema = z.object({
+      productSlugOrId: z.string().min(1).max(100),
+      variantSkuOrId: z.string().min(1).max(100),
+    });
+    const validatedInput = schema.safeParse({ productSlugOrId, variantSkuOrId });
+    if (!validatedInput.success) {
+      return { error: "Invalid input" };
+    }
+
+    // Find product
     let product = await prisma.product.findUnique({
-      where: { slug: productSlugOrId },
-      include: {
-        ProductVariant: {
-          select: { id: true, sku: true },
-        },
-      },
+      where: { slug: validatedInput.data.productSlugOrId },
+      include: { ProductVariant: { select: { id: true, sku: true } } },
     });
 
     if (!product) {
       product = await prisma.product.findUnique({
-        where: { id: productSlugOrId },
-        include: {
-          ProductVariant: {
-            select: { id: true, sku: true },
-          },
-        },
+        where: { id: validatedInput.data.productSlugOrId },
+        include: { ProductVariant: { select: { id: true, sku: true } } },
       });
     }
 
@@ -132,20 +149,15 @@ export async function removeFromCart(productSlugOrId: string, variantSkuOrId: st
       return { error: "Product not found" };
     }
 
-    const actualProductId = product.id;
-
-    // Find variant by SKU or ID
-    let variant = product.ProductVariant.find(
-      (v) => v.sku === variantSkuOrId || v.id === variantSkuOrId
+    const variant = product.ProductVariant.find(
+      (v) => v.sku === validatedInput.data.variantSkuOrId || v.id === validatedInput.data.variantSkuOrId
     );
 
     if (!variant) {
       return { error: "Product variant not found" };
     }
 
-    const actualVariantId = variant.id;
-
-    // Verify the cart item belongs to the user's cart
+    // IDOR Protection: Only get cart owned by current user
     const cart = await prisma.cart.findUnique({
       where: { userId: session.user.id },
       include: { items: true },
@@ -156,7 +168,7 @@ export async function removeFromCart(productSlugOrId: string, variantSkuOrId: st
     }
 
     const item = cart.items.find(
-      (i) => i.productId === actualProductId && i.variantId === actualVariantId
+      (i) => i.productId === product!.id && i.variantId === variant.id
     );
     if (!item) {
       return { error: "Item not found in cart" };
@@ -168,42 +180,33 @@ export async function removeFromCart(productSlugOrId: string, variantSkuOrId: st
 
     revalidatePath("/cart");
     return { success: true };
-  } catch (error) {
-    console.error("Error removing from cart:", error);
-    return { error: "Failed to remove item from cart" };
-  }
+  });
 }
 
 export async function updateCartItemQuantity(productSlugOrId: string, variantSkuOrId: string, quantity: number) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return { error: "You must be logged in" };
-  }
+  return safeAction(async () => {
+    const { session } = await requireAuth();
 
-  if (quantity <= 0) {
-    return removeFromCart(productSlugOrId, variantSkuOrId);
-  }
+    // Validate input
+    const validatedInput = updateCartItemSchema.safeParse({ productSlugOrId, variantSkuOrId, quantity });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
+    }
 
-  try {
-    // Find product by slug or ID
+    if (validatedInput.data.quantity <= 0) {
+      return removeFromCart(productSlugOrId, variantSkuOrId);
+    }
+
+    // Find product
     let product = await prisma.product.findUnique({
-      where: { slug: productSlugOrId },
-      include: {
-        ProductVariant: {
-          select: { id: true, sku: true },
-        },
-      },
+      where: { slug: validatedInput.data.productSlugOrId },
+      include: { ProductVariant: { select: { id: true, sku: true } } },
     });
 
     if (!product) {
       product = await prisma.product.findUnique({
-        where: { id: productSlugOrId },
-        include: {
-          ProductVariant: {
-            select: { id: true, sku: true },
-          },
-        },
+        where: { id: validatedInput.data.productSlugOrId },
+        include: { ProductVariant: { select: { id: true, sku: true } } },
       });
     }
 
@@ -211,20 +214,15 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
       return { error: "Product not found" };
     }
 
-    const actualProductId = product.id;
-
-    // Find variant by SKU or ID
-    let variant = product.ProductVariant.find(
-      (v) => v.sku === variantSkuOrId || v.id === variantSkuOrId
+    const variant = product.ProductVariant.find(
+      (v) => v.sku === validatedInput.data.variantSkuOrId || v.id === validatedInput.data.variantSkuOrId
     );
 
     if (!variant) {
       return { error: "Product variant not found" };
     }
 
-    const actualVariantId = variant.id;
-
-    // Verify the cart item belongs to the user's cart
+    // IDOR Protection: Only get cart owned by current user
     const cart = await prisma.cart.findUnique({
       where: { userId: session.user.id },
       include: { items: true },
@@ -235,7 +233,7 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
     }
 
     const item = cart.items.find(
-      (i) => i.productId === actualProductId && i.variantId === actualVariantId
+      (i) => i.productId === product!.id && i.variantId === variant.id
     );
     if (!item) {
       return { error: "Item not found in cart" };
@@ -243,15 +241,12 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
 
     await prisma.cartItem.update({
       where: { id: item.id },
-      data: { quantity },
+      data: { quantity: validatedInput.data.quantity },
     });
 
     revalidatePath("/cart");
     return { success: true };
-  } catch (error) {
-    console.error("Error updating cart item:", error);
-    return { error: "Failed to update cart item" };
-  }
+  });
 }
 
 export async function getCart() {
@@ -261,9 +256,12 @@ export async function getCart() {
     return { items: [] };
   }
 
+  const userId = (session.user as any)?.id;
+
   try {
+    // IDOR Protection: Only fetch cart for current user
     const cart = await prisma.cart.findUnique({
-      where: { userId: session.user.id },
+      where: { userId },
       include: {
         items: {
           include: {
@@ -274,7 +272,7 @@ export async function getCart() {
                 slug: true,
                 basePrice: true,
                 discountPct: true,
-                cashbackAmount: true, // Explicitly include cashbackAmount
+                cashbackAmount: true,
                 gender: true,
                 frameMaterial: true,
                 lensMaterial: true,
@@ -313,10 +311,8 @@ export async function getCart() {
         quantity: item.quantity,
         Product: {
           ...item.Product,
-          // Convert Decimal to number for JSON serialization
           cashbackAmount: item.Product.cashbackAmount ? Number(item.Product.cashbackAmount) : 0,
           basePrice: Number(item.Product.basePrice),
-          // Serialize ProductVariant prices as well
           ProductVariant: item.Product.ProductVariant.map((variant: any) => ({
             ...variant,
             price: variant.price ? Number(variant.price) : null,
@@ -337,9 +333,11 @@ export async function getCartOld() {
     return { items: [], total: 0 };
   }
 
+  const userId = (session.user as any)?.id;
+
   try {
     const cart = await prisma.cart.findUnique({
-      where: { userId: session.user.id },
+      where: { userId },
       include: {
         items: {
           include: {
@@ -362,7 +360,6 @@ export async function getCartOld() {
       return { items: [], total: 0 };
     }
 
-    // Calculate total
     const total = cart.items.reduce((sum, item) => {
       const price = Number(item.Product.basePrice);
       return sum + price * item.quantity;
@@ -378,26 +375,30 @@ export async function getCartOld() {
   }
 }
 
-// Wishlist Actions
-export async function toggleWishlist(productSlugOrId: string) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return { error: "You must be logged in to manage wishlist" };
-  }
+// ============================================================================
+// WISHLIST ACTIONS (User-scoped)
+// ============================================================================
 
-  try {
-    // First, find the product by slug (since frontend uses slug as id)
-    // If it's already a database ID (cuid format), it will fail and we'll try as ID
+export async function toggleWishlist(productSlugOrId: string) {
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+
+    // Validate input
+    const schema = z.string().min(1).max(100);
+    const validatedInput = schema.safeParse(productSlugOrId);
+    if (!validatedInput.success) {
+      return { error: "Invalid product ID" };
+    }
+
+    // Find product
     let product = await prisma.product.findUnique({
-      where: { slug: productSlugOrId },
+      where: { slug: validatedInput.data },
       select: { id: true },
     });
 
-    // If not found by slug, try as ID (in case it's already a database ID)
     if (!product) {
       product = await prisma.product.findUnique({
-        where: { id: productSlugOrId },
+        where: { id: validatedInput.data },
         select: { id: true },
       });
     }
@@ -406,40 +407,33 @@ export async function toggleWishlist(productSlugOrId: string) {
       return { error: "Product not found" };
     }
 
-    const actualProductId = product.id;
-
-    // Check if item is already in wishlist
+    // IDOR Protection: Only check/modify wishlist for current user
     const existing = await prisma.wishlist.findUnique({
       where: {
         userId_productId: {
           userId: session.user.id,
-          productId: actualProductId,
+          productId: product.id,
         },
       },
     });
 
     if (existing) {
-      // Remove from wishlist
       await prisma.wishlist.delete({
         where: { id: existing.id },
       });
       revalidatePath("/wishlist");
       return { success: true, added: false };
     } else {
-      // Add to wishlist
       await prisma.wishlist.create({
         data: {
           userId: session.user.id,
-          productId: actualProductId,
+          productId: product.id,
         },
       });
       revalidatePath("/wishlist");
       return { success: true, added: true };
     }
-  } catch (error) {
-    console.error("Error toggling wishlist:", error);
-    return { error: "Failed to update wishlist" };
-  }
+  });
 }
 
 export async function getWishlist() {
@@ -449,9 +443,12 @@ export async function getWishlist() {
     return { items: [] };
   }
 
+  const userId = (session.user as any)?.id;
+
   try {
+    // IDOR Protection: Only fetch wishlist for current user
     const wishlistItems = await prisma.wishlist.findMany({
-      where: { userId: session.user.id },
+      where: { userId },
       include: {
         Product: {
           include: {
@@ -466,7 +463,6 @@ export async function getWishlist() {
       },
     });
 
-    // Serialize Decimal fields to prevent "Decimal objects are not supported" error
     return {
       items: wishlistItems.map((item) => ({
         ...item,
@@ -494,14 +490,14 @@ export async function isInWishlist(productSlugOrId: string) {
     return false;
   }
 
+  const userId = (session.user as any)?.id;
+
   try {
-    // First, find the product by slug (since frontend uses slug as id)
     let product = await prisma.product.findUnique({
       where: { slug: productSlugOrId },
       select: { id: true },
     });
 
-    // If not found by slug, try as ID
     if (!product) {
       product = await prisma.product.findUnique({
         where: { id: productSlugOrId },
@@ -513,13 +509,12 @@ export async function isInWishlist(productSlugOrId: string) {
       return false;
     }
 
-    const actualProductId = product.id;
-
+    // IDOR Protection: Only check wishlist for current user
     const item = await prisma.wishlist.findUnique({
       where: {
         userId_productId: {
-          userId: session.user.id,
-          productId: actualProductId,
+          userId,
+          productId: product.id,
         },
       },
     });
@@ -531,22 +526,27 @@ export async function isInWishlist(productSlugOrId: string) {
   }
 }
 
-// Wallet Actions
+// ============================================================================
+// WALLET ACTIONS (User-scoped)
+// ============================================================================
+
 export async function getWalletBalance() {
   const session = await auth();
   if (!session?.user?.id) {
     return { balance: 0 };
   }
 
+  const userId = (session.user as any)?.id;
+
   try {
+    // IDOR Protection: Only fetch wallet for current user
     let wallet = await prisma.wallet.findUnique({
-      where: { userId: session.user.id },
+      where: { userId },
     });
 
     if (!wallet) {
-      // Create wallet if it doesn't exist
       wallet = await prisma.wallet.create({
-        data: { userId: session.user.id, balance: 0 },
+        data: { userId, balance: 0 },
       });
     }
 
@@ -563,13 +563,16 @@ export async function getWalletTransactions() {
     return { transactions: [] };
   }
 
+  const userId = (session.user as any)?.id;
+
   try {
+    // IDOR Protection: Only fetch wallet for current user
     const wallet = await prisma.wallet.findUnique({
-      where: { userId: session.user.id },
+      where: { userId },
       include: {
         transactions: {
           orderBy: { createdAt: 'desc' },
-          take: 50, // Last 50 transactions
+          take: 50,
         },
       },
     });
@@ -593,16 +596,22 @@ export async function getWalletTransactions() {
   }
 }
 
-// Address Actions
+// ============================================================================
+// ADDRESS ACTIONS (User-scoped)
+// ============================================================================
+
 export async function getAddresses() {
   const session = await auth();
   if (!session?.user?.id) {
     return { addresses: [] };
   }
 
+  const userId = (session.user as any)?.id;
+
   try {
+    // IDOR Protection: Only fetch addresses for current user
     const addresses = await (prisma as any).address.findMany({
-      where: { userId: session.user.id },
+      where: { userId },
       orderBy: [
         { isDefault: 'desc' },
         { createdAt: 'desc' },
@@ -610,7 +619,7 @@ export async function getAddresses() {
     });
 
     return {
-      addresses: addresses.map((addr) => ({
+      addresses: addresses.map((addr: any) => ({
         id: addr.id,
         fullName: addr.fullName,
         phone: addr.phone,
@@ -642,14 +651,19 @@ export async function addAddress(data: {
   country: string;
   isDefault?: boolean;
 }) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: "You must be logged in to add addresses" };
-  }
+  return safeAction(async () => {
+    const { session } = await requireAuth();
 
-  try {
+    // Validate input with Zod
+    const validatedInput = addressSchema.safeParse(data);
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
+    }
+
+    const validData = validatedInput.data;
+
     // If this is set as default, unset other defaults
-    if (data.isDefault) {
+    if (validData.isDefault) {
       await (prisma as any).address.updateMany({
         where: { userId: session.user.id, isDefault: true },
         data: { isDefault: false },
@@ -659,24 +673,21 @@ export async function addAddress(data: {
     const address = await (prisma as any).address.create({
       data: {
         userId: session.user.id,
-        fullName: data.fullName,
-        phone: data.phone,
-        addressLine1: data.addressLine1,
-        addressLine2: data.addressLine2 || null,
-        city: data.city,
-        state: data.state || null,
-        postalCode: data.postalCode,
-        country: data.country || "Ireland",
-        isDefault: data.isDefault || false,
+        fullName: validData.fullName,
+        phone: validData.phone,
+        addressLine1: validData.addressLine1,
+        addressLine2: validData.addressLine2 || null,
+        city: validData.city,
+        state: validData.state || null,
+        postalCode: validData.postalCode,
+        country: validData.country || "Ireland",
+        isDefault: validData.isDefault || false,
       },
     });
 
     revalidatePath("/account");
     return { success: true, address };
-  } catch (error) {
-    console.error("Error adding address:", error);
-    return { error: "Failed to add address" };
-  }
+  });
 }
 
 export async function updateAddress(
@@ -693,15 +704,27 @@ export async function updateAddress(
     isDefault?: boolean;
   }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: "You must be logged in" };
-  }
+  return safeAction(async () => {
+    const { session } = await requireAuth();
 
-  try {
-    // Verify address belongs to user
+    // Validate address ID
+    const idSchema = z.string().min(1).max(30);
+    const validatedId = idSchema.safeParse(addressId);
+    if (!validatedId.success) {
+      return { error: "Invalid address ID" };
+    }
+
+    // Validate input data
+    const validatedInput = addressSchema.safeParse(data);
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
+    }
+
+    const validData = validatedInput.data;
+
+    // IDOR Protection: Verify address belongs to user
     const existingAddress = await (prisma as any).address.findFirst({
-      where: { id: addressId, userId: session.user.id },
+      where: { id: validatedId.data, userId: session.user.id },
     });
 
     if (!existingAddress) {
@@ -709,46 +732,47 @@ export async function updateAddress(
     }
 
     // If this is set as default, unset other defaults
-    if (data.isDefault) {
+    if (validData.isDefault) {
       await (prisma as any).address.updateMany({
-        where: { userId: session.user.id, isDefault: true, id: { not: addressId } },
+        where: { userId: session.user.id, isDefault: true, id: { not: validatedId.data } },
         data: { isDefault: false },
       });
     }
 
     const address = await (prisma as any).address.update({
-      where: { id: addressId },
+      where: { id: validatedId.data },
       data: {
-        fullName: data.fullName,
-        phone: data.phone,
-        addressLine1: data.addressLine1,
-        addressLine2: data.addressLine2 || null,
-        city: data.city,
-        state: data.state || null,
-        postalCode: data.postalCode,
-        country: data.country || "Ireland",
-        isDefault: data.isDefault !== undefined ? data.isDefault : existingAddress.isDefault,
+        fullName: validData.fullName,
+        phone: validData.phone,
+        addressLine1: validData.addressLine1,
+        addressLine2: validData.addressLine2 || null,
+        city: validData.city,
+        state: validData.state || null,
+        postalCode: validData.postalCode,
+        country: validData.country || "Ireland",
+        isDefault: validData.isDefault !== undefined ? validData.isDefault : existingAddress.isDefault,
       },
     });
 
     revalidatePath("/account");
     return { success: true, address };
-  } catch (error) {
-    console.error("Error updating address:", error);
-    return { error: "Failed to update address" };
-  }
+  });
 }
 
 export async function deleteAddress(addressId: string) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: "You must be logged in" };
-  }
+  return safeAction(async () => {
+    const { session } = await requireAuth();
 
-  try {
-    // Verify address belongs to user
+    // Validate input
+    const schema = z.string().min(1).max(30);
+    const validatedId = schema.safeParse(addressId);
+    if (!validatedId.success) {
+      return { error: "Invalid address ID" };
+    }
+
+    // IDOR Protection: Verify address belongs to user
     const existingAddress = await (prisma as any).address.findFirst({
-      where: { id: addressId, userId: session.user.id },
+      where: { id: validatedId.data, userId: session.user.id },
     });
 
     if (!existingAddress) {
@@ -756,27 +780,28 @@ export async function deleteAddress(addressId: string) {
     }
 
     await (prisma as any).address.delete({
-      where: { id: addressId },
+      where: { id: validatedId.data },
     });
 
     revalidatePath("/account");
     return { success: true };
-  } catch (error) {
-    console.error("Error deleting address:", error);
-    return { error: "Failed to delete address" };
-  }
+  });
 }
 
 export async function setDefaultAddress(addressId: string) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: "You must be logged in" };
-  }
+  return safeAction(async () => {
+    const { session } = await requireAuth();
 
-  try {
-    // Verify address belongs to user
+    // Validate input
+    const schema = z.string().min(1).max(30);
+    const validatedId = schema.safeParse(addressId);
+    if (!validatedId.success) {
+      return { error: "Invalid address ID" };
+    }
+
+    // IDOR Protection: Verify address belongs to user
     const existingAddress = await (prisma as any).address.findFirst({
-      where: { id: addressId, userId: session.user.id },
+      where: { id: validatedId.data, userId: session.user.id },
     });
 
     if (!existingAddress) {
@@ -791,26 +816,23 @@ export async function setDefaultAddress(addressId: string) {
 
     // Set this address as default
     await (prisma as any).address.update({
-      where: { id: addressId },
+      where: { id: validatedId.data },
       data: { isDefault: true },
     });
 
     revalidatePath("/account");
     return { success: true };
-  } catch (error) {
-    console.error("Error setting default address:", error);
-    return { error: "Failed to set default address" };
-  }
+  });
 }
 
-// Account Deletion Action
-export async function deleteMyAccount() {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return { error: "You must be logged in" };
-  }
+// ============================================================================
+// ACCOUNT DELETION (User-scoped)
+// ============================================================================
 
-  try {
+export async function deleteMyAccount() {
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+
     const userId = session.user.id;
 
     // Fetch all user data before deletion
@@ -875,9 +897,9 @@ export async function deleteMyAccount() {
       return { error: "User not found" };
     }
 
-    // Archive all user data to DeletedUser table (REQUIRED - don't delete if archiving fails)
+    // Archive all user data to DeletedUser table
     try {
-      const archiveResult = await (prisma as any).deletedUser.create({
+      await (prisma as any).deletedUser.create({
         data: {
           originalUserId: user.id,
           email: user.email,
@@ -896,51 +918,25 @@ export async function deleteMyAccount() {
           addressesData: JSON.parse(JSON.stringify(user.addresses)),
         },
       });
-      console.log("✅ User data archived successfully:", archiveResult.id);
     } catch (archiveError: any) {
-      console.error("❌ Error archiving user data:", archiveError);
-      console.error("Archive error details:", {
-        code: archiveError?.code,
-        message: archiveError?.message,
-        meta: archiveError?.meta,
-      });
+      console.error("Error archiving user data:", archiveError);
       
-      // If archiving fails, DO NOT delete the user - return error instead
       if (archiveError?.code === 'P2001' || archiveError?.message?.includes('model') || archiveError?.message?.includes('DeletedUser') || archiveError?.message?.includes('does not exist')) {
         return { 
           error: "Database schema not updated. Please run 'npx prisma generate' and restart the server. Account was NOT deleted." 
         };
       }
       
-      // For any other archiving error, don't proceed with deletion
       return { 
         error: `Failed to archive user data: ${archiveError?.message || 'Unknown error'}. Account was NOT deleted to prevent data loss.` 
       };
     }
 
-    // Now delete the actual user (cascade will delete all related records)
+    // Delete the user (cascade will delete related records)
     await prisma.user.delete({
       where: { id: userId },
     });
 
     return { success: true };
-  } catch (error: any) {
-    console.error("Error deleting account:", error);
-    
-    // Provide more specific error messages
-    if (error?.code === 'P2003') {
-      return { error: "Cannot delete account: related data exists. Please contact support." };
-    }
-    if (error?.code === 'P2025') {
-      return { error: "User not found or already deleted." };
-    }
-    if (error?.message?.includes('model') || error?.message?.includes('DeletedUser')) {
-      return { 
-        error: "Database schema not updated. Please run 'npx prisma generate' and restart the server." 
-      };
-    }
-    
-    return { error: `Failed to delete account: ${error?.message || 'Unknown error'}` };
-  }
+  });
 }
-

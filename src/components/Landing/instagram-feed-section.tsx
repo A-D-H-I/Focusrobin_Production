@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useInView } from "react-intersection-observer";
 import { cn } from "@/lib/utils";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import { Instagram } from "lucide-react";
 
 interface InstagramImageData {
   id: string;
@@ -17,7 +18,13 @@ interface InstagramFeedSectionProps {
   instagramImages: InstagramImageData[];
 }
 
-function CommunityImage({ item, index }: { item: InstagramImageData, index: number }) {
+function CommunityImage({ 
+  item, 
+  index
+}: { 
+  item: InstagramImageData; 
+  index: number;
+}) {
   const { ref, inView } = useInView({
     triggerOnce: true,
     threshold: 0.1,
@@ -38,13 +45,14 @@ function CommunityImage({ item, index }: { item: InstagramImageData, index: numb
         rel="noopener noreferrer"
         className="block relative group overflow-hidden w-full h-full"
       >
-        <div className="relative aspect-[3/4] w-full h-full overflow-hidden">
+        <div className="relative w-full h-full overflow-hidden aspect-square rounded-lg">
           <Image
             src={normalizeImageUrl(item.imageUrl)}
             alt={item.alt}
             fill
             className="object-cover transform transition-transform duration-300 group-hover:scale-105"
             unoptimized
+            sizes="(max-width: 768px) 20vw, 20vw"
           />
         </div>
       </a>
@@ -52,59 +60,91 @@ function CommunityImage({ item, index }: { item: InstagramImageData, index: numb
   );
 }
 
-// Helper function to shuffle array
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
 export default function InstagramFeedSection({ instagramImages }: InstagramFeedSectionProps) {
-  const [displayImages, setDisplayImages] = useState<InstagramImageData[]>([]);
-
-  useEffect(() => {
-    if (instagramImages.length === 0) {
-      setDisplayImages([]);
-      return;
-    }
-
-    // Create 8 images by repeating and shuffling (2 rows x 4 columns)
-    const shuffled = shuffleArray(instagramImages);
-    const repeatedImages: InstagramImageData[] = [];
-    for (let i = 0; i < 8; i++) {
-      repeatedImages.push(shuffled[i % shuffled.length]);
-    }
-    const finalShuffled = shuffleArray(repeatedImages);
-    setDisplayImages(finalShuffled);
-  }, [instagramImages]);
-
-  if (displayImages.length === 0) {
+  if (instagramImages.length === 0) {
     return null;
   }
 
   return (
-    <section className="w-full bg-background overflow-hidden"> 
-      <div className="w-full">
-        <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[600px]">
-          {/* Left Panel - Text Section */}
-          <div className="bg-black text-white flex flex-col justify-center px-8 sm:px-12 lg:px-16 py-12 lg:py-0">
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-headline font-bold mb-6 lg:mb-8">
-            The Golden Edit
-            </h2>
-            <p className="text-base sm:text-lg md:text-xl text-white/90 leading-relaxed max-w-md">
-            Catch the light in style. Frame your brightest moments with <span className="font-semibold">#FocusRobin</span> for a chance to be featured.
-            </p>
+    <section className="w-full bg-[#E0F2F1] overflow-hidden py-12 md:py-16"> 
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
+        {/* Header Section - Centered */}
+        <div className="flex flex-col items-center mb-8 md:mb-12">
+          {/* Instagram Camera Logo Outline */}
+          <div className="mb-4">
+            <svg 
+              width="40" 
+              height="40" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              className="text-gray-800"
+            >
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+            </svg>
           </div>
+          
+          {/* Title */}
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2 text-center">
+            Follow Us on Instagram
+          </h2>
+          
+          {/* Tagline */}
+          <p className="text-base md:text-lg text-gray-600 text-center">
+            @focusrobin • Join our community and share your style
+          </p>
+        </div>
 
-          {/* Right Panel - Image Grid */}
-          <div className="grid grid-cols-4 grid-rows-2 w-full h-full">
-            {displayImages.map((item, index) => (
-              <CommunityImage key={`${item.id}-${index}`} item={item} index={index} />
-            ))}
+        {/* Image Grid Section - Horizontally Scrollable */}
+        <div className="w-full mb-8 md:mb-12 -mx-4 md:-mx-6">
+          <div 
+            className="overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory w-full"
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-x',
+            }}
+          >
+            <div className="flex gap-3 md:gap-4 min-w-max pb-2 px-4 md:px-6">
+              {instagramImages.map((item, index) => (
+                <div 
+                  key={item.id} 
+                  className="flex-shrink-0 w-[200px] md:w-[250px] snap-start"
+                >
+                  <CommunityImage item={item} index={index} />
+                </div>
+              ))}
+            </div>
           </div>
+          <style jsx global>{`
+            div[class*="overflow-x-auto"]::-webkit-scrollbar {
+              display: none;
+              width: 0;
+              height: 0;
+            }
+            div[class*="overflow-x-auto"] {
+              -webkit-overflow-scrolling: touch;
+            }
+          `}</style>
+        </div>
+
+        {/* Call to Action Button - Gradient */}
+        <div className="flex justify-center">
+          <a
+            href="https://www.instagram.com/focus.robin"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4 rounded-full hover:from-purple-600 hover:to-pink-600 transition-all duration-300 font-semibold text-base md:text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
+          >
+            <Instagram className="w-5 h-5 md:w-6 md:h-6" />
+            <span>Follow @focusrobin</span>
+          </a>
         </div>
       </div>
     </section>

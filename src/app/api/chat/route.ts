@@ -3,22 +3,50 @@ import { prisma } from "@/lib/prisma";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { streamText, convertToModelMessages } from "ai";
 import { z } from "zod";
+import { rateLimit, getIdentifier, rateLimitHeaders } from "@/lib/rate-limit";
 
 // Using Node.js runtime for Prisma compatibility
 export const runtime = "nodejs";
 
+// Security headers for API responses
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "Cache-Control": "no-store, no-cache, must-revalidate",
+};
+
 export async function POST(req: Request) {
   try {
+    // Get client IP for rate limiting (fallback to anonymous)
+    const forwarded = req.headers.get("x-forwarded-for");
+    const ip = forwarded?.split(",")[0]?.trim() || "anonymous";
+
+    // Check authentication
+    const session = await auth();
+    const userId = (session?.user as any)?.id;
+
+    // Rate limit chat messages
+    const identifier = getIdentifier(ip, userId, "chat-api");
+    const rateLimitResult = rateLimit(identifier, "CHAT_MESSAGE");
+    
+    if (!rateLimitResult.success) {
+      return new Response(
+        JSON.stringify({
+          error: `Too many messages. Please wait ${rateLimitResult.retryAfter} seconds before trying again.`,
+        }),
+        {
+          status: 429,
+          headers: {
+            "Content-Type": "application/json",
+            ...SECURITY_HEADERS,
+            ...rateLimitHeaders(rateLimitResult),
+          },
+        }
+      );
+    }
+
     // Get Google AI API key from environment
     const apiKey = (process.env.GOOGLE_GENERATIVE_AI_API_KEY || "").trim();
-    
-    // Log for debugging (will show in server console)
-    console.log("[Chat API] API Key check:", {
-      exists: !!apiKey,
-      length: apiKey.length,
-      startsWith: apiKey.substring(0, 4),
-      nodeEnv: process.env.NODE_ENV,
-    });
     
     // Check for Google AI API key
     if (!apiKey || apiKey.length < 10) {
@@ -29,16 +57,33 @@ export async function POST(req: Request) {
         }),
         {
           status: 503,
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...SECURITY_HEADERS },
         }
       );
     }
 
-    // Check authentication
-    const session = await auth();
-    const userId = (session?.user as any)?.id;
-
-    const { messages } = await req.json();
+    // Validate request body
+    let messages;
+    try {
+      const body = await req.json();
+      if (!body.messages || !Array.isArray(body.messages)) {
+        throw new Error("Invalid request body");
+      }
+      messages = body.messages;
+      
+      // Limit message history to prevent abuse
+      if (messages.length > 50) {
+        messages = messages.slice(-50);
+      }
+    } catch (parseError) {
+      return new Response(
+        JSON.stringify({ error: "Invalid request body" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...SECURITY_HEADERS },
+        }
+      );
+    }
 
     // System prompt
     const systemPrompt = `You are Robin, the helpful support assistant for Focus Robin Eyewear. You are polite, concise, and helpful. Always check order status using tools before asking the user for details. If they ask for a refund, check eligibility first.`;
@@ -63,6 +108,7 @@ export async function POST(req: Request) {
               return { error: "Please log in to view your orders" };
             }
 
+            // IDOR Protection: Only fetch orders for authenticated user
             const orders = await prisma.order.findMany({
               where: { userId },
               take: 5,
@@ -94,17 +140,21 @@ export async function POST(req: Request) {
         checkOrderStatus: {
           description: "Check the status and tracking information for a specific order",
           inputSchema: z.object({
-            orderId: z.string().describe("The order ID or order number"),
+            orderId: z.string().max(100).describe("The order ID or order number"),
           }),
           execute: async ({ orderId }: { orderId: string }) => {
             if (!userId) {
               return { error: "Please log in to check order status" };
             }
 
+            // Sanitize input
+            const sanitizedOrderId = orderId.trim().slice(0, 100);
+
+            // IDOR Protection: Only fetch orders for authenticated user
             const order = await prisma.order.findFirst({
               where: {
-                OR: [{ orderNumber: orderId }, { id: orderId }],
-                userId,
+                OR: [{ orderNumber: sanitizedOrderId }, { id: sanitizedOrderId }],
+                userId, // IDOR protected
               },
               include: { items: true },
             });
@@ -137,17 +187,21 @@ export async function POST(req: Request) {
         checkRefundEligibility: {
           description: "Check if an order is eligible for a refund (must be DELIVERED and less than 14 days old)",
           inputSchema: z.object({
-            orderId: z.string().describe("The order ID or order number"),
+            orderId: z.string().max(100).describe("The order ID or order number"),
           }),
           execute: async ({ orderId }: { orderId: string }) => {
             if (!userId) {
               return { error: "Please log in to check refund eligibility" };
             }
 
+            // Sanitize input
+            const sanitizedOrderId = orderId.trim().slice(0, 100);
+
+            // IDOR Protection: Only fetch orders for authenticated user
             const order = await prisma.order.findFirst({
               where: {
-                OR: [{ orderNumber: orderId }, { id: orderId }],
-                userId,
+                OR: [{ orderNumber: sanitizedOrderId }, { id: sanitizedOrderId }],
+                userId, // IDOR protected
               },
             });
 
@@ -231,10 +285,10 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Chat API error:", error);
     return new Response(
-      JSON.stringify({ error: error.message || "An error occurred" }),
+      JSON.stringify({ error: "An error occurred processing your request" }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...SECURITY_HEADERS },
       }
     );
   }

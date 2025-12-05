@@ -8,6 +8,10 @@ import {
   translateToUserLanguage,
 } from "@/lib/translate";
 import { revalidatePath } from "next/cache";
+import { requireAdmin, safeAction, optionalAuth } from "@/lib/security";
+import { rateLimit, getIdentifier } from "@/lib/rate-limit";
+import { sendMessageSchema, adminReplySchema, blockUserSchema, updateChatStatusSchema } from "@/lib/validations";
+import { z } from "zod";
 
 /**
  * Check if user is blocked
@@ -16,7 +20,6 @@ async function isUserBlocked(userId?: string, userEmail?: string): Promise<{ blo
   try {
     const now = new Date();
     
-    // Check by userId
     if (userId) {
       const block = await prisma.userBlock.findFirst({
         where: {
@@ -39,7 +42,6 @@ async function isUserBlocked(userId?: string, userEmail?: string): Promise<{ blo
       }
     }
 
-    // Check by email
     if (userEmail) {
       const block = await prisma.userBlock.findFirst({
         where: {
@@ -70,7 +72,7 @@ async function isUserBlocked(userId?: string, userEmail?: string): Promise<{ blo
 }
 
 /**
- * Send a message from user (can be authenticated or anonymous)
+ * Send a message from user (rate limited)
  */
 export async function sendUserMessage(
   message: string,
@@ -79,9 +81,27 @@ export async function sendUserMessage(
   userId?: string,
   chatId?: string
 ) {
-  try {
+  return safeAction(async () => {
+    // Validate input
+    const validatedInput = sendMessageSchema.safeParse({ message, userEmail, userName, userId, chatId });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
+    }
+
+    const { message: msg, userEmail: email, userName: name, userId: uid, chatId: cid } = validatedInput.data;
+
+    // Rate limit chat messages
+    const identifier = uid || email || "anonymous";
+    const rateLimitResult = rateLimit(
+      getIdentifier(null, identifier, "chat"),
+      "CHAT_MESSAGE"
+    );
+    if (!rateLimitResult.success) {
+      return { error: `Too many messages. Please wait ${rateLimitResult.retryAfter} seconds.` };
+    }
+
     // Check if user is blocked
-    const blockCheck = await isUserBlocked(userId, userEmail);
+    const blockCheck = await isUserBlocked(uid, email);
     if (blockCheck.blocked) {
       const untilDate = blockCheck.blockedUntil 
         ? new Date(blockCheck.blockedUntil).toLocaleString()
@@ -92,9 +112,9 @@ export async function sendUserMessage(
     }
 
     // If chatId exists, check if it's force closed
-    if (chatId) {
+    if (cid) {
       const existingChat = await prisma.chat.findUnique({
-        where: { id: chatId },
+        where: { id: cid },
       });
 
       if (existingChat?.forceClosed) {
@@ -105,20 +125,16 @@ export async function sendUserMessage(
     }
 
     // Detect the language of the user's message
-    const detectedLanguage = await detectLanguage(message);
+    const detectedLanguage = await detectLanguage(msg);
 
     // Translate to English for admin
-    const translatedToEnglish = await translateToEnglish(
-      message,
-      detectedLanguage
-    );
+    const translatedToEnglish = await translateToEnglish(msg, detectedLanguage);
 
     let chat;
 
-    if (chatId) {
-      // Check if chat is force closed
+    if (cid) {
       const existingChat = await prisma.chat.findUnique({
-        where: { id: chatId },
+        where: { id: cid },
       });
 
       if (existingChat?.forceClosed) {
@@ -127,21 +143,18 @@ export async function sendUserMessage(
         };
       }
 
-      // Update existing chat (reopen if closed but not force closed)
       chat = await prisma.chat.update({
-        where: { id: chatId },
+        where: { id: cid },
         data: {
           lastMessageAt: new Date(),
           status: existingChat?.status === "CLOSED" ? "OPEN" : existingChat?.status || "OPEN",
         },
       });
     } else {
-      // Create new chat
       const session = await auth();
-      const finalUserId = userId || (session?.user as any)?.id;
-      const finalUserEmail =
-        userEmail || session?.user?.email || "anonymous@example.com";
-      const finalUserName = userName || session?.user?.name || "Anonymous User";
+      const finalUserId = uid || (session?.user as any)?.id;
+      const finalUserEmail = email || session?.user?.email || "anonymous@example.com";
+      const finalUserName = name || session?.user?.name || "Anonymous User";
 
       chat = await prisma.chat.create({
         data: {
@@ -159,7 +172,7 @@ export async function sendUserMessage(
       data: {
         chatId: chat.id,
         sender: "USER",
-        originalText: message,
+        originalText: msg,
         translatedText: translatedToEnglish,
         language: detectedLanguage,
       },
@@ -173,29 +186,21 @@ export async function sendUserMessage(
       success: true,
       chatId: chat.id,
     };
-  } catch (error) {
-    console.error("Error sending user message:", error);
-    return {
-      error: "Failed to send message. Please try again.",
-    };
-  }
+  });
 }
 
 /**
  * Get all chats for the current user
  */
 export async function getUserChats() {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    const authResult = await optionalAuth();
     
-    // For logged-in users, get chats by userId
-    // For anonymous users, we'll need to use email or other identifier
-    if (session?.user) {
-      const userId = (session.user as any)?.id;
-      const userEmail = session.user.email;
+    if (authResult?.session?.user) {
+      const userId = authResult.session.user.id;
+      const userEmail = authResult.session.user.email;
 
       if (userId) {
-        // Get chats by userId
         const chats = await prisma.chat.findMany({
           where: {
             userId: userId,
@@ -203,7 +208,7 @@ export async function getUserChats() {
           include: {
             messages: {
               orderBy: { createdAt: "desc" },
-              take: 1, // Get last message for preview
+              take: 1,
             },
           },
           orderBy: {
@@ -230,28 +235,28 @@ export async function getUserChats() {
       }
     }
 
-    // For anonymous users, try to get chats by email if provided
-    // This would require passing email as parameter
     return {
       success: true,
       chats: [],
     };
-  } catch (error) {
-    console.error("Error getting user chats:", error);
-    return {
-      error: "Failed to load chats. Please try again.",
-    };
-  }
+  });
 }
 
 /**
  * Get user chats by email (for anonymous users)
  */
 export async function getUserChatsByEmail(email: string) {
-  try {
+  return safeAction(async () => {
+    // Validate email
+    const schema = z.string().email().max(255);
+    const validatedEmail = schema.safeParse(email);
+    if (!validatedEmail.success) {
+      return { error: "Invalid email" };
+    }
+
     const chats = await prisma.chat.findMany({
       where: {
-        userEmail: email,
+        userEmail: validatedEmail.data,
       },
       include: {
         messages: {
@@ -280,21 +285,23 @@ export async function getUserChatsByEmail(email: string) {
           : null,
       })),
     };
-  } catch (error) {
-    console.error("Error getting user chats by email:", error);
-    return {
-      error: "Failed to load chats. Please try again.",
-    };
-  }
+  });
 }
 
 /**
  * Get messages for a chat (user view)
  */
 export async function getUserChatMessages(chatId: string) {
-  try {
+  return safeAction(async () => {
+    // Validate input
+    const schema = z.string().min(1).max(30);
+    const validatedId = schema.safeParse(chatId);
+    if (!validatedId.success) {
+      return { error: "Invalid chat ID" };
+    }
+
     const chat = await prisma.chat.findUnique({
-      where: { id: chatId },
+      where: { id: validatedId.data },
       include: {
         messages: {
           orderBy: { createdAt: "asc" },
@@ -306,7 +313,6 @@ export async function getUserChatMessages(chatId: string) {
       return { error: "Chat not found" };
     }
 
-    // For user view, show original text for user messages and translated text for admin messages
     const messages = await Promise.all(
       chat.messages.map(async (msg) => ({
         id: msg.id,
@@ -329,35 +335,21 @@ export async function getUserChatMessages(chatId: string) {
       status: chat.status,
       forceClosed: chat.forceClosed,
     };
-  } catch (error) {
-    console.error("Error getting user chat messages:", error);
-    return {
-      error: "Failed to load messages. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Get all chats for admin
+ * Get all chats for admin (Admin only)
  */
 export async function getAdminChats() {
-  try {
-    const session = await auth();
-
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can view chats" };
-    }
+  return safeAction(async () => {
+    await requireAdmin();
 
     const chats = await prisma.chat.findMany({
       include: {
         messages: {
           orderBy: { createdAt: "desc" },
-          take: 1, // Get last message for preview
+          take: 1,
         },
         User: {
           select: {
@@ -383,39 +375,32 @@ export async function getAdminChats() {
         createdAt: chat.createdAt,
         lastMessage: chat.messages[0]
           ? {
-              text: chat.messages[0].translatedText, // Show English translation for admin
+              text: chat.messages[0].translatedText,
               sender: chat.messages[0].sender,
               timestamp: chat.messages[0].createdAt,
             }
           : null,
       })),
     };
-  } catch (error) {
-    console.error("Error getting admin chats:", error);
-    return {
-      error: "Failed to load chats. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Get messages for a specific chat (admin view)
+ * Get messages for a specific chat (Admin only)
  */
 export async function getAdminChatMessages(chatId: string) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can view chat messages" };
+    // Validate input
+    const schema = z.string().min(1).max(30);
+    const validatedId = schema.safeParse(chatId);
+    if (!validatedId.success) {
+      return { error: "Invalid chat ID" };
     }
 
     const chat = await prisma.chat.findUnique({
-      where: { id: chatId },
+      where: { id: validatedId.data },
       include: {
         messages: {
           orderBy: { createdAt: "asc" },
@@ -434,11 +419,10 @@ export async function getAdminChatMessages(chatId: string) {
       return { error: "Chat not found" };
     }
 
-    // For admin view, show translated text (English) for all messages
     const messages = chat.messages.map((msg) => ({
       id: msg.id,
-      text: msg.translatedText, // Always show English translation
-      originalText: msg.originalText, // Also include original for reference
+      text: msg.translatedText,
+      originalText: msg.originalText,
       sender: msg.sender.toLowerCase() as "user" | "admin",
       timestamp: msg.createdAt,
       language: msg.language,
@@ -457,33 +441,24 @@ export async function getAdminChatMessages(chatId: string) {
         forceClosedAt: chat.forceClosedAt,
       },
     };
-  } catch (error) {
-    console.error("Error getting admin chat messages:", error);
-    return {
-      error: "Failed to load messages. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Admin sends a reply to a chat
+ * Admin sends a reply to a chat (Admin only)
  */
 export async function sendAdminReply(chatId: string, message: string) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    const { session } = await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
+    // Validate input
+    const validatedInput = adminReplySchema.safeParse({ chatId, message });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can send replies" };
-    }
-
-    // Get chat to find user's language
     const chat = await prisma.chat.findUnique({
-      where: { id: chatId },
+      where: { id: validatedInput.data.chatId },
     });
 
     if (!chat) {
@@ -494,26 +469,23 @@ export async function sendAdminReply(chatId: string, message: string) {
       return { error: "Cannot send reply to a force-closed chat" };
     }
 
-    // Admin message is in English, translate to user's language
     const translatedToUserLanguage = await translateToUserLanguage(
-      message,
+      validatedInput.data.message,
       chat.userLanguage
     );
 
-    // Create message
     await prisma.chatMessage.create({
       data: {
         chatId: chat.id,
         sender: "ADMIN",
-        originalText: message, // Admin's English message
-        translatedText: translatedToUserLanguage, // Translated to user's language
-        language: "en", // Admin always writes in English
+        originalText: validatedInput.data.message,
+        translatedText: translatedToUserLanguage,
+        language: "en",
       },
     });
 
-    // Update chat
     await prisma.chat.update({
-      where: { id: chatId },
+      where: { id: validatedInput.data.chatId },
       data: {
         lastMessageAt: new Date(),
         status: "OPEN",
@@ -521,64 +493,51 @@ export async function sendAdminReply(chatId: string, message: string) {
     });
 
     revalidatePath("/admin/chats");
-    revalidatePath(`/admin/chats/${chatId}`);
+    revalidatePath(`/admin/chats/${validatedInput.data.chatId}`);
 
     return {
       success: true,
     };
-  } catch (error) {
-    console.error("Error sending admin reply:", error);
-    return {
-      error: "Failed to send reply. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Update chat status (e.g., close chat)
+ * Update chat status (Admin only)
  */
 export async function updateChatStatus(chatId: string, status: "OPEN" | "CLOSED" | "PENDING" | "FORCE_CLOSED") {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    const { session } = await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
+    // Validate input
+    const validatedInput = updateChatStatusSchema.safeParse({ chatId, status });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can update chat status" };
-    }
-
-    const adminId = (session.user as any)?.id;
+    const adminId = session.user.id;
 
     await prisma.chat.update({
-      where: { id: chatId },
+      where: { id: validatedInput.data.chatId },
       data: {
-        status,
-        forceClosed: status === "FORCE_CLOSED",
-        forceClosedAt: status === "FORCE_CLOSED" ? new Date() : null,
-        forceClosedBy: status === "FORCE_CLOSED" ? adminId : null,
+        status: validatedInput.data.status,
+        forceClosed: validatedInput.data.status === "FORCE_CLOSED",
+        forceClosedAt: validatedInput.data.status === "FORCE_CLOSED" ? new Date() : null,
+        forceClosedBy: validatedInput.data.status === "FORCE_CLOSED" ? adminId : null,
       },
     });
 
     revalidatePath("/admin/chats");
-    revalidatePath(`/admin/chats/${chatId}`);
+    revalidatePath(`/admin/chats/${validatedInput.data.chatId}`);
     revalidatePath("/chat");
 
     return {
       success: true,
     };
-  } catch (error) {
-    console.error("Error updating chat status:", error);
-    return {
-      error: "Failed to update chat status. Please try again.",
-    };
-  }
+  });
 }
 
 /**
- * Block a user from sending messages for a certain period
+ * Block a user from sending messages (Admin only)
  */
 export async function blockUser(
   userId?: string,
@@ -586,44 +545,29 @@ export async function blockUser(
   blockDurationHours: number = 24,
   reason?: string
 ) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    const { session } = await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
+    // Validate input
+    const validatedInput = blockUserSchema.safeParse({ userId, userEmail, blockDurationHours, reason });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can block users" };
-    }
-
-    if (!userId && !userEmail) {
-      return { error: "Either userId or userEmail must be provided" };
-    }
-
-    const adminId = (session.user as any)?.id;
-    
-    // Validate adminId exists
-    if (!adminId) {
-      return { error: "Admin ID not found" };
-    }
-
+    const adminId = session.user.id;
     const blockedUntil = new Date();
-    blockedUntil.setHours(blockedUntil.getHours() + blockDurationHours);
+    blockedUntil.setHours(blockedUntil.getHours() + validatedInput.data.blockDurationHours);
 
-    // Build where clause for finding existing blocks
     const whereClause: any = {
       blockedUntil: { gt: new Date() },
     };
 
-    if (userId) {
-      whereClause.userId = userId;
-    } else if (userEmail) {
-      whereClause.userEmail = userEmail;
+    if (validatedInput.data.userId) {
+      whereClause.userId = validatedInput.data.userId;
+    } else if (validatedInput.data.userEmail) {
+      whereClause.userEmail = validatedInput.data.userEmail;
     }
 
-    // Check if user is already blocked
     const existingBlock = await prisma.userBlock.findFirst({
       where: whereClause,
       orderBy: {
@@ -632,28 +576,26 @@ export async function blockUser(
     });
 
     if (existingBlock) {
-      // Update existing block
       await prisma.userBlock.update({
         where: { id: existingBlock.id },
         data: {
           blockedUntil,
-          reason: reason || existingBlock.reason,
+          reason: validatedInput.data.reason || existingBlock.reason,
           blockedBy: adminId,
         },
       });
     } else {
-      // Create new block
       const blockData: any = {
         blockedUntil,
-        reason: reason || null,
+        reason: validatedInput.data.reason || null,
         blockedBy: adminId,
       };
 
-      if (userId) {
-        blockData.userId = userId;
+      if (validatedInput.data.userId) {
+        blockData.userId = validatedInput.data.userId;
       }
-      if (userEmail) {
-        blockData.userEmail = userEmail;
+      if (validatedInput.data.userEmail) {
+        blockData.userEmail = validatedInput.data.userEmail;
       }
 
       await prisma.userBlock.create({
@@ -668,34 +610,18 @@ export async function blockUser(
       success: true,
       blockedUntil,
     };
-  } catch (error: any) {
-    console.error("Error blocking user:", error);
-    console.error("Error details:", {
-      code: error?.code,
-      message: error?.message,
-      meta: error?.meta,
-    });
-    const errorMessage = error?.message || "Failed to block user. Please try again.";
-    return {
-      error: errorMessage,
-    };
-  }
+  });
 }
 
 /**
- * Unblock a user
+ * Unblock a user (Admin only)
  */
 export async function unblockUser(userId?: string, userEmail?: string) {
-  try {
-    const session = await auth();
+  return safeAction(async () => {
+    await requireAdmin();
 
-    if (!session?.user) {
-      return { error: "You must be logged in" };
-    }
-
-    const userRole = (session.user as any)?.role;
-    if (userRole !== "ADMIN") {
-      return { error: "Only admins can unblock users" };
+    if (!userId && !userEmail) {
+      return { error: "Either userId or userEmail must be provided" };
     }
 
     const now = new Date();
@@ -707,7 +633,7 @@ export async function unblockUser(userId?: string, userEmail?: string) {
           blockedUntil: { gt: now },
         },
         data: {
-          blockedUntil: now, // Set to now to expire immediately
+          blockedUntil: now,
         },
       });
     }
@@ -729,12 +655,7 @@ export async function unblockUser(userId?: string, userEmail?: string) {
     return {
       success: true,
     };
-  } catch (error) {
-    console.error("Error unblocking user:", error);
-    return {
-      error: "Failed to unblock user. Please try again.",
-    };
-  }
+  });
 }
 
 /**
@@ -755,4 +676,3 @@ export async function checkUserBlockStatus(userId?: string, userEmail?: string) 
     };
   }
 }
-

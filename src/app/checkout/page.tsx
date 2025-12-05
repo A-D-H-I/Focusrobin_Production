@@ -2,19 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import {
   Select,
   SelectContent,
@@ -23,47 +16,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  CreditCard,
-  Smartphone,
-  Building2,
   Wallet,
-  ChevronRight,
-  MapPin,
+  Info,
+  Lock,
 } from "lucide-react";
-import { FaCcVisa, FaCcMastercard, FaCcAmex, FaPaypal, FaApplePay, FaGooglePay } from 'react-icons/fa';
-import { SiRevolut } from 'react-icons/si';
 import { useCart } from "@/context/CartContext";
 import { useCurrency } from "@/context/CurrencyContext";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { createOrder } from "@/app/actions/orders";
+import { createCheckoutSession } from "@/app/actions/checkout";
 import { getAddresses, addAddress, getWalletBalance, getCart } from "@/app/actions/user";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getShippingProvider, getShippingProviderDisplayName } from "@/lib/shipping-provider";
-
-type PaymentMethod = 
-  | "card" 
-  | "apple-pay" 
-  | "google-pay" 
-  | "revolut-pay" 
-  | "paypal" 
-  | "bank-transfer";
+import { usePrice } from "@/hooks/usePrice";
 
 export default function CheckoutPage() {
   const { data: session } = useSession();
-  const router = useRouter();
-  const { cartItems, getCartTotal, clearCart } = useCart();
+  const { cartItems, getCartTotal } = useCart();
   const { currency } = useCurrency();
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethod | null>(null);
+  const { formatPrice, rate, parseEurPrice } = usePrice();
   const [isProcessing, setIsProcessing] = useState(false);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [useSavedAddress, setUseSavedAddress] = useState(true);
   const [saveAddress, setSaveAddress] = useState(false); // Option to save new address
   const [isNewAddress, setIsNewAddress] = useState(false);
-  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [walletBalance, setWalletBalance] = useState<number>(0); // Stored in EUR
   const [useWallet, setUseWallet] = useState(false);
-  const [walletAmount, setWalletAmount] = useState<number>(0);
+  const [walletAmount, setWalletAmount] = useState<number>(0); // Amount to use in EUR
   const [totalCashback, setTotalCashback] = useState<number>(0);
   const [shippingForm, setShippingForm] = useState({
     name: "",
@@ -253,12 +232,7 @@ export default function CheckoutPage() {
     return null;
   };
 
-  const handleCompleteOrder = async () => {
-    if (!selectedPaymentMethod) {
-      alert("Please select a payment method");
-      return;
-    }
-
+  const handleProceedToPayment = async () => {
     const validationError = validateShippingForm();
     if (validationError) {
       alert(validationError);
@@ -292,43 +266,111 @@ export default function CheckoutPage() {
         await loadAddresses();
       }
 
-      // Create the order
-      const result = await createOrder({
-        paymentMethod: useWallet && walletDiscount >= total ? "wallet" : selectedPaymentMethod,
-        walletAmount: useWallet ? walletDiscount : 0,
-        shippingProvider: shippingProvider, // Auto-determined based on country
-        shippingAddress: {
-          name: shippingForm.name,
-          phone: shippingForm.phone,
-          addressLine1: shippingForm.addressLine1,
-          addressLine2: shippingForm.addressLine2 || undefined,
-          city: shippingForm.city,
-          state: shippingForm.state || undefined,
-          postalCode: shippingForm.postalCode,
-          country: shippingForm.country,
-        },
-      });
+      // Create Stripe Checkout Session
+      let result;
+      try {
+        result = await createCheckoutSession({
+          shippingAddress: {
+            name: shippingForm.name,
+            phone: shippingForm.phone,
+            addressLine1: shippingForm.addressLine1,
+            addressLine2: shippingForm.addressLine2 || undefined,
+            city: shippingForm.city,
+            state: shippingForm.state || undefined,
+            postalCode: shippingForm.postalCode,
+            country: shippingForm.country,
+          },
+          walletAmount: useWallet ? walletDiscount : 0,
+        });
+      } catch (apiError: any) {
+        console.error("Error calling createCheckoutSession:", apiError);
+        alert("Failed to create checkout session. Please try again.");
+        setIsProcessing(false);
+        return;
+      }
 
-      if (result.success && result.order) {
-        // Clear cart after successful order
-        clearCart();
-        // Redirect to order confirmation
-        router.push(`/account?order=${result.order.orderNumber}&tab=orders`);
+      console.log("Checkout session result:", result);
+      console.log("Result type:", typeof result);
+      console.log("Result is null?", result === null);
+      console.log("Result is undefined?", result === undefined);
+      if (result) {
+        console.log("Result keys:", Object.keys(result));
+        console.log("Result.success:", (result as any).success);
+        console.log("Result.url:", (result as any).url);
+        console.log("Result.error:", (result as any).error);
+      }
+
+      // Check for error first
+      if (result && 'error' in result) {
+        console.error("Checkout session error:", result.error);
+        alert(result.error || "Failed to create checkout session. Please try again.");
+        setIsProcessing(false);
+        return;
+      }
+
+      // Check if result has success and url
+      if (result && 'success' in result && result.success && 'url' in result && result.url) {
+        // Validate URL before redirecting
+        let checkoutUrl: string;
+        
+        if (typeof result.url === 'string') {
+          checkoutUrl = result.url.trim();
+        } else {
+          console.error("URL is not a string:", result.url, typeof result.url);
+          alert("Invalid checkout URL format. Please try again.");
+          setIsProcessing(false);
+          return;
+        }
+        
+        if (!checkoutUrl || checkoutUrl.length === 0 || checkoutUrl === 'null' || checkoutUrl === 'undefined') {
+          console.error("Invalid URL from Stripe (empty/null):", result.url);
+          alert("Invalid checkout URL received. Please try again or contact support.");
+          setIsProcessing(false);
+          return;
+        }
+
+        // Validate URL format
+        try {
+          const url = new URL(checkoutUrl);
+          if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+            throw new Error('Invalid URL protocol: ' + url.protocol);
+          }
+          
+          // Ensure it's a Stripe checkout URL
+          if (!checkoutUrl.includes('checkout.stripe.com')) {
+            console.warn("URL doesn't appear to be a Stripe checkout URL:", checkoutUrl);
+          }
+          
+          // Redirect to Stripe Checkout using assign for better error handling
+          console.log("Redirecting to Stripe Checkout:", checkoutUrl);
+          try {
+            window.location.assign(checkoutUrl);
+          } catch (redirectError: any) {
+            console.error("Failed to redirect:", redirectError);
+            // Fallback to href
+            window.location.href = checkoutUrl;
+          }
+        } catch (urlError: any) {
+          console.error("Invalid URL from Stripe:", checkoutUrl, urlError);
+          alert(`Invalid checkout URL: ${urlError.message || 'Invalid format'}. Please try again or contact support.`);
+          setIsProcessing(false);
+        }
       } else {
-        alert(result.error || "Failed to create order. Please try again.");
+        console.error("Missing URL in response:", result);
+        console.error("Response structure:", JSON.stringify(result, null, 2));
+        alert("Failed to create checkout session. No valid URL received. Please try again.");
+        setIsProcessing(false);
       }
     } catch (error) {
-      console.error("Error creating order:", error);
+      console.error("Error creating checkout session:", error);
       alert("An error occurred. Please try again.");
-    } finally {
       setIsProcessing(false);
     }
   };
 
-  const formatPrice = (price: number) => {
-    const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£';
-    return `${symbol}${price.toFixed(2)}`;
-  };
+  // formatPrice is now provided by usePrice hook with full currency conversion
+  // Wallet balance and amounts are stored/processed in EUR
+  const isNonEurCurrency = currency !== 'EUR';
 
   // Check if user is logged in
   if (!session?.user) {
@@ -561,226 +603,34 @@ export default function CheckoutPage() {
                   </Card>
                 </div>
 
-                {/* Express Payment Options */}
+                {/* Payment Section */}
                 <div>
                   <h2 className="text-xl font-headline font-semibold text-brand-blue mb-4">
-                    Express Checkout
+                    Payment
                   </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <button
-                      onClick={() => setSelectedPaymentMethod("apple-pay")}
-                      className={cn(
-                        "p-4 border-2 rounded-lg transition-all text-left",
-                        selectedPaymentMethod === "apple-pay"
-                          ? "border-brand-teal bg-brand-teal/5"
-                          : "border-gray-200 hover:border-brand-teal/50"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-black rounded flex items-center justify-center">
-                          <FaApplePay className="h-8 w-8 text-white" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-brand-blue">Apple Pay</p>
-                          <p className="text-xs text-muted-foreground">Quick & Secure</p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => setSelectedPaymentMethod("google-pay")}
-                      className={cn(
-                        "p-4 border-2 rounded-lg transition-all text-left",
-                        selectedPaymentMethod === "google-pay"
-                          ? "border-brand-teal bg-brand-teal/5"
-                          : "border-gray-200 hover:border-brand-teal/50"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-green-500 rounded flex items-center justify-center">
-                          <FaGooglePay className="h-8 w-8 text-white" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-brand-blue">Google Pay</p>
-                          <p className="text-xs text-muted-foreground">Quick & Secure</p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => setSelectedPaymentMethod("revolut-pay")}
-                      className={cn(
-                        "p-4 border-2 rounded-lg transition-all text-left",
-                        selectedPaymentMethod === "revolut-pay"
-                          ? "border-brand-teal bg-brand-teal/5"
-                          : "border-gray-200 hover:border-brand-teal/50"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-[#0075EB] rounded flex items-center justify-center">
-                          <SiRevolut className="h-8 w-8 text-white" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-brand-blue">Revolut Pay</p>
-                          <p className="text-xs text-muted-foreground">Quick & Secure</p>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Payment Method Selection */}
-                <div>
-                  <h2 className="text-xl font-headline font-semibold text-brand-blue mb-4">
-                    Payment Method
-                  </h2>
-
-                  {/* Credit/Debit Card */}
-                  <Card
-                    className={cn(
-                      "mb-4 cursor-pointer transition-all",
-                      selectedPaymentMethod === "card"
-                        ? "border-2 border-brand-teal bg-brand-teal/5"
-                        : "border border-gray-200 hover:border-brand-teal/50"
-                    )}
-                    onClick={() => setSelectedPaymentMethod("card")}
-                  >
+                  <Card className="border border-gray-200">
                     <CardContent className="p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-3">
-                          <CreditCard className="h-6 w-6 text-brand-teal" />
+                      <div className="flex items-center gap-3 mb-4">
+                        <Lock className="h-6 w-6 text-brand-teal" />
+                        <div>
                           <h3 className="font-headline font-semibold text-brand-blue">
-                            Credit/Debit Card
+                            Secure Payment
                           </h3>
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="px-2 py-1 bg-white border border-gray-200 rounded flex items-center justify-center">
-                            <FaCcVisa className="h-6 w-6 text-brand-blue" />
-                          </div>
-                          <div className="px-2 py-1 bg-white border border-gray-200 rounded flex items-center justify-center">
-                            <FaCcMastercard className="h-6 w-6 text-brand-blue" />
-                          </div>
-                          <div className="px-2 py-1 bg-white border border-gray-200 rounded flex items-center justify-center">
-                            <FaCcAmex className="h-6 w-6 text-brand-blue" />
-                          </div>
-                        </div>
-                      </div>
-                      {selectedPaymentMethod === "card" && (
-                        <div className="space-y-4 pt-4 border-t border-gray-200">
-                          <div>
-                            <Label htmlFor="cardNumber" className="text-brand-blue font-semibold mb-2 block">
-                              Card Number
-                            </Label>
-                            <Input
-                              id="cardNumber"
-                              placeholder="1234 5678 9012 3456"
-                              className="bg-white border-gray-200 focus:border-brand-teal focus:ring-brand-teal"
-                            />
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="expiry" className="text-brand-blue font-semibold mb-2 block">
-                                Expiry Date
-                              </Label>
-                              <Input
-                                id="expiry"
-                                placeholder="MM/YY"
-                                className="bg-white border-gray-200 focus:border-brand-teal focus:ring-brand-teal"
-                              />
-                            </div>
-                            <div>
-                              <Label htmlFor="cvv" className="text-brand-blue font-semibold mb-2 block">
-                                CVV
-                              </Label>
-                              <Input
-                                id="cvv"
-                                placeholder="123"
-                                className="bg-white border-gray-200 focus:border-brand-teal focus:ring-brand-teal"
-                              />
-                            </div>
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            🔒 Secured by Stripe. Your payment information is encrypted.
+                          <p className="text-sm text-muted-foreground">
+                            Your payment will be processed securely by Stripe
                           </p>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-
-                  {/* PayPal */}
-                  <Card
-                    className={cn(
-                      "mb-4 cursor-pointer transition-all",
-                      selectedPaymentMethod === "paypal"
-                        ? "border-2 border-brand-teal bg-brand-teal/5"
-                        : "border border-gray-200 hover:border-brand-teal/50"
-                    )}
-                    onClick={() => setSelectedPaymentMethod("paypal")}
-                  >
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-[#FFC439] rounded flex items-center justify-center">
-                            <FaPaypal className="h-8 w-8 text-[#003087]" />
-                          </div>
-                          <div>
-                            <h3 className="font-headline font-semibold text-brand-blue">
-                              PayPal
-                            </h3>
-                            <p className="text-xs text-muted-foreground">
-                              Pay with your PayPal account
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          🔒 Secured by Stripe
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          We accept all major credit and debit cards. Your payment information is encrypted and secure.
+                        </p>
                       </div>
                     </CardContent>
                   </Card>
-
-                  {/* Bank Transfer / Local Methods */}
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="bank-methods" className="border border-gray-200 rounded-lg">
-                      <AccordionTrigger
-                        className={cn(
-                          "px-6 py-4 hover:no-underline",
-                          selectedPaymentMethod === "bank-transfer" && "text-brand-teal"
-                        )}
-                        onClick={() => setSelectedPaymentMethod("bank-transfer")}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Building2 className="h-6 w-6 text-brand-teal" />
-                          <h3 className="font-headline font-semibold text-brand-blue">
-                            Bank Transfer / Local Methods
-                          </h3>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-6 pb-6">
-                        <div className="space-y-3">
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Select your preferred payment method:
-                          </p>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            <button className="p-3 border border-gray-200 rounded-lg hover:border-brand-teal/50 transition-colors text-center">
-                              <div className="text-xs font-semibold text-brand-blue mb-1">SEPA</div>
-                              <div className="text-xs text-muted-foreground">Bank Transfer</div>
-                            </button>
-                            <button className="p-3 border border-gray-200 rounded-lg hover:border-brand-teal/50 transition-colors text-center">
-                              <div className="text-xs font-semibold text-brand-blue mb-1">Bancontact</div>
-                              <div className="text-xs text-muted-foreground">Belgium</div>
-                            </button>
-                            <button className="p-3 border border-gray-200 rounded-lg hover:border-brand-teal/50 transition-colors text-center">
-                              <div className="text-xs font-semibold text-brand-blue mb-1">iDEAL</div>
-                              <div className="text-xs text-muted-foreground">Netherlands</div>
-                            </button>
-                            <button className="p-3 border border-gray-200 rounded-lg hover:border-brand-teal/50 transition-colors text-center">
-                              <div className="text-xs font-semibold text-brand-blue mb-1">P24</div>
-                              <div className="text-xs text-muted-foreground">Poland</div>
-                            </button>
-                          </div>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
                 </div>
               </div>
 
@@ -792,9 +642,22 @@ export default function CheckoutPage() {
                           </h2>
 
                           <div className="space-y-4 mb-6">
+                            {/* Exchange Rate Info (only show when not EUR) */}
+                            {isNonEurCurrency && (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-gray-50 p-2 rounded border border-gray-200">
+                                <Info className="h-3 w-3" />
+                                <span>Exchange rate: 1 EUR = {rate.toFixed(4)} {currency}</span>
+                              </div>
+                            )}
+
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Subtotal</span>
-                              <span className="font-semibold text-brand-blue">{formatPrice(subtotal)}</span>
+                              <div className="text-right">
+                                <span className="font-semibold text-brand-blue">{formatPrice(subtotal)}</span>
+                                {isNonEurCurrency && (
+                                  <span className="block text-xs text-muted-foreground">€{subtotal.toFixed(2)}</span>
+                                )}
+                              </div>
                             </div>
                             <div className="flex justify-between text-sm">
                               <span className="text-muted-foreground">Shipping</span>
@@ -809,11 +672,16 @@ export default function CheckoutPage() {
                             {totalCashback > 0 && (
                               <div className="flex justify-between text-sm bg-green-50 p-3 rounded-lg border border-green-200">
                                 <span className="text-green-700 font-medium">🎁 Cashback You'll Earn</span>
-                                <span className="font-semibold text-green-700">{formatPrice(totalCashback)}</span>
+                                <div className="text-right">
+                                  <span className="font-semibold text-green-700">{formatPrice(totalCashback)}</span>
+                                  {isNonEurCurrency && (
+                                    <span className="block text-xs text-green-600">€{totalCashback.toFixed(2)}</span>
+                                  )}
+                                </div>
                               </div>
                             )}
 
-                            {/* Wallet Balance and Usage */}
+                            {/* Wallet Balance and Usage - Always show EUR base since wallet is stored in EUR */}
                             {walletBalance > 0 && (
                               <div className="border-t border-gray-200 pt-4 space-y-3">
                                 <div className="flex justify-between items-center text-sm">
@@ -821,7 +689,12 @@ export default function CheckoutPage() {
                                     <Wallet className="h-4 w-4" />
                                     Robin Wallet Balance
                                   </span>
-                                  <span className="font-semibold text-brand-blue">{formatPrice(walletBalance)}</span>
+                                  <div className="text-right">
+                                    <span className="font-semibold text-brand-blue">{formatPrice(walletBalance)}</span>
+                                    {isNonEurCurrency && (
+                                      <span className="block text-xs text-muted-foreground">€{walletBalance.toFixed(2)} (stored in EUR)</span>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="flex items-center space-x-2">
                                   <Checkbox
@@ -843,8 +716,8 @@ export default function CheckoutPage() {
                                 </div>
                                 {useWallet && (
                                   <div className="pl-6 space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                      <span className="text-muted-foreground">Wallet Amount</span>
+                                    <div className="flex justify-between items-center text-sm">
+                                      <span className="text-muted-foreground">Wallet Amount (EUR)</span>
                                       <Input
                                         type="number"
                                         step="0.01"
@@ -861,7 +734,12 @@ export default function CheckoutPage() {
                                     </div>
                                     <div className="flex justify-between text-sm text-green-600">
                                       <span>Wallet Discount</span>
-                                      <span className="font-semibold">-{formatPrice(walletDiscount)}</span>
+                                      <div className="text-right">
+                                        <span className="font-semibold">-{formatPrice(walletDiscount)}</span>
+                                        {isNonEurCurrency && (
+                                          <span className="block text-xs">-€{walletDiscount.toFixed(2)}</span>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 )}
@@ -870,9 +748,14 @@ export default function CheckoutPage() {
 
                             <div className="border-t border-gray-200 pt-4 flex justify-between">
                               <span className="text-lg font-headline font-bold text-brand-blue">Total</span>
-                              <span className="text-lg font-headline font-bold text-brand-blue">
-                                {formatPrice(total)}
-                              </span>
+                              <div className="text-right">
+                                <span className="text-lg font-headline font-bold text-brand-blue">
+                                  {formatPrice(total)}
+                                </span>
+                                {isNonEurCurrency && (
+                                  <span className="block text-xs text-muted-foreground">€{total.toFixed(2)}</span>
+                                )}
+                              </div>
                             </div>
                             {useWallet && walletDiscount < total && (
                               <p className="text-xs text-muted-foreground text-center">
@@ -883,11 +766,21 @@ export default function CheckoutPage() {
 
                   <Button
                     size="lg"
-                    onClick={handleCompleteOrder}
-                    className="w-full bg-brand-teal text-white hover:bg-brand-teal/90 font-semibold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={!selectedPaymentMethod || isProcessing}
+                    onClick={handleProceedToPayment}
+                    className="w-full bg-brand-teal text-white hover:bg-brand-teal/90 font-semibold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    disabled={isProcessing}
                   >
-                    {isProcessing ? "Processing Order..." : "Complete Order"}
+                    {isProcessing ? (
+                      <>
+                        <span className="animate-spin">⏳</span>
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Lock className="h-5 w-5" />
+                        <span>Proceed to Secure Payment</span>
+                      </>
+                    )}
                   </Button>
 
                   <p className="text-xs text-center text-muted-foreground mt-4">

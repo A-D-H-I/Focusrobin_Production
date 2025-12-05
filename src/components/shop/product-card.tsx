@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
+import { usePrice } from "@/hooks/usePrice";
 
 type ProductCardProps = {
   product: Product;
@@ -26,6 +27,12 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
+  const { formatPrice, parseEurPrice } = usePrice();
+  
+  // Parse EUR prices from product (prices stored as "€XX.XX" strings)
+  const priceInEur = parseEurPrice(product.price);
+  const originalPriceInEur = product.originalPrice ? parseEurPrice(product.originalPrice) : null;
+  const cashbackInEur = product.cashback ? parseEurPrice(product.cashback) : null;
   
   const isWishlisted = isInWishlist(product.id, selectedVariant.hex);
   
@@ -118,12 +125,12 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
             <h3 className="text-md font-semibold mb-2">{product.name}</h3>
             <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
               <p className="text-md font-bold text-foreground">
-                {product.price}
+                {formatPrice(priceInEur)}
               </p>
-              {product.originalPrice && product.originalPrice !== product.price && (
+              {originalPriceInEur && originalPriceInEur !== priceInEur && (
                 <>
                   <p className="text-sm text-muted-foreground line-through">
-                    {product.originalPrice}
+                    {formatPrice(originalPriceInEur)}
                   </p>
                   {product.discountPct && (
                     <span className="text-xs font-semibold text-destructive">
@@ -161,10 +168,10 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
                 ></button>
               ))}
             </div>
-            {product.cashback && (
+            {cashbackInEur && cashbackInEur > 0 && (
               <div className="mb-4 flex justify-center">
                 <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                  🎁 {product.cashback} cashback
+                  🎁 {formatPrice(cashbackInEur)} cashback
                 </Badge>
               </div>
             )}

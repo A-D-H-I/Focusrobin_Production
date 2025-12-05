@@ -2,110 +2,125 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { requireAdmin, safeAction } from "@/lib/security";
+import { z } from "zod";
 
+// Validation schemas
+const instagramImageSchema = z.object({
+  imageUrl: z.string().url().max(2048),
+  alt: z.string().trim().min(1).max(200),
+  link: z.string().url().max(500).optional().default('https://www.instagram.com/'),
+  isActive: z.boolean().optional().default(false),
+  order: z.number().int().min(0).max(100).optional().default(0),
+});
+
+const idSchema = z.string().min(1).max(30);
+
+/**
+ * Create an instagram image (Admin only)
+ */
 export async function createInstagramImage(formData: FormData) {
-  try {
-    // @ts-ignore - instagramImage may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.instagramImage || typeof prisma.instagramImage.create !== 'function') {
-      return { error: 'InstagramImage model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'InstagramImage model not available. Please regenerate Prisma client.' };
     }
 
     const imageUrl = formData.get('imageUrl') as string;
     const alt = formData.get('alt') as string;
-    const link = formData.get('link') as string;
+    const link = formData.get('link') as string || 'https://www.instagram.com/';
     const isActive = formData.get('isActive') === 'true';
     const order = parseInt(formData.get('order') as string) || 0;
 
-    if (!imageUrl || !alt) {
-      return { error: 'Missing required fields' };
+    // Validate input
+    const validatedInput = instagramImageSchema.safeParse({ imageUrl, alt, link, isActive, order });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     // @ts-ignore
     const instagramImage = await prisma.instagramImage.create({
-      data: {
-        imageUrl,
-        alt,
-        link: link || 'https://www.instagram.com/p/DQwrNF9ikKg/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==',
-        isActive,
-        order,
-      },
+      data: validatedInput.data,
     });
 
     revalidatePath('/');
     revalidatePath('/admin/instagram');
 
     return { success: true, instagramImageId: instagramImage.id };
-  } catch (error) {
-    console.error('Error creating instagram image:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to create instagram image' };
-  }
+  });
 }
 
+/**
+ * Update an instagram image (Admin only)
+ */
 export async function updateInstagramImage(formData: FormData) {
-  try {
-    // @ts-ignore - instagramImage may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.instagramImage || typeof prisma.instagramImage.update !== 'function') {
-      return { error: 'InstagramImage model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'InstagramImage model not available. Please regenerate Prisma client.' };
     }
 
     const id = formData.get('id') as string;
+    const validatedId = idSchema.safeParse(id);
+    if (!validatedId.success) {
+      return { error: "Invalid instagram image ID" };
+    }
+
     const imageUrl = formData.get('imageUrl') as string;
     const alt = formData.get('alt') as string;
-    const link = formData.get('link') as string;
+    const link = formData.get('link') as string || 'https://www.instagram.com/';
     const isActive = formData.get('isActive') === 'true';
     const order = parseInt(formData.get('order') as string) || 0;
 
-    if (!id || !imageUrl || !alt) {
-      return { error: 'Missing required fields' };
+    // Validate input
+    const validatedInput = instagramImageSchema.safeParse({ imageUrl, alt, link, isActive, order });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     // @ts-ignore
     const instagramImage = await prisma.instagramImage.update({
-      where: { id },
-      data: {
-        imageUrl,
-        alt,
-        link: link || 'https://www.instagram.com/p/DQwrNF9ikKg/?utm_source=ig_web_copy_link&igsh=MzRlODBiNWFlZA==',
-        isActive,
-        order,
-      },
+      where: { id: validatedId.data },
+      data: validatedInput.data,
     });
 
     revalidatePath('/');
     revalidatePath('/admin/instagram');
 
     return { success: true, instagramImageId: instagramImage.id };
-  } catch (error) {
-    console.error('Error updating instagram image:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to update instagram image' };
-  }
+  });
 }
 
+/**
+ * Delete an instagram image (Admin only)
+ */
 export async function deleteInstagramImage(formData: FormData) {
-  try {
-    // @ts-ignore - instagramImage may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.instagramImage || typeof prisma.instagramImage.delete !== 'function') {
-      return { error: 'InstagramImage model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'InstagramImage model not available. Please regenerate Prisma client.' };
     }
 
     const id = formData.get('id') as string;
-
-    if (!id) {
-      return { error: 'Missing instagram image ID' };
+    const validatedId = idSchema.safeParse(id);
+    if (!validatedId.success) {
+      return { error: "Invalid instagram image ID" };
     }
 
     // @ts-ignore
     await prisma.instagramImage.delete({
-      where: { id },
+      where: { id: validatedId.data },
     });
 
     revalidatePath('/');
     revalidatePath('/admin/instagram');
 
     return { success: true };
-  } catch (error) {
-    console.error('Error deleting instagram image:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to delete instagram image' };
-  }
+  });
 }
-

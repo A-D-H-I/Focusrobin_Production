@@ -2,12 +2,30 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { requireAdmin, safeAction } from "@/lib/security";
+import { z } from "zod";
 
+// Validation schemas
+const giftBannerSchema = z.object({
+  imageUrl: z.string().url().max(2048),
+  title: z.string().trim().max(200).optional().default('Gift for your loved ones'),
+  subtitle: z.string().trim().max(500).optional().default(''),
+  link: z.string().trim().max(500).optional().default('/shop/unisex'),
+  isActive: z.boolean().optional().default(false),
+});
+
+const idSchema = z.string().min(1).max(30);
+
+/**
+ * Create a gift banner (Admin only)
+ */
 export async function createGiftBanner(formData: FormData) {
-  try {
-    // @ts-ignore - giftBanner may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.giftBanner || typeof prisma.giftBanner.create !== 'function') {
-      return { error: 'GiftBanner model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'GiftBanner model not available. Please regenerate Prisma client.' };
     }
 
     const imageUrl = formData.get('imageUrl') as string;
@@ -16,18 +34,20 @@ export async function createGiftBanner(formData: FormData) {
     const link = formData.get('link') as string || '/shop/unisex';
     const isActive = formData.get('isActive') === 'true';
 
-    if (!imageUrl) {
-      return { error: 'Image URL is required' };
+    // Validate input
+    const validatedInput = giftBannerSchema.safeParse({ imageUrl, title, subtitle, link, isActive });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     // @ts-ignore
     const giftBanner = await prisma.giftBanner.create({
       data: {
-        imageUrl,
-        title,
-        subtitle: subtitle || null,
-        link,
-        isActive,
+        imageUrl: validatedInput.data.imageUrl,
+        title: validatedInput.data.title,
+        subtitle: validatedInput.data.subtitle || null,
+        link: validatedInput.data.link,
+        isActive: validatedInput.data.isActive,
       },
     });
 
@@ -35,39 +55,48 @@ export async function createGiftBanner(formData: FormData) {
     revalidatePath('/admin/gift-banner');
 
     return { success: true, giftBannerId: giftBanner.id };
-  } catch (error) {
-    console.error('Error creating gift banner:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to create gift banner' };
-  }
+  });
 }
 
+/**
+ * Update a gift banner (Admin only)
+ */
 export async function updateGiftBanner(formData: FormData) {
-  try {
-    // @ts-ignore - giftBanner may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.giftBanner || typeof prisma.giftBanner.update !== 'function') {
-      return { error: 'GiftBanner model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'GiftBanner model not available. Please regenerate Prisma client.' };
     }
 
     const id = formData.get('id') as string;
+    const validatedId = idSchema.safeParse(id);
+    if (!validatedId.success) {
+      return { error: "Invalid gift banner ID" };
+    }
+
     const imageUrl = formData.get('imageUrl') as string;
     const title = formData.get('title') as string || 'Gift for your loved ones';
     const subtitle = formData.get('subtitle') as string || '';
     const link = formData.get('link') as string || '/shop/unisex';
     const isActive = formData.get('isActive') === 'true';
 
-    if (!id || !imageUrl) {
-      return { error: 'Missing required fields' };
+    // Validate input
+    const validatedInput = giftBannerSchema.safeParse({ imageUrl, title, subtitle, link, isActive });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     // @ts-ignore
     const giftBanner = await prisma.giftBanner.update({
-      where: { id },
+      where: { id: validatedId.data },
       data: {
-        imageUrl,
-        title,
-        subtitle: subtitle || null,
-        link,
-        isActive,
+        imageUrl: validatedInput.data.imageUrl,
+        title: validatedInput.data.title,
+        subtitle: validatedInput.data.subtitle || null,
+        link: validatedInput.data.link,
+        isActive: validatedInput.data.isActive,
       },
     });
 
@@ -75,37 +104,35 @@ export async function updateGiftBanner(formData: FormData) {
     revalidatePath('/admin/gift-banner');
 
     return { success: true, giftBannerId: giftBanner.id };
-  } catch (error) {
-    console.error('Error updating gift banner:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to update gift banner' };
-  }
+  });
 }
 
+/**
+ * Delete a gift banner (Admin only)
+ */
 export async function deleteGiftBanner(formData: FormData) {
-  try {
-    // @ts-ignore - giftBanner may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.giftBanner || typeof prisma.giftBanner.delete !== 'function') {
-      return { error: 'GiftBanner model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'GiftBanner model not available. Please regenerate Prisma client.' };
     }
 
     const id = formData.get('id') as string;
-
-    if (!id) {
-      return { error: 'Missing gift banner ID' };
+    const validatedId = idSchema.safeParse(id);
+    if (!validatedId.success) {
+      return { error: "Invalid gift banner ID" };
     }
 
     // @ts-ignore
     await prisma.giftBanner.delete({
-      where: { id },
+      where: { id: validatedId.data },
     });
 
     revalidatePath('/');
     revalidatePath('/admin/gift-banner');
 
     return { success: true };
-  } catch (error) {
-    console.error('Error deleting gift banner:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to delete gift banner' };
-  }
+  });
 }
-

@@ -11,14 +11,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
 import { getCart } from "@/app/actions/user";
+import { usePrice } from "@/hooks/usePrice";
 
 export default function CartPage() {
   const { data: session } = useSession();
   const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
   const { currency } = useCurrency();
+  const { formatPrice, parseEurPrice } = usePrice();
   const [totalCashback, setTotalCashback] = useState<number>(0);
 
-  const subtotal = getCartTotal();
+  const subtotal = getCartTotal(); // This returns EUR value
   const shipping = 0; // Free shipping
   const total = subtotal + shipping;
 
@@ -71,10 +73,7 @@ export default function CartPage() {
     calculateCashback();
   }, [cartItems, session]);
 
-  const formatPrice = (price: number) => {
-    const symbol = currency === 'EUR' ? '€' : currency === 'USD' ? '$' : '£';
-    return `${symbol}${price.toFixed(2)}`;
-  };
+  // formatPrice is now provided by usePrice hook with full currency conversion
 
   if (cartItems.length === 0) {
     return (
@@ -116,8 +115,9 @@ export default function CartPage() {
             {/* Cart Items - Left Column (2/3 on desktop) */}
             <div className="lg:col-span-2 space-y-4">
               {cartItems.map((item) => {
-                const price = parseFloat(item.product.price.replace(/[^\d.,]/g, '').replace(',', '.'));
-                const itemTotal = price * item.quantity;
+                // Parse EUR price from product (stored as "€XX.XX" string)
+                const priceInEur = parseEurPrice(item.product.price);
+                const itemTotalEur = priceInEur * item.quantity;
 
                 return (
                   <div
@@ -145,7 +145,7 @@ export default function CartPage() {
                           Color: {item.variant.name}
                         </p>
                         <p className="text-lg font-bold text-brand-blue">
-                          {formatPrice(itemTotal)}
+                          {formatPrice(itemTotalEur)}
                         </p>
                       </div>
 

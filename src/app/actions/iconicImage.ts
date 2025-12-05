@@ -2,116 +2,139 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { requireAdmin, safeAction } from "@/lib/security";
+import { z } from "zod";
 
+// Validation schemas
+const iconicImageSchema = z.object({
+  imageUrl: z.string().url().max(2048),
+  alt: z.string().trim().min(1).max(200),
+  isActive: z.boolean().optional().default(false),
+});
+
+const idSchema = z.string().min(1).max(30);
+
+/**
+ * Create an iconic image (Admin only)
+ */
 export async function createIconicImage(formData: FormData) {
-  try {
-    // @ts-ignore - iconicImage may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.iconicImage || typeof prisma.iconicImage.create !== 'function') {
-      return { error: 'IconicImage model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'IconicImage model not available. Please regenerate Prisma client.' };
     }
 
     const imageUrl = formData.get('imageUrl') as string;
     const alt = formData.get('alt') as string;
     const isActive = formData.get('isActive') === 'true';
 
-    if (!imageUrl || !alt) {
-      return { error: 'Missing required fields' };
+    // Validate input
+    const validatedInput = iconicImageSchema.safeParse({ imageUrl, alt, isActive });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     // @ts-ignore
     const iconicImage = await prisma.iconicImage.create({
-      data: {
-        imageUrl,
-        alt,
-        isActive,
-      },
+      data: validatedInput.data,
     });
 
     revalidatePath('/');
     revalidatePath('/admin/iconic');
 
     return { success: true, iconicImageId: iconicImage.id };
-  } catch (error) {
-    console.error('Error creating iconic image:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to create iconic image' };
-  }
+  });
 }
 
+/**
+ * Update an iconic image (Admin only)
+ */
 export async function updateIconicImage(formData: FormData) {
-  try {
-    // @ts-ignore - iconicImage may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.iconicImage || typeof prisma.iconicImage.update !== 'function') {
-      return { error: 'IconicImage model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'IconicImage model not available. Please regenerate Prisma client.' };
     }
 
     const id = formData.get('id') as string;
+    const validatedId = idSchema.safeParse(id);
+    if (!validatedId.success) {
+      return { error: "Invalid iconic image ID" };
+    }
+
     const imageUrl = formData.get('imageUrl') as string;
     const alt = formData.get('alt') as string;
     const isActive = formData.get('isActive') === 'true';
 
-    if (!id || !imageUrl || !alt) {
-      return { error: 'Missing required fields' };
+    // Validate input
+    const validatedInput = iconicImageSchema.safeParse({ imageUrl, alt, isActive });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     // @ts-ignore
     const iconicImage = await prisma.iconicImage.update({
-      where: { id },
-      data: {
-        imageUrl,
-        alt,
-        isActive,
-      },
+      where: { id: validatedId.data },
+      data: validatedInput.data,
     });
 
     revalidatePath('/');
     revalidatePath('/admin/iconic');
 
     return { success: true, iconicImageId: iconicImage.id };
-  } catch (error) {
-    console.error('Error updating iconic image:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to update iconic image' };
-  }
+  });
 }
 
+/**
+ * Delete an iconic image (Admin only)
+ */
 export async function deleteIconicImage(formData: FormData) {
-  try {
-    // @ts-ignore - iconicImage may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.iconicImage || typeof prisma.iconicImage.delete !== 'function') {
-      return { error: 'IconicImage model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'IconicImage model not available. Please regenerate Prisma client.' };
     }
 
     const id = formData.get('id') as string;
-
-    if (!id) {
-      return { error: 'Missing iconic image ID' };
+    const validatedId = idSchema.safeParse(id);
+    if (!validatedId.success) {
+      return { error: "Invalid iconic image ID" };
     }
 
     // @ts-ignore
     await prisma.iconicImage.delete({
-      where: { id },
+      where: { id: validatedId.data },
     });
 
     revalidatePath('/');
     revalidatePath('/admin/iconic');
 
     return { success: true };
-  } catch (error) {
-    console.error('Error deleting iconic image:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to delete iconic image' };
-  }
+  });
 }
 
+/**
+ * Set active iconic image (Admin only)
+ */
 export async function setActiveIconicImage(formData: FormData) {
-  try {
-    // @ts-ignore - iconicImage may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.iconicImage || typeof prisma.iconicImage.updateMany !== 'function') {
-      return { error: 'IconicImage model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'IconicImage model not available. Please regenerate Prisma client.' };
     }
 
     const id = formData.get('id') as string;
-
-    if (!id) {
-      return { error: 'Missing iconic image ID' };
+    const validatedId = idSchema.safeParse(id);
+    if (!validatedId.success) {
+      return { error: "Invalid iconic image ID" };
     }
 
     // Deactivate all iconic images
@@ -124,7 +147,7 @@ export async function setActiveIconicImage(formData: FormData) {
     // Activate the selected one
     // @ts-ignore
     await prisma.iconicImage.update({
-      where: { id },
+      where: { id: validatedId.data },
       data: { isActive: true },
     });
 
@@ -132,9 +155,5 @@ export async function setActiveIconicImage(formData: FormData) {
     revalidatePath('/admin/iconic');
 
     return { success: true };
-  } catch (error) {
-    console.error('Error setting active iconic image:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to set active iconic image' };
-  }
+  });
 }
-

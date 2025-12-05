@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
+import { usePrice } from "@/hooks/usePrice";
 
 type ProductPurchaseFormProps = {
   product: Product;
@@ -33,6 +34,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
+  const { formatPrice, parseEurPrice } = usePrice();
   const [isWishlisted, setIsWishlisted] = useState(false);
   
   // Check wishlist status when variant changes
@@ -42,8 +44,10 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
     }
   }, [product.id, selectedVariant, isInWishlist]);
   
-  // Use the final price (already includes discount if applicable)
-  const price = parseFloat(product.price.replace('€', '').replace(',', ''));
+  // Parse EUR prices from product
+  const priceInEur = parseEurPrice(product.price);
+  const originalPriceInEur = product.originalPrice ? parseEurPrice(product.originalPrice) : null;
+  const cashbackInEur = product.cashback ? parseEurPrice(product.cashback) : null;
 
   // Sync selectedColor when external variant changes
   useEffect(() => {
@@ -66,10 +70,10 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       
       <div className="flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <p className="text-3xl font-bold text-primary">{product.price}</p>
-          {product.originalPrice && product.originalPrice !== product.price && (
+          <p className="text-3xl font-bold text-primary">{formatPrice(priceInEur)}</p>
+          {originalPriceInEur && originalPriceInEur !== priceInEur && (
             <>
-              <p className="text-xl text-muted-foreground line-through">{product.originalPrice}</p>
+              <p className="text-xl text-muted-foreground line-through">{formatPrice(originalPriceInEur)}</p>
               {product.discountPct && (
                 <Badge variant="destructive" className="text-sm">
                   -{product.discountPct}%
@@ -78,9 +82,9 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             </>
           )}
         </div>
-        {product.cashback && (
+        {cashbackInEur && cashbackInEur > 0 && (
           <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
-            🎁 {product.cashback} cashback
+            🎁 {formatPrice(cashbackInEur)} cashback
           </Badge>
         )}
       </div>

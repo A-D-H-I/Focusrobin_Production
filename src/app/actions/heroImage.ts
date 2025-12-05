@@ -2,12 +2,32 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { requireAdmin, safeAction } from "@/lib/security";
+import { z } from "zod";
 
+// Validation schemas
+const heroImageSchema = z.object({
+  desktopImageUrl: z.string().url().max(2048),
+  mobileImageUrl: z.string().url().max(2048),
+  title: z.string().trim().min(1).max(200),
+  subtitle: z.string().trim().min(1).max(500),
+  ctaText: z.string().trim().min(1).max(100),
+  ctaLink: z.string().trim().min(1).max(500),
+  isActive: z.boolean().optional().default(false),
+});
+
+const idSchema = z.string().min(1).max(30);
+
+/**
+ * Create a hero image (Admin only)
+ */
 export async function createHeroImage(formData: FormData) {
-  try {
+  return safeAction(async () => {
+    await requireAdmin();
+
     // @ts-ignore - heroImage may not exist until Prisma client is regenerated
     if (!prisma.heroImage || typeof prisma.heroImage.create !== 'function') {
-      return { error: 'HeroImage model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'HeroImage model not available. Please regenerate Prisma client.' };
     }
 
     const desktopImageUrl = formData.get('desktopImageUrl') as string;
@@ -18,13 +38,16 @@ export async function createHeroImage(formData: FormData) {
     const ctaLink = formData.get('ctaLink') as string;
     const isActive = formData.get('isActive') === 'true';
 
-    // Validate required fields
-    if (!desktopImageUrl || !mobileImageUrl || !title || !subtitle || !ctaText || !ctaLink) {
-      return { error: 'Missing required fields' };
+    // Validate input
+    const validatedInput = heroImageSchema.safeParse({
+      desktopImageUrl, mobileImageUrl, title, subtitle, ctaText, ctaLink, isActive
+    });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     // If this hero image is set to active, deactivate all others
-    if (isActive) {
+    if (validatedInput.data.isActive) {
       // @ts-ignore
       await prisma.heroImage.updateMany({
         where: { isActive: true },
@@ -34,35 +57,34 @@ export async function createHeroImage(formData: FormData) {
 
     // @ts-ignore
     const heroImage = await prisma.heroImage.create({
-      data: {
-        desktopImageUrl,
-        mobileImageUrl,
-        title,
-        subtitle,
-        ctaText,
-        ctaLink,
-        isActive,
-      },
+      data: validatedInput.data,
     });
 
     revalidatePath('/');
     revalidatePath('/admin/hero');
 
     return { success: true, heroImageId: heroImage.id };
-  } catch (error) {
-    console.error('Error creating hero image:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to create hero image' };
-  }
+  });
 }
 
+/**
+ * Update a hero image (Admin only)
+ */
 export async function updateHeroImage(formData: FormData) {
-  try {
-    // @ts-ignore - heroImage may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.heroImage || typeof prisma.heroImage.update !== 'function') {
-      return { error: 'HeroImage model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'HeroImage model not available. Please regenerate Prisma client.' };
     }
 
     const id = formData.get('id') as string;
+    const validatedId = idSchema.safeParse(id);
+    if (!validatedId.success) {
+      return { error: "Invalid hero image ID" };
+    }
+
     const desktopImageUrl = formData.get('desktopImageUrl') as string;
     const mobileImageUrl = formData.get('mobileImageUrl') as string;
     const title = formData.get('title') as string;
@@ -71,18 +93,21 @@ export async function updateHeroImage(formData: FormData) {
     const ctaLink = formData.get('ctaLink') as string;
     const isActive = formData.get('isActive') === 'true';
 
-    // Validate required fields
-    if (!id || !desktopImageUrl || !mobileImageUrl || !title || !subtitle || !ctaText || !ctaLink) {
-      return { error: 'Missing required fields' };
+    // Validate input
+    const validatedInput = heroImageSchema.safeParse({
+      desktopImageUrl, mobileImageUrl, title, subtitle, ctaText, ctaLink, isActive
+    });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
     // If this hero image is set to active, deactivate all others
-    if (isActive) {
+    if (validatedInput.data.isActive) {
       // @ts-ignore
       await prisma.heroImage.updateMany({
         where: { 
           isActive: true,
-          id: { not: id },
+          id: { not: validatedId.data },
         },
         data: { isActive: false },
       });
@@ -90,67 +115,63 @@ export async function updateHeroImage(formData: FormData) {
 
     // @ts-ignore
     const heroImage = await prisma.heroImage.update({
-      where: { id },
-      data: {
-        desktopImageUrl,
-        mobileImageUrl,
-        title,
-        subtitle,
-        ctaText,
-        ctaLink,
-        isActive,
-      },
+      where: { id: validatedId.data },
+      data: validatedInput.data,
     });
 
     revalidatePath('/');
     revalidatePath('/admin/hero');
 
     return { success: true, heroImageId: heroImage.id };
-  } catch (error) {
-    console.error('Error updating hero image:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to update hero image' };
-  }
+  });
 }
 
+/**
+ * Delete a hero image (Admin only)
+ */
 export async function deleteHeroImage(formData: FormData) {
-  try {
-    // @ts-ignore - heroImage may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.heroImage || typeof prisma.heroImage.delete !== 'function') {
-      return { error: 'HeroImage model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'HeroImage model not available. Please regenerate Prisma client.' };
     }
 
     const id = formData.get('id') as string;
-
-    if (!id) {
-      return { error: 'Missing hero image ID' };
+    const validatedId = idSchema.safeParse(id);
+    if (!validatedId.success) {
+      return { error: "Invalid hero image ID" };
     }
 
     // @ts-ignore
     await prisma.heroImage.delete({
-      where: { id },
+      where: { id: validatedId.data },
     });
 
     revalidatePath('/');
     revalidatePath('/admin/hero');
 
     return { success: true };
-  } catch (error) {
-    console.error('Error deleting hero image:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to delete hero image' };
-  }
+  });
 }
 
+/**
+ * Set active hero image (Admin only)
+ */
 export async function setActiveHeroImage(formData: FormData) {
-  try {
-    // @ts-ignore - heroImage may not exist until Prisma client is regenerated
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
     if (!prisma.heroImage || typeof prisma.heroImage.updateMany !== 'function') {
-      return { error: 'HeroImage model not available. Please regenerate Prisma client by running: npx prisma generate' };
+      return { error: 'HeroImage model not available. Please regenerate Prisma client.' };
     }
 
     const id = formData.get('id') as string;
-
-    if (!id) {
-      return { error: 'Missing hero image ID' };
+    const validatedId = idSchema.safeParse(id);
+    if (!validatedId.success) {
+      return { error: "Invalid hero image ID" };
     }
 
     // Deactivate all hero images
@@ -163,7 +184,7 @@ export async function setActiveHeroImage(formData: FormData) {
     // Activate the selected one
     // @ts-ignore
     await prisma.heroImage.update({
-      where: { id },
+      where: { id: validatedId.data },
       data: { isActive: true },
     });
 
@@ -171,9 +192,5 @@ export async function setActiveHeroImage(formData: FormData) {
     revalidatePath('/admin/hero');
 
     return { success: true };
-  } catch (error) {
-    console.error('Error setting active hero image:', error);
-    return { error: error instanceof Error ? error.message : 'Failed to set active hero image' };
-  }
+  });
 }
-

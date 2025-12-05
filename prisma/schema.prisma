@@ -465,6 +465,12 @@ model Order {
   shipping        Decimal     @db.Decimal(10, 2) @default(0)
   total           Decimal     @db.Decimal(10, 2)
   currency        String      @default("EUR")
+  
+  // Stripe Payment Integration
+  stripeSessionId String?     @unique // Stripe Checkout Session ID
+  stripePaymentIntentId String? // Stripe Payment Intent ID
+  isPaid            Boolean     @default(false) // Payment status flag
+  
   shippingProvider String     @default("DHL") // Omniva for Latvia, Lithuania, Estonia; DHL for others
   trackingNumber  String?     // Tracking number for delivery
   trackingMessage String?     @db.Text // Admin message/update about tracking
@@ -528,12 +534,13 @@ model OrderItem {
 
 enum OrderStatus {
   PENDING
-  CONFIRMED
-  PROCESSING
+  PAID
   SHIPPED
-  DELIVERED
   CANCELLED
-  REFUNDED
+  CONFIRMED  // Keep for backward compatibility
+  PROCESSING // Keep for backward compatibility
+  DELIVERED  // Keep for backward compatibility
+  REFUNDED   // Keep for backward compatibility
 }
 
 enum PaymentStatus {
@@ -542,4 +549,26 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
+}
+
+// Currency Exchange Rates - Cached from external API
+model CurrencyRate {
+  id          String   @id @default(cuid())
+  code        String   @unique // Currency code e.g., "USD", "GBP", "EUR"
+  rate        Float    // Exchange rate relative to EUR (EUR = 1.0)
+  symbol      String   // Currency symbol e.g., "$", "£", "€"
+  name        String   // Full currency name e.g., "US Dollar"
+  lastUpdated DateTime @default(now()) @updatedAt
+  
+  @@index([code])
+}
+
+model NewsletterSubscription {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  subscribedAt DateTime @default(now())
+  isActive  Boolean  @default(true)
+  
+  @@index([email])
+  @@index([isActive])
 }

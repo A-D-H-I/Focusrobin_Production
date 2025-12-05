@@ -9,12 +9,15 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Product } from "@/lib/productData";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { usePrice } from "@/hooks/usePrice";
 
 interface BestsellersCarouselProps {
   products: Product[];
 }
 
 export default function BestsellersCarousel({ products }: BestsellersCarouselProps) {
+  const { formatPrice, parseEurPrice } = usePrice();
+  
   // Use provided products or fallback to empty array
   const displayProducts = products && products.length > 0 ? products : [];
   
@@ -340,12 +343,12 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
 
                              <div className="flex items-center justify-center gap-2 mb-6 flex-wrap">
                                <p className="text-lg font-medium text-brand-blue/80 drop-shadow-md">
-                                 {product.price}
+                                 {formatPrice(parseEurPrice(product.price))}
                                </p>
                                {product.originalPrice && product.originalPrice !== product.price && (
                                  <>
                                    <p className="text-sm text-muted-foreground line-through drop-shadow-md">
-                                     {product.originalPrice}
+                                     {formatPrice(parseEurPrice(product.originalPrice))}
                                    </p>
                                    {product.discountPct && (
                                      <span className="text-xs font-semibold text-destructive bg-white/90 px-2 py-0.5 rounded drop-shadow-md">
@@ -356,10 +359,10 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                                )}
                              </div>
 
-                      {product.cashback && (
+                      {product.cashback && parseEurPrice(product.cashback) > 0 && (
                         <div className="flex justify-center mb-4 relative z-40">
                           <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
-                            🎁 {product.cashback} cashback
+                            🎁 {formatPrice(parseEurPrice(product.cashback))} cashback
                           </Badge>
                         </div>
                       )}

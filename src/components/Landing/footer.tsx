@@ -1,10 +1,9 @@
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Landing/logo";
-import { Facebook, Instagram, Twitter, Youtube, RotateCcw, ShieldCheck, Lock, Camera, Truck } from "lucide-react";
+import { Instagram, RotateCcw, ShieldCheck, Lock, Camera, Truck } from "lucide-react";
 import Link from 'next/link';
 import { FaCcVisa, FaCcMastercard, FaCcAmex, FaPaypal, FaApplePay, FaGooglePay } from 'react-icons/fa';
 import { SiKlarna, SiShopify } from 'react-icons/si';
+import { NewsletterForm } from "./newsletter-form";
 
 export default function Footer() {
   const paymentMethods = [
@@ -104,10 +103,14 @@ export default function Footer() {
               Elevate Your Style, Enhance Your Vision.
             </p>
             <div className="flex space-x-4 mt-4">
-              <Link href="#" aria-label="Facebook"><Facebook className="h-6 w-6 hover:text-primary transition-colors" /></Link>
-              <Link href="#" aria-label="Instagram"><Instagram className="h-6 w-6 hover:text-primary transition-colors" /></Link>
-              <Link href="#" aria-label="Twitter"><Twitter className="h-6 w-6 hover:text-primary transition-colors" /></Link>
-              <Link href="#" aria-label="Youtube"><Youtube className="h-6 w-6 hover:text-primary transition-colors" /></Link>
+              <Link 
+                href="https://www.instagram.com/focus.robin" 
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+              >
+                <Instagram className="h-6 w-6 hover:text-primary transition-colors" />
+              </Link>
             </div>
           </div>
 
@@ -124,7 +127,7 @@ export default function Footer() {
             <h4 className="font-bold font-headline mb-4">Help & Support</h4>
             <ul className="space-y-2 text-sm">
               <li><Link href="#" className="hover:text-primary transition-colors">Help & Guides</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">FAQs</Link></li>
+              <li><Link href="/faq" prefetch={true} className="hover:text-primary transition-colors">FAQs</Link></li>
               <li><Link href="/terms" prefetch={true} className="hover:text-primary transition-colors">Terms of Service</Link></li>
               <li><Link href="/warranty" prefetch={true} className="hover:text-primary transition-colors">Terms of Warranty</Link></li>
               <li><Link href="/returns" prefetch={true} className="hover:text-primary transition-colors">Returns and Refunds</Link></li>
@@ -136,10 +139,7 @@ export default function Footer() {
             <p className="text-sm mb-4">
               Join our list for exclusive offers and new product alerts.
             </p>
-            <form className="flex space-x-2">
-              <Input type="email" placeholder="Enter your email" className="bg-background" />
-              <Button type="submit">Subscribe</Button>
-            </form>
+            <NewsletterForm />
           </div>
         </div>
         

@@ -20,6 +20,7 @@ import {
   XCircle,
   Clock,
   RefreshCw,
+  Download,
 } from "lucide-react";
 import {
   Dialog,
@@ -164,6 +165,7 @@ export default function OrdersManagement({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
+  const [downloadingOrderId, setDownloadingOrderId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     setIsLoading(true);
@@ -221,6 +223,55 @@ export default function OrdersManagement({
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
     setIsDialogOpen(true);
+  };
+
+  const handleDownloadInvoices = async (orderId: string) => {
+    setDownloadingOrderId(orderId);
+    try {
+      const response = await fetch(`/api/admin/orders/${orderId}/invoices`);
+      
+      if (!response.ok) {
+        // Try to get error message from response
+        let errorMessage = 'Failed to download invoices';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Check if response is actually a PDF
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/pdf')) {
+        // If not PDF, try to get error message
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Invalid response format');
+      }
+
+      // Get the blob and create download link
+      const blob = await response.blob();
+      
+      if (blob.size === 0) {
+        throw new Error('Downloaded file is empty');
+      }
+
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Invoices-${orders.find(o => o.id === orderId)?.orderNumber || orderId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error: any) {
+      console.error('Error downloading invoices:', error);
+      alert(`Failed to download invoices: ${error.message || 'Unknown error'}. Please check the console for details.`);
+    } finally {
+      setDownloadingOrderId(null);
+    }
   };
 
   // Filter orders
@@ -372,6 +423,15 @@ export default function OrdersManagement({
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => handleDownloadInvoices(order.id)}
+                        disabled={downloadingOrderId === order.id}
+                      >
+                        <Download className={`h-4 w-4 mr-2 ${downloadingOrderId === order.id ? 'animate-spin' : ''}`} />
+                        {downloadingOrderId === order.id ? 'Downloading...' : 'Download Invoices'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => handleViewOrder(order)}
                       >
                         <Eye className="h-4 w-4 mr-2" />
@@ -393,6 +453,19 @@ export default function OrdersManagement({
               <DialogDescription>
                 Placed {selectedOrder && formatDistanceToNow(new Date(selectedOrder.createdAt), { addSuffix: true })}
               </DialogDescription>
+              {selectedOrder && (
+                <div className="mt-4">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleDownloadInvoices(selectedOrder.id)}
+                    disabled={downloadingOrderId === selectedOrder.id}
+                  >
+                    <Download className={`h-4 w-4 mr-2 ${downloadingOrderId === selectedOrder.id ? 'animate-spin' : ''}`} />
+                    {downloadingOrderId === selectedOrder.id ? 'Downloading...' : 'Download Invoices (PDF)'}
+                  </Button>
+                </div>
+              )}
             </DialogHeader>
             {selectedOrder && (
               <div className="space-y-6">

@@ -31,28 +31,6 @@ export default async function ProductPage({ params }: { params: { slug: string }
           ProductAsset: true,
         },
       },
-      Review: {
-        include: {
-          User: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-            },
-          },
-          Product: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      },
     },
   })) as any;
 
@@ -65,8 +43,36 @@ export default async function ProductPage({ params }: { params: { slug: string }
   // Map Prisma product to frontend Product type
   const product = mapPrismaProductToProduct(prismaProduct);
 
+  // Fetch reviews explicitly by productId to ensure we get all reviews
+  // This is more reliable than relying on the relation
+  const productReviews = await prisma.review.findMany({
+    where: { 
+      productId: prismaProduct.id 
+    },
+    include: {
+      User: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+      Product: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+  });
+
   // Serialize reviews to ensure all Date and nested objects are properly converted
-  const reviews = prismaProduct.Review.map((review: any) => ({
+  const reviews = productReviews.map((review: any) => ({
     id: review.id,
     rating: review.rating,
     title: review.title,
@@ -75,6 +81,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
     User: {
       name: review.User?.name || null,
       email: review.User?.email || "",
+      image: review.User?.image || null,
     },
     createdAt: review.createdAt instanceof Date ? review.createdAt.toISOString() : review.createdAt,
     // Only include Product relation if it exists, and ensure it's serialized
