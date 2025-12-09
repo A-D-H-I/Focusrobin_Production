@@ -10,6 +10,7 @@ export interface ProductColorVariant {
   tilted: string; // Tilted version for hover
   nobg?: string; // Transparent background image for 3D effect (NO_BG asset)
   images: string[]; // Gallery images (3-4 images)
+  tryOn?: string; // Photo Try-On (Front View) image for virtual try-on feature (TRY_ON_2D asset)
 }
 
 export interface Product {

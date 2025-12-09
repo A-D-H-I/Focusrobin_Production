@@ -84,6 +84,10 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     const noBgAsset = variant.ProductAsset.find((asset) => asset.type === 'NO_BG');
     const noBgImage = noBgAsset ? normalizeImageUrl(noBgAsset.url) : undefined;
 
+    // Get TRY_ON_2D image for virtual try-on feature
+    const tryOnAsset = variant.ProductAsset.find((asset) => asset.type === 'TRY_ON_2D');
+    const tryOnImage = tryOnAsset ? normalizeImageUrl(tryOnAsset.url) : undefined;
+
     const primaryUrl = primaryAsset ? normalizeImageUrl(primaryAsset.url) : (galleryImages[0] || '');
 
     return {
@@ -94,6 +98,7 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
       tilted: hoverImage,
       nobg: noBgImage,
       images: galleryImages.length > 0 ? galleryImages : (primaryUrl ? [primaryUrl] : []),
+      tryOn: tryOnImage,
     };
   });
 

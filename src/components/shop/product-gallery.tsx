@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Camera, X, ChevronLeft, ChevronRight, Box } from "lucide-react";
 import type { Product, ProductColorVariant } from "@/lib/productData";
 import Product3DViewer from "./product-3d-viewer";
+import VirtualTryOn from "./virtual-tryon";
 
 type ProductGalleryProps = {
   product: Product;
@@ -51,6 +52,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [is3DViewerOpen, setIs3DViewerOpen] = useState(false);
+  const [isTryOnOpen, setIsTryOnOpen] = useState(false);
   
   // Use the same 3D model for all products
   const model3DUrl = `/sunglasses3D.glb`;
@@ -191,7 +193,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
                 className="bg-background/80 hover:bg-background"
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Virtual Try-On functionality can be added here
+                  setIsTryOnOpen(true);
                 }}
               >
                 <Camera className="mr-2 h-4 w-4" />
@@ -216,13 +218,13 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
       {/* Fullscreen Modal */}
       {isFullscreen && (
         <div 
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+          className="fixed inset-0 z-[150] bg-black/95 overflow-y-auto"
           onClick={closeFullscreen}
         >
-          {/* Close Button */}
+          {/* Close Button - Positioned below navbar */}
           <button
             onClick={closeFullscreen}
-            className="absolute top-4 right-4 z-50 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+            className="fixed top-24 right-4 md:top-28 z-[151] p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors backdrop-blur-sm"
             aria-label="Close fullscreen"
           >
             <X className="h-6 w-6" />
@@ -236,7 +238,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
                   e.stopPropagation();
                   goToPrevious();
                 }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                className="fixed left-4 top-1/2 -translate-y-1/2 z-[151] p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors backdrop-blur-sm"
                 aria-label="Previous image"
               >
                 <ChevronLeft className="h-6 w-6" />
@@ -246,7 +248,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
                   e.stopPropagation();
                   goToNext();
                 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+                className="fixed right-4 top-1/2 -translate-y-1/2 z-[151] p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors backdrop-blur-sm"
                 aria-label="Next image"
               >
                 <ChevronRight className="h-6 w-6" />
@@ -254,25 +256,29 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
             </>
           )}
 
-          {/* Fullscreen Image */}
+          {/* Fullscreen Image Container - Scrollable */}
           <div 
-            className="relative w-full h-full max-w-7xl max-h-[90vh] mx-4"
+            className="min-h-screen flex items-center justify-center py-24 px-4"
             onClick={(e) => e.stopPropagation()}
           >
-            <Image
-              src={allImages[currentImageIndex] || ''}
-              alt={`${product.name} - Image ${currentImageIndex + 1}`}
-              fill
-              className="object-contain"
-              sizes="100vw"
-              quality={100}
-              priority
-            />
+            <div className="relative w-full max-w-7xl">
+              <Image
+                src={allImages[currentImageIndex] || ''}
+                alt={`${product.name} - Image ${currentImageIndex + 1}`}
+                width={1920}
+                height={1080}
+                className="w-full h-auto object-contain"
+                sizes="100vw"
+                quality={100}
+                priority
+                unoptimized
+              />
+            </div>
           </div>
 
           {/* Image Counter */}
           {allImages.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-white/10 text-white text-sm">
+            <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[151] px-4 py-2 rounded-full bg-white/10 text-white text-sm backdrop-blur-sm">
               {currentImageIndex + 1} / {allImages.length}
             </div>
           )}
@@ -285,6 +291,16 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
         productName={product.name}
         isOpen={is3DViewerOpen}
         onClose={() => setIs3DViewerOpen(false)}
+      />
+
+      {/* Virtual Try-On */}
+      <VirtualTryOn
+        product={product}
+        variants={product.variants}
+        selectedVariantIndex={product.variants.findIndex(v => v.hex === selectedVariant.hex && v.name === selectedVariant.name)}
+        productName={product.name}
+        isOpen={isTryOnOpen}
+        onClose={() => setIsTryOnOpen(false)}
       />
     </>
   );

@@ -86,7 +86,14 @@ export async function POST(req: Request) {
     }
 
     // System prompt
-    const systemPrompt = `You are Robin, the helpful support assistant for Focus Robin Eyewear. You are polite, concise, and helpful. Always check order status using tools before asking the user for details. If they ask for a refund, check eligibility first.`;
+    const systemPrompt = `You are Robin, the helpful support assistant for Focus Robin Eyewear. You are polite, concise, and helpful. 
+
+IMPORTANT GUIDELINES:
+- Always check order status using tools before asking the user for details.
+- If they ask for a refund, check eligibility first using the appropriate tool.
+- For company-related questions (about Focus Robin Eyewear, products, policies, shipping, returns, etc.) that you cannot answer with the available tools or your knowledge, you must respond with: "I'm unable to answer that question. Please contact our support team for assistance."
+- Only use this response for company-related questions. For general questions unrelated to the company, you can provide helpful information if you know it.
+- Be helpful and use the available tools (lookupOrders, checkOrderStatus, checkRefundEligibility, getPolicyInfo) whenever possible before suggesting to contact support.`;
 
     // Convert UIMessages to ModelMessages
     const modelMessages = convertToModelMessages(messages);
@@ -94,11 +101,12 @@ export async function POST(req: Request) {
     // Create Google provider with API key
     const googleProvider = createGoogleGenerativeAI({ apiKey });
 
-    // Stream the response
+    // Stream the response with proper tool handling
     const result = streamText({
       model: googleProvider("gemini-2.5-flash"),
       system: systemPrompt,
       messages: modelMessages,
+      maxSteps: 5, // Allow multiple tool calls in sequence
       tools: {
         lookupOrders: {
           description: "Fetch the last 5 orders for the logged-in user",
@@ -281,7 +289,13 @@ export async function POST(req: Request) {
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    // Return streaming response with proper headers
+    return result.toUIMessageStreamResponse({
+      headers: {
+        ...SECURITY_HEADERS,
+        "X-Accel-Buffering": "no", // Disable buffering for immediate streaming
+      },
+    });
   } catch (error: any) {
     console.error("Chat API error:", error);
     return new Response(
