@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createHeroImage, updateHeroImage, deleteHeroImage, setActiveHeroImage } from '@/app/actions/heroImage';
+import { createHeroImage, updateHeroImage, deleteHeroImage } from '@/app/actions/heroImage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,6 +31,7 @@ interface HeroImage {
   ctaText: string;
   ctaLink: string;
   isActive: boolean;
+  order: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -57,9 +58,10 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
     mobileImageUrl: '',
     title: '',
     subtitle: '',
-    ctaText: '',
-    ctaLink: '',
-    isActive: false,
+    ctaText: 'Shop Now',
+    ctaLink: '/shop',
+    isActive: true,
+    order: 0,
   });
 
   const resetForm = () => {
@@ -68,9 +70,10 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
       mobileImageUrl: '',
       title: '',
       subtitle: '',
-      ctaText: '',
-      ctaLink: '',
-      isActive: false,
+      ctaText: 'Shop Now',
+      ctaLink: '/shop',
+      isActive: true,
+      order: 0,
     });
     setEditingId(null);
     setIsDialogOpen(false);
@@ -85,6 +88,7 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
       ctaText: heroImage.ctaText,
       ctaLink: heroImage.ctaLink,
       isActive: heroImage.isActive,
+      order: heroImage.order || 0,
     });
     setEditingId(heroImage.id);
     setIsDialogOpen(true);
@@ -97,11 +101,14 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
     const form = new FormData();
     form.append('desktopImageUrl', formData.desktopImageUrl);
     form.append('mobileImageUrl', formData.mobileImageUrl);
-    form.append('title', formData.title);
-    form.append('subtitle', formData.subtitle);
-    form.append('ctaText', formData.ctaText);
+    // Only require title, subtitle, ctaText if order is 0
+    // For other orders, use empty strings (they won't be used anyway)
+    form.append('title', formData.order === 0 ? formData.title : formData.title || '');
+    form.append('subtitle', formData.order === 0 ? formData.subtitle : formData.subtitle || '');
+    form.append('ctaText', formData.order === 0 ? formData.ctaText : formData.ctaText || 'Shop Now');
     form.append('ctaLink', formData.ctaLink);
     form.append('isActive', formData.isActive.toString());
+    form.append('order', formData.order.toString());
 
     try {
       let result;
@@ -172,37 +179,6 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
     }
   };
 
-  const handleSetActive = async (id: string) => {
-    setIsSubmitting(true);
-    const form = new FormData();
-    form.append('id', id);
-
-    try {
-      const result = await setActiveHeroImage(form);
-      if (result.error) {
-        toast({
-          title: 'Error',
-          description: result.error,
-          variant: 'destructive',
-        });
-      } else {
-        toast({
-          title: 'Success',
-          description: 'Active hero image updated',
-        });
-        router.refresh();
-      }
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
@@ -231,7 +207,7 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
             <DialogHeader>
               <DialogTitle>{editingId ? 'Edit Hero Image' : 'Add New Hero Image'}</DialogTitle>
               <DialogDescription>
-                Configure the hero image that appears on the homepage
+                Configure hero images for the carousel. <strong>Note:</strong> Text and button text are shared from the first image (order 0). Only the routing (CTA Link) changes per image. Set text/button on the first image.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -270,40 +246,69 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="title">Title</Label>
+                <Label htmlFor="order">Display Order</Label>
                 <Input
-                  id="title"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="Elevate Your Style, Enhance Your Vision"
+                  id="order"
+                  type="number"
+                  min="0"
+                  value={formData.order}
+                  onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })}
+                  placeholder="0"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  Lower numbers appear first in the carousel. Use 0, 1, 2, 3, etc. <strong>Set to 0 for the first image (uses text/button text).</strong>
+                </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="subtitle">Subtitle</Label>
-                <Textarea
-                  id="subtitle"
-                  value={formData.subtitle}
-                  onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                  placeholder="Shop our latest collection of premium sunglasses & prescription glasses."
-                  required
-                />
-              </div>
+              {formData.order === 0 && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                      id="title"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      placeholder="Elevate Your Style, Enhance Your Vision"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      ⚠️ Only used from the first image (order 0). Same text shows on all images.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="subtitle">Subtitle</Label>
+                    <Textarea
+                      id="subtitle"
+                      value={formData.subtitle}
+                      onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
+                      placeholder="Shop our latest collection of premium sunglasses & prescription glasses."
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      ⚠️ Only used from the first image (order 0). Same text shows on all images.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="ctaText">CTA Button Text</Label>
+                    <Input
+                      id="ctaText"
+                      value={formData.ctaText}
+                      onChange={(e) => setFormData({ ...formData, ctaText: e.target.value })}
+                      placeholder="Shop Now"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      ⚠️ Only used from the first image (order 0). Same button text shows on all images.
+                    </p>
+                  </div>
+                </>
+              )}
 
               <div className="space-y-2">
-                <Label htmlFor="ctaText">CTA Button Text</Label>
-                <Input
-                  id="ctaText"
-                  value={formData.ctaText}
-                  onChange={(e) => setFormData({ ...formData, ctaText: e.target.value })}
-                  placeholder="Shop Now"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="ctaLink">CTA Button Link</Label>
+                <Label htmlFor="ctaLink">CTA Button Link (Route) *</Label>
                 <Input
                   id="ctaLink"
                   value={formData.ctaLink}
@@ -311,6 +316,9 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
                   placeholder="/shop"
                   required
                 />
+                <p className="text-xs text-muted-foreground">
+                  ✅ <strong>This changes per image!</strong> Each image can route to different pages. Examples: <code className="bg-muted px-1 rounded">/shop</code>, <code className="bg-muted px-1 rounded">/shop/men</code>, <code className="bg-muted px-1 rounded">/shop/women</code>, <code className="bg-muted px-1 rounded">/shop/kids</code>
+                </p>
               </div>
 
               <div className="flex items-center space-x-2">
@@ -322,7 +330,7 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
                   }
                 />
                 <Label htmlFor="isActive" className="cursor-pointer">
-                  Set as active (only one can be active at a time)
+                  Active (show in carousel on homepage)
                 </Label>
               </div>
 
@@ -414,32 +422,25 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
 
                 <div className="space-y-2 text-sm">
                   <p className="text-muted-foreground line-clamp-2">{heroImage.subtitle}</p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-semibold">CTA:</span>
                     <span>{heroImage.ctaText}</span>
                     <span className="text-muted-foreground">→</span>
-                    <span className="text-muted-foreground">{heroImage.ctaLink}</span>
+                    <code className="text-xs bg-muted px-1 rounded">{heroImage.ctaLink}</code>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">Order:</span>
+                    <span>{heroImage.order || 0}</span>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  {!heroImage.isActive && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleSetActive(heroImage.id)}
-                      disabled={isSubmitting}
-                      className="flex-1"
-                    >
-                      Set Active
-                    </Button>
-                  )}
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleEdit(heroImage)}
                     disabled={isSubmitting}
-                    className="gap-2"
+                    className="gap-2 flex-1"
                   >
                     <Edit className="h-4 w-4" />
                     Edit

@@ -255,15 +255,75 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
 
     const shipping = 0; // Free shipping
     const walletAmount = checkoutData.walletAmount || 0;
-    const total = Math.max(0, subtotal + shipping - walletAmount);
+    const orderTotalBeforeWallet = subtotal + shipping;
+    const total = Math.max(0, orderTotalBeforeWallet - walletAmount);
+
+    // Validate wallet amount if provided
+    if (walletAmount > 0) {
+      // Get or create user's wallet
+      let wallet = await prisma.wallet.findUnique({
+        where: { userId },
+      });
+
+      if (!wallet) {
+        wallet = await prisma.wallet.create({
+          data: { userId, balance: 0 },
+        });
+      }
+
+      const walletBalance = Number(wallet.balance);
+
+      // Verify user has enough wallet balance
+      if (walletAmount > walletBalance) {
+        return { error: `Insufficient wallet balance. Available: €${walletBalance.toFixed(2)}, Requested: €${walletAmount.toFixed(2)}` };
+      }
+
+      // Verify wallet amount doesn't exceed order total
+      if (walletAmount > orderTotalBeforeWallet) {
+        return { error: "Wallet amount cannot exceed order total" };
+      }
+    }
 
     // Validate total is greater than 0
     if (total <= 0) {
-      return { error: "Order total must be greater than 0" };
+      return { error: "Order total must be greater than 0. Please reduce wallet amount or add more items." };
     }
 
     // Determine shipping provider
     const shippingProvider = getShippingProvider(checkoutData.shippingAddress.country);
+
+    // Deduct wallet amount if used (before creating order to ensure atomicity)
+    let walletTransactionId: string | null = null;
+    if (walletAmount > 0) {
+      const wallet = await prisma.wallet.findUnique({
+        where: { userId },
+      });
+
+      if (!wallet) {
+        return { error: "Wallet not found" };
+      }
+
+      // Deduct from wallet
+      await prisma.wallet.update({
+        where: { userId },
+        data: {
+          balance: {
+            decrement: walletAmount,
+          },
+        },
+      });
+
+      // Create wallet transaction record
+      const walletTransaction = await prisma.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: walletAmount,
+          type: 'DEBIT',
+          description: `Order payment - Pending`,
+        },
+      });
+      walletTransactionId = walletTransaction.id;
+    }
 
     // Create order in database (PENDING status)
     const order = await prisma.order.create({
@@ -277,6 +337,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         subtotal,
         shipping,
         total,
+        walletAmountUsed: walletAmount,
         currency: "EUR",
         shippingProvider,
         shippingName: checkoutData.shippingAddress.name,
@@ -310,6 +371,58 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         },
       },
     });
+
+    // Adjust Stripe line items if wallet amount is used
+    // We need to ensure Stripe charges only the remaining amount after wallet deduction
+    if (walletAmount > 0 && orderTotalBeforeWallet > 0) {
+      const reductionRatio = total / orderTotalBeforeWallet; // e.g., if total is 80 and original is 100, ratio is 0.8
+      
+      // Calculate total of adjusted amounts to ensure exact match
+      let adjustedTotal = 0;
+      const adjustedItems: typeof stripeLineItems = [];
+      
+      for (let i = 0; i < stripeLineItems.length; i++) {
+        const lineItem = { ...stripeLineItems[i] };
+        const originalAmount = lineItem.price_data.unit_amount;
+        
+        // For the last item, adjust to ensure exact total
+        if (i === stripeLineItems.length - 1) {
+          // Calculate what the last item should be to make total exact
+          const targetTotal = Math.round(total * 100); // Convert to cents
+          const remainingAmount = targetTotal - adjustedTotal;
+          lineItem.price_data.unit_amount = Math.max(0, remainingAmount);
+        } else {
+          // Proportionally reduce other items
+          lineItem.price_data.unit_amount = Math.round(originalAmount * reductionRatio);
+        }
+        
+        adjustedTotal += lineItem.price_data.unit_amount * lineItem.quantity;
+        adjustedItems.push(lineItem);
+      }
+      
+      // Replace original items with adjusted ones
+      stripeLineItems.length = 0;
+      stripeLineItems.push(...adjustedItems);
+      
+      // Verify the total matches (with small tolerance for rounding)
+      const expectedTotalCents = Math.round(total * 100);
+      const actualTotalCents = adjustedTotal;
+      const difference = Math.abs(expectedTotalCents - actualTotalCents);
+      
+      if (difference > 1) {
+        console.warn(`Stripe total mismatch: Expected ${expectedTotalCents} cents, got ${actualTotalCents} cents. Difference: ${difference}`);
+        // Adjust the last item to fix the difference
+        if (stripeLineItems.length > 0) {
+          const lastItem = stripeLineItems[stripeLineItems.length - 1];
+          lastItem.price_data.unit_amount += (expectedTotalCents - actualTotalCents);
+          if (lastItem.price_data.unit_amount < 0) {
+            lastItem.price_data.unit_amount = 0;
+          }
+        }
+      }
+      
+      console.log(`[Checkout] Wallet deduction: €${walletAmount.toFixed(2)}, Stripe will charge: €${total.toFixed(2)}`);
+    }
 
     // Create Stripe Checkout Session
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:9002';
@@ -389,6 +502,8 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
           orderId: order.id,
           orderNumber: order.orderNumber,
           userId: userId,
+          walletAmountUsed: walletAmount.toString(),
+          walletTransactionId: walletTransactionId || '',
         },
         success_url: successUrl,
         cancel_url: cancelUrl,

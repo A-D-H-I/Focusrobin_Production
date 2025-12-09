@@ -65,9 +65,18 @@ const securityHeaders = [
   },
 ];
 
+// Check if we're in development mode
+const isDev = process.env.NODE_ENV === 'development';
+
 const nextConfig: NextConfig = {
-  // Security headers applied to all routes
+  // Security headers applied to all routes (only in production)
+  // In development, CSP can block resources when accessing via network IP
   async headers() {
+    // Skip security headers in development for network access compatibility
+    if (isDev) {
+      return [];
+    }
+    
     return [
       {
         // Apply security headers to all routes
@@ -154,8 +163,9 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
-    // Allow unoptimized images for local file paths
-    unoptimized: false,
+    // Allow unoptimized images for local file paths and network access
+    // This ensures images work when accessing via network IP
+    unoptimized: process.env.NODE_ENV === 'development',
   },
   
   // Powered by header removal (security through obscurity)

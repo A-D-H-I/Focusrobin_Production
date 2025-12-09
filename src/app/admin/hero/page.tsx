@@ -10,9 +10,10 @@ export default async function AdminHeroPage() {
     if (prisma.heroImage && typeof prisma.heroImage.findMany === 'function') {
       // @ts-ignore
       heroImages = await prisma.heroImage.findMany({
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy: [
+          { order: 'asc' },
+          { createdAt: 'desc' },
+        ],
       });
     }
   } catch (error) {
@@ -25,9 +26,9 @@ export default async function AdminHeroPage() {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="mx-auto max-w-6xl">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Hero Images</h1>
+          <h1 className="text-3xl font-bold text-foreground">Hero Images Carousel</h1>
           <p className="mt-2 text-muted-foreground">
-            Manage hero images displayed on the homepage
+            Manage multiple hero images that automatically scroll on the homepage. <strong>Text and button text are shared</strong> (taken from the first image), but <strong>each image can route to different pages</strong>. Images are displayed in order (lowest number first).
           </p>
         </div>
         <HeroImageManagement initialHeroImages={heroImages} />

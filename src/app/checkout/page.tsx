@@ -682,69 +682,75 @@ export default function CheckoutPage() {
                             )}
 
                             {/* Wallet Balance and Usage - Always show EUR base since wallet is stored in EUR */}
-                            {walletBalance > 0 && (
-                              <div className="border-t border-gray-200 pt-4 space-y-3">
-                                <div className="flex justify-between items-center text-sm">
-                                  <span className="text-muted-foreground flex items-center gap-2">
-                                    <Wallet className="h-4 w-4" />
-                                    Robin Wallet Balance
-                                  </span>
-                                  <div className="text-right">
-                                    <span className="font-semibold text-brand-blue">{formatPrice(walletBalance)}</span>
-                                    {isNonEurCurrency && (
-                                      <span className="block text-xs text-muted-foreground">€{walletBalance.toFixed(2)} (stored in EUR)</span>
-                                    )}
-                                  </div>
+                            <div className="border-t border-gray-200 pt-4 space-y-3">
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-muted-foreground flex items-center gap-2">
+                                  <Wallet className="h-4 w-4" />
+                                  Robin Wallet Balance
+                                </span>
+                                <div className="text-right">
+                                  <span className="font-semibold text-brand-blue">{formatPrice(walletBalance)}</span>
+                                  {isNonEurCurrency && (
+                                    <span className="block text-xs text-muted-foreground">€{walletBalance.toFixed(2)} (stored in EUR)</span>
+                                  )}
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  <Checkbox
-                                    id="useWallet"
-                                    checked={useWallet}
-                                    onCheckedChange={(checked) => {
-                                      setUseWallet(checked as boolean);
-                                      if (checked) {
-                                        const maxAmount = Math.min(walletBalance, subtotal + shipping);
-                                        setWalletAmount(maxAmount);
-                                      } else {
-                                        setWalletAmount(0);
-                                      }
-                                    }}
-                                  />
-                                  <Label htmlFor="useWallet" className="text-sm font-medium cursor-pointer">
-                                    Use wallet balance
-                                  </Label>
-                                </div>
-                                {useWallet && (
-                                  <div className="pl-6 space-y-2">
-                                    <div className="flex justify-between items-center text-sm">
-                                      <span className="text-muted-foreground">Wallet Amount (EUR)</span>
-                                      <Input
-                                        type="number"
-                                        step="0.01"
-                                        min="0"
-                                        max={Math.min(walletBalance, subtotal + shipping)}
-                                        value={walletAmount}
-                                        onChange={(e) => {
-                                          const amount = parseFloat(e.target.value) || 0;
+                              </div>
+                              {walletBalance > 0 ? (
+                                <>
+                                  <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                      id="useWallet"
+                                      checked={useWallet}
+                                      onCheckedChange={(checked) => {
+                                        setUseWallet(checked as boolean);
+                                        if (checked) {
                                           const maxAmount = Math.min(walletBalance, subtotal + shipping);
-                                          setWalletAmount(Math.min(amount, maxAmount));
-                                        }}
-                                        className="w-24 h-8 text-sm"
-                                      />
-                                    </div>
-                                    <div className="flex justify-between text-sm text-green-600">
-                                      <span>Wallet Discount</span>
-                                      <div className="text-right">
-                                        <span className="font-semibold">-{formatPrice(walletDiscount)}</span>
-                                        {isNonEurCurrency && (
-                                          <span className="block text-xs">-€{walletDiscount.toFixed(2)}</span>
-                                        )}
+                                          setWalletAmount(maxAmount);
+                                        } else {
+                                          setWalletAmount(0);
+                                        }
+                                      }}
+                                    />
+                                    <Label htmlFor="useWallet" className="text-sm font-medium cursor-pointer">
+                                      Use wallet balance
+                                    </Label>
+                                  </div>
+                                  {useWallet && (
+                                    <div className="pl-6 space-y-2">
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span className="text-muted-foreground">Wallet Amount (EUR)</span>
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          min="0"
+                                          max={Math.min(walletBalance, subtotal + shipping)}
+                                          value={walletAmount}
+                                          onChange={(e) => {
+                                            const amount = parseFloat(e.target.value) || 0;
+                                            const maxAmount = Math.min(walletBalance, subtotal + shipping);
+                                            setWalletAmount(Math.min(amount, maxAmount));
+                                          }}
+                                          className="w-24 h-8 text-sm"
+                                        />
+                                      </div>
+                                      <div className="flex justify-between text-sm text-green-600">
+                                        <span>Wallet Discount</span>
+                                        <div className="text-right">
+                                          <span className="font-semibold">-{formatPrice(walletDiscount)}</span>
+                                          {isNonEurCurrency && (
+                                            <span className="block text-xs">-€{walletDiscount.toFixed(2)}</span>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                                  )}
+                                </>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">
+                                  No wallet balance available. You'll earn cashback on this purchase!
+                                </p>
+                              )}
+                            </div>
 
                             <div className="border-t border-gray-200 pt-4 flex justify-between">
                               <span className="text-lg font-headline font-bold text-brand-blue">Total</span>
@@ -757,10 +763,21 @@ export default function CheckoutPage() {
                                 )}
                               </div>
                             </div>
-                            {useWallet && walletDiscount < total && (
-                              <p className="text-xs text-muted-foreground text-center">
-                                {formatPrice(total)} remaining after wallet payment
-                              </p>
+                            {useWallet && walletDiscount > 0 && (
+                              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+                                <p className="text-xs text-blue-700 text-center font-medium">
+                                  {walletDiscount >= subtotal + shipping ? (
+                                    <>✅ Order fully paid with wallet! No payment needed.</>
+                                  ) : (
+                                    <>💳 {formatPrice(total)} will be charged via payment gateway</>
+                                  )}
+                                </p>
+                                {isNonEurCurrency && walletDiscount < subtotal + shipping && (
+                                  <p className="text-xs text-blue-600 text-center mt-1">
+                                    €{total.toFixed(2)} remaining after wallet payment
+                                  </p>
+                                )}
+                              </div>
                             )}
                           </div>
 

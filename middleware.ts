@@ -53,11 +53,17 @@ function getClientIP(request: NextRequest): string {
 
 /**
  * Add security headers to response
+ * Skip in development mode for network access compatibility
  */
 function addSecurityHeaders(response: NextResponse, setCsrfCookie: boolean = false): NextResponse {
-  Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
-    response.headers.set(key, value);
-  });
+  // Skip security headers in development for network access compatibility
+  const isDev = process.env.NODE_ENV === 'development';
+  
+  if (!isDev) {
+    Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+  }
   
   // Set CSRF token cookie for forms (only on page requests)
   if (setCsrfCookie) {

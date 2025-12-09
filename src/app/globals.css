@@ -202,4 +202,23 @@
     animation: gradient-shift 2s ease-in-out infinite;
     mix-blend-mode: screen;
   }
+
+  /* Scrolling banner animation */
+  @keyframes scroll {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-scroll {
+    animation: scroll 60s linear infinite;
+    display: inline-block;
+  }
+
+  .animate-scroll:hover {
+    animation-play-state: paused;
+  }
 }

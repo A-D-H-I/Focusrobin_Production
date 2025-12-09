@@ -188,6 +188,22 @@ export function AdminDashboardSections() {
                   </CardContent>
                 </Card>
 
+                {/* Scrolling Banner Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Scrolling Banner</CardTitle>
+                    </div>
+                    <CardDescription>Manage scrolling text banner on homepage</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/scrolling-banner">
+                      <Button variant="outline" className="w-full">Manage Scrolling Banner</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
                 {/* Custom Shop Pages Card */}
                 <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader>

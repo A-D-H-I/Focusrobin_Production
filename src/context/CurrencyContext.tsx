@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { CURRENCY_SYMBOLS, CURRENCY_NAMES, SUPPORTED_CURRENCIES } from '@/lib/currency';
+import { getCurrencyForCountry } from '@/lib/country-currency';
 
 export interface CurrencyRate {
   code: string;
@@ -26,6 +27,8 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 const CURRENCY_STORAGE_KEY = 'focusrobin-currency';
+const CURRENCY_COUNTRY_KEY = 'focusrobin-currency-country';
+const CURRENCY_MANUAL_KEY = 'focusrobin-currency-manual'; // Flag to indicate manual selection
 
 // Default rates (fallback if API fails)
 const DEFAULT_RATES: Record<string, CurrencyRate> = {
@@ -49,15 +52,107 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   const [rates, setRates] = useState<Record<string, CurrencyRate>>(DEFAULT_RATES);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Detect currency based on user's IP location
+  // Always uses client-side detection for better VPN support (browser makes request with real IP)
+  // Always checks location on refresh and updates if changed (unless manually selected)
+  const detectCurrencyFromLocation = useCallback(async () => {
+    try {
+      // Always use client-side detection (browser makes request, so VPN IP is detected)
+      // This works better than server-side detection for VPN users
+      let data = null;
+      
+      try {
+        const clientResponse = await fetch('https://ipapi.co/json/', {
+          cache: 'no-store',
+        });
+        if (clientResponse.ok) {
+          const clientData = await clientResponse.json();
+          if (!clientData.error && clientData.country_code) {
+            data = {
+              country: clientData.country_code,
+              countryName: clientData.country_name,
+              currency: getCurrencyForCountry(clientData.country_code),
+              ip: clientData.ip,
+              source: 'ipapi.co-client',
+            };
+          }
+        }
+      } catch (clientError) {
+        console.log('Client-side detection failed, trying server API:', clientError);
+        // Fallback to server API
+        try {
+          const response = await fetch('/api/currency/location');
+          if (response.ok) {
+            data = await response.json();
+          }
+        } catch (serverError) {
+          console.error('Server API also failed:', serverError);
+        }
+      }
+      
+      if (data && data.currency && SUPPORTED_CURRENCIES.includes(data.currency)) {
+        const savedCountry = localStorage.getItem(CURRENCY_COUNTRY_KEY);
+        const savedCurrency = localStorage.getItem(CURRENCY_STORAGE_KEY);
+        const isManual = localStorage.getItem(CURRENCY_MANUAL_KEY) === 'true';
+        
+        console.log('Currency detection:', {
+          detected: { country: data.country, currency: data.currency },
+          saved: { country: savedCountry, currency: savedCurrency },
+          isManual,
+        });
+        
+        // If no saved currency OR no saved country, do first-time detection
+        if (!savedCurrency || !savedCountry) {
+          console.log('First-time detection or missing country, setting currency to:', data.currency);
+          setCurrencyState(data.currency);
+          localStorage.setItem(CURRENCY_STORAGE_KEY, data.currency);
+          if (data.country) {
+            localStorage.setItem(CURRENCY_COUNTRY_KEY, data.country);
+          }
+          localStorage.setItem(CURRENCY_MANUAL_KEY, 'false');
+        } 
+        // If country changed and currency was auto-detected (not manual), update it
+        else if (data.country && savedCountry !== data.country && !isManual) {
+          console.log('Country changed from', savedCountry, 'to', data.country, '- updating currency from', savedCurrency, 'to', data.currency);
+          setCurrencyState(data.currency);
+          localStorage.setItem(CURRENCY_STORAGE_KEY, data.currency);
+          localStorage.setItem(CURRENCY_COUNTRY_KEY, data.country);
+          localStorage.setItem(CURRENCY_MANUAL_KEY, 'false');
+        }
+        // If country is the same but currency might have changed (rare case), update if not manual
+        else if (data.country && savedCountry === data.country && !isManual && savedCurrency !== data.currency) {
+          console.log('Same country but currency changed, updating to:', data.currency);
+          setCurrencyState(data.currency);
+          localStorage.setItem(CURRENCY_STORAGE_KEY, data.currency);
+        } else {
+          console.log('No update needed - country same or manual selection');
+        }
+      } else {
+        console.log('No valid currency data received:', data);
+      }
+    } catch (error) {
+      console.error('Error detecting currency from location:', error);
+      // Keep default EUR if detection fails
+    }
+  }, []);
+
   // Load currency preference from localStorage on mount
+  // Always check location on page load/refresh and update if changed (unless manual)
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(CURRENCY_STORAGE_KEY);
       if (saved && SUPPORTED_CURRENCIES.includes(saved)) {
+        // Set saved currency immediately for instant display
         setCurrencyState(saved);
       }
+      // Always check location on every page load/refresh (will update if location changed and not manual)
+      // Use a small delay to ensure localStorage is ready
+      const timer = setTimeout(() => {
+        detectCurrencyFromLocation();
+      }, 100);
+      return () => clearTimeout(timer);
     }
-  }, []);
+  }, [detectCurrencyFromLocation]);
 
   // Fetch rates from API
   useEffect(() => {
@@ -86,11 +181,13 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   // Save currency preference to localStorage
+  // Mark as manual selection so it won't be auto-updated when location changes
   const setCurrency = useCallback((newCurrency: string) => {
     if (SUPPORTED_CURRENCIES.includes(newCurrency)) {
       setCurrencyState(newCurrency);
       if (typeof window !== 'undefined') {
         localStorage.setItem(CURRENCY_STORAGE_KEY, newCurrency);
+        localStorage.setItem(CURRENCY_MANUAL_KEY, 'true'); // Mark as manually selected
       }
     }
   }, []);

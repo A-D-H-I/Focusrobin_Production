@@ -1,7 +1,7 @@
 import { Logo } from "@/components/Landing/logo";
 import { Instagram, RotateCcw, ShieldCheck, Lock, Camera, Truck } from "lucide-react";
 import Link from 'next/link';
-import { FaCcVisa, FaCcMastercard, FaCcAmex, FaPaypal, FaApplePay, FaGooglePay } from 'react-icons/fa';
+import { FaCcVisa, FaCcMastercard, FaCcAmex, FaPaypal, FaApplePay, FaGooglePay, FaFacebook } from 'react-icons/fa';
 import { SiKlarna, SiShopify } from 'react-icons/si';
 import { NewsletterForm } from "./newsletter-form";
 
@@ -110,6 +110,14 @@ export default function Footer() {
                 aria-label="Instagram"
               >
                 <Instagram className="h-6 w-6 hover:text-primary transition-colors" />
+              </Link>
+              <Link 
+                href="https://www.facebook.com/share/1HKTxzU7XP/?mibextid=wwXIfr" 
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook"
+              >
+                <FaFacebook className="h-6 w-6 hover:text-primary transition-colors" />
               </Link>
             </div>
           </div>

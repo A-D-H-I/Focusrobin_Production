@@ -6,14 +6,27 @@ import { requireAdmin, safeAction } from "@/lib/security";
 import { z } from "zod";
 
 // Validation schemas
+// For order 0: title, subtitle, ctaText are required
+// For order > 0: title, subtitle, ctaText are optional (not used, but stored for consistency)
 const heroImageSchema = z.object({
   desktopImageUrl: z.string().url().max(2048),
   mobileImageUrl: z.string().url().max(2048),
-  title: z.string().trim().min(1).max(200),
-  subtitle: z.string().trim().min(1).max(500),
-  ctaText: z.string().trim().min(1).max(100),
+  title: z.string().trim().max(200),
+  subtitle: z.string().trim().max(500),
+  ctaText: z.string().trim().max(100),
   ctaLink: z.string().trim().min(1).max(500),
-  isActive: z.boolean().optional().default(false),
+  isActive: z.boolean().optional().default(true),
+  order: z.number().int().min(0).optional().default(0),
+}).refine((data) => {
+  // If order is 0, title, subtitle, and ctaText are required
+  if (data.order === 0) {
+    return data.title.length > 0 && data.subtitle.length > 0 && data.ctaText.length > 0;
+  }
+  // If order is not 0, these fields are optional (use defaults)
+  return true;
+}, {
+  message: "Title, subtitle, and CTA button text are required for the first image (order 0)",
+  path: ["title"],
 });
 
 const idSchema = z.string().min(1).max(30);
@@ -32,27 +45,24 @@ export async function createHeroImage(formData: FormData) {
 
     const desktopImageUrl = formData.get('desktopImageUrl') as string;
     const mobileImageUrl = formData.get('mobileImageUrl') as string;
-    const title = formData.get('title') as string;
-    const subtitle = formData.get('subtitle') as string;
-    const ctaText = formData.get('ctaText') as string;
+    const title = formData.get('title') as string || '';
+    const subtitle = formData.get('subtitle') as string || '';
+    const ctaText = formData.get('ctaText') as string || 'Shop Now';
     const ctaLink = formData.get('ctaLink') as string;
     const isActive = formData.get('isActive') === 'true';
+    const order = parseInt(formData.get('order') as string) || 0;
+
+    // For non-zero orders, use placeholder values if empty (they won't be used anyway)
+    const finalTitle = order === 0 ? title : (title || 'Not Used');
+    const finalSubtitle = order === 0 ? subtitle : (subtitle || 'Not Used');
+    const finalCtaText = order === 0 ? ctaText : (ctaText || 'Shop Now');
 
     // Validate input
     const validatedInput = heroImageSchema.safeParse({
-      desktopImageUrl, mobileImageUrl, title, subtitle, ctaText, ctaLink, isActive
+      desktopImageUrl, mobileImageUrl, title: finalTitle, subtitle: finalSubtitle, ctaText: finalCtaText, ctaLink, isActive, order
     });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
-    }
-
-    // If this hero image is set to active, deactivate all others
-    if (validatedInput.data.isActive) {
-      // @ts-ignore
-      await prisma.heroImage.updateMany({
-        where: { isActive: true },
-        data: { isActive: false },
-      });
     }
 
     // @ts-ignore
@@ -87,30 +97,24 @@ export async function updateHeroImage(formData: FormData) {
 
     const desktopImageUrl = formData.get('desktopImageUrl') as string;
     const mobileImageUrl = formData.get('mobileImageUrl') as string;
-    const title = formData.get('title') as string;
-    const subtitle = formData.get('subtitle') as string;
-    const ctaText = formData.get('ctaText') as string;
+    const title = formData.get('title') as string || '';
+    const subtitle = formData.get('subtitle') as string || '';
+    const ctaText = formData.get('ctaText') as string || 'Shop Now';
     const ctaLink = formData.get('ctaLink') as string;
     const isActive = formData.get('isActive') === 'true';
+    const order = parseInt(formData.get('order') as string) || 0;
+
+    // For non-zero orders, use placeholder values if empty (they won't be used anyway)
+    const finalTitle = order === 0 ? title : (title || 'Not Used');
+    const finalSubtitle = order === 0 ? subtitle : (subtitle || 'Not Used');
+    const finalCtaText = order === 0 ? ctaText : (ctaText || 'Shop Now');
 
     // Validate input
     const validatedInput = heroImageSchema.safeParse({
-      desktopImageUrl, mobileImageUrl, title, subtitle, ctaText, ctaLink, isActive
+      desktopImageUrl, mobileImageUrl, title: finalTitle, subtitle: finalSubtitle, ctaText: finalCtaText, ctaLink, isActive, order
     });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
-    }
-
-    // If this hero image is set to active, deactivate all others
-    if (validatedInput.data.isActive) {
-      // @ts-ignore
-      await prisma.heroImage.updateMany({
-        where: { 
-          isActive: true,
-          id: { not: validatedId.data },
-        },
-        data: { isActive: false },
-      });
     }
 
     // @ts-ignore

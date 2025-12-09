@@ -271,7 +271,8 @@ model HeroImage {
   subtitle      String
   ctaText       String
   ctaLink       String
-  isActive      Boolean  @default(false)
+  isActive      Boolean  @default(true)
+  order         Int      @default(0) // Order for carousel display
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
@@ -321,6 +322,14 @@ model GiftBanner {
 model GiftForLovedOnesBanner {
   id        String   @id @default(cuid())
   imageUrl  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ScrollingBanner {
+  id        String   @id @default(cuid())
+  text      String   // Banner text to display
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -465,6 +474,7 @@ model Order {
   shipping        Decimal     @db.Decimal(10, 2) @default(0)
   total           Decimal     @db.Decimal(10, 2)
   currency        String      @default("EUR")
+  walletAmountUsed Decimal    @default(0) @db.Decimal(10, 2) // Amount deducted from wallet for this order
   
   // Stripe Payment Integration
   stripeSessionId String?     @unique // Stripe Checkout Session ID
