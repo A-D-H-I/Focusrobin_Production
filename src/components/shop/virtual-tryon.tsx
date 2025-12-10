@@ -49,10 +49,16 @@ export default function VirtualTryOn({
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [showFlash, setShowFlash] = useState(false);
   const [showCartAnimation, setShowCartAnimation] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [isFaceStraight, setIsFaceStraight] = useState(false);
+  const [isCheckingFace, setIsCheckingFace] = useState(false);
+  const [faceCheckMessage, setFaceCheckMessage] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
   const glassesRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   // Current variant and glasses image
   const currentVariant = variants[currentVariantIndex] || variants[0];
@@ -88,6 +94,8 @@ export default function VirtualTryOn({
 
   // Load face-api.js models on component mount
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    
     const loadModels = async () => {
       try {
         const MODEL_URL = "/models";
@@ -100,6 +108,7 @@ export default function VirtualTryOn({
       } catch (error) {
         console.error("Error loading face detection models:", error);
         setDetectionError("Failed to load face detection models");
+        setModelsLoaded(false);
       }
     };
     if (isOpen && !modelsLoaded) {
@@ -286,12 +295,285 @@ export default function VirtualTryOn({
     [modelsLoaded]
   );
 
+  // Check if face is straight (for camera validation)
+  const checkFaceStraight = useCallback(
+    async (imageElement: HTMLImageElement | HTMLVideoElement): Promise<boolean> => {
+      if (!modelsLoaded) return false;
+
+      try {
+        // Validate element dimensions
+        const width = imageElement instanceof HTMLVideoElement 
+          ? imageElement.videoWidth 
+          : imageElement.naturalWidth;
+        const height = imageElement instanceof HTMLVideoElement 
+          ? imageElement.videoHeight 
+          : imageElement.naturalHeight;
+
+        if (!width || !height || width === 0 || height === 0) {
+          return false;
+        }
+
+        const detection = await faceapi
+          .detectSingleFace(imageElement)
+          .withFaceLandmarks();
+
+        if (!detection || !detection.landmarks) {
+          return false;
+        }
+
+        const landmarks = detection.landmarks;
+        const leftEye = landmarks.getLeftEye();
+        const rightEye = landmarks.getRightEye();
+
+        if (!leftEye || !rightEye || leftEye.length === 0 || rightEye.length === 0) {
+          return false;
+        }
+
+        // Calculate eye positions
+        const leftEyeCenter = {
+          x: leftEye.reduce((sum, p) => sum + p.x, 0) / leftEye.length,
+          y: leftEye.reduce((sum, p) => sum + p.y, 0) / leftEye.length,
+        };
+        const rightEyeCenter = {
+          x: rightEye.reduce((sum, p) => sum + p.x, 0) / rightEye.length,
+          y: rightEye.reduce((sum, p) => sum + p.y, 0) / rightEye.length,
+        };
+
+        // Calculate angle between eyes (should be close to 0 for straight face)
+        const deltaY = rightEyeCenter.y - leftEyeCenter.y;
+        const deltaX = rightEyeCenter.x - leftEyeCenter.x;
+        const angleRadians = Math.atan2(deltaY, deltaX);
+        const angleDegrees = Math.abs((angleRadians * 180) / Math.PI);
+
+        // Face is considered straight if angle is less than 15 degrees
+        // and eyes are roughly horizontal (angle close to 0 or 180)
+        const isStraight = angleDegrees < 15 || angleDegrees > 165;
+
+        return isStraight;
+      } catch (error) {
+        console.error("Error checking face angle:", error);
+        return false;
+      }
+    },
+    [modelsLoaded]
+  );
+
+  // Start camera
+  const startCamera = useCallback(async () => {
+    if (typeof window === "undefined") return;
+    
+    try {
+      // Check if mediaDevices is available
+      if (!navigator?.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Camera Not Available",
+          description: "Your browser doesn't support camera access.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+      });
+      setCameraStream(stream);
+      setIsCameraActive(true);
+      
+      // Wait for video element to be ready
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await new Promise<void>((resolve) => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = () => resolve();
+            // Fallback timeout
+            setTimeout(resolve, 1000);
+          } else {
+            resolve();
+          }
+        });
+      }
+    } catch (error: any) {
+      console.error("Error accessing camera:", error);
+      let errorMessage = "Unable to access camera. Please check permissions.";
+      
+      if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
+        errorMessage = "Camera permission denied. Please allow camera access in your browser settings.";
+      } else if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+        errorMessage = "No camera found. Please connect a camera device.";
+      } else if (error.name === "NotReadableError" || error.name === "TrackStartError") {
+        errorMessage = "Camera is already in use by another application.";
+      }
+      
+      toast({
+        title: "Camera Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
+
+  // Stop camera
+  const stopCamera = useCallback(() => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraActive(false);
+    setIsFaceStraight(false);
+    setFaceCheckMessage("");
+    if (videoRef.current) {
+      videoRef.current.srcObject = null as any;
+    }
+  }, [cameraStream]);
+
+  // Continuous face checking while camera is active
+  useEffect(() => {
+    if (!isCameraActive || !videoRef.current || !modelsLoaded) return;
+
+    let intervalId: NodeJS.Timeout | null = null;
+    let isMounted = true;
+
+    const checkFace = async () => {
+      if (!isMounted) return;
+      
+      try {
+        if (videoRef.current && videoRef.current.readyState === 4 && videoRef.current.videoWidth > 0) {
+          setIsCheckingFace(true);
+          const isStraight = await checkFaceStraight(videoRef.current);
+          if (isMounted) {
+            setIsFaceStraight(isStraight);
+            setFaceCheckMessage(
+              isStraight
+                ? "✓ Face is straight - Ready to capture!"
+                : "Please face the camera straight"
+            );
+            setIsCheckingFace(false);
+          }
+        }
+      } catch (error) {
+        console.error("Error in face check:", error);
+        if (isMounted) {
+          setIsCheckingFace(false);
+        }
+      }
+    };
+
+    // Check face every 500ms
+    intervalId = setInterval(checkFace, 500);
+
+    return () => {
+      isMounted = false;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isCameraActive, modelsLoaded, checkFaceStraight]);
+
+  // Cleanup camera on unmount or close
+  useEffect(() => {
+    if (!isOpen) {
+      stopCamera();
+    }
+    return () => {
+      stopCamera();
+    };
+  }, [isOpen, stopCamera]);
+
+  // Capture photo from camera
+  const capturePhoto = useCallback(async () => {
+    if (!videoRef.current || !isFaceStraight) {
+      toast({
+        title: "Face Not Straight",
+        description: "Please face the camera straight before capturing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Validate video is ready
+      if (videoRef.current.readyState !== 4) {
+        toast({
+          title: "Camera Not Ready",
+          description: "Please wait for the camera to be ready.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const videoWidth = videoRef.current.videoWidth;
+      const videoHeight = videoRef.current.videoHeight;
+
+      if (!videoWidth || !videoHeight || videoWidth === 0 || videoHeight === 0) {
+        toast({
+          title: "Camera Error",
+          description: "Unable to capture photo. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = videoWidth;
+      canvas.height = videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        toast({
+          title: "Capture Error",
+          description: "Unable to create canvas. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      ctx.drawImage(videoRef.current, 0, 0);
+      const imageSrc = canvas.toDataURL("image/jpeg", 0.9);
+
+      if (!imageSrc || imageSrc === "data:,") {
+        throw new Error("Failed to generate image data");
+      }
+
+      // Stop camera
+      stopCamera();
+
+      // Set the captured image
+      setUploadedImage(imageSrc);
+
+      // Save to localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem(STORED_USER_PHOTO_KEY, imageSrc);
+        setHasStoredImage(true);
+      }
+
+      // Reset glasses position
+      setGlassesPosition({ x: 0, y: 0 });
+      setGlassesScale(100);
+      setGlassesRotation(0);
+      setFaceDetectionComplete(false);
+
+      // Trigger face detection
+      if (modelsLoaded) {
+        await detectFaceAndPositionGlasses(imageSrc);
+      }
+
+      toast({
+        title: "Photo Captured",
+        description: "Photo captured successfully!",
+      });
+    } catch (error) {
+      console.error("Error capturing photo:", error);
+      toast({
+        title: "Capture Error",
+        description: "Failed to capture photo. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [isFaceStraight, modelsLoaded, detectFaceAndPositionGlasses, stopCamera, toast]);
+
   // Auto-detect face when models are loaded and we have an uploaded image
   useEffect(() => {
-    if (uploadedImage && modelsLoaded && isOpen) {
+    if (uploadedImage && modelsLoaded && isOpen && !isCameraActive) {
       detectFaceAndPositionGlasses(uploadedImage);
     }
-  }, [uploadedImage, modelsLoaded, isOpen, detectFaceAndPositionGlasses]);
+  }, [uploadedImage, modelsLoaded, isOpen, isCameraActive, detectFaceAndPositionGlasses]);
 
   // Handle file upload
   const handleFileUpload = useCallback(
@@ -465,14 +747,79 @@ export default function VirtualTryOn({
     }
   };
 
-  // Handle capture screenshot effect
-  const handleCapture = () => {
-    setShowFlash(true);
-    setTimeout(() => setShowFlash(false), 200);
-    toast({
-      title: "Screenshot captured!",
-      description: "Your try-on look has been saved.",
-    });
+  // Capture screenshot of the try-on result
+  const handleCapture = async () => {
+    if (!canvasRef.current || !uploadedImage) return;
+
+    try {
+      // Create a canvas to capture the try-on result
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+
+      const rect = canvasRef.current.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+
+      // Create image from uploaded photo
+      const img = new Image();
+      img.src = uploadedImage;
+
+      await new Promise<void>((resolve) => {
+        img.onload = () => {
+          // Draw the background image
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // Draw glasses if visible
+          if (glassesRef.current && glassesImageSrc && faceDetectionComplete) {
+            const glassesImg = new Image();
+            glassesImg.src = glassesImageSrc;
+            glassesImg.onload = () => {
+              const glassesRect = glassesRef.current!.getBoundingClientRect();
+              const scale = glassesScale / 100;
+              const width = glassesRect.width * scale;
+              const height = glassesRect.height * scale;
+              const x = rect.width / 2 + glassesPosition.x - width / 2;
+              const y = rect.height / 2 + glassesPosition.y - height / 2;
+
+              ctx.save();
+              ctx.translate(x + width / 2, y + height / 2);
+              ctx.rotate((glassesRotation * Math.PI) / 180);
+              ctx.drawImage(glassesImg, -width / 2, -height / 2, width, height);
+              ctx.restore();
+            };
+          }
+
+          resolve();
+        };
+      });
+
+      // Convert to blob and download
+      canvas.toBlob((blob) => {
+        if (!blob) return;
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `try-on-${Date.now()}.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        setShowFlash(true);
+        setTimeout(() => setShowFlash(false), 300);
+
+        toast({
+          title: "Screenshot Captured",
+          description: "Your try-on result has been saved!",
+        });
+      }, "image/png");
+    } catch (error) {
+      console.error("Error capturing screenshot:", error);
+      toast({
+        title: "Capture Error",
+        description: "Failed to capture screenshot. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Handle add to cart
@@ -605,10 +952,9 @@ export default function VirtualTryOn({
                 )}
               </AnimatePresence>
 
-              {!uploadedImage ? (
+              {!uploadedImage && !isCameraActive ? (
                 /* Upload Area */
                 <motion.div
-                  onClick={handleClick}
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
@@ -621,7 +967,7 @@ export default function VirtualTryOn({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
                 >
-                  <div className="text-center p-8">
+                  <div className="text-center p-8 w-full">
                     <motion.div 
                       className="relative inline-block mb-6"
                       animate={{
@@ -640,11 +986,34 @@ export default function VirtualTryOn({
                     <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-brand-teal transition-colors">
                       Upload Your Photo
                     </h3>
-                    <p className="text-brand-teal/80 mb-4">
-                      Click or drag & drop to get started
+                    <p className="text-brand-teal/80 mb-6">
+                      Click to upload or use camera
                     </p>
-                    <p className="text-sm text-brand-teal/60">
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-4">
+                      <motion.button
+                        onClick={handleClick}
+                        className="px-6 py-3 bg-brand-teal hover:bg-brand-teal/90 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Upload className="w-5 h-5" />
+                        Upload Photo
+                      </motion.button>
+                      <motion.button
+                        onClick={startCamera}
+                        className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold flex items-center gap-2 border border-white/30 backdrop-blur-sm"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Camera className="w-5 h-5" />
+                        Use Camera
+                      </motion.button>
+                    </div>
+                    <p className="text-sm text-brand-teal/60 mb-2">
                       JPG or PNG • AI will auto-fit the glasses
+                    </p>
+                    <p className="text-xs text-brand-teal/50">
+                      For best results, face the camera straight
                     </p>
                     {hasStoredImage && (
                       <motion.p 
@@ -666,11 +1035,80 @@ export default function VirtualTryOn({
                     )}
                   </div>
                 </motion.div>
+              ) : isCameraActive && !uploadedImage ? (
+                /* Camera Preview */
+                <div className="relative aspect-[4/5] w-full flex flex-col items-center justify-center">
+                  <div className="relative w-full h-full bg-black rounded-2xl overflow-hidden">
+                    <video
+                      ref={videoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      className="w-full h-full object-cover"
+                    />
+                    {/* Face detection overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="relative">
+                        {/* Face guide frame */}
+                        <div className="w-64 h-80 border-2 border-dashed rounded-lg"
+                          style={{
+                            borderColor: isFaceStraight ? '#4ECDC4' : 'rgba(255, 255, 255, 0.5)',
+                            transition: 'border-color 0.3s'
+                          }}
+                        />
+                        {/* Status indicator */}
+                        <div className="absolute -top-12 left-1/2 transform -translate-x-1/2">
+                          <motion.div
+                            className={cn(
+                              "px-4 py-2 rounded-full text-sm font-semibold backdrop-blur-md",
+                              isFaceStraight
+                                ? "bg-green-500/90 text-white"
+                                : "bg-yellow-500/90 text-white"
+                            )}
+                            animate={{
+                              scale: isCheckingFace ? [1, 1.05, 1] : 1,
+                            }}
+                            transition={{ duration: 0.5, repeat: isCheckingFace ? Infinity : 0 }}
+                          >
+                            {isCheckingFace ? "Checking..." : faceCheckMessage || "Position your face"}
+                          </motion.div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Camera controls */}
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-4 z-10">
+                    <motion.button
+                      onClick={stopCamera}
+                      className="px-6 py-3 bg-white/20 hover:bg-white/30 text-white rounded-xl font-semibold flex items-center gap-2 backdrop-blur-sm border border-white/30"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <X className="w-5 h-5" />
+                      Cancel
+                    </motion.button>
+                    <motion.button
+                      onClick={capturePhoto}
+                      disabled={!isFaceStraight || isCheckingFace}
+                      className={cn(
+                        "px-8 py-3 rounded-xl font-semibold flex items-center gap-2 shadow-lg",
+                        isFaceStraight && !isCheckingFace
+                          ? "bg-brand-teal hover:bg-brand-teal/90 text-white"
+                          : "bg-gray-500/50 text-gray-300 cursor-not-allowed"
+                      )}
+                      whileHover={isFaceStraight && !isCheckingFace ? { scale: 1.05 } : {}}
+                      whileTap={isFaceStraight && !isCheckingFace ? { scale: 0.95 } : {}}
+                    >
+                      <Camera className="w-5 h-5" />
+                      Capture
+                    </motion.button>
+                  </div>
+                </div>
               ) : (
                 /* Photo with glasses overlay */
                 <div className="relative w-full h-full" style={{ pointerEvents: 'auto', minHeight: '400px' }}>
                   <img
-                    src={uploadedImage}
+                    src={uploadedImage || undefined}
                     alt="User photo"
                     className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                     draggable={false}

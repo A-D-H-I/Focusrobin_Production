@@ -137,14 +137,15 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
   return (
     <>
       <div className="flex flex-col-reverse md:flex-row gap-4">
-        {/* Thumbnail Gallery */}
-        <div className="flex md:flex-col gap-2 overflow-x-auto md:overflow-x-visible pb-2 md:pb-0">
+        {/* Side Image Gallery - All images visible */}
+        <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-y-auto md:overflow-x-visible pb-2 md:pb-0 md:max-h-[600px] md:w-32 lg:w-40">
           {allImages.map((imageUrl, index) => (
             <div
               key={`thumb-${index}-${imageUrl}`}
               className={cn(
-                "relative w-20 h-20 md:w-24 md:h-24 flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-all",
-                mainImage === imageUrl ? "border-primary" : "border-transparent hover:border-border"
+                "relative flex-shrink-0 cursor-pointer rounded-lg overflow-hidden border-2 transition-all",
+                "w-20 h-20 md:w-full md:aspect-square",
+                mainImage === imageUrl ? "border-primary shadow-md" : "border-transparent hover:border-border"
               )}
               onClick={() => handleThumbnailClick(imageUrl, index)}
               onDoubleClick={() => openFullscreen(imageUrl)}
@@ -152,10 +153,10 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
               <Image
                 key={`${selectedVariant.hex}-${selectedVariant.sku}-thumb-${index}-${imageUrl}`}
                 src={imageUrl}
-                alt={`${product.name} thumbnail ${index + 1}`}
+                alt={`${product.name} view ${index + 1}`}
                 fill
                 className="object-cover"
-                sizes="(max-width: 768px) 80px, 96px"
+                sizes="(max-width: 768px) 80px, 160px"
                 loading={index === 0 ? "eager" : "lazy"}
               />
             </div>
