@@ -46,12 +46,17 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
   const lensWidthPx = (lensWidth || 54) * scaleFactor;
   const lensHeightPx = (lensHeight || 45) * scaleFactor;
   const bridgeWidthPx = (bridgeWidth || 16) * scaleFactor;
-  const lensSpacing = 5; // Small gap between lens and bridge
+  const lensSpacing = 60; // Increased gap between lenses for bridge measurement
   
   // SVG coordinates - centered glasses in viewBox
-  const centerX = frameWidthPx / 2 + 50; // Center with padding
-  const centerY = 180;
+  const centerY = 200; // Moved down to accommodate extended lenses
   const topPadding = 60; // Space for frame width measurement
+  const lensExtension = 30; // Extra space to extend lenses downward
+  
+  // Calculate the total width needed for the diagram
+  const totalContentWidth = lensWidthPx * 2 + bridgeWidthPx + lensSpacing + 30; // 30 for temple/hinge on each side
+  const viewBoxWidth = Math.max(frameWidthPx + 200, totalContentWidth + 100); // Ensure viewBox is wide enough
+  const centerX = viewBoxWidth / 2; // True center of the viewBox
   
   // Calculate positions
   const leftLensX = centerX - lensWidthPx - bridgeWidthPx / 2 - lensSpacing / 2;
@@ -87,8 +92,8 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
 
       {/* SVG Diagram */}
       <svg
-        viewBox={`0 0 ${frameWidthPx + 100} 400`}
-        className="w-full h-auto min-h-[400px]"
+        viewBox={`0 0 ${viewBoxWidth} 450`}
+        className="w-full h-auto min-h-[450px]"
         role="img"
         aria-label="Glasses frame dimensions diagram"
         preserveAspectRatio="xMidYMid meet"
@@ -101,13 +106,13 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
             y1={topPadding}
             x2={frameRightX}
             y2={topPadding}
-            stroke="hsl(var(--foreground))"
+            stroke="#1C3142"
             strokeWidth="2"
             strokeDasharray="4,4"
             opacity="0.7"
           />
           {/* Left screw head */}
-          <circle cx={frameLeftX} cy={topPadding} r="5" fill="hsl(var(--foreground))" />
+          <circle cx={frameLeftX} cy={topPadding} r="5" fill="#1C3142" />
           <line
             x1={frameLeftX - 3}
             y1={topPadding}
@@ -117,7 +122,7 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
             strokeWidth="1.5"
           />
           {/* Right screw head */}
-          <circle cx={frameRightX} cy={topPadding} r="5" fill="hsl(var(--foreground))" />
+          <circle cx={frameRightX} cy={topPadding} r="5" fill="#1C3142" />
           <line
             x1={frameRightX - 3}
             y1={topPadding}
@@ -129,17 +134,20 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
           {/* Label */}
           <text
             x={centerX}
-            y={topPadding - 20}
+            y={topPadding - 30}
             textAnchor="middle"
-            className="font-headline text-sm fill-foreground/70"
+            className="font-headline text-sm"
+            fill="#1C3142"
+            opacity="0.7"
           >
             Frame width
           </text>
           <text
             x={centerX}
-            y={topPadding - 5}
+            y={topPadding - 12}
             textAnchor="middle"
-            className="font-headline text-lg font-bold fill-foreground"
+            className="font-sans text-lg font-bold"
+            fill="#1C3142"
           >
             {formatValue(frameWidth)}
           </text>
@@ -147,20 +155,20 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
 
         {/* Glasses Frame Outline - Wayfarer style */}
         <g>
-          {/* Left lens frame - rounded rectangle */}
+          {/* Left lens frame - rounded rectangle (extended downward) */}
           <path
             d={`M ${leftLensX} ${lensY + 8}
-                L ${leftLensX} ${lensY + lensHeightPx - 8}
-                Q ${leftLensX} ${lensY + lensHeightPx}, ${leftLensX + 8} ${lensY + lensHeightPx}
-                L ${leftLensX + lensWidthPx - 8} ${lensY + lensHeightPx}
-                Q ${leftLensX + lensWidthPx} ${lensY + lensHeightPx}, ${leftLensX + lensWidthPx} ${lensY + lensHeightPx - 8}
+                L ${leftLensX} ${lensY + lensHeightPx + lensExtension - 8}
+                Q ${leftLensX} ${lensY + lensHeightPx + lensExtension}, ${leftLensX + 8} ${lensY + lensHeightPx + lensExtension}
+                L ${leftLensX + lensWidthPx - 8} ${lensY + lensHeightPx + lensExtension}
+                Q ${leftLensX + lensWidthPx} ${lensY + lensHeightPx + lensExtension}, ${leftLensX + lensWidthPx} ${lensY + lensHeightPx + lensExtension - 8}
                 L ${leftLensX + lensWidthPx} ${lensY + 8}
                 Q ${leftLensX + lensWidthPx} ${lensY}, ${leftLensX + lensWidthPx - 8} ${lensY}
                 L ${leftLensX + 8} ${lensY}
                 Q ${leftLensX} ${lensY}, ${leftLensX} ${lensY + 8}
                 Z`}
             fill="none"
-            stroke="hsl(var(--foreground))"
+            stroke="#1C3142"
             strokeWidth="2.5"
           />
           {/* Left temple hinge */}
@@ -170,7 +178,7 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
             width="8"
             height="8"
             fill="none"
-            stroke="hsl(var(--foreground))"
+            stroke="#1C3142"
             strokeWidth="2.5"
           />
           <line
@@ -182,30 +190,30 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
             strokeWidth="1.5"
           />
 
-          {/* Bridge */}
+          {/* Bridge - Visual connection between lenses */}
           <line
             x1={leftLensX + lensWidthPx}
             y1={centerY}
             x2={rightLensX}
             y2={centerY}
-            stroke="hsl(var(--foreground))"
+            stroke="#1C3142"
             strokeWidth="2.5"
           />
 
-          {/* Right lens frame - rounded rectangle */}
+          {/* Right lens frame - rounded rectangle (extended downward) */}
           <path
             d={`M ${rightLensX} ${lensY + 8}
-                L ${rightLensX} ${lensY + lensHeightPx - 8}
-                Q ${rightLensX} ${lensY + lensHeightPx}, ${rightLensX + 8} ${lensY + lensHeightPx}
-                L ${rightLensX + lensWidthPx - 8} ${lensY + lensHeightPx}
-                Q ${rightLensX + lensWidthPx} ${lensY + lensHeightPx}, ${rightLensX + lensWidthPx} ${lensY + lensHeightPx - 8}
+                L ${rightLensX} ${lensY + lensHeightPx + lensExtension - 8}
+                Q ${rightLensX} ${lensY + lensHeightPx + lensExtension}, ${rightLensX + 8} ${lensY + lensHeightPx + lensExtension}
+                L ${rightLensX + lensWidthPx - 8} ${lensY + lensHeightPx + lensExtension}
+                Q ${rightLensX + lensWidthPx} ${lensY + lensHeightPx + lensExtension}, ${rightLensX + lensWidthPx} ${lensY + lensHeightPx + lensExtension - 8}
                 L ${rightLensX + lensWidthPx} ${lensY + 8}
                 Q ${rightLensX + lensWidthPx} ${lensY}, ${rightLensX + lensWidthPx - 8} ${lensY}
                 L ${rightLensX + 8} ${lensY}
                 Q ${rightLensX} ${lensY}, ${rightLensX} ${lensY + 8}
                 Z`}
             fill="none"
-            stroke="hsl(var(--foreground))"
+            stroke="#1C3142"
             strokeWidth="2.5"
           />
           {/* Right temple hinge */}
@@ -215,7 +223,7 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
             width="8"
             height="8"
             fill="none"
-            stroke="hsl(var(--foreground))"
+            stroke="#1C3142"
             strokeWidth="2.5"
           />
           <line
@@ -235,24 +243,27 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
             y1={centerY}
             x2={leftLensX + lensWidthPx - 8}
             y2={centerY}
-            stroke="hsl(var(--foreground))"
+            stroke="#1C3142"
             strokeWidth="2"
-            strokeDasharray="3,3"
+            strokeDasharray="4,4"
             opacity="0.7"
           />
           <text
             x={leftLensX + lensWidthPx / 2}
-            y={centerY - 12}
+            y={centerY - 20}
             textAnchor="middle"
-            className="font-headline text-sm fill-foreground/70"
+            className="font-headline text-sm"
+            fill="#1C3142"
+            opacity="0.7"
           >
             Lens width
           </text>
           <text
             x={leftLensX + lensWidthPx / 2}
-            y={centerY + 8}
+            y={centerY + 15}
             textAnchor="middle"
-            className="font-headline text-base font-bold fill-foreground"
+            className="font-sans text-base font-bold"
+            fill="#1C3142"
           >
             {formatValue(lensWidth)}
           </text>
@@ -264,57 +275,66 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
             x1={rightLensX + lensWidthPx / 2}
             y1={lensY + 8}
             x2={rightLensX + lensWidthPx / 2}
-            y2={lensY + lensHeightPx - 8}
-            stroke="hsl(var(--foreground))"
+            y2={lensY + lensHeightPx + lensExtension - 8}
+            stroke="#1C3142"
             strokeWidth="2"
-            strokeDasharray="3,3"
+            strokeDasharray="4,4"
             opacity="0.7"
           />
           <text
-            x={rightLensX + lensWidthPx / 2 + 30}
+            x={rightLensX + lensWidthPx / 2 + 40}
             y={centerY}
             textAnchor="middle"
-            className="font-headline text-sm fill-foreground/70"
-            transform={`rotate(90 ${rightLensX + lensWidthPx / 2 + 30} ${centerY})`}
+            className="font-headline text-sm"
+            fill="#1C3142"
+            opacity="0.7"
+            transform={`rotate(90 ${rightLensX + lensWidthPx / 2 + 40} ${centerY})`}
           >
             Lens height
           </text>
           <text
-            x={rightLensX + lensWidthPx / 2 + 15}
+            x={rightLensX + lensWidthPx / 2 + 20}
             y={centerY}
             textAnchor="middle"
-            className="font-headline text-base font-bold fill-foreground"
-            transform={`rotate(90 ${rightLensX + lensWidthPx / 2 + 15} ${centerY})`}
+            className="font-sans text-base font-bold"
+            fill="#1C3142"
+            transform={`rotate(90 ${rightLensX + lensWidthPx / 2 + 20} ${centerY})`}
           >
             {formatValue(lensHeight)}
           </text>
         </g>
 
-        {/* Bridge Measurement */}
+        {/* Bridge Measurement - Positioned between lenses, perfectly centered */}
         <g>
+          {/* Bridge measurement line - touches lens edges but doesn't overlap */}
           <line
             x1={leftLensX + lensWidthPx}
-            y1={centerY + 30}
+            y1={centerY + 20}
             x2={rightLensX}
-            y2={centerY + 30}
-            stroke="hsl(var(--foreground))"
+            y2={centerY + 20}
+            stroke="#1C3142"
             strokeWidth="2"
-            strokeDasharray="3,3"
+            strokeDasharray="4,4"
             opacity="0.7"
           />
+          {/* Bridge label - with proper spacing */}
           <text
             x={centerX}
-            y={centerY + 50}
+            y={centerY + 38}
             textAnchor="middle"
-            className="font-headline text-sm fill-foreground/70"
+            className="font-headline text-sm"
+            fill="#1C3142"
+            opacity="0.7"
           >
             Bridge
           </text>
+          {/* Bridge value - with proper spacing */}
           <text
             x={centerX}
-            y={centerY + 65}
+            y={centerY + 55}
             textAnchor="middle"
-            className="font-headline text-base font-bold fill-foreground"
+            className="font-sans text-base font-bold"
+            fill="#1C3142"
           >
             {formatValue(bridgeWidth)}
           </text>

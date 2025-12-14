@@ -56,7 +56,7 @@ export default function IconicSection({ iconicImage }: IconicSectionProps) {
   return (
     <section 
       ref={sectionRef}
-      className="relative py-16 sm:py-24 overflow-hidden min-h-[600px] flex items-end md:items-center"
+      className="relative py-0 lg:py-16 lg:py-24 overflow-hidden min-h-[500px] md:min-h-[600px] lg:min-h-[600px] flex flex-col justify-end lg:justify-center"
     >
       {/* Background Image */}
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -83,22 +83,25 @@ export default function IconicSection({ iconicImage }: IconicSectionProps) {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 sm:px-6 relative z-10 pb-5 md:pb-0 w-full">
+      {/* Gradient Overlay for text readability - stronger on mobile/tablet */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent lg:from-black/30 lg:via-black/10 lg:to-transparent z-[1]"></div>
+
+      <div className="container mx-auto px-4 sm:px-6 relative z-10 w-full pb-6 md:pb-8 lg:pb-0">
         <div className="max-w-2xl">
           {/* Text and Buttons */}
-          <div className="flex flex-col justify-center text-center lg:text-left">
-            <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-headline font-bold text-white mb-6 md:mb-12 leading-[1.1] tracking-tight">
+          <div className="flex flex-col justify-end text-center lg:text-left">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-7xl font-headline font-bold text-white mb-3 md:mb-4 lg:mb-12 leading-[1.1] tracking-tight drop-shadow-lg">
               GIVE SOMETHING ICONIC
             </h2>
             
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 justify-center lg:justify-start">
               <Link href="/shop" prefetch={true}>
-                <Button size="lg" className="rounded-full px-4 sm:px-6 md:px-8 py-3 sm:py-5 md:py-6 text-sm sm:text-base md:text-lg">
+                <Button size="lg" className="rounded-full px-6 py-4 md:px-7 md:py-5 lg:px-8 lg:py-6 text-sm md:text-base lg:text-lg bg-[#4DCECA] text-[#1C3142] hover:bg-[#4DCECA]/90 shadow-xl">
                   SHOP SUNGLASSES
                 </Button>
               </Link>
               <Link href="/shop" prefetch={true}>
-                <Button size="lg" className="rounded-full px-4 sm:px-6 md:px-8 py-3 sm:py-5 md:py-6 text-sm sm:text-base md:text-lg">
+                <Button size="lg" className="rounded-full px-6 py-4 md:px-7 md:py-5 lg:px-8 lg:py-6 text-sm md:text-base lg:text-lg bg-[#4DCECA] text-[#1C3142] hover:bg-[#4DCECA]/90 shadow-xl">
                   Virtual Try-On
                 </Button>
               </Link>

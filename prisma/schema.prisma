@@ -47,6 +47,8 @@ model Product {
   uvProtection   String
   averageRating  Float            @default(0)
   reviewCount    Int              @default(0)
+  isNewlyAdded   Boolean          @default(false) // For "Newly Added Products" section
+  isUniqueDesign Boolean          @default(false) // For "Unique Designs" section (formerly Best Sellers)
   categoryId     String
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt

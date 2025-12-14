@@ -6,6 +6,7 @@ export interface ProductColorVariant {
   name: string;
   hex: string;
   sku?: string; // SKU from database
+  stock?: number; // Available stock quantity
   thumbnail: string; // Thumbnail image (t.jpg)
   tilted: string; // Tilted version for hover
   nobg?: string; // Transparent background image for 3D effect (NO_BG asset)

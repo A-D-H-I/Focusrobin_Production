@@ -8,23 +8,26 @@ interface Products3DSectionProps {
 }
 
 export default function Products3DSection({ products }: Products3DSectionProps) {
-  if (products.length === 0) {
-    return null;
-  }
-
   return (
     <section className="py-20 bg-gradient-to-b from-background to-muted/20">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl sm:text-5xl md:text-6xl font-headline font-bold text-foreground mb-6">
-            Explore Our Collection
+            New Arrivals
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Browse our premium eyewear collection. Discover styles that match your personality.
+            Discover our latest additions to the collection. Fresh styles just arrived.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+        {products.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">
+              No new arrivals at the moment. Check back soon for new arrivals!
+            </p>
+          </div>
+        ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {products.map((product, index) => (
             <ProductCard
               key={`${product.id}-${index}`}
@@ -33,6 +36,7 @@ export default function Products3DSection({ products }: Products3DSectionProps) 
             />
           ))}
         </div>
+        )}
       </div>
     </section>
   );

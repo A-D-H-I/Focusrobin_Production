@@ -6,6 +6,7 @@ import type { Product, ProductColorVariant } from "@/lib/productData";
 import ProductPageClient from "./ProductPageClient";
 import ProductPageClientWrapper from "./ProductPageClientWrapper";
 import ProductPurchaseForm from "@/components/shop/product-purchase-form";
+import ProductGalleryDesktopStack from "@/components/shop/product-gallery-desktop-stack";
 
 // Dynamically import heavy components for better performance
 const ProductDetailsTabs = dynamic(() => import("@/components/shop/product-details-tabs"), {
@@ -58,9 +59,9 @@ export default function ProductPageContent({ product, reviews, relatedProducts }
   return (
     <>
       {/* Main Product Content */}
-      <div className="lg:grid lg:grid-cols-5 lg:gap-12 lg:space-y-0 space-y-12">
-        {/* Left Column - Product Gallery, Details, and Reviews */}
-        <div className="lg:col-span-3 space-y-12">
+      <div className="lg:grid lg:grid-cols-12 lg:gap-12 lg:space-y-0 space-y-12">
+        {/* Left Column - Product Images Stack (Desktop) / Gallery (Mobile) */}
+        <div className="lg:col-span-7 space-y-12">
           {/* Mobile: Full Product Page Client */}
           <div className="lg:hidden">
             <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
@@ -68,12 +69,11 @@ export default function ProductPageContent({ product, reviews, relatedProducts }
             </Suspense>
           </div>
           
-          {/* Desktop: Gallery Only */}
+          {/* Desktop: Image Stack - All images in vertical stack */}
           <div className="hidden lg:block">
-            <ProductPageClientWrapper 
+            <ProductGalleryDesktopStack 
               product={product} 
               selectedVariant={selectedVariant}
-              onVariantChange={setSelectedVariant} 
             />
           </div>
           
@@ -89,8 +89,8 @@ export default function ProductPageContent({ product, reviews, relatedProducts }
         </div>
         
         {/* Right Column - Sticky Purchase Form */}
-        <div className="lg:col-span-2">
-          <div className="lg:sticky lg:top-28">
+        <div className="lg:col-span-5">
+          <div className="lg:sticky lg:top-8 lg:h-fit">
             <div className="hidden lg:block">
               <ProductPurchaseForm 
                 product={product} 

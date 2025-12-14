@@ -19,8 +19,8 @@ export default function PackagingSection() {
           data-ai-hint={packagingImage.imageHint}
         />
       </div>
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-xl">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-end lg:items-center min-h-[400px] md:min-h-[500px]">
+        <div className="max-w-xl pb-12 md:pb-16 lg:pb-0">
           <Badge variant="secondary" className="mb-4">PREMIUM</Badge>
           <h2 className="text-3xl sm:text-4xl font-headline font-bold mb-4 uppercase">
             Emphasis on Luxury & Feel

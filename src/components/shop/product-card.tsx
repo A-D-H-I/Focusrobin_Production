@@ -69,11 +69,11 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
       prefetch={true} 
       className="block"
     >
-      <Card className="overflow-hidden group relative border-none bg-card/50 h-full">
+      <Card className="overflow-hidden group relative border-0 shadow-none bg-transparent h-full">
         <Button 
           variant="ghost" 
           size="icon" 
-          className="absolute top-2 right-2 z-10 bg-background/50 rounded-full h-8 w-8 hover:bg-background"
+          className="absolute top-2 right-2 z-10 bg-background/80 backdrop-blur-sm rounded-full h-8 w-8 hover:bg-background"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -96,7 +96,7 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
         </Button>
         <CardContent className="p-0 flex flex-col h-full">
           <div 
-            className="aspect-square relative bg-muted overflow-hidden group/image"
+            className="aspect-square relative bg-background overflow-hidden group/image rounded-t-lg"
             onMouseEnter={() => {
               if (!hoveredVariant) {
                 setIsImageHovered(true);
@@ -115,14 +115,14 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
                   fill
                   priority={priority}
                   loading={priority ? undefined : "lazy"}
-                  className="object-contain p-4 transition-all duration-500 ease-in-out"
+                  className="object-cover transition-all duration-500 ease-in-out"
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
               </div>
             )}
           </div>
-          <div className="p-4 text-center flex flex-col flex-grow">
-            <h3 className="text-md font-semibold mb-2">{product.name}</h3>
+          <div className="p-4 text-center flex flex-col flex-grow min-w-0">
+            <h3 className="text-md font-semibold mb-2 truncate">{product.name}</h3>
             <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
               <p className="text-md font-bold text-foreground">
                 {formatPrice(priceInEur)}
@@ -158,7 +158,7 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
                     setHoveredVariant(null); // Revert to selected variant
                   }}
                   className={cn(
-                    "block h-5 w-5 rounded-full border-2 transition-all cursor-pointer",
+                    "block h-5 w-5 rounded-full border-2 transition-all cursor-pointer flex-shrink-0",
                     selectedVariant?.hex === variant.hex 
                       ? "border-primary ring-2 ring-offset-1 ring-primary scale-110" 
                       : "border-border hover:scale-110"
@@ -175,16 +175,15 @@ function ProductCard({ product, onColorClick, priority = false }: ProductCardPro
                 </Badge>
               </div>
             )}
-            <div className="flex gap-2 mt-auto">
+            <div className="flex flex-col gap-2 mt-auto w-full min-w-0">
               <Button 
                 onClick={handleAddToCart}
-                className="flex-1"
+                className="w-full justify-center"
               >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Add to Cart
+                <ShoppingCart className="h-4 w-4 flex-shrink-0" />
               </Button>
-              <Button variant="outline" className="flex-1">
-                Try-On
+              <Button variant="outline" className="w-full">
+                <span className="truncate text-xs sm:text-sm">Try-On</span>
               </Button>
             </div>
           </div>

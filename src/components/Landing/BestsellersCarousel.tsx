@@ -26,7 +26,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
     return (
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold font-headline mb-4">BEST SELLERS</h2>
+          <h2 className="text-3xl font-bold font-headline mb-4">Unique Designs</h2>
           <p className="text-muted-foreground">No products available at the moment.</p>
         </div>
       </section>
@@ -176,10 +176,10 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
     <section className="bg-brand-white py-8 relative w-full overflow-hidden">
       <div className="text-center mb-6 px-4">
         <h2 className="text-brand-blue font-headline text-4xl sm:text-5xl font-bold mb-2">
-          BEST SELLERS
+          Unique Designs
         </h2>
         <p className="text-muted-foreground text-sm sm:text-base">
-          Take your pick from our selection of the hottest styles of the season.
+          Discover our exclusive collection of distinctive and one-of-a-kind eyewear designs.
         </p>
       </div>
 

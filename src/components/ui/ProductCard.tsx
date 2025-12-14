@@ -37,7 +37,7 @@ function ProductCard({ product, showCashback = false, priority = false }: Produc
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className="bg-white rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden relative">
+      <div className="bg-transparent rounded-lg shadow-none hover:shadow-md transition-all duration-300 overflow-hidden relative">
         {/* Best Seller Tag - Grey Oval */}
         <div className="absolute top-3 left-3 z-10">
           <span className="bg-muted text-foreground text-xs font-medium px-3 py-1 rounded-full">
@@ -66,7 +66,7 @@ function ProductCard({ product, showCashback = false, priority = false }: Produc
 
         {/* Product Image with Hover Effect - Zoom and show right side */}
         <div 
-          className="aspect-[4/3] relative bg-muted overflow-hidden"
+          className="aspect-square relative bg-background overflow-hidden rounded-t-lg"
           onMouseEnter={() => {
             setIsHovered(true);
           }}

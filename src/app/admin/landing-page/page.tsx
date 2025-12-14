@@ -113,6 +113,38 @@ export default function AdminLandingPage() {
               </Link>
             </CardContent>
           </Card>
+
+          {/* Newly Added Products Card */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-primary" />
+                <CardTitle>Newly Added Products</CardTitle>
+              </div>
+              <CardDescription>Manage products shown in the "Newly Added Products" section</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/newly-added-products">
+                <Button variant="outline" className="w-full">Manage Newly Added Products</Button>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Unique Designs Card */}
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-primary" />
+                <CardTitle>Unique Designs</CardTitle>
+              </div>
+              <CardDescription>Manage products shown in the "Unique Designs" section (formerly Best Sellers)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/admin/unique-designs">
+                <Button variant="outline" className="w-full">Manage Unique Designs</Button>
+              </Link>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -14,11 +14,17 @@ import Footer from '@/components/Landing/footer.tsx';
 import { prisma } from '@/lib/prisma';
 import { mapPrismaProductToProduct } from '@/lib/prisma-product-mapper';
 
+// Revalidate this page every 60 seconds to show updated products
+export const revalidate = 60;
+
 export default async function Home() {
-  // Fetch any 5 products from database for bestseller section
+  // Fetch products marked as unique designs (formerly best sellers)
   let products: any[] = [];
   try {
     const prismaProducts = (await prisma.product.findMany({
+      where: {
+        isUniqueDesign: true,
+      },
       include: {
         ProductVariant: {
           include: {
@@ -29,20 +35,76 @@ export default async function Home() {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 5,
+      take: 10, // Allow more products for unique designs
     })) as any;
 
     // Map Prisma products to frontend Product type
     products = prismaProducts.map(mapPrismaProductToProduct);
-  } catch (error) {
-    console.error('Error fetching products:', error);
+    
+    // Debug log
+    if (products.length === 0) {
+      console.log('No unique design products found. Checking if any products exist...');
+      const allProducts = await prisma.product.count();
+      const uniqueDesignCount = await prisma.product.count({ where: { isUniqueDesign: true } });
+      console.log(`Total products: ${allProducts}, Unique design products: ${uniqueDesignCount}`);
+      
+      // Fallback: If no unique designs selected, show recent products
+      if (uniqueDesignCount === 0 && allProducts > 0) {
+        console.log('No unique designs selected. Showing recent products as fallback.');
+        const fallbackProducts = (await prisma.product.findMany({
+          include: {
+            ProductVariant: {
+              include: {
+                ProductAsset: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 5,
+        })) as any;
+        products = fallbackProducts.map(mapPrismaProductToProduct);
+      }
+    }
+  } catch (error: any) {
+    // If schema fields don't exist (migration not run), fall back to recent products
+    if (error?.message?.includes("Unknown column") || 
+        error?.message?.includes("does not exist") ||
+        error?.code === "P2001") {
+      console.warn('Database migration not run yet. Fetching recent products instead.');
+      try {
+        const prismaProducts = (await prisma.product.findMany({
+          include: {
+            ProductVariant: {
+              include: {
+                ProductAsset: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 5, // Fallback to 5 recent products
+        })) as any;
+        products = prismaProducts.map(mapPrismaProductToProduct);
+      } catch (fallbackError) {
+        console.error('Error fetching fallback products:', fallbackError);
+        products = [];
+      }
+    } else {
+      console.error('Error fetching unique design products:', error);
     products = [];
+    }
   }
 
-  // Fetch single product and duplicate it 10 times for 3D section
+  // Fetch products marked as newly added
   let products3D: any[] = [];
   try {
-    const prismaProduct = (await prisma.product.findFirst({
+    const prismaProducts = (await prisma.product.findMany({
+      where: {
+        isNewlyAdded: true,
+      },
       include: {
         ProductVariant: {
           include: {
@@ -53,31 +115,67 @@ export default async function Home() {
       orderBy: {
         createdAt: 'desc',
       },
+      take: 12, // Show up to 12 newly added products
     })) as any;
 
-    if (prismaProduct) {
-      const mappedProduct = mapPrismaProductToProduct(prismaProduct);
-      // Duplicate the product 10 times with unique keys but keep original data
-      products3D = Array.from({ length: 10 }, (_, index) => {
-        // Create a deep copy to avoid reference issues
-        const productCopy = JSON.parse(JSON.stringify(mappedProduct));
-        // Only change the ID for uniqueness, keep all other data intact
-        productCopy.id = `${mappedProduct.id}-3d-${index}`;
-        // Ensure variants have proper price data
-        if (productCopy.variants && productCopy.variants.length > 0) {
-          productCopy.variants.forEach((variant: any) => {
-            // If variant doesn't have price, use product price
-            if (!variant.price && mappedProduct.price) {
-              variant.price = mappedProduct.price;
-            }
-          });
-        }
-        return productCopy;
-      });
+    // Map Prisma products to frontend Product type
+    products3D = prismaProducts.map(mapPrismaProductToProduct);
+    
+    // Debug log
+    if (products3D.length === 0) {
+      console.log('No newly added products found. Checking if any products exist...');
+      const allProducts = await prisma.product.count();
+      const newlyAddedCount = await prisma.product.count({ where: { isNewlyAdded: true } });
+      console.log(`Total products: ${allProducts}, Newly added products: ${newlyAddedCount}`);
+      
+      // Fallback: If no newly added products selected, show recent products
+      if (newlyAddedCount === 0 && allProducts > 0) {
+        console.log('No newly added products selected. Showing recent products as fallback.');
+        const fallbackProducts = (await prisma.product.findMany({
+          include: {
+            ProductVariant: {
+              include: {
+                ProductAsset: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 8,
+        })) as any;
+        products3D = fallbackProducts.map(mapPrismaProductToProduct);
+      }
     }
-  } catch (error) {
-    console.error('Error fetching product for 3D section:', error);
+  } catch (error: any) {
+    // If schema fields don't exist (migration not run), fall back to recent products
+    if (error?.message?.includes("Unknown column") || 
+        error?.message?.includes("does not exist") ||
+        error?.code === "P2001") {
+      console.warn('Database migration not run yet. Fetching recent products instead.');
+      try {
+        const prismaProducts = (await prisma.product.findMany({
+          include: {
+            ProductVariant: {
+              include: {
+                ProductAsset: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 8, // Fallback to 8 recent products
+        })) as any;
+        products3D = prismaProducts.map(mapPrismaProductToProduct);
+      } catch (fallbackError) {
+        console.error('Error fetching fallback products:', fallbackError);
+        products3D = [];
+      }
+    } else {
+      console.error('Error fetching newly added products:', error);
     products3D = [];
+    }
   }
 
   // Fetch all active hero images from database

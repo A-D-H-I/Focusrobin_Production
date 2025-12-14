@@ -1,80 +1,103 @@
 export default function LensFeatureSection() {
   return (
-    <section className="py-20 md:py-32 bg-white">
-      <div className="container mx-auto px-4 sm:px-6 grid md:grid-cols-2 gap-8 md:gap-16 items-center overflow-x-hidden">
-        {/* Left side - Text content */}
-        <div className="text-left overflow-hidden">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-headline font-bold mb-6 text-gray-800 break-words">
-            Advanced Lens Technology
-          </h2>
-          <p className="text-sm sm:text-base md:text-lg text-gray-700 mb-8 leading-relaxed break-words">
-            Our proprietary UV 400 protection system combines multiple layers of cutting-edge technology to deliver unparalleled clarity and protection for your eyes.
-          </p>
-          
-          {/* Bullet points */}
-          <ul className="space-y-4">
-            <li className="flex items-start gap-3">
-              <div className="w-2 h-2 rounded-full bg-teal-primary mt-2 flex-shrink-0"></div>
-              <div className="min-w-0 flex-1 break-words">
-                <span className="font-semibold text-gray-800">UV 400 Protection:</span>
-                <span className="text-gray-700"> Blocks 100% of harmful UVA and UVB rays</span>
+    <section className="py-12 sm:py-20 md:py-32 bg-gradient-to-b from-background to-muted/20">
+      <div className="container mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center">
+        {/* Left side - Minimalist Wave Design */}
+        <div className="flex justify-center relative py-8 sm:py-12">
+          <div className="relative w-full max-w-[280px] sm:max-w-[320px] md:max-w-[360px] mx-auto">
+            {/* Wavy circles */}
+            <div className="relative w-full aspect-square rounded-full bg-white shadow-2xl p-6 sm:p-8 overflow-visible">
+              {/* Background pattern */}
+              <div className="absolute inset-0 opacity-10">
+                <svg className="w-full h-full" viewBox="0 0 200 200">
+                  <circle cx="100" cy="100" r="80" fill="none" stroke="#4DCECA" strokeWidth="1" />
+                  <circle cx="100" cy="100" r="60" fill="none" stroke="#4DCECA" strokeWidth="1" />
+                  <circle cx="100" cy="100" r="40" fill="none" stroke="#4DCECA" strokeWidth="1" />
+                </svg>
               </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="w-2 h-2 rounded-full bg-teal-primary mt-2 flex-shrink-0"></div>
-              <div className="min-w-0 flex-1 break-words">
-                <span className="font-semibold text-gray-800">Anti-Reflective Coating:</span>
-                <span className="text-gray-700"> Reduces glare and enhances visual clarity</span>
-              </div>
-            </li>
-            <li className="flex items-start gap-3">
-              <div className="w-2 h-2 rounded-full bg-teal-primary mt-2 flex-shrink-0"></div>
-              <div className="min-w-0 flex-1 break-words">
-                <span className="font-semibold text-gray-800">Scratch Resistance:</span>
-                <span className="text-gray-700"> Durable hardened coating for long-lasting protection</span>
-              </div>
-            </li>
-          </ul>
-        </div>
-        
-        {/* Right side - Diagram */}
-        <div className="relative h-64 md:h-80 lg:h-96 w-full flex items-center justify-center overflow-visible">
-          <div className="relative w-full max-w-full h-full">
-            {/* Circles container - centered */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              {/* Outermost layer - Scratch Resistant */}
-              <div className="absolute -translate-x-1/2 -translate-y-1/2 w-48 h-48 md:w-64 md:h-64 lg:w-72 lg:h-72 rounded-full border-4 border-[rgba(77,206,202,0.3)]"></div>
               
-              {/* Middle layer - Anti-Reflective */}
-              <div className="absolute -translate-x-1/2 -translate-y-1/2 w-36 h-36 md:w-48 md:h-48 lg:w-56 lg:h-56 rounded-full border-4 border-[rgba(77,206,202,0.4)]"></div>
-              
-              {/* Innermost layer - UV 400 Core */}
-              <div className="absolute -translate-x-1/2 -translate-y-1/2 w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 rounded-full bg-teal-primary"></div>
+              {/* Center element */}
+              <div className="relative w-full h-full flex items-center justify-center">
+                <div className="w-[60%] aspect-square rounded-full bg-gradient-to-br from-teal-primary to-[#4DCECA] flex items-center justify-center shadow-xl">
+                  <div className="w-[66%] aspect-square rounded-full bg-white flex items-center justify-center">
+                    <div className="text-center px-2">
+                      <div className="text-teal-primary mb-0.5 sm:mb-1 font-headline font-bold text-xs sm:text-sm md:text-base">UV 400</div>
+                      <div className="text-teal-primary text-[10px] sm:text-xs font-headline font-bold">PROTECTION</div>
+                    </div>
+                  </div>
+              </div>
+              </div>
             </div>
             
-            {/* Labels container - ensures all labels align to the same right edge */}
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 pr-2 sm:pr-3 md:pr-4 lg:pr-6">
-              {/* Scratch Resistant Label - aligns with top-right of outermost circle */}
-              <div className="absolute -top-[96px] md:-top-[128px] lg:-top-[144px] right-0 flex items-center">
-                <div className="w-8 sm:w-10 md:w-12 lg:w-16 h-0.5 bg-teal-primary mr-2 sm:mr-2.5 md:mr-3 lg:mr-4 flex-shrink-0"></div>
-                <div className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-medium text-teal-primary whitespace-nowrap">
-                  Scratch Resistant
+            {/* Floating badges */}
+            <div className="absolute -top-2 -right-2 sm:-top-4 sm:-right-4 bg-teal-primary text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-full shadow-lg text-xs sm:text-sm font-semibold whitespace-nowrap">
+              100% Safe
+            </div>
+            <div className="absolute -bottom-2 -left-2 sm:-bottom-4 sm:-left-4 bg-white text-teal-primary px-3 py-1.5 sm:px-4 sm:py-2 rounded-full shadow-lg text-xs sm:text-sm font-semibold border-2 border-teal-primary whitespace-nowrap">
+              Triple Layer
+            </div>
+          </div>
+        </div>
+        
+        {/* Right side - Clean List Design */}
+        <div className="space-y-6 sm:space-y-8">
+          {/* Header */}
+          <div className="space-y-2 sm:space-y-3">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-headline font-bold text-teal-primary leading-tight">UV 400 PROTECTION</h2>
+            <p className="text-slate-700 text-base sm:text-lg">
+              Premium lens technology with three protective layers designed for your eye safety.
+            </p>
+          </div>
+
+          {/* Features with numbers */}
+          <div className="space-y-5 sm:space-y-6">
+            <div className="flex gap-3 sm:gap-4 md:gap-6 items-start group">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-[rgba(77,206,202,0.15)] flex items-center justify-center text-teal-primary group-hover:bg-teal-primary group-hover:text-white transition-all duration-300 font-bold text-sm sm:text-base">
+                  01
+                </div>
+              </div>
+              <div className="flex-1 pt-1 sm:pt-2">
+                <h3 className="text-gray-800 mb-1 sm:mb-2 font-bold text-base sm:text-lg">Scratch Resistant</h3>
+                <p className="text-gray-700 text-sm sm:text-base">
+                  Durable hardened coating for long-lasting protection
+                </p>
+                <div className="mt-2 sm:mt-3 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full w-3/4 bg-gradient-to-r from-teal-primary to-[#4DCECA] rounded-full" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 sm:gap-4 md:gap-6 items-start group">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-[rgba(77,206,202,0.3)] flex items-center justify-center text-teal-primary group-hover:bg-teal-primary group-hover:text-white transition-all duration-300 font-bold text-sm sm:text-base">
+                  02
+                </div>
+              </div>
+              <div className="flex-1 pt-1 sm:pt-2">
+                <h3 className="text-gray-800 mb-1 sm:mb-2 font-bold text-base sm:text-lg">Anti-Reflective</h3>
+                <p className="text-gray-700 text-sm sm:text-base">
+                  Reduces glare and enhances visual clarity
+                </p>
+                <div className="mt-2 sm:mt-3 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full w-5/6 bg-gradient-to-r from-teal-primary to-[#4DCECA] rounded-full" />
+                </div>
                 </div>
               </div>
               
-              {/* Anti-Reflective Label - aligns with right-middle of middle circle */}
-              <div className="absolute top-0 right-0 flex items-center">
-                <div className="w-8 sm:w-10 md:w-12 lg:w-16 h-0.5 bg-teal-primary mr-2 sm:mr-2.5 md:mr-3 lg:mr-4 flex-shrink-0"></div>
-                <div className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-medium text-teal-primary whitespace-nowrap">
-                  Anti-Reflective
+            <div className="flex gap-3 sm:gap-4 md:gap-6 items-start group">
+              <div className="flex-shrink-0">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-teal-primary flex items-center justify-center text-white group-hover:bg-[#3db8b4] transition-all duration-300 shadow-lg font-bold text-sm sm:text-base">
+                  03
                 </div>
               </div>
-              
-              {/* UV 400 Core Label - aligns with bottom-right of innermost circle */}
-              <div className="absolute top-[56px] md:top-[72px] lg:top-[80px] right-0 flex items-center">
-                <div className="w-8 sm:w-10 md:w-12 lg:w-16 h-0.5 bg-teal-primary mr-2 sm:mr-2.5 md:mr-3 lg:mr-4 flex-shrink-0"></div>
-                <div className="text-[9px] sm:text-[10px] md:text-xs lg:text-sm font-medium text-teal-primary whitespace-nowrap">
-                  UV 400 Core
+              <div className="flex-1 pt-1 sm:pt-2">
+                <h3 className="text-gray-800 mb-1 sm:mb-2 font-bold text-base sm:text-lg">UV 400 Core</h3>
+                <p className="text-gray-700 text-sm sm:text-base">
+                  Blocks 100% of harmful UVA and UVB rays
+                </p>
+                <div className="mt-2 sm:mt-3 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="h-full w-full bg-gradient-to-r from-teal-primary to-[#3db8b4] rounded-full" />
                 </div>
               </div>
             </div>

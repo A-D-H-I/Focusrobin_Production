@@ -156,21 +156,21 @@ export default function HeroSection({ heroData }: HeroSectionProps) {
               left: '0',
             }}
           >
-            {/* Mobile Image */}
+            {/* Mobile & Tablet Image (up to lg breakpoint) */}
             <Image
               src={normalizeImageUrl(hero.mobileImageUrl)}
               alt={sharedText?.title || hero.title}
               fill
-              className="object-cover md:hidden"
+              className="object-cover lg:hidden"
               priority={index === 0}
               unoptimized
             />
-            {/* Desktop Image */}
+            {/* Desktop Image (lg and above) */}
             <Image
               src={normalizeImageUrl(hero.desktopImageUrl)}
               alt={sharedText?.title || hero.title}
               fill
-              className="object-cover hidden md:block"
+              className="object-cover hidden lg:block"
               priority={index === 0}
               unoptimized
             />

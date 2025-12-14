@@ -94,6 +94,7 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
       name: variant.name,
       hex: variant.colorHex,
       sku: variant.sku,
+      stock: variant.stock,
       thumbnail: primaryUrl,
       tilted: hoverImage,
       nobg: noBgImage,

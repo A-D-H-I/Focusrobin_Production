@@ -42,18 +42,18 @@ function ValuePropItem({ prop, index }: { prop: typeof valueProps[0]; index: num
         backfaceVisibility: "hidden"
       }}
     >
-      <div className="bg-primary/10 p-5 rounded-full mb-6">
-        <prop.icon className="h-10 w-10 text-primary" />
+      <div className="bg-[rgba(77,206,202,0.15)] p-5 rounded-full mb-6">
+        <prop.icon className="h-10 w-10 text-teal-primary" />
       </div>
-      <h3 className="text-xl font-bold font-headline mb-2">{prop.title}</h3>
-      <p className="text-foreground/70">{prop.description}</p>
+      <h3 className="text-xl font-bold font-headline mb-2 text-gray-800">{prop.title}</h3>
+      <p className="text-gray-600">{prop.description}</p>
     </div>
   );
 }
 
 export default function ValuePropsSection() {
   return (
-    <section className="py-16 sm:py-24">
+    <section className="py-16 sm:py-24 bg-white">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {valueProps.map((prop, index) => (

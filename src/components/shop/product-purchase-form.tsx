@@ -56,12 +56,31 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
     }
   }, [externalSelectedVariant]);
 
+  // Update quantity when variant changes to ensure it doesn't exceed stock
+  useEffect(() => {
+    if (selectedVariant?.stock !== undefined) {
+      if (selectedVariant.stock === 0) {
+        setQuantity(0);
+      } else if (quantity > selectedVariant.stock) {
+        setQuantity(selectedVariant.stock);
+      } else if (quantity === 0 && selectedVariant.stock > 0) {
+        setQuantity(1);
+      }
+    }
+  }, [selectedVariant]);
+
   const handleColorSelect = (variant: ProductColorVariant) => {
     if (!externalSelectedVariant) {
       setInternalSelectedVariant(variant);
     }
     setSelectedColor(variant.hex);
     onVariantChange?.(variant);
+    // Reset quantity to 1 or max available stock when variant changes
+    if (variant.stock !== undefined && variant.stock > 0) {
+      setQuantity(1);
+    } else if (variant.stock === 0) {
+      setQuantity(0);
+    }
   };
 
   return (
@@ -134,23 +153,58 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
         </div>
       </div>
 
-      <div className="flex items-center gap-4">
-          <h3 className="text-md font-semibold">Quantity:</h3>
-          <div className="flex items-center border rounded-md">
-              <Button variant="ghost" size="icon" onClick={() => setQuantity(q => Math.max(1, q-1))} className="h-10 w-10">
-                  <Minus className="h-4 w-4" />
-              </Button>
-              <span className="w-10 text-center font-bold">{quantity}</span>
-              <Button variant="ghost" size="icon" onClick={() => setQuantity(q => q+1)} className="h-10 w-10">
-                  <Plus className="h-4 w-4" />
-              </Button>
+      <div className="space-y-3">
+          <div className="flex items-center gap-4">
+              <h3 className="text-md font-semibold">Quantity:</h3>
+              <div className="flex items-center border rounded-md">
+                  <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => setQuantity(q => Math.max(1, q-1))} 
+                      className="h-10 w-10"
+                      disabled={quantity <= 1}
+                  >
+                      <Minus className="h-4 w-4" />
+                  </Button>
+                  <span className="w-10 text-center font-bold">{quantity}</span>
+                  <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => {
+                          const maxQuantity = selectedVariant?.stock !== undefined ? selectedVariant.stock : 999;
+                          setQuantity(q => Math.min(maxQuantity, q+1));
+                      }} 
+                      className="h-10 w-10"
+                      disabled={selectedVariant?.stock !== undefined && quantity >= selectedVariant.stock}
+                  >
+                      <Plus className="h-4 w-4" />
+                  </Button>
+              </div>
           </div>
+          {/* Show stock when below 10 */}
+          {selectedVariant?.stock !== undefined && selectedVariant.stock < 10 && (
+              <div className="flex items-center gap-2 text-sm">
+                  <span className={cn(
+                      "font-medium",
+                      selectedVariant.stock === 0 
+                          ? "text-destructive" 
+                          : selectedVariant.stock <= 3 
+                          ? "text-orange-600" 
+                          : "text-amber-600"
+                  )}>
+                      {selectedVariant.stock === 0 
+                          ? "Out of Stock" 
+                          : `Only ${selectedVariant.stock} left in stock`}
+                  </span>
+              </div>
+          )}
       </div>
       
       <div className="grid grid-cols-1 gap-4">
         <Button 
           size="lg" 
           className="h-14 text-lg w-full"
+          disabled={selectedVariant?.stock !== undefined && (selectedVariant.stock === 0 || quantity > selectedVariant.stock)}
           onClick={() => {
             if (!selectedVariant) {
               toast({
@@ -160,6 +214,27 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
               });
               return;
             }
+            
+            // Check stock availability
+            if (selectedVariant.stock !== undefined) {
+              if (selectedVariant.stock === 0) {
+                toast({
+                  title: "Out of Stock",
+                  description: "This product is currently out of stock.",
+                  variant: "destructive",
+                });
+                return;
+              }
+              if (quantity > selectedVariant.stock) {
+                toast({
+                  title: "Insufficient Stock",
+                  description: `Only ${selectedVariant.stock} item${selectedVariant.stock !== 1 ? 's' : ''} available.`,
+                  variant: "destructive",
+                });
+                return;
+              }
+            }
+            
             addToCart(product, selectedVariant, quantity);
             toast({
               title: "Added to cart",
@@ -167,7 +242,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             });
           }}
         >
-          Add to Cart
+          {selectedVariant?.stock === 0 ? "Out of Stock" : "Add to Cart"}
         </Button>
         <Button 
           size="lg" 

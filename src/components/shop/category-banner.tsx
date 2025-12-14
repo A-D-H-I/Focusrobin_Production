@@ -23,7 +23,7 @@ export default function CategoryBanner({ title, imageSrc, description, link, alt
         priority
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 p-8 md:p-12 lg:p-16">
+      <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-16 pb-8 md:pb-12 lg:pb-16">
         <h1 className="text-4xl md:text-5xl lg:text-6xl font-headline font-bold text-white mb-4 drop-shadow-lg">
           {title}
         </h1>

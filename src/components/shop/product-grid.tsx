@@ -9,9 +9,9 @@ import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 
 const AdCard = () => (
-    <Card className="overflow-hidden group relative border-none aspect-[1/1] flex flex-col justify-center items-center text-center">
-        <Image src="/506.jpg" alt="Summer Sale" fill className="object-cover"/>
-        <div className="absolute inset-0 bg-black/40 z-10"></div>
+    <Card className="overflow-hidden group relative border-0 shadow-none bg-transparent aspect-[1/1] flex flex-col justify-center items-center text-center rounded-lg">
+        <Image src="/506.jpg" alt="Summer Sale" fill className="object-cover rounded-lg"/>
+        <div className="absolute inset-0 bg-black/40 z-10 rounded-lg"></div>
         <CardContent className="relative z-20 p-6 text-white">
             <p className="font-bold text-sm drop-shadow-lg">5% OFF</p>
             <h3 className="text-2xl font-bold font-headline my-2 drop-shadow-lg">On First Orders</h3>

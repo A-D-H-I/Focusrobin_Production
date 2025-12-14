@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useInView } from "react-intersection-observer";
 import { cn } from "@/lib/utils";
@@ -61,12 +61,87 @@ function CommunityImage({
 }
 
 export default function InstagramFeedSection({ instagramImages }: InstagramFeedSectionProps) {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isAutoScrolling, setIsAutoScrolling] = useState(true);
+  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   if (instagramImages.length === 0) {
     return null;
   }
 
+  // Auto-scroll functionality
+  useEffect(() => {
+    if (!scrollContainerRef.current || !isAutoScrolling || isUserScrolling) return;
+
+    const scrollContainer = scrollContainerRef.current;
+    const scrollWidth = scrollContainer.scrollWidth;
+    const clientWidth = scrollContainer.clientWidth;
+    const maxScroll = scrollWidth - clientWidth;
+
+    let scrollPosition = 0;
+    let direction = 1; // 1 for right, -1 for left
+
+    const autoScroll = () => {
+      if (!scrollContainerRef.current || isUserScrolling) return;
+
+      scrollPosition += direction * 0.5; // Scroll speed
+
+      // Reverse direction at edges
+      if (scrollPosition >= maxScroll) {
+        scrollPosition = maxScroll;
+        direction = -1;
+      } else if (scrollPosition <= 0) {
+        scrollPosition = 0;
+        direction = 1;
+      }
+
+      scrollContainer.scrollTo({
+        left: scrollPosition,
+        behavior: 'auto' // Use 'auto' for smooth continuous scrolling
+      });
+    };
+
+    const interval = setInterval(autoScroll, 20); // Update every 20ms for smooth scrolling
+
+    return () => clearInterval(interval);
+  }, [isAutoScrolling, isUserScrolling, instagramImages.length]);
+
+  // Handle user interaction - pause auto-scroll when user manually scrolls
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    const handleUserScroll = () => {
+      setIsUserScrolling(true);
+      
+      // Clear existing timeout
+      if (autoScrollTimeoutRef.current) {
+        clearTimeout(autoScrollTimeoutRef.current);
+      }
+
+      // Resume auto-scroll after 3 seconds of no user interaction
+      autoScrollTimeoutRef.current = setTimeout(() => {
+        setIsUserScrolling(false);
+      }, 3000);
+    };
+
+    scrollContainer.addEventListener('scroll', handleUserScroll, { passive: true });
+    scrollContainer.addEventListener('touchstart', handleUserScroll, { passive: true });
+    scrollContainer.addEventListener('mousedown', handleUserScroll, { passive: true });
+
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleUserScroll);
+      scrollContainer.removeEventListener('touchstart', handleUserScroll);
+      scrollContainer.removeEventListener('mousedown', handleUserScroll);
+      if (autoScrollTimeoutRef.current) {
+        clearTimeout(autoScrollTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <section className="w-full bg-[#E0F2F1] overflow-hidden py-12 md:py-16"> 
+    <section className="w-full bg-white overflow-hidden py-12 md:py-16"> 
       <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
         {/* Header Section - Centered */}
         <div className="flex flex-col items-center mb-8 md:mb-12">
@@ -99,10 +174,12 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
             @focusrobin • Join our community and share your style
           </p>
         </div>
+        </div>
 
-        {/* Image Grid Section - Horizontally Scrollable */}
-        <div className="w-full mb-8 md:mb-12 -mx-4 md:-mx-6">
+      {/* Image Grid Section - Full Width Edge-to-Edge */}
+      <div className="w-full mb-8 md:mb-12 overflow-hidden">
           <div 
+          ref={scrollContainerRef}
             className="overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory w-full"
             style={{
               scrollbarWidth: 'none',
@@ -111,15 +188,24 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
               touchAction: 'pan-x',
             }}
           >
-            <div className="flex gap-3 md:gap-4 min-w-max pb-2 px-4 md:px-6">
+          <div className="flex gap-0 md:gap-4 min-w-max pb-2 md:px-6">
               {instagramImages.map((item, index) => (
                 <div 
                   key={item.id} 
-                  className="flex-shrink-0 w-[200px] md:w-[250px] snap-start"
+                className="flex-shrink-0 w-[50vw] sm:w-[40vw] md:w-[250px] snap-start"
                 >
                   <CommunityImage item={item} index={index} />
                 </div>
               ))}
+            {/* Duplicate images for seamless loop */}
+            {instagramImages.map((item, index) => (
+              <div 
+                key={`duplicate-${item.id}`} 
+                className="flex-shrink-0 w-[50vw] sm:w-[40vw] md:w-[250px] snap-start"
+              >
+                <CommunityImage item={item} index={index + instagramImages.length} />
+              </div>
+            ))}
             </div>
           </div>
           <style jsx global>{`
@@ -135,6 +221,7 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
         </div>
 
         {/* Call to Action Button - Gradient */}
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
         <div className="flex justify-center">
           <a
             href="https://www.instagram.com/focus.robin"
