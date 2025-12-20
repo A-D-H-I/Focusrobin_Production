@@ -10,6 +10,28 @@ import { Badge } from '@/components/ui/badge';
 import { DeleteProductButton } from '@/components/admin/DeleteProductButton';
 
 /**
+ * Converts Google Drive share link to direct image URL
+ */
+function convertGoogleDriveLink(url: string): string {
+  const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFileMatch) {
+    return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}`;
+  }
+  const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (driveOpenMatch) {
+    return `https://lh3.googleusercontent.com/d/${driveOpenMatch[1]}`;
+  }
+  const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
+  if (ucMatch) {
+    return `https://lh3.googleusercontent.com/d/${ucMatch[1]}`;
+  }
+  if (url.includes('googleusercontent.com')) {
+    return url;
+  }
+  return url;
+}
+
+/**
  * Normalizes image URLs to relative paths for Next.js Image component
  */
 function normalizeImageUrl(url: string): string {
@@ -18,8 +40,13 @@ function normalizeImageUrl(url: string): string {
   // If it's already a relative path starting with /, return as is
   if (url.startsWith('/')) return url;
   
-  // If it's already a full URL (http/https), return as is
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // If it's already a full URL (http/https), check for Google Drive links
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.includes('drive.google.com')) {
+      return convertGoogleDriveLink(url);
+    }
+    return url;
+  }
   
   // Handle Windows absolute paths - look for public folder
   // Match: G:\Dev\...\public\image.jpg or C:\...\public\image.jpg

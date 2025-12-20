@@ -78,6 +78,8 @@ export default async function AdminUsersPage() {
     },
   });
 
-  return <UserManagement users={users} />;
+  const currentUserId = (session.user as any)?.id;
+
+  return <UserManagement users={users} currentUserId={currentUserId} />;
 }
 

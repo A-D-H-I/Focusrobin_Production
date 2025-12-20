@@ -149,7 +149,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow pt-24 bg-background">
+      <main className="flex-grow pt-36 sm:pt-40 bg-background">
         <div className="container mx-auto px-4 py-8">
           <Breadcrumb className="mb-8">
             <BreadcrumbList>

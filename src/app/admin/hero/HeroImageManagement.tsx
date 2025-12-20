@@ -389,32 +389,52 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
-                    {heroImage.desktopImageUrl && (
-                      <Image
+                    {heroImage.desktopImageUrl ? (
+                      <img
                         src={normalizeImageUrl(heroImage.desktopImageUrl)}
                         alt="Desktop preview"
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 50vw, 25vw"
-                        unoptimized
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => {
+                          // Show error message if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const errorDiv = document.createElement('div');
+                          errorDiv.className = 'absolute inset-0 flex items-center justify-center text-xs text-muted-foreground p-2 text-center';
+                          errorDiv.textContent = 'Image failed to load. Check URL or permissions.';
+                          target.parentElement?.appendChild(errorDiv);
+                        }}
                       />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+                        No image
+                      </div>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center z-10">
                       Desktop
                     </div>
                   </div>
                   <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
-                    {heroImage.mobileImageUrl && (
-                      <Image
+                    {heroImage.mobileImageUrl ? (
+                      <img
                         src={normalizeImageUrl(heroImage.mobileImageUrl)}
                         alt="Mobile preview"
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 50vw, 25vw"
-                        unoptimized
+                        className="absolute inset-0 w-full h-full object-cover"
+                        onError={(e) => {
+                          // Show error message if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const errorDiv = document.createElement('div');
+                          errorDiv.className = 'absolute inset-0 flex items-center justify-center text-xs text-muted-foreground p-2 text-center';
+                          errorDiv.textContent = 'Image failed to load. Check URL or permissions.';
+                          target.parentElement?.appendChild(errorDiv);
+                        }}
                       />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
+                        No image
+                      </div>
                     )}
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center z-10">
                       Mobile
                     </div>
                   </div>

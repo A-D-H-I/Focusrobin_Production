@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Minus, Plus, Sun, ParkingCircle, Shield, Droplet, Star, Heart } from "lucide-react";
+import { Minus, Plus, Sun, ParkingCircle, Shield, Droplet, Star, Heart, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Product, ProductColorVariant } from "@/lib/productData";
@@ -11,6 +11,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 import { usePrice } from "@/hooks/usePrice";
+import VirtualTryOn from "@/components/shop/virtual-tryon";
 
 type ProductPurchaseFormProps = {
   product: Product;
@@ -36,6 +37,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   const { toast } = useToast();
   const { formatPrice, parseEurPrice } = usePrice();
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isTryOnOpen, setIsTryOnOpen] = useState(false);
   
   // Check wishlist status when variant changes
   useEffect(() => {
@@ -86,6 +88,27 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   return (
     <div className="space-y-6">
       <h1 className="text-3xl md:text-4xl font-bold font-headline">{product.name}</h1>
+      
+      {/* Virtual Try-On Button - Visible at top on all devices */}
+      <Button 
+        size="lg" 
+        variant="outline" 
+        className="h-14 text-lg border-2 w-full border-primary"
+        onClick={() => {
+          if (!selectedVariant) {
+            toast({
+              title: "Error",
+              description: "Please select a color variant.",
+              variant: "destructive",
+            });
+            return;
+          }
+          setIsTryOnOpen(true);
+        }}
+      >
+        <Camera className="mr-2 h-5 w-5" />
+        Virtual Try-On
+      </Button>
       
       <div className="flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2">
@@ -282,6 +305,16 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
           {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
         </Button>
       </div>
+
+      {/* Virtual Try-On Modal */}
+      <VirtualTryOn
+        product={product}
+        variants={product.variants}
+        selectedVariantIndex={product.variants.findIndex(v => v.hex === selectedVariant?.hex) || 0}
+        productName={product.name}
+        isOpen={isTryOnOpen}
+        onClose={() => setIsTryOnOpen(false)}
+      />
     </div>
   );
 }

@@ -43,6 +43,26 @@ import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
 
+// Helper function to convert Google Drive links
+function convertGoogleDriveLink(url: string): string {
+  const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFileMatch) {
+    return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}`;
+  }
+  const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (driveOpenMatch) {
+    return `https://lh3.googleusercontent.com/d/${driveOpenMatch[1]}`;
+  }
+  const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
+  if (ucMatch) {
+    return `https://lh3.googleusercontent.com/d/${ucMatch[1]}`;
+  }
+  if (url.includes('googleusercontent.com')) {
+    return url;
+  }
+  return url;
+}
+
 // Helper function to normalize image URLs
 function normalizeImageUrl(url: string | null): string | null {
   if (!url) return null;
@@ -50,8 +70,13 @@ function normalizeImageUrl(url: string | null): string | null {
   // If it's already a relative path starting with /, return as is
   if (url.startsWith('/')) return url;
   
-  // If it's already a full URL (http/https), return as is
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // Check for Google Drive links and convert them
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.includes('drive.google.com')) {
+      return convertGoogleDriveLink(url);
+    }
+    return url;
+  }
   
   // Handle Windows absolute paths
   const publicPathMatch = url.match(/[\\/]public[\\/](.+)$/i);

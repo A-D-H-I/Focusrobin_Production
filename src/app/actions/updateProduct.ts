@@ -15,7 +15,6 @@ export interface VariantData {
   lensColor: string;
   stock: number;
   asset_nobg?: string;
-  asset_glb?: string;
   asset_tryon?: string;
   asset_hover?: string;
   asset_gallery?: string;

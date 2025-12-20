@@ -44,6 +44,12 @@ export default function CheckoutPage() {
   const [useWallet, setUseWallet] = useState(false);
   const [walletAmount, setWalletAmount] = useState<number>(0); // Amount to use in EUR
   const [totalCashback, setTotalCashback] = useState<number>(0);
+  const [promoCode, setPromoCode] = useState<string>("");
+  const [promoCodeError, setPromoCodeError] = useState<string>("");
+  const [promoDiscount, setPromoDiscount] = useState<number>(0);
+  const [promoCashback, setPromoCashback] = useState<number>(0);
+  const [appliedPromoCode, setAppliedPromoCode] = useState<{ id: string; code: string } | null>(null);
+  const [isValidatingPromo, setIsValidatingPromo] = useState(false);
   const [shippingForm, setShippingForm] = useState({
     name: "",
     phone: "",
@@ -57,8 +63,10 @@ export default function CheckoutPage() {
 
   const subtotal = getCartTotal();
   const shipping = 0; // Free shipping
-  const walletDiscount = useWallet ? Math.min(walletAmount, subtotal + shipping) : 0;
-  const total = Math.max(0, subtotal + shipping - walletDiscount);
+  // Apply promo discount first, then wallet discount
+  const afterPromoDiscount = Math.max(0, subtotal + shipping - promoDiscount);
+  const walletDiscount = useWallet ? Math.min(walletAmount, afterPromoDiscount) : 0;
+  const total = Math.max(0, afterPromoDiscount - walletDiscount);
   
   // Determine shipping provider based on country (non-editable, auto-set)
   const shippingProvider = getShippingProvider(shippingForm.country);
@@ -78,15 +86,71 @@ export default function CheckoutPage() {
     }
   }, [cartItems, session]);
 
-  // Update wallet amount when useWallet or total changes
+  // Update wallet amount when useWallet, promo discount, or total changes
   useEffect(() => {
     if (useWallet && walletBalance > 0) {
-      const maxWalletAmount = Math.min(walletBalance, subtotal + shipping);
+      const afterPromo = Math.max(0, subtotal + shipping - promoDiscount);
+      const maxWalletAmount = Math.min(walletBalance, afterPromo);
       setWalletAmount(prev => Math.min(prev || maxWalletAmount, maxWalletAmount));
     } else {
       setWalletAmount(0);
     }
-  }, [useWallet, walletBalance, subtotal, shipping]);
+  }, [useWallet, walletBalance, subtotal, shipping, promoDiscount]);
+
+  // Validate and apply promo code
+  const handleApplyPromoCode = async () => {
+    if (!promoCode.trim()) {
+      setPromoCodeError("Please enter a promo code");
+      return;
+    }
+
+    setIsValidatingPromo(true);
+    setPromoCodeError("");
+
+    try {
+      const response = await fetch("/api/promo-codes/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: promoCode.trim(),
+          subtotal: subtotal,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setPromoDiscount(data.promoCode.discountAmount || 0);
+        setPromoCashback(data.promoCode.cashbackAmount || 0);
+        setAppliedPromoCode({
+          id: data.promoCode.id,
+          code: data.promoCode.code,
+        });
+        setPromoCodeError("");
+      } else {
+        setPromoCodeError(data.error || "Invalid promo code");
+        setPromoDiscount(0);
+        setPromoCashback(0);
+        setAppliedPromoCode(null);
+      }
+    } catch (error) {
+      console.error("Error validating promo code:", error);
+      setPromoCodeError("Failed to validate promo code. Please try again.");
+      setPromoDiscount(0);
+      setPromoCashback(0);
+      setAppliedPromoCode(null);
+    } finally {
+      setIsValidatingPromo(false);
+    }
+  };
+
+  const handleRemovePromoCode = () => {
+    setPromoCode("");
+    setPromoCodeError("");
+    setPromoDiscount(0);
+    setPromoCashback(0);
+    setAppliedPromoCode(null);
+  };
 
   const loadWalletBalance = async () => {
     try {
@@ -281,6 +345,7 @@ export default function CheckoutPage() {
             country: shippingForm.country,
           },
           walletAmount: useWallet ? walletDiscount : 0,
+          promoCodeId: appliedPromoCode?.id || null,
         });
       } catch (apiError: any) {
         console.error("Error calling createCheckoutSession:", apiError);
@@ -377,7 +442,7 @@ export default function CheckoutPage() {
     return (
       <div className="flex flex-col min-h-screen bg-brand-white">
         <Header />
-        <main className="flex-grow pt-24 pb-16">
+        <main className="flex-grow pt-36 sm:pt-40 pb-16">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-2xl mx-auto text-center py-16">
               <h1 className="text-3xl sm:text-4xl font-headline font-bold text-brand-blue mb-4">
@@ -403,7 +468,7 @@ export default function CheckoutPage() {
     return (
       <div className="flex flex-col min-h-screen bg-brand-white">
         <Header />
-        <main className="flex-grow pt-24 pb-16">
+        <main className="flex-grow pt-36 sm:pt-40 pb-16">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-2xl mx-auto text-center py-16">
               <h1 className="text-3xl sm:text-4xl font-headline font-bold text-brand-blue mb-4">
@@ -428,7 +493,7 @@ export default function CheckoutPage() {
   return (
     <div className="flex flex-col min-h-screen bg-brand-white">
       <Header />
-      <main className="flex-grow pt-24 pb-16">
+      <main className="flex-grow pt-36 sm:pt-40 pb-16">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
             <h1 className="text-3xl sm:text-4xl font-headline font-bold text-brand-blue mb-8">
@@ -668,14 +733,94 @@ export default function CheckoutPage() {
                               <span className="font-semibold text-blue-700">{getShippingProviderDisplayName(shippingProvider)}</span>
                             </div>
                             
+                            {/* Promo Code Section */}
+                            <div className="border-t border-gray-200 pt-4 space-y-3">
+                              <Label htmlFor="promoCode" className="text-brand-blue font-semibold">
+                                Promo Code
+                              </Label>
+                              {!appliedPromoCode ? (
+                                <div className="flex gap-2">
+                                  <Input
+                                    id="promoCode"
+                                    type="text"
+                                    value={promoCode}
+                                    onChange={(e) => {
+                                      setPromoCode(e.target.value.toUpperCase());
+                                      setPromoCodeError("");
+                                    }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleApplyPromoCode();
+                                      }
+                                    }}
+                                    placeholder="Enter promo code"
+                                    className="flex-1"
+                                    disabled={isValidatingPromo}
+                                  />
+                                  <Button
+                                    type="button"
+                                    onClick={handleApplyPromoCode}
+                                    disabled={isValidatingPromo || !promoCode.trim()}
+                                    className="bg-brand-teal text-white hover:bg-brand-teal/90"
+                                  >
+                                    {isValidatingPromo ? "..." : "Apply"}
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-between bg-green-50 p-2 rounded border border-green-200">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-green-700 font-medium">✓ {appliedPromoCode.code}</span>
+                                    {promoDiscount > 0 && (
+                                      <span className="text-xs text-green-600">
+                                        -{formatPrice(promoDiscount)} discount
+                                      </span>
+                                    )}
+                                    {promoCashback > 0 && (
+                                      <span className="text-xs text-green-600">
+                                        +{formatPrice(promoCashback)} cashback
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleRemovePromoCode}
+                                    className="text-red-600 hover:text-red-700"
+                                  >
+                                    Remove
+                                  </Button>
+                                </div>
+                              )}
+                              {promoCodeError && (
+                                <p className="text-xs text-red-600">{promoCodeError}</p>
+                              )}
+                              {promoDiscount > 0 && (
+                                <div className="flex justify-between text-sm text-green-600">
+                                  <span>Promo Discount</span>
+                                  <div className="text-right">
+                                    <span className="font-semibold">-{formatPrice(promoDiscount)}</span>
+                                    {isNonEurCurrency && (
+                                      <span className="block text-xs">-€{promoDiscount.toFixed(2)}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
                             {/* Cashback Display */}
-                            {totalCashback > 0 && (
+                            {(totalCashback > 0 || promoCashback > 0) && (
                               <div className="flex justify-between text-sm bg-green-50 p-3 rounded-lg border border-green-200">
                                 <span className="text-green-700 font-medium">🎁 Cashback You'll Earn</span>
                                 <div className="text-right">
-                                  <span className="font-semibold text-green-700">{formatPrice(totalCashback)}</span>
+                                  <span className="font-semibold text-green-700">
+                                    {formatPrice(totalCashback + promoCashback)}
+                                  </span>
                                   {isNonEurCurrency && (
-                                    <span className="block text-xs text-green-600">€{totalCashback.toFixed(2)}</span>
+                                    <span className="block text-xs text-green-600">
+                                      €{(totalCashback + promoCashback).toFixed(2)}
+                                    </span>
                                   )}
                                 </div>
                               </div>

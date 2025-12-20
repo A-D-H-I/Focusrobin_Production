@@ -57,7 +57,7 @@ export default function FAQPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow pt-24 bg-background">
+      <main className="flex-grow pt-36 sm:pt-40 bg-background">
         <div className="container mx-auto px-4 py-12 md:py-16">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4 text-center">

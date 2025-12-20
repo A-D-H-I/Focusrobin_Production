@@ -1,0 +1,253 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { getAvailableFrameColors, type AvailableColor } from "@/app/actions/getAvailableColors";
+
+interface ShopMegaMenuProps {
+  isOpen: boolean;
+  onClose: () => void;
+  className?: string;
+  isScrolled?: boolean;
+}
+
+const shapes = [
+  { name: "Cat eye", icon: "cat-eye" },
+  { name: "Rectangle", icon: "rectangle" },
+  { name: "Square", icon: "square" },
+  { name: "Butterfly", icon: "butterfly" },
+  { name: "Round", icon: "round" },
+  { name: "Geometric", icon: "geometric" },
+  { name: "Aviator", icon: "aviator" },
+  { name: "Browline", icon: "browline" },
+  { name: "Oval", icon: "oval" },
+];
+
+export default function ShopMegaMenu(props: ShopMegaMenuProps) {
+  const { isOpen, onClose, className, isScrolled = false } = props;
+  const menuRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [availableColors, setAvailableColors] = useState<AvailableColor[]>([]);
+  const [isLoadingColors, setIsLoadingColors] = useState(true);
+
+  useEffect(function fetchColors() {
+    if (isOpen && availableColors.length === 0) {
+      setIsLoadingColors(true);
+      getAvailableFrameColors()
+        .then(function(colors) {
+          setAvailableColors(colors);
+          setIsLoadingColors(false);
+        })
+        .catch(function(error) {
+          console.error("Error fetching available colors:", error);
+          setIsLoadingColors(false);
+        });
+    }
+  }, [isOpen, availableColors.length]);
+
+  useEffect(function handleClickOutside() {
+    function handler(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        onClose();
+      }
+    }
+    if (isOpen) {
+      document.addEventListener("mousedown", handler);
+    }
+    return function() {
+      document.removeEventListener("mousedown", handler);
+    };
+  }, [isOpen, onClose]);
+
+  function handleMouseLeave() {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(function() {
+      onClose();
+    }, 300);
+  }
+
+  function handleMouseEnter() {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  }
+
+  useEffect(function cleanup() {
+    return function() {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Prevent body scroll when menu is open
+  useEffect(function preventScroll() {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return function() {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
+  if (!isOpen) {
+    return null;
+  }
+
+  return (
+    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-4 z-[110]">
+      <div
+        className="absolute -top-4 left-1/2 -translate-x-1/2 w-full h-4 z-[109]"
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+      />
+      <div
+        ref={menuRef}
+        className={cn(
+          "w-[90vw] max-w-5xl bg-white shadow-2xl rounded-lg border border-gray-200",
+          "grid grid-cols-3 gap-8 p-8",
+          className
+        )}
+        onMouseLeave={handleMouseLeave}
+        onMouseEnter={handleMouseEnter}
+      >
+        <div className="space-y-4">
+          <h3 className="font-bold text-black text-base mb-4">Shop</h3>
+          <div className="space-y-3">
+            <Link href="/shop" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+              All Sunglasses
+            </Link>
+            <Link href="/shop/women" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+              Women&apos;s Sunglasses
+            </Link>
+            <Link href="/shop/men" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+              Men&apos;s Sunglasses
+            </Link>
+            <Link href="/shop/kids" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+              Kids Sunglasses
+            </Link>
+            <Link href="/shop?filter=bestsellers" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+              Best Sellers
+            </Link>
+            <Link href="/shop?filter=new-arrivals" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+              New Arrivals
+            </Link>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="font-bold text-black text-base mb-4">Shop by Frame Color</h3>
+          {isLoadingColors ? (
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3, 4, 5, 6].map(function(i) {
+                return <div key={i} className="w-12 h-12 rounded-full border-2 border-gray-300 bg-gray-200 animate-pulse" />;
+              })}
+            </div>
+          ) : availableColors.length === 0 ? (
+            <p className="text-sm text-gray-500">No colors available</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-3">
+              {availableColors.map(function(color, index) {
+                const colorHex = color.colorHex.startsWith("#") ? color.colorHex : "#" + color.colorHex;
+                const isWhite = colorHex.toLowerCase() === "#ffffff" || colorHex.toLowerCase() === "#fff";
+                return (
+                  <Link
+                    key={color.colorHex + "-" + index}
+                    href={"/shop?color=" + encodeURIComponent(colorHex)}
+                    className="group relative flex justify-center"
+                    onClick={onClose}
+                    title={color.colorName}
+                  >
+                    <div
+                      className={cn(
+                        "w-12 h-12 rounded-full border-2 transition-all hover:scale-110 hover:border-primary",
+                        isWhite ? "bg-white border-gray-400" : "border-gray-300"
+                      )}
+                      style={{ backgroundColor: colorHex }}
+                    />
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="font-bold text-black text-base mb-4">Shop by Shape</h3>
+          <div className="grid grid-cols-3 gap-3">
+            {shapes.map(function(shape, index) {
+              return (
+                <Link
+                  key={index}
+                  href={"/shop?shape=" + encodeURIComponent(shape.name.toLowerCase().replace(/\s+/g, "-"))}
+                  className="group flex flex-col items-center p-3 bg-[#F5F5DC] rounded-lg hover:bg-[#E8E8D0] transition-colors"
+                  onClick={onClose}
+                >
+                  <div className="w-12 h-8 mb-2 flex items-center justify-center">
+                    {shape.icon === "cat-eye" && (
+                      <svg viewBox="0 0 24 16" className="w-full h-full">
+                        <path d="M2 8 Q6 2, 12 8 Q18 14, 22 8" stroke="black" strokeWidth="1.5" fill="none" />
+                        <path d="M6 8 L12 4 L18 8" stroke="black" strokeWidth="1.5" fill="none" />
+                      </svg>
+                    )}
+                    {shape.icon === "rectangle" && (
+                      <svg viewBox="0 0 24 16" className="w-full h-full">
+                        <rect x="4" y="4" width="16" height="8" stroke="black" strokeWidth="1.5" fill="none" />
+                      </svg>
+                    )}
+                    {shape.icon === "square" && (
+                      <svg viewBox="0 0 24 16" className="w-full h-full">
+                        <rect x="6" y="2" width="12" height="12" stroke="black" strokeWidth="1.5" fill="none" />
+                      </svg>
+                    )}
+                    {shape.icon === "butterfly" && (
+                      <svg viewBox="0 0 24 16" className="w-full h-full">
+                        <path d="M2 8 Q8 2, 12 8 Q16 14, 22 8" stroke="black" strokeWidth="1.5" fill="none" />
+                        <path d="M8 6 Q12 8, 16 6" stroke="black" strokeWidth="1.5" fill="none" />
+                      </svg>
+                    )}
+                    {shape.icon === "round" && (
+                      <svg viewBox="0 0 24 16" className="w-full h-full">
+                        <circle cx="12" cy="8" r="6" stroke="black" strokeWidth="1.5" fill="none" />
+                      </svg>
+                    )}
+                    {shape.icon === "geometric" && (
+                      <svg viewBox="0 0 24 16" className="w-full h-full">
+                        <polygon points="12,2 20,6 20,14 12,18 4,14 4,6" stroke="black" strokeWidth="1.5" fill="none" />
+                      </svg>
+                    )}
+                    {shape.icon === "aviator" && (
+                      <svg viewBox="0 0 24 16" className="w-full h-full">
+                        <ellipse cx="8" cy="8" rx="6" ry="4" stroke="black" strokeWidth="1.5" fill="none" />
+                        <ellipse cx="16" cy="8" rx="6" ry="4" stroke="black" strokeWidth="1.5" fill="none" />
+                        <line x1="14" y1="8" x2="10" y2="8" stroke="black" strokeWidth="1.5" />
+                      </svg>
+                    )}
+                    {shape.icon === "browline" && (
+                      <svg viewBox="0 0 24 16" className="w-full h-full">
+                        <path d="M4 6 L8 4 L12 6 L16 4 L20 6" stroke="black" strokeWidth="2" fill="none" />
+                        <path d="M4 10 L8 12 L12 10 L16 12 L20 10" stroke="black" strokeWidth="1.5" fill="none" />
+                      </svg>
+                    )}
+                    {shape.icon === "oval" && (
+                      <svg viewBox="0 0 24 16" className="w-full h-full">
+                        <ellipse cx="12" cy="8" rx="8" ry="5" stroke="black" strokeWidth="1.5" fill="none" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-xs text-black text-center leading-tight">{shape.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

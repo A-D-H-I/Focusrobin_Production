@@ -263,11 +263,26 @@ export async function deleteSession(sessionId: string) {
 
 export async function deleteAccount(accountId: string) {
   return safeAction(async () => {
-    await requireAdmin();
+    const { session } = await requireAdmin();
 
     const validatedId = userIdSchema.safeParse(accountId);
     if (!validatedId.success) {
       return { error: "Invalid account ID" };
+    }
+
+    // Get the account to check if it belongs to the current admin
+    const account = await prisma.account.findUnique({
+      where: { id: validatedId.data },
+      select: { userId: true },
+    });
+
+    if (!account) {
+      return { error: "Account not found" };
+    }
+
+    // Prevent self-deletion of OAuth account
+    if (account.userId === session.user.id) {
+      return { error: "You cannot delete your own OAuth account" };
     }
 
     await prisma.account.delete({
@@ -614,11 +629,26 @@ export async function getDeletedUsers() {
 
 export async function permanentlyDeleteUser(deletedUserId: string) {
   return safeAction(async () => {
-    await requireAdmin();
+    const { session } = await requireAdmin();
 
     const validatedId = userIdSchema.safeParse(deletedUserId);
     if (!validatedId.success) {
       return { error: "Invalid deleted user ID" };
+    }
+
+    // Get the deleted user to check if it's the current admin's archived account
+    const deletedUser = await (prisma as any).deletedUser.findUnique({
+      where: { id: validatedId.data },
+      select: { originalUserId: true },
+    });
+
+    if (!deletedUser) {
+      return { error: "Deleted user not found" };
+    }
+
+    // Prevent self-deletion of archived account
+    if (deletedUser.originalUserId === session.user.id) {
+      return { error: "You cannot permanently delete your own archived account" };
     }
 
     await (prisma as any).deletedUser.delete({

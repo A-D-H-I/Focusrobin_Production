@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Promotional banner height - adjust if banner height changes */
+:root {
+  --promotional-banner-height: 40px; /* sm: 44px */
+}
+
 @layer base {
   :root {
     --background: 180 67% 97%;
@@ -105,18 +110,19 @@
     scrollbar-width: none;
   }
 
-  /* Optimize header for smooth background transitions */
-  header {
-    will-change: background-color;
-  }
-
-  /* Hide header when 3D viewer is open */
-  body.viewer-3d-open header {
+  /* Hide header when Virtual Try-On is open */
+  body.virtual-tryon-open header {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
   }
+
+  /* Optimize header for smooth background transitions */
+  header {
+    will-change: background-color;
+  }
+
 
   /* Custom scrollbar styling for smoother feel */
   ::-webkit-scrollbar {

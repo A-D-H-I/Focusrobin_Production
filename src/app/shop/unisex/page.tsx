@@ -6,14 +6,41 @@ import ShopPageClient from "../ShopPageClient";
 import CategoryBanner from "@/components/shop/category-banner";
 import { Gender } from "@prisma/client";
 
-export default async function UnisexShopPage() {
+interface UnisexShopPageProps {
+  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export default async function UnisexShopPage({ searchParams }: UnisexShopPageProps) {
+  // Get color filter from URL
+  const colorFilter = searchParams.color as string | undefined;
+  const colorHex = colorFilter ? decodeURIComponent(colorFilter) : undefined;
+
+  // Build where clause
+  const whereClause: any = {
+    gender: {
+      has: Gender.UNISEX,
+    },
+  };
+
+  // Filter by frame color if provided
+  if (colorHex) {
+    const normalizedColorHex = colorHex.startsWith('#') 
+      ? colorHex.toLowerCase() 
+      : `#${colorHex.toLowerCase()}`;
+    
+    whereClause.ProductVariant = {
+      some: {
+        colorHex: normalizedColorHex,
+        stock: {
+          gt: 0,
+        },
+      },
+    };
+  }
+
   // Fetch products filtered by UNISEX gender
   const prismaProducts = (await prisma.product.findMany({
-    where: {
-      gender: {
-        has: Gender.UNISEX, // Products that include UNISEX in their gender array
-      },
-    },
+    where: whereClause,
     include: {
       ProductVariant: {
         include: {
@@ -53,7 +80,7 @@ export default async function UnisexShopPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow bg-background">
+      <main className="flex-grow pt-36 sm:pt-40 bg-background">
         <CategoryBanner
           title={bannerTitle}
           imageSrc={bannerImage}

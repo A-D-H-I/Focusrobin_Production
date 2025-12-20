@@ -1,5 +1,6 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+import Facebook from "next-auth/providers/facebook";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 
@@ -7,13 +8,100 @@ import { prisma } from "@/lib/prisma";
 const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
 const googleClientId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+const facebookClientId = process.env.AUTH_FACEBOOK_ID || process.env.FACEBOOK_CLIENT_ID;
+const facebookClientSecret = process.env.AUTH_FACEBOOK_SECRET || process.env.FACEBOOK_CLIENT_SECRET;
 
 if (!authSecret) {
   throw new Error("AUTH_SECRET or NEXTAUTH_SECRET is required");
 }
 
 if (!googleClientId || !googleClientSecret) {
-  console.warn("Google OAuth credentials not found. Sign in with Google will not work.");
+  console.warn("⚠️ Google OAuth credentials not found. Sign in with Google will not work.");
+}
+
+// Validate Facebook credentials
+const hasFacebookCredentials = !!(facebookClientId && facebookClientSecret);
+if (!hasFacebookCredentials) {
+  console.warn("⚠️ Facebook OAuth credentials not found. Sign in with Facebook will not work.");
+  console.warn("   Add AUTH_FACEBOOK_ID and AUTH_FACEBOOK_SECRET to your .env.local file.");
+} else {
+  // Validate Facebook credentials format
+  if (facebookClientId && facebookClientId.length < 10) {
+    console.warn("⚠️ Facebook App ID appears to be invalid (too short).");
+  }
+  if (facebookClientSecret && facebookClientSecret.length < 10) {
+    console.warn("⚠️ Facebook App Secret appears to be invalid (too short).");
+  }
+  if (process.env.NODE_ENV === "development") {
+    console.log("✅ Facebook OAuth credentials found. Facebook login is enabled.");
+  }
+}
+
+// Build providers array with error handling
+const providers: any[] = [];
+
+// Add Google provider
+if (googleClientId && googleClientSecret) {
+  try {
+    providers.push(
+      Google({
+        clientId: googleClientId,
+        clientSecret: googleClientSecret,
+      })
+    );
+    if (process.env.NODE_ENV === "development") {
+      console.log("✅ Google OAuth provider configured");
+    }
+  } catch (error) {
+    console.error("❌ Error configuring Google provider:", error);
+  }
+}
+
+// Add Facebook provider with enhanced error handling
+if (facebookClientId && facebookClientSecret) {
+  try {
+    // Validate credentials before adding provider
+    if (facebookClientId.length < 10 || facebookClientSecret.length < 10) {
+      throw new Error("Facebook credentials appear to be invalid (too short)");
+    }
+    
+    providers.push(
+      Facebook({
+        clientId: facebookClientId,
+        clientSecret: facebookClientSecret,
+        authorization: {
+          params: {
+            scope: "email public_profile",
+          },
+        },
+        // Handle profile to ensure we always have an email
+        profile(profile) {
+          // Facebook may not return an email for some users
+          // Generate a fallback email using their Facebook ID
+          const email = profile.email || `${profile.id}@facebook.placeholder.com`;
+          
+          return {
+            id: profile.id,
+            name: profile.name,
+            email: email,
+            image: profile.picture?.data?.url,
+          };
+        },
+      })
+    );
+    if (process.env.NODE_ENV === "development") {
+      console.log("✅ Facebook OAuth provider configured");
+      console.log(`   App ID: ${facebookClientId.substring(0, 8)}...`);
+    }
+  } catch (error: any) {
+    console.error("❌ Error configuring Facebook provider:", error?.message || error);
+    console.error("   This will cause a 'Configuration' error when trying to sign in with Facebook.");
+    console.error("   Please check your AUTH_FACEBOOK_ID and AUTH_FACEBOOK_SECRET values.");
+  }
+} else {
+  if (process.env.NODE_ENV === "development") {
+    console.warn("⚠️ Facebook provider not added - credentials missing");
+  }
 }
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -21,18 +109,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   secret: authSecret,
   trustHost: true, // Required for NextAuth v5 - allows dynamic host detection
   debug: process.env.NODE_ENV === "development", // Enable debug in development
-  providers: [
-    ...(googleClientId && googleClientSecret
-      ? [
-          Google({
-            clientId: googleClientId,
-            clientSecret: googleClientSecret,
-          }),
-        ]
-      : []),
-  ],
+  providers,
   callbacks: {
     async signIn({ user, account, profile }) {
+      // Log authentication attempt for debugging
+      if (process.env.NODE_ENV === "development" && account) {
+        console.log(`🔐 Sign in attempt: ${account.provider} - ${user?.email || 'using placeholder email'}`);
+      }
+
+      // Log if Facebook didn't return an email (we now handle this with a placeholder)
+      if (account?.provider === "facebook" && user?.email?.includes('@facebook.placeholder.com')) {
+        console.log("ℹ️ Facebook did not return email - using placeholder email for user");
+      }
+
       // Process welcome bonus after user is created
       // Use setTimeout to ensure user is fully created by PrismaAdapter
       if (user?.email && account) {
@@ -219,7 +308,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   pages: {
-    signIn: "/",
+    signIn: "/login",
   },
   session: {
     strategy: "database",

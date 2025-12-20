@@ -70,7 +70,7 @@ export default async function CustomShopPage({ params }: { params: { slug: strin
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow bg-background">
+      <main className="flex-grow pt-36 sm:pt-40 bg-background">
         {/* Banner */}
         <CategoryBanner
           title={bannerTitle}

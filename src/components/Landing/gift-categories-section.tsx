@@ -35,7 +35,7 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
   const sectionRef = useRef<HTMLElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [isAutoScrolling, setIsAutoScrolling] = useState(true);
-  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false); // Track if user has clicked/tapped
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoScrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -92,11 +92,9 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
         return;
       }
       
-      // Don't scroll if user is interacting
-      if (isUserScrolling) {
-        // Retry after user stops scrolling
-        autoScrollIntervalRef.current = setTimeout(scrollToNextCategory, 3000);
-        return;
+      // Don't scroll if user has clicked/tapped (but allow during manual scrolling)
+      if (hasUserInteracted) {
+        return; // Stop auto-scroll permanently if user has clicked/tapped
       }
       
       const container = scrollContainer;
@@ -142,9 +140,9 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
       const duration = 1000; // 1 second
       const startTime = performance.now();
 
-      const animateScroll = (currentTime: number) => {
+        const animateScroll = (currentTime: number) => {
         const cont = scrollContainerRef.current;
-        if (!cont || isUserScrolling) return;
+        if (!cont || hasUserInteracted) return; // Only stop if user clicked/tapped, not if scrolling
         
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1); // 0 to 1
@@ -159,8 +157,10 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
         if (progress < 1) {
           requestAnimationFrame(animateScroll);
         } else {
-          // After scrolling completes, schedule next scroll
-          autoScrollIntervalRef.current = setTimeout(scrollToNextCategory, 2000); // Wait 2 seconds before next scroll
+          // After scrolling completes, schedule next scroll (only if user hasn't interacted)
+          if (!hasUserInteracted) {
+            autoScrollIntervalRef.current = setTimeout(scrollToNextCategory, 2000); // Wait 2 seconds before next scroll
+          }
         }
       };
 
@@ -178,34 +178,42 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
         clearTimeout(autoScrollIntervalRef.current);
       }
     };
-  }, [categoryImages.length, isUserScrolling]);
+  }, [categoryImages.length, hasUserInteracted]);
 
-  // Handle user interaction - pause auto-scroll when user manually scrolls
+  // Handle user interaction - stop auto-scroll permanently only on click/tap (not scroll)
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
     if (!scrollContainer) return;
 
-    const handleUserScroll = () => {
-      if (window.innerWidth >= 768) return; // Only on mobile
-      setIsUserScrolling(true);
+    const handleUserInteraction = () => {
+      if (window.innerWidth >= 768) return; // Only on mobile/tablet
       
+      // Stop auto-scroll permanently on click/tap
+      setHasUserInteracted(true);
+      setIsAutoScrolling(false);
+      
+      // Clear any pending auto-scroll timers
       if (autoScrollTimeoutRef.current) {
         clearTimeout(autoScrollTimeoutRef.current);
+        autoScrollTimeoutRef.current = null;
       }
-
-      autoScrollTimeoutRef.current = setTimeout(() => {
-        setIsUserScrolling(false);
-      }, 3000);
+      if (autoScrollIntervalRef.current) {
+        clearTimeout(autoScrollIntervalRef.current);
+        autoScrollIntervalRef.current = null;
+      }
     };
 
-    scrollContainer.addEventListener('scroll', handleUserScroll, { passive: true });
-    scrollContainer.addEventListener('touchstart', handleUserScroll, { passive: true });
-    scrollContainer.addEventListener('mousedown', handleUserScroll, { passive: true });
+    // Stop auto-scroll only on click/tap interactions (not scroll)
+    scrollContainer.addEventListener('click', handleUserInteraction, { passive: true });
+    scrollContainer.addEventListener('touchstart', handleUserInteraction, { passive: true });
+    scrollContainer.addEventListener('touchend', handleUserInteraction, { passive: true });
+    scrollContainer.addEventListener('mousedown', handleUserInteraction, { passive: true });
 
     return () => {
-      scrollContainer.removeEventListener('scroll', handleUserScroll);
-      scrollContainer.removeEventListener('touchstart', handleUserScroll);
-      scrollContainer.removeEventListener('mousedown', handleUserScroll);
+      scrollContainer.removeEventListener('click', handleUserInteraction);
+      scrollContainer.removeEventListener('touchstart', handleUserInteraction);
+      scrollContainer.removeEventListener('touchend', handleUserInteraction);
+      scrollContainer.removeEventListener('mousedown', handleUserInteraction);
       if (autoScrollTimeoutRef.current) {
         clearTimeout(autoScrollTimeoutRef.current);
       }

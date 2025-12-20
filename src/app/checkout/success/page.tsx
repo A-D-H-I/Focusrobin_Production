@@ -130,7 +130,7 @@ export default function CheckoutSuccessPage() {
     return (
       <>
         <Header />
-        <main className="min-h-screen bg-background pt-24">
+        <main className="min-h-screen bg-background pt-36 sm:pt-40">
           <div className="container mx-auto px-4 py-12">
             <div className="flex flex-col items-center justify-center min-h-[400px]">
               <Loader2 className="h-12 w-12 animate-spin text-brand-teal mb-4" />
@@ -147,7 +147,7 @@ export default function CheckoutSuccessPage() {
     return (
       <>
         <Header />
-        <main className="min-h-screen bg-background pt-24">
+        <main className="min-h-screen bg-background pt-36 sm:pt-40">
           <div className="container mx-auto px-4 py-12">
             <div className="max-w-2xl mx-auto text-center">
               <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
@@ -174,7 +174,7 @@ export default function CheckoutSuccessPage() {
   return (
     <>
       <Header />
-      <main className="min-h-screen bg-background pt-24">
+      <main className="min-h-screen bg-background pt-36 sm:pt-40">
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-3xl mx-auto">
             {/* Success Header */}

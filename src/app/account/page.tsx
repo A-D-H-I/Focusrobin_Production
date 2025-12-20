@@ -402,7 +402,11 @@ export default function AccountPage() {
         
         // Sign out and redirect after a short delay
         setTimeout(async () => {
-          await signOut({ callbackUrl: "/" });
+          // Use current origin to ensure redirect works with ngrok
+          const callbackUrl = typeof window !== 'undefined' 
+            ? `${window.location.origin}/`
+            : "/";
+          await signOut({ callbackUrl });
         }, 2000);
       }
     } catch (error) {
@@ -592,7 +596,7 @@ export default function AccountPage() {
     return (
       <div className="flex flex-col min-h-screen bg-brand-white">
         <Header />
-        <main className="flex-grow pt-24 pb-16">
+        <main className="flex-grow pt-36 sm:pt-40 pb-16">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center py-12">
               <p className="text-muted-foreground">Loading...</p>
@@ -609,7 +613,7 @@ export default function AccountPage() {
     return (
       <div className="flex flex-col min-h-screen bg-brand-white">
         <Header />
-        <main className="flex-grow pt-24 pb-16">
+        <main className="flex-grow pt-36 sm:pt-40 pb-16">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-md mx-auto mt-12">
               <div className="bg-white border border-border rounded-lg p-8 text-center">
@@ -623,7 +627,13 @@ export default function AccountPage() {
                   </p>
                 </div>
                 <Button
-                  onClick={() => signIn("google", { callbackUrl: "/account" })}
+                  onClick={() => {
+                    // Use current origin to ensure redirect works with both ngrok and localhost
+                    const callbackUrl = typeof window !== 'undefined' 
+                      ? `${window.location.origin}/account`
+                      : "/account";
+                    signIn("google", { callbackUrl });
+                  }}
                   className="w-full"
                   size="lg"
                 >
@@ -642,7 +652,7 @@ export default function AccountPage() {
   return (
     <div className="flex flex-col min-h-screen bg-brand-white">
       <Header />
-      <main className="flex-grow pt-24 pb-16">
+      <main className="flex-grow pt-36 sm:pt-40 pb-16">
         <div className="container mx-auto px-4 sm:px-6">
           <h1 className="text-3xl sm:text-4xl font-headline font-bold text-brand-blue mb-8">
             My Account
@@ -657,10 +667,13 @@ export default function AccountPage() {
                   return (
                     <button
                       key={tab.id}
-                      onClick={() => {
+                      onClick={async () => {
                         if (tab.id === 'logout') {
-                          // Handle logout
-                          alert('Logout functionality to be implemented');
+                          // Handle logout with proper callback URL for ngrok
+                          const callbackUrl = typeof window !== 'undefined' 
+                            ? `${window.location.origin}/`
+                            : "/";
+                          await signOut({ callbackUrl });
                         } else {
                           setActiveTab(tab.id);
                         }

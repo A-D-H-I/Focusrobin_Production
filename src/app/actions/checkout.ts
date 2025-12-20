@@ -28,6 +28,7 @@ interface CheckoutData {
     country: string;
   };
   walletAmount?: number;
+  promoCodeId?: string | null;
 }
 
 function generateOrderNumber(): string {
@@ -36,11 +37,36 @@ function generateOrderNumber(): string {
   return `ORD-${year}-${random}`;
 }
 
+// Helper function to convert Google Drive links
+function convertGoogleDriveLink(url: string): string {
+  const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFileMatch) {
+    return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}`;
+  }
+  const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (driveOpenMatch) {
+    return `https://lh3.googleusercontent.com/d/${driveOpenMatch[1]}`;
+  }
+  const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
+  if (ucMatch) {
+    return `https://lh3.googleusercontent.com/d/${ucMatch[1]}`;
+  }
+  if (url.includes('googleusercontent.com')) {
+    return url;
+  }
+  return url;
+}
+
 // Helper function to normalize image URLs
 function normalizeImageUrl(url: string | null): string | null {
   if (!url) return null;
   if (url.startsWith('/')) return url;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.includes('drive.google.com')) {
+      return convertGoogleDriveLink(url);
+    }
+    return url;
+  }
   
   const publicPathMatch = url.match(/[\\/]public[\\/](.+)$/i);
   if (publicPathMatch) {
@@ -254,9 +280,49 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     }
 
     const shipping = 0; // Free shipping
+    const orderTotalBeforePromo = subtotal + shipping;
+
+    // Validate and apply promo code if provided
+    let promoDiscount = 0;
+    let promoCashback = 0;
+    let promoCodeId: string | null = null;
+
+    if (checkoutData.promoCodeId) {
+      const promoCode = await prisma.promoCode.findUnique({
+        where: { id: checkoutData.promoCodeId },
+      });
+
+      if (promoCode && promoCode.isActive) {
+        const now = new Date();
+        // Validate dates
+        if (promoCode.startDate <= now && (!promoCode.endDate || promoCode.endDate >= now)) {
+          // Validate usage limit
+          if (!promoCode.usageLimit || promoCode.usedCount < promoCode.usageLimit) {
+            // Validate minimum purchase
+            if (!promoCode.minPurchaseAmount || orderTotalBeforePromo >= Number(promoCode.minPurchaseAmount)) {
+              // Calculate discount
+              if (promoCode.discountPercentage) {
+                promoDiscount = (orderTotalBeforePromo * Number(promoCode.discountPercentage)) / 100;
+              } else if (promoCode.discountAmount) {
+                promoDiscount = Number(promoCode.discountAmount);
+              }
+              promoDiscount = Math.min(promoDiscount, orderTotalBeforePromo);
+
+              // Calculate cashback
+              if (promoCode.cashbackPercentage) {
+                promoCashback = (orderTotalBeforePromo * Number(promoCode.cashbackPercentage)) / 100;
+              }
+
+              promoCodeId = promoCode.id;
+            }
+          }
+        }
+      }
+    }
+
+    const orderTotalAfterPromo = Math.max(0, orderTotalBeforePromo - promoDiscount);
     const walletAmount = checkoutData.walletAmount || 0;
-    const orderTotalBeforeWallet = subtotal + shipping;
-    const total = Math.max(0, orderTotalBeforeWallet - walletAmount);
+    const total = Math.max(0, orderTotalAfterPromo - walletAmount);
 
     // Validate wallet amount if provided
     if (walletAmount > 0) {
@@ -278,8 +344,8 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         return { error: `Insufficient wallet balance. Available: €${walletBalance.toFixed(2)}, Requested: €${walletAmount.toFixed(2)}` };
       }
 
-      // Verify wallet amount doesn't exceed order total
-      if (walletAmount > orderTotalBeforeWallet) {
+      // Verify wallet amount doesn't exceed order total (after promo discount)
+      if (walletAmount > orderTotalAfterPromo) {
         return { error: "Wallet amount cannot exceed order total" };
       }
     }
@@ -338,6 +404,9 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         shipping,
         total,
         walletAmountUsed: walletAmount,
+        promoCodeId: promoCodeId,
+        promoDiscount: promoDiscount,
+        promoCashback: promoCashback,
         currency: "EUR",
         shippingProvider,
         shippingName: checkoutData.shippingAddress.name,
@@ -372,10 +441,22 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       },
     });
 
-    // Adjust Stripe line items if wallet amount is used
-    // We need to ensure Stripe charges only the remaining amount after wallet deduction
-    if (walletAmount > 0 && orderTotalBeforeWallet > 0) {
-      const reductionRatio = total / orderTotalBeforeWallet; // e.g., if total is 80 and original is 100, ratio is 0.8
+    // Increment promo code usage count if used
+    if (promoCodeId) {
+      await prisma.promoCode.update({
+        where: { id: promoCodeId },
+        data: {
+          usedCount: {
+            increment: 1,
+          },
+        },
+      });
+    }
+
+    // Adjust Stripe line items if promo discount or wallet amount is used
+    // We need to ensure Stripe charges only the remaining amount after discounts
+    if ((promoDiscount > 0 || walletAmount > 0) && orderTotalBeforePromo > 0) {
+      const reductionRatio = total / orderTotalBeforePromo; // e.g., if total is 80 and original is 100, ratio is 0.8
       
       // Calculate total of adjusted amounts to ensure exact match
       let adjustedTotal = 0;

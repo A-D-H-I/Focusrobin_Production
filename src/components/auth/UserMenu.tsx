@@ -20,21 +20,21 @@ export default function UserMenu() {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSignIn = async () => {
-    setIsLoading(true);
-    try {
-      await signIn("google", { callbackUrl: "/" });
-    } catch (error) {
-      console.error("Sign in error:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleSignIn = () => {
+    // Redirect to login page instead of directly signing in
+    const currentUrl = typeof window !== 'undefined' ? window.location.pathname : '/';
+    const loginUrl = `/login${currentUrl !== '/' && currentUrl !== '/login' ? `?callbackUrl=${encodeURIComponent(currentUrl)}` : ''}`;
+    window.location.href = loginUrl;
   };
 
   const handleSignOut = async () => {
     setIsLoading(true);
     try {
-      await signOut({ callbackUrl: "/" });
+      // Use current origin to ensure redirect works with ngrok
+      const callbackUrl = typeof window !== 'undefined' 
+        ? `${window.location.origin}/`
+        : "/";
+      await signOut({ callbackUrl });
     } catch (error) {
       console.error("Sign out error:", error);
     } finally {

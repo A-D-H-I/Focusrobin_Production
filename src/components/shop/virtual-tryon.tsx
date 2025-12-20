@@ -82,31 +82,35 @@ export default function VirtualTryOn({
     }
   }, [isOpen]);
 
-  // Prevent body scroll when modal is open
+  // Prevent body scroll and hide header when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      document.body.classList.add("virtual-tryon-open");
     } else {
       document.body.style.overflow = "unset";
+      document.body.classList.remove("virtual-tryon-open");
     }
     return () => {
       document.body.style.overflow = "unset";
+      document.body.classList.remove("virtual-tryon-open");
     };
   }, [isOpen]);
 
-  // Load face-api.js models on component mount
+  // Load face-api.js models on component mount - using faster TinyFaceDetector
   useEffect(() => {
     if (typeof window === "undefined") return;
     
     const loadModels = async () => {
       try {
         const MODEL_URL = "/models";
+        // Load TinyFaceDetector for faster performance (instead of SsdMobilenetv1)
         await Promise.all([
-          faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-          faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+          faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+          faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL), // Use tiny version for faster performance
         ]);
         setModelsLoaded(true);
-        console.log("Face detection models loaded successfully");
+        console.log("Face detection models loaded successfully (optimized for speed)");
       } catch (error) {
         console.error("Error loading face detection models:", error);
         setDetectionError("Failed to load face detection models");
@@ -138,7 +142,7 @@ export default function VirtualTryOn({
       setIsDetecting(true);
       setDetectionError(null);
 
-      // Set a global timeout - detection must complete within 8 seconds
+      // Set a global timeout - detection must complete within 4 seconds (reduced for faster performance)
       const timeoutId = setTimeout(() => {
         if (detectionInProgress.current) {
           console.warn("Face detection timeout - showing glasses at center");
@@ -150,7 +154,7 @@ export default function VirtualTryOn({
           setIsDetecting(false);
           detectionInProgress.current = false;
         }
-      }, 8000);
+      }, 4000);
 
       try {
         // Create image element for detection
@@ -161,16 +165,39 @@ export default function VirtualTryOn({
         await new Promise<void>((resolve, reject) => {
           img.onload = () => resolve();
           img.onerror = () => reject(new Error("Failed to load image"));
-          // Timeout after 5 seconds
-          setTimeout(() => reject(new Error("Image load timeout")), 5000);
+          // Timeout after 2 seconds (reduced for faster performance)
+          setTimeout(() => reject(new Error("Image load timeout")), 2000);
         });
 
-        // Run face detection with landmarks
+        // Resize image for faster detection (reduce resolution while maintaining aspect ratio)
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error("Failed to get canvas context");
+        
+        // Target max dimension of 640px for faster detection
+        const maxDimension = 640;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height && width > maxDimension) {
+          height = (height * maxDimension) / width;
+          width = maxDimension;
+        } else if (height > maxDimension) {
+          width = (width * maxDimension) / height;
+          height = maxDimension;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Run face detection with landmarks using TinyFaceDetector (much faster)
         const detection = await faceapi
-          .detectSingleFace(img, new faceapi.SsdMobilenetv1Options({ 
-            minConfidence: 0.3 // Lower threshold for better detection
+          .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions({ 
+            inputSize: 416, // Smaller input size for faster detection (default is 416, can use 224 for even faster)
+            scoreThreshold: 0.4 // Slightly higher threshold for TinyFaceDetector
           }))
-          .withFaceLandmarks();
+          .withFaceLandmarks(true); // Use tiny landmarks model
 
         if (!detection) {
           clearTimeout(timeoutId);
@@ -967,8 +994,24 @@ export default function VirtualTryOn({
     return null;
   }
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 z-[150] overflow-y-auto overflow-x-hidden">
+    <div className="fixed inset-0 z-[150] overflow-y-auto overflow-x-hidden w-screen h-screen" style={{ top: 0, left: 0, right: 0, bottom: 0 }}>
+      {/* Fixed Close Button - Always visible in top-right corner */}
+      <motion.button
+        onClick={onClose}
+        className="fixed top-4 right-4 z-[200] p-4 rounded-full bg-white/20 hover:bg-white/30 transition-colors border-2 border-white/40 shadow-lg backdrop-blur-sm"
+        whileHover={{ scale: 1.15, rotate: 90 }}
+        whileTap={{ scale: 0.9 }}
+        aria-label="Close Virtual Try-On"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3, delay: 0.2 }}
+      >
+        <X className="h-7 w-7 text-white" />
+      </motion.button>
+
       {/* Animated gradient background */}
       <motion.div 
         className="fixed inset-0 bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900"
@@ -982,12 +1025,12 @@ export default function VirtualTryOn({
 
       {/* Header */}
       <motion.header 
-        className="sticky top-0 z-20 p-4 sm:p-6 lg:p-8 bg-gradient-to-b from-slate-900/95 to-transparent backdrop-blur-sm"
+        className="sticky top-0 z-20 py-4 sm:py-6 lg:py-8 bg-gradient-to-b from-slate-900/95 to-transparent backdrop-blur-sm w-full"
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+        <div className="w-full flex items-center justify-between px-4 sm:px-6 lg:px-8">
           <motion.div
             whileHover={{ scale: 1.05 }}
             className="flex items-center"
@@ -1006,19 +1049,19 @@ export default function VirtualTryOn({
             <p className="text-brand-teal/80 hidden md:block text-sm lg:text-base">Virtual Try-On Experience</p>
             <motion.button
               onClick={onClose}
-              className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-              whileHover={{ scale: 1.1, rotate: 90 }}
-              whileTap={{ scale: 0.95 }}
-              aria-label="Close"
+              className="p-3 rounded-full bg-white/20 hover:bg-white/30 transition-colors border border-white/30"
+              whileHover={{ scale: 1.15, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
+              aria-label="Close Virtual Try-On"
             >
-              <X className="h-5 w-5 text-white" />
+              <X className="h-6 w-6 text-white" />
             </motion.button>
           </motion.div>
         </div>
       </motion.header>
 
       {/* Main content */}
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 min-h-[calc(100vh-80px)]">
+      <div className="relative z-10 w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 min-h-screen">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-8 items-start lg:items-center">
           {/* Virtual Try-On Display */}
           <motion.div 

@@ -2,9 +2,32 @@ import { Product, ProductColorVariant } from './productData';
 import { Prisma } from '@prisma/client';
 
 /**
+ * Converts Google Drive share link to direct image URL
+ */
+function convertGoogleDriveLink(url: string): string {
+  const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFileMatch) {
+    return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}`;
+  }
+  const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (driveOpenMatch) {
+    return `https://lh3.googleusercontent.com/d/${driveOpenMatch[1]}`;
+  }
+  const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
+  if (ucMatch) {
+    return `https://lh3.googleusercontent.com/d/${ucMatch[1]}`;
+  }
+  if (url.includes('googleusercontent.com')) {
+    return url;
+  }
+  return url;
+}
+
+/**
  * Normalizes image URLs to relative paths for Next.js Image component
  * Converts absolute Windows paths (e.g., G:\Dev\...\public\image.jpg) to relative paths (/image.jpg)
  * Also handles URLs that already start with / or http/https
+ * Supports Google Drive links by converting them to direct image URLs
  */
 function normalizeImageUrl(url: string): string {
   if (!url) return '';
@@ -12,8 +35,13 @@ function normalizeImageUrl(url: string): string {
   // If it's already a relative path starting with /, return as is
   if (url.startsWith('/')) return url;
   
-  // If it's already a full URL (http/https), return as is
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // If it's already a full URL (http/https), check for Google Drive links
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.includes('drive.google.com')) {
+      return convertGoogleDriveLink(url);
+    }
+    return url;
+  }
   
   // Handle Windows absolute paths
   // Convert G:\Dev\...\public\image.jpg to /image.jpg

@@ -43,9 +43,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.3.0/model-viewer.min.js" async></script>
-      </head>
       <body className={`${chillax.variable} font-body antialiased`}>
         <SessionProvider>
           <LanguageProvider>

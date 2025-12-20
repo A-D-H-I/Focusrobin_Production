@@ -477,6 +477,9 @@ model Order {
   total           Decimal     @db.Decimal(10, 2)
   currency        String      @default("EUR")
   walletAmountUsed Decimal    @default(0) @db.Decimal(10, 2) // Amount deducted from wallet for this order
+  promoCodeId     String?     // Promo code used for this order
+  promoDiscount   Decimal     @default(0) @db.Decimal(10, 2) // Discount amount from promo code
+  promoCashback   Decimal     @default(0) @db.Decimal(10, 2) // Cashback amount from promo code
   
   // Stripe Payment Integration
   stripeSessionId String?     @unique // Stripe Checkout Session ID
@@ -513,6 +516,7 @@ model Order {
   deliveredAt     DateTime?
   
   User            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  PromoCode       PromoCode?  @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
   items           OrderItem[]
   Review          Review[]    // Reviews for this order
   
@@ -583,4 +587,28 @@ model NewsletterSubscription {
   
   @@index([email])
   @@index([isActive])
+}
+
+model PromoCode {
+  id                String    @id @default(cuid())
+  code              String    @unique // Promo code (e.g., "SUMMER2024")
+  description       String?   // Optional description
+  discountPercentage Decimal? @db.Decimal(5, 2) // Discount percentage (e.g., 10.00 for 10%)
+  discountAmount    Decimal?  @db.Decimal(10, 2) // Fixed discount amount in EUR
+  cashbackPercentage Decimal? @db.Decimal(5, 2) // Cashback percentage (e.g., 5.00 for 5%)
+  isActive          Boolean   @default(true)
+  startDate         DateTime  @default(now())
+  endDate           DateTime? // Optional end date
+  usageLimit        Int?      // Maximum number of times this code can be used (null = unlimited)
+  usedCount         Int       @default(0) // Number of times this code has been used
+  minPurchaseAmount Decimal?  @db.Decimal(10, 2) // Minimum purchase amount to use this code
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  Order             Order[]   // Orders that used this promo code
+  
+  @@index([code])
+  @@index([isActive])
+  @@index([startDate])
+  @@index([endDate])
 }

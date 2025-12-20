@@ -38,9 +38,10 @@ interface DeletedUserData {
 interface DeletedUsersManagementProps {
   deletedUsers: DeletedUserData[];
   error?: string;
+  currentUserId?: string;
 }
 
-export default function DeletedUsersManagement({ deletedUsers, error }: DeletedUsersManagementProps) {
+export default function DeletedUsersManagement({ deletedUsers, error, currentUserId }: DeletedUsersManagementProps) {
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const { toast } = useToast();
@@ -593,7 +594,8 @@ export default function DeletedUsersManagement({ deletedUsers, error }: DeletedU
                                     <Button
                                       variant="destructive"
                                       onClick={() => handlePermanentDelete(deletedUser.id, deletedUser.email)}
-                                      disabled={deletingUserId === deletedUser.id}
+                                      disabled={deletingUserId === deletedUser.id || currentUserId === deletedUser.originalUserId}
+                                      title={currentUserId === deletedUser.originalUserId ? "You cannot permanently delete your own archived account" : "Permanently Delete"}
                                     >
                                       {deletingUserId === deletedUser.id ? 'Deleting...' : 'Permanently Delete'}
                                     </Button>

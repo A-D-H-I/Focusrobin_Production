@@ -4,14 +4,17 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ShoppingCart, Menu, Search, Heart, User } from "lucide-react";
+import { useSession } from "next-auth/react";
 import UserMenu from "@/components/auth/UserMenu";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Logo } from "@/components/Landing/logo";
+import PromotionalBanner from "@/components/Landing/promotional-banner";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import CurrencySwitcher from "@/components/ui/CurrencySwitcher";
+import ShopMegaMenu from "@/components/Landing/shop-mega-menu";
 import { supportedLanguages } from "@/lib/languageData";
 import { supportedCurrencies } from "@/lib/currencyData";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -35,6 +38,7 @@ import {
 export default function Header() {
   const pathname = usePathname();
   const isHomePage = pathname === "/";
+  const { data: session } = useSession();
   const [isScrolled, setIsScrolled] = useState(!isHomePage);
   const { currency, setCurrency } = useCurrency();
   const { language, setLanguage } = useLanguage();
@@ -43,6 +47,7 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isShopMenuOpen, setIsShopMenuOpen] = useState(false);
   const sidebarSearchInputRef = useRef<HTMLInputElement>(null);
   const [navbarSettings, setNavbarSettings] = useState<{
     iconColorNotScrolled: string;
@@ -103,37 +108,41 @@ export default function Header() {
   };
 
   useEffect(() => {
-    // Only track scroll on home page
-    if (!isHomePage) {
-      setIsScrolled(true);
-      return;
+    // On home page, check scroll to hide banner and move header
+    // On other pages, banner is always visible, so header should always be below it
+    // But on other pages, header should have the same styling as scrolled state on home page
+    if (isHomePage) {
+      // Set initial state - check scroll position on home page
+      setIsScrolled(window.scrollY > 50);
+      
+      let ticking = false;
+      let lastScrollY = window.scrollY;
+      
+      const handleScroll = () => {
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            const currentScrollY = window.scrollY;
+            // Hide banner and move header to top when scrolled more than 50px (only on home page)
+            // Only update if scroll position changed significantly (reduces re-renders)
+            if (Math.abs(currentScrollY - lastScrollY) > 5) {
+              setIsScrolled(currentScrollY > 50);
+              lastScrollY = currentScrollY;
+            }
+            ticking = false;
+          });
+          ticking = true;
+        }
+      };
+      
+      window.addEventListener("scroll", handleScroll, { passive: true });
+      return () => {
+        window.removeEventListener("scroll", handleScroll);
+      };
+    } else {
+      // On other pages, banner is always visible, so header should always be below it
+      // But header should have scrolled styling (white background) like on landing page when scrolled
+      setIsScrolled(true); // This will apply the scrolled styling
     }
-
-    // Set initial state
-    setIsScrolled(window.scrollY > 10);
-    
-    let ticking = false;
-    let lastScrollY = window.scrollY;
-    
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY;
-          // Only update if scroll position changed significantly (reduces re-renders)
-          if (Math.abs(currentScrollY - lastScrollY) > 5) {
-            setIsScrolled(currentScrollY > 10);
-            lastScrollY = currentScrollY;
-          }
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
-    
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
   }, [isHomePage]);
 
   // Prevent search input from auto-focusing when sidebar opens on mobile/tablet
@@ -183,13 +192,20 @@ export default function Header() {
   ];
 
   return (
-    <header
-      className={cn(
-        "fixed top-0 left-0 right-0 z-[100] w-full transition-colors duration-300",
-        "isolate", // Create new stacking context to ensure header stays above everything
+    <>
+      <PromotionalBanner />
+      <header
+        className={cn(
+          "fixed left-0 right-0 z-[100] w-full transition-all duration-300",
+          // On home page: move to top when scrolled, stay below banner when not scrolled
+          // On other pages: always stay below banner
+          isHomePage 
+            ? (isScrolled ? "top-0" : "top-[40px] sm:top-[44px]")
+            : "top-[40px] sm:top-[44px]",
+          "isolate", // Create new stacking context to ensure header stays above everything
         isSidebarOpen
           ? "bg-[#EFFAFA] backdrop-blur-md shadow-sm"
-          : isScrolled
+          : isScrolled || !isHomePage
           ? "bg-white/90 backdrop-blur-md shadow-sm"
           : "bg-transparent border-transparent"
       )}
@@ -198,7 +214,11 @@ export default function Header() {
           <div
           className={cn(
             "relative flex items-center justify-between w-full transition-all duration-300",
-            isSidebarOpen ? "h-16" : (isScrolled ? "h-16" : "h-24")
+            isSidebarOpen 
+              ? "h-16" 
+              : !isHomePage 
+                ? "h-20 sm:h-20" // Bigger on other pages
+                : (isScrolled ? "h-16" : "h-24") // Home page: h-24 when not scrolled, h-16 when scrolled
           )}
         >
           {/* Left Section - Logo */}
@@ -211,31 +231,75 @@ export default function Header() {
           
           {/* Center Section - Navigation Links */}
           <nav className="hidden xl:flex absolute left-[48%] top-1/2 -translate-x-1/2 -translate-y-1/2 items-center space-x-6 xl:space-x-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href + link.label}
-                href={link.href}
-                prefetch={true}
-                className={cn(
-                  "text-sm font-bold transition-colors duration-300 whitespace-nowrap",
-                  isSidebarOpen
-                    ? 'text-brand-blue hover:text-primary'
-                    : isScrolled 
-                    ? 'text-brand-blue hover:text-primary' 
-                    : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                      ? 'text-white hover:text-white/80'
-                      : navbarSettings.iconColorNotScrolled === 'black'
-                      ? 'text-black hover:text-black/80'
-                      : ''
-                )}
-                style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
-                  ? { color: navbarSettings.iconColorNotScrolled }
-                  : undefined
-                }
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              if (link.label === "Shop") {
+                return (
+                  <div
+                    key={link.href + link.label}
+                    className="relative"
+                    onMouseEnter={() => {
+                      setIsShopMenuOpen(true);
+                    }}
+                    onMouseLeave={() => {
+                      // Don't close immediately - let the menu handle its own close with delay
+                    }}
+                  >
+                    <Link
+                      href={link.href}
+                      prefetch={true}
+                      className={cn(
+                        "text-sm font-bold transition-colors duration-300 whitespace-nowrap",
+                        isSidebarOpen
+                          ? 'text-brand-blue hover:text-primary'
+                          : isScrolled 
+                          ? 'text-brand-blue hover:text-primary' 
+                          : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                            ? 'text-white hover:text-white/80'
+                            : navbarSettings.iconColorNotScrolled === 'black'
+                            ? 'text-black hover:text-black/80'
+                            : ''
+                      )}
+                      style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                        ? { color: navbarSettings.iconColorNotScrolled }
+                        : undefined
+                      }
+                    >
+                      {link.label}
+                    </Link>
+                    <ShopMegaMenu
+                      isOpen={isShopMenuOpen}
+                      onClose={() => setIsShopMenuOpen(false)}
+                      isScrolled={isScrolled}
+                    />
+                  </div>
+                );
+              }
+              return (
+                <Link
+                  key={link.href + link.label}
+                  href={link.href}
+                  prefetch={true}
+                  className={cn(
+                    "text-sm font-bold transition-colors duration-300 whitespace-nowrap",
+                    isSidebarOpen
+                      ? 'text-brand-blue hover:text-primary'
+                      : isScrolled 
+                      ? 'text-brand-blue hover:text-primary' 
+                      : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                        ? 'text-white hover:text-white/80'
+                        : navbarSettings.iconColorNotScrolled === 'black'
+                        ? 'text-black hover:text-black/80'
+                        : ''
+                  )}
+                  style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                    ? { color: navbarSettings.iconColorNotScrolled }
+                    : undefined
+                  }
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Right Section - Search, Language, Currency, Icons */}
@@ -570,7 +634,7 @@ export default function Header() {
               </Button>
             </Link>
 
-            <Link href="/account" prefetch={true} className="xl:hidden">
+            <Link href={session?.user ? "/account" : "/login"} prefetch={true} className="xl:hidden">
               <Button 
                 variant="ghost" 
                 size="icon"
@@ -594,7 +658,7 @@ export default function Header() {
                 }
               >
                 <User className="h-5 w-5" />
-                <span className="sr-only">Account</span>
+                <span className="sr-only">{session?.user ? "Account" : "Login"}</span>
               </Button>
             </Link>
 
@@ -729,5 +793,6 @@ export default function Header() {
         </div>
       </div>
     </header>
+    </>
   );
 }

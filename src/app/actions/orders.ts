@@ -7,11 +7,38 @@ import { rateLimit, getIdentifier } from "@/lib/rate-limit";
 import { createOrderSchema, updateOrderStatusSchema, updatePaymentStatusSchema, updateTrackingSchema } from "@/lib/validations";
 import { z } from "zod";
 
+// Helper function to convert Google Drive links
+function convertGoogleDriveLink(url: string): string {
+  const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (driveFileMatch) {
+    return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}`;
+  }
+  const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
+  if (driveOpenMatch) {
+    return `https://lh3.googleusercontent.com/d/${driveOpenMatch[1]}`;
+  }
+  const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
+  if (ucMatch) {
+    return `https://lh3.googleusercontent.com/d/${ucMatch[1]}`;
+  }
+  if (url.includes('googleusercontent.com')) {
+    return url;
+  }
+  return url;
+}
+
 // Helper function to normalize image URLs
 function normalizeImageUrl(url: string | null): string | null {
   if (!url) return null;
   if (url.startsWith('/')) return url;
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  
+  // Check for Google Drive links and convert them
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    if (url.includes('drive.google.com')) {
+      return convertGoogleDriveLink(url);
+    }
+    return url;
+  }
   
   const publicPathMatch = url.match(/[\\/]public[\\/](.+)$/i);
   if (publicPathMatch) {
@@ -277,6 +304,26 @@ export async function createOrder(orderData: CreateOrderData) {
     await prisma.cartItem.deleteMany({
       where: { cartId: cart.id },
     });
+
+    // Send order confirmation email (async, don't block response)
+    console.log(`[Order] Triggering order confirmation email for ${order.orderNumber}...`);
+    try {
+      const { sendOrderConfirmationEmail } = await import("@/lib/order-email");
+      // Fire and forget - don't block the response
+      sendOrderConfirmationEmail(order.id)
+        .then((result) => {
+          if (result.success) {
+            console.log(`[Order] ✓ Order confirmation email sent for ${order.orderNumber}`);
+          } else {
+            console.error(`[Order] ✗ Failed to send confirmation email for ${order.orderNumber}:`, result.error);
+          }
+        })
+        .catch((error) => {
+          console.error(`[Order] ✗ Exception sending confirmation email for ${order.orderNumber}:`, error);
+        });
+    } catch (emailError: any) {
+      console.error("[Order] ✗ Error importing email module:", emailError.message);
+    }
 
     return {
       success: true,

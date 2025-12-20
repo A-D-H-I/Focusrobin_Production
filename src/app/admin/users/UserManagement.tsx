@@ -123,9 +123,10 @@ interface UserData {
 
 interface UserManagementProps {
   users: UserData[];
+  currentUserId?: string;
 }
 
-export default function UserManagement({ users }: UserManagementProps) {
+export default function UserManagement({ users, currentUserId }: UserManagementProps) {
   const [expandedUsers, setExpandedUsers] = useState<Set<string>>(new Set());
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [newRole, setNewRole] = useState<string>('');
@@ -821,6 +822,8 @@ export default function UserManagement({ users }: UserManagementProps) {
                                   variant="destructive"
                                   size="sm"
                                   onClick={() => handleDeleteUser(user.id, user.email)}
+                                  disabled={currentUserId === user.id}
+                                  title={currentUserId === user.id ? "You cannot delete your own account" : "Delete User"}
                                 >
                                   <Trash2 className="h-4 w-4 mr-2" />
                                   Delete User
@@ -853,6 +856,8 @@ export default function UserManagement({ users }: UserManagementProps) {
                                           variant="destructive"
                                           size="sm"
                                           onClick={() => handleDeleteAccount(account.id)}
+                                          disabled={currentUserId === user.id}
+                                          title={currentUserId === user.id ? "You cannot delete your own OAuth account" : "Delete OAuth Account"}
                                         >
                                           <Trash2 className="h-4 w-4" />
                                         </Button>

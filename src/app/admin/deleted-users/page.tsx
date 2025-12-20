@@ -22,7 +22,8 @@ export default async function AdminDeletedUsersPage() {
   }
   
   const deletedUsers = result.error ? [] : result.deletedUsers || [];
+  const currentUserId = (session.user as any)?.id;
 
-  return <DeletedUsersManagement deletedUsers={deletedUsers} error={result.error} />;
+  return <DeletedUsersManagement deletedUsers={deletedUsers} error={result.error} currentUserId={currentUserId} />;
 }
 

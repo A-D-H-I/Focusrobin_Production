@@ -6,9 +6,8 @@ import * as React from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Camera, X, ChevronLeft, ChevronRight, Box } from "lucide-react";
+import { Camera, X, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Product, ProductColorVariant } from "@/lib/productData";
-import Product3DViewer from "./product-3d-viewer";
 import VirtualTryOn from "./virtual-tryon";
 
 type ProductGalleryProps = {
@@ -51,11 +50,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
   const [mainImage, setMainImage] = useState(() => allImages[0] || '');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [is3DViewerOpen, setIs3DViewerOpen] = useState(false);
   const [isTryOnOpen, setIsTryOnOpen] = useState(false);
-  
-  // Use the same 3D model for all products
-  const model3DUrl = `/sunglasses3D.glb`;
   
   // Update main image when variant or images change (data from database)
   useEffect(() => {
@@ -200,17 +195,6 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
                 <Camera className="mr-2 h-4 w-4" />
                 Virtual Try-On
               </Button>
-              <Button 
-                variant="outline" 
-                className="bg-background/80 hover:bg-background"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIs3DViewerOpen(true);
-                }}
-              >
-                <Box className="mr-2 h-4 w-4" />
-                3D View
-              </Button>
             </div>
           </div>
         </div>
@@ -285,14 +269,6 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
           )}
         </div>
       )}
-
-      {/* 3D Model Viewer */}
-      <Product3DViewer
-        modelUrl={model3DUrl}
-        productName={product.name}
-        isOpen={is3DViewerOpen}
-        onClose={() => setIs3DViewerOpen(false)}
-      />
 
       {/* Virtual Try-On */}
       <VirtualTryOn
