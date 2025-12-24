@@ -481,14 +481,15 @@ export async function getReviewableOrders() {
       order.items
         .filter(
           (item) =>
+            item.productId && // Only include items with a product (product not deleted)
             !order.Review.some((r) => r.productId === item.productId)
         )
         .map((item) => ({
           orderId: order.id,
           orderNumber: order.orderNumber,
-          productId: item.productId,
+          productId: item.productId!,
           productName: item.productName,
-          productSlug: item.Product.slug,
+          productSlug: item.Product?.slug || null,
           variantName: item.variantName,
           deliveredAt: order.deliveredAt,
         }))

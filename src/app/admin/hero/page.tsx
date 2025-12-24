@@ -23,9 +23,9 @@ export default async function AdminHeroPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground">Hero Images Carousel</h1>
           <p className="mt-2 text-muted-foreground">
             Manage multiple hero images that automatically scroll on the homepage. <strong>Text and button text are shared</strong> (taken from the first image), but <strong>each image can route to different pages</strong>. Images are displayed in order (lowest number first).

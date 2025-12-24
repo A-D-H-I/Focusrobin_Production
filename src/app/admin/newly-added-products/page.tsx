@@ -120,16 +120,16 @@ export default function NewlyAddedProductsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-8 flex items-center justify-center">
+      <div className="bg-background p-4 md:p-6 flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
               <Package className="h-8 w-8 text-primary" />

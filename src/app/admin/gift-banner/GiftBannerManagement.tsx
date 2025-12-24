@@ -24,6 +24,7 @@ import { normalizeImageUrl } from '@/lib/normalize-image-url';
 interface GiftBanner {
   id: string;
   imageUrl: string;
+  mobileTabletImageUrl?: string | null;
   title: string;
   subtitle: string | null;
   link: string;
@@ -51,6 +52,7 @@ export function GiftBannerManagement({ initialBanner }: GiftBannerManagementProp
 
   const [formData, setFormData] = useState({
     imageUrl: initialBanner?.imageUrl || '',
+    mobileTabletImageUrl: initialBanner?.mobileTabletImageUrl || '',
     title: initialBanner?.title || 'Gift for your loved ones',
     subtitle: initialBanner?.subtitle || '',
     link: initialBanner?.link || '/shop/unisex',
@@ -61,6 +63,7 @@ export function GiftBannerManagement({ initialBanner }: GiftBannerManagementProp
     if (banner) {
       setFormData({
         imageUrl: banner.imageUrl,
+        mobileTabletImageUrl: banner.mobileTabletImageUrl || '',
         title: banner.title,
         subtitle: banner.subtitle || '',
         link: banner.link,
@@ -69,6 +72,7 @@ export function GiftBannerManagement({ initialBanner }: GiftBannerManagementProp
     } else {
       setFormData({
         imageUrl: '',
+        mobileTabletImageUrl: '',
         title: 'Gift for your loved ones',
         subtitle: '',
         link: '/shop/unisex',
@@ -82,6 +86,7 @@ export function GiftBannerManagement({ initialBanner }: GiftBannerManagementProp
     if (banner) {
       setFormData({
         imageUrl: banner.imageUrl,
+        mobileTabletImageUrl: banner.mobileTabletImageUrl || '',
         title: banner.title,
         subtitle: banner.subtitle || '',
         link: banner.link,
@@ -98,6 +103,7 @@ export function GiftBannerManagement({ initialBanner }: GiftBannerManagementProp
 
     const form = new FormData();
     form.append('imageUrl', formData.imageUrl);
+    form.append('mobileTabletImageUrl', formData.mobileTabletImageUrl);
     form.append('title', formData.title);
     form.append('subtitle', formData.subtitle);
     form.append('link', formData.link);
@@ -207,7 +213,7 @@ export function GiftBannerManagement({ initialBanner }: GiftBannerManagementProp
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="imageUrl">Banner Image URL</Label>
+                  <Label htmlFor="imageUrl">Desktop Image URL</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 16:9 (Wide Banner)</span>
                 </div>
                 <Input
@@ -219,6 +225,22 @@ export function GiftBannerManagement({ initialBanner }: GiftBannerManagementProp
                 />
                 <p className="text-xs text-muted-foreground">
                   Recommended: 1920x1080px (16:9). Full width banner displayed on homepage.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="mobileTabletImageUrl">Mobile & Tablet Image URL</Label>
+                  <span className="text-xs text-muted-foreground">Aspect Ratio: 9:16 or 3:4 (Portrait)</span>
+                </div>
+                <Input
+                  id="mobileTabletImageUrl"
+                  value={formData.mobileTabletImageUrl}
+                  onChange={(e) => setFormData({ ...formData, mobileTabletImageUrl: e.target.value })}
+                  placeholder="/images/gift-banner-mobile.jpg"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used.
                 </p>
               </div>
 
@@ -311,17 +333,37 @@ export function GiftBannerManagement({ initialBanner }: GiftBannerManagementProp
             <CardTitle>Current Gift Banner</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
-              {banner.imageUrl && (
-                <Image
-                  src={normalizeImageUrl(banner.imageUrl)}
-                  alt={banner.title}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 80vw"
-                  unoptimized
-                />
-              )}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                {banner.imageUrl && (
+                  <Image
+                    src={normalizeImageUrl(banner.imageUrl)}
+                    alt="Desktop preview"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    unoptimized
+                  />
+                )}
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                  Desktop
+                </div>
+              </div>
+              <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                {(banner.mobileTabletImageUrl || banner.imageUrl) && (
+                  <Image
+                    src={normalizeImageUrl(banner.mobileTabletImageUrl || banner.imageUrl)}
+                    alt="Mobile/Tablet preview"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    unoptimized
+                  />
+                )}
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                  Mobile/Tablet
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2 text-sm">

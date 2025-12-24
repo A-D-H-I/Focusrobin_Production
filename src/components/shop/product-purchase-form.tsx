@@ -153,9 +153,9 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       <div>
           <h3 className="text-md font-semibold mb-3">Color: <span className="font-normal text-muted-foreground">{selectedVariant?.name || 'Default'}</span></h3>
           <div className="flex items-center gap-2 flex-wrap">
-              {product.variants.map((variant) => (
+              {product.variants.map((variant, idx) => (
                   <button
-                      key={variant.hex}
+                      key={`color-${idx}-${variant.name}`}
                       onClick={() => handleColorSelect(variant)}
                       className={cn("h-8 w-8 rounded-full border-2 transition-all", selectedColor === variant.hex ? 'border-primary ring-2 ring-offset-2 ring-primary' : 'border-border')}
                       style={{ backgroundColor: variant.hex }}

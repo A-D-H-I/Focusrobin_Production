@@ -9,6 +9,7 @@ import { normalizeImageUrl } from "@/lib/normalize-image-url";
 interface IconicImageData {
   id: string;
   imageUrl: string;
+  mobileTabletImageUrl?: string | null;
   alt: string;
 }
 
@@ -72,10 +73,19 @@ export default function IconicSection({ iconicImage }: IconicSectionProps) {
           }}
         >
           <Image
+            src={normalizeImageUrl(iconicImage.mobileTabletImageUrl || iconicImage.imageUrl)}
+            alt={iconicImage.alt}
+            fill
+            className="object-cover lg:hidden"
+            priority
+            sizes="100vw"
+            unoptimized
+          />
+          <Image
             src={normalizeImageUrl(iconicImage.imageUrl)}
             alt={iconicImage.alt}
             fill
-            className="object-cover"
+            className="object-cover hidden lg:block"
             priority
             sizes="100vw"
             unoptimized

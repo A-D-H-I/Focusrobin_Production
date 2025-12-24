@@ -96,8 +96,8 @@ function normalizeImageUrl(url: string | null): string | null {
 
 interface OrderItem {
   id: string;
-  productId: string;
-  productSlug: string;
+  productId: string | null;
+  productSlug: string | null;
   productName: string;
   variantName: string;
   sku: string;
@@ -328,9 +328,9 @@ export default function OrdersManagement({
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Orders</h1>
@@ -696,12 +696,18 @@ export default function OrdersManagement({
                           ) : null;
                         })()}
                         <div className="flex-1">
-                          <Link
-                            href={`/products/${item.productSlug}`}
-                            className="font-semibold hover:underline"
-                          >
-                            {item.productName}
-                          </Link>
+                          {item.productSlug ? (
+                            <Link
+                              href={`/products/${item.productSlug}`}
+                              className="font-semibold hover:underline"
+                            >
+                              {item.productName}
+                            </Link>
+                          ) : (
+                            <span className="font-semibold text-muted-foreground">
+                              {item.productName} <span className="text-xs">(Product Deleted)</span>
+                            </span>
+                          )}
                           <p className="text-sm text-muted-foreground">
                             {item.variantName} • SKU: {item.sku}
                           </p>

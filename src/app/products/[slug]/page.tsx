@@ -18,9 +18,12 @@ import Link from "next/link";
 import ProductPageContent from "./ProductPageContent";
 
 
-export default async function ProductPage({ params }: { params: { slug: string } }) {
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  // Await params (required in Next.js 15)
+  const { slug } = await params;
+  
   // Decode the slug in case it's URL-encoded (handles spaces and special characters)
-  const decodedSlug = decodeURIComponent(params.slug);
+  const decodedSlug = decodeURIComponent(slug);
   
   // Fetch product by slug from database
   const prismaProduct = (await prisma.product.findUnique({
@@ -149,7 +152,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow pt-36 sm:pt-40 bg-background">
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         <div className="container mx-auto px-4 py-8">
           <Breadcrumb className="mb-8">
             <BreadcrumbList>

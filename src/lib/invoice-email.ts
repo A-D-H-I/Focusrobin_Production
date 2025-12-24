@@ -18,21 +18,12 @@ function getResendClient(): Resend | null {
   return resend;
 }
 
-// Get the verified email for testing (when using onboarding@resend.dev)
+// Get the recipient email - always send to actual customer
 function getRecipientEmail(customerEmail: string): string {
   const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
   
-  // When using the Resend test domain, emails can only be sent to verified addresses
-  // In production with a custom domain, send to the actual customer
-  if (fromEmail === "onboarding@resend.dev") {
-    const verifiedEmail = process.env.RESEND_VERIFIED_EMAIL;
-    if (verifiedEmail) {
-      console.log(`[Invoice Email] Using test mode - sending to verified email: ${verifiedEmail} (instead of ${customerEmail})`);
-      return verifiedEmail;
-    }
-    console.warn(`[Invoice Email] Using onboarding@resend.dev but no RESEND_VERIFIED_EMAIL set. Email will likely fail.`);
-  }
-  
+  // Always send to the actual customer email
+  console.log(`[Invoice Email] Sending to customer: ${customerEmail}`);
   return customerEmail;
 }
 
@@ -772,7 +763,7 @@ export async function sendOrderConfirmationWithDocuments(
       attachments: [
         {
           filename: `FocusRobin-Order-${invoiceData.orderNumber}-Documents.pdf`,
-          content: pdfBase64,
+          content: pdfBuffer,
         },
       ],
     });

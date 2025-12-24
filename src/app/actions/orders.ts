@@ -383,7 +383,7 @@ export async function getUserOrders() {
         items: order.items.map((item) => ({
           id: item.id,
           productId: item.productId,
-          productSlug: item.Product.slug,
+          productSlug: item.Product?.slug || null,
           productName: item.productName,
           variantName: item.variantName,
           sku: item.sku,
@@ -459,7 +459,7 @@ export async function getAllOrders() {
         items: order.items.map((item) => ({
           id: item.id,
           productId: item.productId,
-          productSlug: item.Product.slug,
+          productSlug: item.Product?.slug || null,
           productName: item.productName,
           variantName: item.variantName,
           sku: item.sku,
@@ -656,7 +656,7 @@ export async function getOrder(orderId: string) {
         items: order.items.map((item) => ({
           id: item.id,
           productId: item.productId,
-          productSlug: item.Product.slug,
+          productSlug: item.Product?.slug || null,
           productName: item.productName,
           variantName: item.variantName,
           sku: item.sku,

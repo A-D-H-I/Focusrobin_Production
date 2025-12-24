@@ -82,9 +82,9 @@ export default async function AdminProductsPage() {
   const products = prismaProducts.map(mapPrismaProductToProduct);
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">All Products</h1>
             <p className="mt-2 text-muted-foreground">

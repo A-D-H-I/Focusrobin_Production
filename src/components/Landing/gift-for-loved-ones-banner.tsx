@@ -8,6 +8,7 @@ import { normalizeImageUrl } from "@/lib/normalize-image-url";
 interface GiftForLovedOnesBannerData {
   id: string;
   imageUrl: string;
+  mobileTabletImageUrl?: string | null;
   isActive: boolean;
 }
 
@@ -17,9 +18,12 @@ interface GiftForLovedOnesBannerProps {
 
 export default function GiftForLovedOnesBanner({ bannerData }: GiftForLovedOnesBannerProps) {
   // If no banner data or not active, show default
-  const imageUrl = bannerData?.isActive && bannerData?.imageUrl 
+  const desktopImageUrl = bannerData?.isActive && bannerData?.imageUrl 
     ? normalizeImageUrl(bannerData.imageUrl)
     : '/shopcategory/kids.jpg'; // Default fallback image
+  const mobileImageUrl = bannerData?.isActive && bannerData?.mobileTabletImageUrl
+    ? normalizeImageUrl(bannerData.mobileTabletImageUrl)
+    : desktopImageUrl; // Fallback to desktop image if mobile not provided
 
   return (
     <section className="relative py-0 lg:py-16 overflow-hidden min-h-[500px] md:min-h-[600px] lg:min-h-[400px] flex flex-col justify-end lg:justify-center bg-gradient-to-br from-brand-teal/10 to-brand-blue/10">
@@ -32,10 +36,19 @@ export default function GiftForLovedOnesBanner({ bannerData }: GiftForLovedOnesB
           aria-label="Gift for your loved ones"
         >
           <Image
-            src={imageUrl}
+            src={mobileImageUrl}
             alt="Gift for your loved ones"
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-105 opacity-90"
+            className="object-cover transition-transform duration-500 group-hover:scale-105 opacity-90 lg:hidden"
+            priority
+            sizes="100vw"
+            unoptimized
+          />
+          <Image
+            src={desktopImageUrl}
+            alt="Gift for your loved ones"
+            fill
+            className="object-cover transition-transform duration-500 group-hover:scale-105 opacity-90 hidden lg:block"
             priority
             sizes="100vw"
             unoptimized
@@ -46,15 +59,15 @@ export default function GiftForLovedOnesBanner({ bannerData }: GiftForLovedOnesB
       {/* Gradient Overlay for text readability - stronger on mobile/tablet */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent lg:from-black/30 lg:via-black/10 lg:to-transparent z-[1]"></div>
 
-      <div className="container mx-auto px-4 sm:px-6 relative z-10 pb-6 md:pb-8 lg:pb-0">
-        <div className="max-w-2xl">
+      <div className="w-full px-4 sm:px-6 relative z-10 pb-6 md:pb-8 lg:pb-0">
+        <div className="w-full lg:max-w-[50%]">
           {/* Text and Button */}
           <div className="flex flex-col justify-end text-left">
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-6xl font-headline font-bold text-white mb-3 md:mb-4 lg:mb-6 leading-[1.1] tracking-tight drop-shadow-lg">
               Gift for your loved ones
             </h2>
             
-            <p className="text-white/90 text-sm sm:text-base md:text-lg lg:text-2xl mb-4 md:mb-6 lg:mb-8 max-w-xl drop-shadow-md">
+            <p className="text-white/90 text-sm sm:text-base md:text-lg lg:text-2xl mb-4 md:mb-6 lg:mb-8 drop-shadow-md">
               Discover our elegant unisex collection, perfect for gifting to your loved ones. Timeless designs that suit everyone.
             </p>
             

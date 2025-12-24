@@ -7,12 +7,15 @@ import CategoryBanner from "@/components/shop/category-banner";
 import { Gender } from "@prisma/client";
 
 interface UnisexShopPageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function UnisexShopPage({ searchParams }: UnisexShopPageProps) {
+  // Await searchParams (required in Next.js 15)
+  const params = await searchParams;
+  
   // Get color filter from URL
-  const colorFilter = searchParams.color as string | undefined;
+  const colorFilter = params.color as string | undefined;
   const colorHex = colorFilter ? decodeURIComponent(colorFilter) : undefined;
 
   // Build where clause
@@ -80,7 +83,7 @@ export default async function UnisexShopPage({ searchParams }: UnisexShopPagePro
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow pt-36 sm:pt-40 bg-background">
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         <CategoryBanner
           title={bannerTitle}
           imageSrc={bannerImage}

@@ -596,7 +596,7 @@ export default function AccountPage() {
     return (
       <div className="flex flex-col min-h-screen bg-brand-white">
         <Header />
-        <main className="flex-grow pt-36 sm:pt-40 pb-16">
+        <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center py-12">
               <p className="text-muted-foreground">Loading...</p>
@@ -613,7 +613,7 @@ export default function AccountPage() {
     return (
       <div className="flex flex-col min-h-screen bg-brand-white">
         <Header />
-        <main className="flex-grow pt-36 sm:pt-40 pb-16">
+        <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-md mx-auto mt-12">
               <div className="bg-white border border-border rounded-lg p-8 text-center">
@@ -652,7 +652,7 @@ export default function AccountPage() {
   return (
     <div className="flex flex-col min-h-screen bg-brand-white">
       <Header />
-      <main className="flex-grow pt-36 sm:pt-40 pb-16">
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="container mx-auto px-4 sm:px-6">
           <h1 className="text-3xl sm:text-4xl font-headline font-bold text-brand-blue mb-8">
             My Account

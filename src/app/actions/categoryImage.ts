@@ -9,6 +9,7 @@ import { z } from "zod";
 const categoryImageSchema = z.object({
   category: z.string().trim().min(1).max(50),
   imageUrl: z.string().url().max(2048),
+  mobileTabletImageUrl: z.string().url().max(2048).optional().nullable(),
   alt: z.string().trim().min(1).max(200),
   link: z.string().trim().min(1).max(500),
   isActive: z.boolean().optional().default(false),
@@ -30,12 +31,31 @@ export async function createCategoryImage(formData: FormData) {
 
     const category = formData.get('category') as string;
     const imageUrl = formData.get('imageUrl') as string;
+    const mobileTabletImageUrlRaw = formData.get('mobileTabletImageUrl') as string;
+    // Validate URL - if invalid or empty, set to null
+    let mobileTabletImageUrl: string | null = null;
+    if (mobileTabletImageUrlRaw && mobileTabletImageUrlRaw.trim()) {
+      try {
+        new URL(mobileTabletImageUrlRaw.trim());
+        mobileTabletImageUrl = mobileTabletImageUrlRaw.trim();
+      } catch {
+        // Invalid URL, treat as null
+        mobileTabletImageUrl = null;
+      }
+    }
     const alt = formData.get('alt') as string;
     const link = formData.get('link') as string;
     const isActive = formData.get('isActive') === 'true';
 
     // Validate input
-    const validatedInput = categoryImageSchema.safeParse({ category, imageUrl, alt, link, isActive });
+    const validatedInput = categoryImageSchema.safeParse({ 
+      category, 
+      imageUrl, 
+      mobileTabletImageUrl,
+      alt, 
+      link, 
+      isActive 
+    });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
@@ -82,12 +102,31 @@ export async function updateCategoryImage(formData: FormData) {
 
     const category = formData.get('category') as string;
     const imageUrl = formData.get('imageUrl') as string;
+    const mobileTabletImageUrlRaw = formData.get('mobileTabletImageUrl') as string;
+    // Validate URL - if invalid or empty, set to null
+    let mobileTabletImageUrl: string | null = null;
+    if (mobileTabletImageUrlRaw && mobileTabletImageUrlRaw.trim()) {
+      try {
+        new URL(mobileTabletImageUrlRaw.trim());
+        mobileTabletImageUrl = mobileTabletImageUrlRaw.trim();
+      } catch {
+        // Invalid URL, treat as null
+        mobileTabletImageUrl = null;
+      }
+    }
     const alt = formData.get('alt') as string;
     const link = formData.get('link') as string;
     const isActive = formData.get('isActive') === 'true';
 
     // Validate input
-    const validatedInput = categoryImageSchema.safeParse({ category, imageUrl, alt, link, isActive });
+    const validatedInput = categoryImageSchema.safeParse({ 
+      category, 
+      imageUrl, 
+      mobileTabletImageUrl,
+      alt, 
+      link, 
+      isActive 
+    });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }

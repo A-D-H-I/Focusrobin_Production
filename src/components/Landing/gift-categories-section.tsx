@@ -10,6 +10,7 @@ interface CategoryImageData {
   id: string;
   category: string;
   imageUrl: string;
+  mobileTabletImageUrl?: string | null;
   alt: string;
   link: string;
 }
@@ -275,7 +276,14 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
                     src={normalizeImageUrl(image.imageUrl)}
                     alt={image.alt}
                     fill
-                    className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+                    className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300 hidden lg:block"
+                    unoptimized
+                  />
+                  <Image
+                    src={normalizeImageUrl(image.mobileTabletImageUrl || image.imageUrl)}
+                    alt={image.alt}
+                    fill
+                    className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300 lg:hidden"
                     unoptimized
                   />
                 </div>
@@ -329,7 +337,7 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
                 >
                   <div className="absolute inset-0 overflow-hidden">
                     <Image
-                      src={normalizeImageUrl(image.imageUrl)}
+                      src={normalizeImageUrl(image.mobileTabletImageUrl || image.imageUrl)}
                       alt={image.alt}
                       fill
                       className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
@@ -360,7 +368,7 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
                 >
                   <div className="absolute inset-0 overflow-hidden">
                     <Image
-                      src={normalizeImageUrl(image.imageUrl)}
+                      src={normalizeImageUrl(image.mobileTabletImageUrl || image.imageUrl)}
                       alt={image.alt}
                       fill
                       className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"

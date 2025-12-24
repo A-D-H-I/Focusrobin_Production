@@ -49,6 +49,36 @@ export default function Header() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isShopMenuOpen, setIsShopMenuOpen] = useState(false);
   const sidebarSearchInputRef = useRef<HTMLInputElement>(null);
+  const shopMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close shop menu when sidebar closes
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      setIsShopMenuOpen(false);
+    }
+  }, [isSidebarOpen]);
+
+  // Handle click outside for shop menu on desktop
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        isShopMenuOpen &&
+        shopMenuRef.current &&
+        !shopMenuRef.current.contains(event.target as Node) &&
+        window.innerWidth >= 1280
+      ) {
+        setIsShopMenuOpen(false);
+      }
+    }
+
+    if (isShopMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isShopMenuOpen]);
   const [navbarSettings, setNavbarSettings] = useState<{
     iconColorNotScrolled: string;
     logoColorNotScrolled: string;
@@ -197,11 +227,8 @@ export default function Header() {
       <header
         className={cn(
           "fixed left-0 right-0 z-[100] w-full transition-all duration-300",
-          // On home page: move to top when scrolled, stay below banner when not scrolled
-          // On other pages: always stay below banner
-          isHomePage 
-            ? (isScrolled ? "top-0" : "top-[40px] sm:top-[44px]")
-            : "top-[40px] sm:top-[44px]",
+          // Always stay below the scrolling banner which is fixed at top
+          "top-[40px] sm:top-[44px]",
           "isolate", // Create new stacking context to ensure header stays above everything
         isSidebarOpen
           ? "bg-[#EFFAFA] backdrop-blur-md shadow-sm"
@@ -211,99 +238,120 @@ export default function Header() {
       )}
     >
       <div className="container mx-auto px-4 sm:px-6 md:px-8 max-w-full">
+          {/* Desktop Layout (xl and up) - Flexbox with justified space between logo and right section */}
           <div
           className={cn(
-            "relative flex items-center justify-between w-full transition-all duration-300",
+            "hidden xl:flex items-center justify-between w-full transition-all duration-300",
             isSidebarOpen 
               ? "h-16" 
               : !isHomePage 
-                ? "h-20 sm:h-20" // Bigger on other pages
-                : (isScrolled ? "h-16" : "h-24") // Home page: h-24 when not scrolled, h-16 when scrolled
+                ? "h-20 sm:h-20"
+                : (isScrolled ? "h-16" : "h-24")
           )}
         >
           {/* Left Section - Logo */}
-          <div className="flex-shrink-0 flex-1">
+          <div className="flex items-center z-10 flex-1">
             <Logo 
-              className="transition-all duration-300"
+              className={cn(
+                "transition-all duration-300",
+                isSidebarOpen && "max-h-8"
+              )}
               logoColor={isSidebarOpen ? undefined : (!isScrolled && navbarSettings ? navbarSettings.logoColorNotScrolled : undefined)}
             />
           </div>
           
-          {/* Center Section - Navigation Links */}
-          <nav className="hidden xl:flex absolute left-[48%] top-1/2 -translate-x-1/2 -translate-y-1/2 items-center space-x-6 xl:space-x-8">
-            {navLinks.map((link) => {
-              if (link.label === "Shop") {
-                return (
-                  <div
-                    key={link.href + link.label}
-                    className="relative"
-                    onMouseEnter={() => {
-                      setIsShopMenuOpen(true);
-                    }}
-                    onMouseLeave={() => {
-                      // Don't close immediately - let the menu handle its own close with delay
-                    }}
-                  >
-                    <Link
-                      href={link.href}
-                      prefetch={true}
-                      className={cn(
-                        "text-sm font-bold transition-colors duration-300 whitespace-nowrap",
-                        isSidebarOpen
-                          ? 'text-brand-blue hover:text-primary'
-                          : isScrolled 
-                          ? 'text-brand-blue hover:text-primary' 
-                          : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                            ? 'text-white hover:text-white/80'
-                            : navbarSettings.iconColorNotScrolled === 'black'
-                            ? 'text-black hover:text-black/80'
-                            : ''
-                      )}
-                      style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
-                        ? { color: navbarSettings.iconColorNotScrolled }
-                        : undefined
-                      }
-                    >
-                      {link.label}
-                    </Link>
-                    <ShopMegaMenu
-                      isOpen={isShopMenuOpen}
-                      onClose={() => setIsShopMenuOpen(false)}
-                      isScrolled={isScrolled}
-                    />
-                  </div>
-                );
+          {/* Center Section - Navigation Links - Centered between logo and right section */}
+          <nav className="flex items-center justify-center gap-8 z-20 flex-1">
+            {/* Shop Link with Mega Menu */}
+            <div
+              ref={shopMenuRef}
+              className="relative"
+              onMouseEnter={() => {
+                if (window.innerWidth >= 1280) {
+                  setIsShopMenuOpen(true);
+                }
+              }}
+              onMouseLeave={() => {
+                // Don't close immediately - let the menu handle its own close with delay
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => setIsShopMenuOpen(!isShopMenuOpen)}
+                className={cn(
+                  "text-sm font-bold whitespace-nowrap cursor-pointer py-2 px-2 relative bg-transparent border-none",
+                  "after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-brand-teal after:transition-all after:duration-300 hover:after:w-full",
+                  isSidebarOpen || isScrolled
+                    ? 'text-brand-blue hover:text-brand-teal'
+                    : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                      ? 'text-white hover:text-brand-teal'
+                      : navbarSettings?.iconColorNotScrolled === 'black'
+                        ? 'text-black hover:text-brand-teal'
+                        : 'text-brand-blue hover:text-brand-teal'
+                )}
+                style={!isScrolled && !isSidebarOpen && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                  ? { color: navbarSettings.iconColorNotScrolled }
+                  : undefined
+                }
+              >
+                Shop
+              </button>
+              <ShopMegaMenu
+                isOpen={isShopMenuOpen}
+                onClose={() => setIsShopMenuOpen(false)}
+                isScrolled={isScrolled}
+              />
+            </div>
+
+            {/* About Link */}
+            <Link
+              href="/about"
+              prefetch={true}
+              className={cn(
+                "text-sm font-bold whitespace-nowrap py-2 px-2 relative",
+                "after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-brand-teal after:transition-all after:duration-300 hover:after:w-full",
+                isSidebarOpen || isScrolled
+                  ? 'text-brand-blue hover:text-brand-teal'
+                  : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                    ? 'text-white hover:text-brand-teal'
+                    : navbarSettings?.iconColorNotScrolled === 'black'
+                      ? 'text-black hover:text-brand-teal'
+                      : 'text-brand-blue hover:text-brand-teal'
+              )}
+              style={!isScrolled && !isSidebarOpen && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                ? { color: navbarSettings.iconColorNotScrolled }
+                : undefined
               }
-              return (
-                <Link
-                  key={link.href + link.label}
-                  href={link.href}
-                  prefetch={true}
-                  className={cn(
-                    "text-sm font-bold transition-colors duration-300 whitespace-nowrap",
-                    isSidebarOpen
-                      ? 'text-brand-blue hover:text-primary'
-                      : isScrolled 
-                      ? 'text-brand-blue hover:text-primary' 
-                      : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                        ? 'text-white hover:text-white/80'
-                        : navbarSettings.iconColorNotScrolled === 'black'
-                        ? 'text-black hover:text-black/80'
-                        : ''
-                  )}
-                  style={!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
-                    ? { color: navbarSettings.iconColorNotScrolled }
-                    : undefined
-                  }
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
+            >
+              About
+            </Link>
+
+            {/* Contact Link */}
+            <Link
+              href="/contact"
+              prefetch={true}
+              className={cn(
+                "text-sm font-bold whitespace-nowrap py-2 px-2 relative",
+                "after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-brand-teal after:transition-all after:duration-300 hover:after:w-full",
+                isSidebarOpen || isScrolled
+                  ? 'text-brand-blue hover:text-brand-teal'
+                  : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                    ? 'text-white hover:text-brand-teal'
+                    : navbarSettings?.iconColorNotScrolled === 'black'
+                      ? 'text-black hover:text-brand-teal'
+                      : 'text-brand-blue hover:text-brand-teal'
+              )}
+              style={!isScrolled && !isSidebarOpen && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                ? { color: navbarSettings.iconColorNotScrolled }
+                : undefined
+              }
+            >
+              Contact
+            </Link>
           </nav>
 
           {/* Right Section - Search, Language, Currency, Icons */}
-          <div className="hidden xl:flex flex-shrink-0 flex-1 justify-end items-center space-x-2 xl:space-x-4">
+          <div className="flex justify-end items-center space-x-2 xl:space-x-4 z-10 flex-1">
             {/* Search Input */}
             <form onSubmit={handleSearch} className="relative hidden xl:block">
               <Search 
@@ -361,7 +409,7 @@ export default function Header() {
                 variant="ghost" 
                 size="icon" 
                 className={cn(
-                  "xl:hidden h-8 w-8 xl:h-10 xl:w-10 transition-colors duration-300",
+                  "xl:hidden h-7 w-7 transition-colors duration-300",
                   isSidebarOpen
                     ? 'text-brand-blue hover:bg-accent hover:text-brand-blue'
                     : isScrolled 
@@ -380,7 +428,7 @@ export default function Header() {
                 }
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
               >
-              <Search className="h-4 w-4 xl:h-5 xl:w-5" />
+              <Search className="h-2.5 w-2.5" />
               <span className="sr-only">Search</span>
             </Button>
 
@@ -456,7 +504,7 @@ export default function Header() {
                 variant="ghost" 
                 size="icon" 
                 className={cn(
-                  "h-8 w-8 xl:h-10 xl:w-10 transition-colors duration-300 relative",
+                  "h-7 w-7 transition-colors duration-300 relative",
                   isSidebarOpen
                     ? 'text-brand-blue hover:bg-accent hover:text-brand-blue'
                     : isScrolled 
@@ -474,7 +522,7 @@ export default function Header() {
                   : undefined)
                 }
               >
-                <Heart className="h-4 w-4 xl:h-5 xl:w-5" />
+                <Heart className="h-3.5 w-3.5" />
                 {wishlistItems.length > 0 && (
                   <span className="absolute -top-1 -right-1 h-4 w-4 bg-[#F56278] rounded-full border-2 border-white"></span>
                 )}
@@ -487,7 +535,7 @@ export default function Header() {
                 variant="ghost" 
                 size="icon" 
                 className={cn(
-                  "h-8 w-8 xl:h-10 xl:w-10 transition-colors duration-300 relative",
+                  "h-7 w-7 transition-colors duration-300 relative",
                   isSidebarOpen
                     ? 'text-brand-blue hover:bg-accent hover:text-brand-blue'
                     : isScrolled 
@@ -505,7 +553,7 @@ export default function Header() {
                   : undefined)
                 }
               >
-                <ShoppingCart className="h-4 w-4 xl:h-5 xl:w-5" />
+                <ShoppingCart className="h-3.5 w-3.5" />
                 {getCartItemCount() > 0 && (
                   <span className="absolute -top-1 -right-1 h-4 w-4 bg-[#F56278] rounded-full border-2 border-white"></span>
                 )}
@@ -569,8 +617,32 @@ export default function Header() {
               </div>
             </div>
           )}
+        </div>
 
-          <div className="xl:hidden flex-1 flex justify-end items-center gap-2">
+          {/* Mobile/Tablet Layout (below xl) */}
+          <div
+            className={cn(
+              "xl:hidden flex items-center justify-between w-full transition-all duration-300",
+              isSidebarOpen 
+                ? "h-16" 
+                : !isHomePage 
+                  ? "h-20 sm:h-20"
+                  : (isScrolled ? "h-16" : "h-24")
+            )}
+          >
+            {/* Mobile Logo */}
+            <div className="flex-shrink-0 min-w-[120px] sm:min-w-[140px]">
+              <Logo 
+                className={cn(
+                  "transition-all duration-300",
+                  isSidebarOpen && "max-h-8"
+                )}
+                logoColor={isSidebarOpen ? undefined : (!isScrolled && navbarSettings ? navbarSettings.logoColorNotScrolled : undefined)}
+              />
+            </div>
+
+            {/* Mobile Right Icons */}
+            <div className="flex items-center gap-2">
             {/* Right Icons for Mobile/Tablet - Account, Cart, Wishlist */}
             <Link href="/wishlist" prefetch={true} className="xl:hidden">
               <Button 
@@ -670,34 +742,42 @@ export default function Header() {
                 (window as any).sidebarOpenTime = Date.now();
               }
             }}>
-              <SheetTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className={cn(
-                    "transition-colors duration-300 rounded-full p-2",
-                    isSidebarOpen
-                      ? 'text-brand-blue hover:bg-gray-100 hover:text-brand-blue bg-transparent'
-                      : !isScrolled 
-                      ? navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                        ? 'text-white hover:bg-white/10 hover:text-white bg-[#EFFAFA]/20'
-                        : navbarSettings.iconColorNotScrolled === 'black'
-                        ? 'text-black hover:bg-gray-100 hover:text-black bg-[#EFFAFA]/20'
-                        : 'bg-[#EFFAFA]/20 hover:bg-gray-100'
-                      : 'text-brand-blue hover:bg-gray-100 hover:text-brand-blue'
-                  )}
-                  style={isSidebarOpen
-                    ? undefined
-                    : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
-                    ? { color: navbarSettings.iconColorNotScrolled }
-                    : undefined)
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => {
+                  setIsSidebarOpen(!isSidebarOpen);
+                  if (!isSidebarOpen && window.innerWidth < 1024) {
+                    // Track when sidebar opens to prevent immediate focus
+                    (window as any).sidebarOpenTime = Date.now();
                   }
-                >
-                  <Menu className="h-6 w-6" />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[300px] sm:w-[400px] md:w-[280px] md:max-w-[280px] overflow-y-auto z-[95] p-6 md:p-4 flex flex-col">
+                }}
+                className={cn(
+                  "transition-colors duration-300 rounded-full p-2",
+                  isSidebarOpen
+                    ? 'text-brand-blue hover:bg-gray-100 hover:text-brand-blue bg-transparent'
+                    : !isScrolled 
+                    ? navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                      ? 'text-white hover:bg-white/10 hover:text-white bg-[#EFFAFA]/20'
+                      : navbarSettings.iconColorNotScrolled === 'black'
+                      ? 'text-black hover:bg-gray-100 hover:text-black bg-[#EFFAFA]/20'
+                      : 'bg-[#EFFAFA]/20 hover:bg-gray-100'
+                    : 'text-brand-blue hover:bg-gray-100 hover:text-brand-blue'
+                )}
+                style={isSidebarOpen
+                  ? undefined
+                  : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                  ? { color: navbarSettings.iconColorNotScrolled }
+                  : undefined)
+                }
+              >
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">{isSidebarOpen ? "Close menu" : "Open menu"}</span>
+              </Button>
+              <SheetContent 
+                side="right" 
+                className="w-[300px] sm:w-[400px] md:w-[280px] md:max-w-[280px] overflow-y-auto p-6 md:p-4 flex flex-col z-[150]"
+              >
                 <div className="flex flex-col flex-1 min-h-0">
                     {/* Logo with more margin-bottom */}
                     <div className="mb-8 flex-shrink-0">
@@ -724,7 +804,7 @@ export default function Header() {
                     
                     {/* Language and Currency - Moved above navigation */}
                     <div className="mb-8 space-y-3 flex-shrink-0">
-                      <div className="w-full">
+                      <div className="w-full relative" style={{ zIndex: 150 }}>
                         <Select value={language} onValueChange={setLanguage}>
                           <SelectTrigger className="w-full bg-transparent border-0 shadow-none h-8 px-2 py-1 text-sm text-foreground cursor-pointer hover:bg-transparent transition-colors [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-70">
                             <SelectValue>
@@ -736,7 +816,8 @@ export default function Header() {
                             side="bottom" 
                             sideOffset={8}
                             align="start"
-                            className="max-h-[300px] w-[var(--radix-select-trigger-width)] overflow-y-auto bg-white z-[100]"
+                            className="max-h-[300px] w-[var(--radix-select-trigger-width)] overflow-y-auto bg-white"
+                            style={{ zIndex: 200 }}
                           >
                             {supportedLanguages.map((lang) => (
                               <SelectItem key={lang.code} value={lang.code}>
@@ -746,7 +827,7 @@ export default function Header() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="w-full">
+                      <div className="w-full relative" style={{ zIndex: 140 }}>
                         <Select value={currency} onValueChange={setCurrency}>
                           <SelectTrigger className="w-full bg-transparent border-0 shadow-none h-8 px-2 py-1 text-sm text-foreground cursor-pointer hover:bg-transparent transition-colors [&>svg]:h-3 [&>svg]:w-3 [&>svg]:opacity-70">
                             <SelectValue>
@@ -758,7 +839,8 @@ export default function Header() {
                             side="bottom" 
                             sideOffset={8}
                             align="start"
-                            className="max-h-[200px] w-[var(--radix-select-trigger-width)] overflow-y-auto bg-white z-[100]"
+                            className="max-h-[200px] w-[var(--radix-select-trigger-width)] overflow-y-auto bg-white"
+                            style={{ zIndex: 190 }}
                           >
                             {supportedCurrencies.map((curr) => (
                               <SelectItem key={curr.code} value={curr.code}>
@@ -772,26 +854,94 @@ export default function Header() {
                     
                     {/* Navigation Links - Chillax font, text-2xl, bold, with dividers */}
                     <nav className="flex flex-col flex-1 overflow-y-auto">
-                        {navLinks.map((link, index) => (
-                        <div key={link.href + link.label}>
-                            {index > 0 && (
-                              <div className="border-t border-gray-200 my-3"></div>
-                            )}
-                            <Link
+                        {navLinks.map((link, index) => {
+                          if (link.label === "Shop") {
+                            return (
+                              <div key={link.href + link.label}>
+                                {index > 0 && (
+                                  <div className="border-t border-gray-200 my-3"></div>
+                                )}
+                                <div className="space-y-2">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsShopMenuOpen(prev => !prev);
+                                    }}
+                                    className="font-body text-2xl font-bold hover:text-primary active:text-primary transition-colors text-foreground py-2 flex-shrink-0 w-full text-left flex items-center justify-between cursor-pointer relative z-10 touch-manipulation select-none"
+                                    style={{ WebkitTapHighlightColor: 'transparent' }}
+                                  >
+                                    <span>{link.label}</span>
+                                    <span className="text-lg select-none ml-2 pointer-events-none">
+                                      {isShopMenuOpen ? '−' : '+'}
+                                    </span>
+                                  </button>
+                                  {isShopMenuOpen && (
+                                    <div className="pl-4 space-y-2 border-l-2 border-gray-200">
+                                      <Link href="/shop" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsSidebarOpen(false);
+                                      }}>
+                                        All Sunglasses
+                                      </Link>
+                                      <Link href="/shop/women" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsSidebarOpen(false);
+                                      }}>
+                                        Women&apos;s
+                                      </Link>
+                                      <Link href="/shop/men" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsSidebarOpen(false);
+                                      }}>
+                                        Men&apos;s
+                                      </Link>
+                                      <Link href="/shop/kids" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsSidebarOpen(false);
+                                      }}>
+                                        Kids
+                                      </Link>
+                                      <Link href="/shop?filter=bestsellers" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsSidebarOpen(false);
+                                      }}>
+                                        Best Sellers
+                                      </Link>
+                                      <Link href="/shop?filter=new-arrivals" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsSidebarOpen(false);
+                                      }}>
+                                        New Arrivals
+                                      </Link>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div key={link.href + link.label}>
+                              {index > 0 && (
+                                <div className="border-t border-gray-200 my-3"></div>
+                              )}
+                              <Link
                                 href={link.href}
                                 className="font-body text-2xl font-bold hover:text-primary transition-colors text-foreground py-2 flex-shrink-0"
-                            >
+                                onClick={() => setIsSidebarOpen(false)}
+                              >
                                 {link.label}
-                            </Link>
-                        </div>
-                        ))}
+                              </Link>
+                            </div>
+                          );
+                        })}
                     </nav>
                 </div>
               </SheetContent>
             </Sheet>
+            </div>
           </div>
         </div>
-      </div>
     </header>
     </>
   );

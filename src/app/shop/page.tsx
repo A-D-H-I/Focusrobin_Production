@@ -3,20 +3,47 @@ import Footer from "@/components/Landing/footer";
 import { prisma } from "@/lib/prisma";
 import { mapPrismaProductToProduct } from "@/lib/prisma-product-mapper";
 import ShopPageClient from "./ShopPageClient";
+import { Gender } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 
 interface ShopPageProps {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function ShopPage({ searchParams }: ShopPageProps) {
+  // Await searchParams (required in Next.js 15)
+  const params = await searchParams;
+  
   // Get filters from URL
-  const colorFilter = searchParams.color as string | undefined;
-  const filterType = searchParams.filter as string | undefined;
+  const colorFilter = params.color as string | undefined;
+  const filterType = params.filter as string | undefined;
+  const genderFilter = params.gender as string | string[] | undefined;
+  const glassShapeFilter = params.glassShape as string | string[] | undefined;
   const colorHex = colorFilter ? decodeURIComponent(colorFilter) : undefined;
 
   // Build where clause for filtering
   const whereClause: any = {};
+
+  // Filter by gender if provided
+  if (genderFilter) {
+    const genders = Array.isArray(genderFilter) ? genderFilter : [genderFilter];
+    const genderEnums: Gender[] = [];
+    
+    // Map display names to enum values
+    genders.forEach((g) => {
+      const normalized = g.toLowerCase();
+      if (normalized === 'men') genderEnums.push(Gender.MEN);
+      else if (normalized === 'women') genderEnums.push(Gender.WOMEN);
+      else if (normalized === 'kids') genderEnums.push(Gender.KIDS);
+      else if (normalized === 'unisex') genderEnums.push(Gender.UNISEX);
+    });
+    
+    if (genderEnums.length > 0) {
+      whereClause.gender = {
+        hasSome: genderEnums, // Products that have at least one of the selected genders
+      };
+    }
+  }
 
   // Filter by frame color if provided
   if (colorHex) {
@@ -33,6 +60,29 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         },
       },
     };
+  }
+
+  // Filter by glass shape if provided
+  if (glassShapeFilter) {
+    const glassShapes = Array.isArray(glassShapeFilter) ? glassShapeFilter : [glassShapeFilter];
+    // Filter products where glassShape matches any of the selected shapes (case-insensitive)
+    if (glassShapes.length > 0) {
+      // Use OR for multiple shapes, or direct equals for single shape
+      if (glassShapes.length === 1) {
+        whereClause.glassShape = {
+          equals: glassShapes[0],
+          mode: 'insensitive' as Prisma.QueryMode,
+        };
+      } else {
+        // For multiple shapes, use OR
+        whereClause.OR = glassShapes.map((shape) => ({
+          glassShape: {
+            equals: shape,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        }));
+      }
+    }
   }
 
   // Filter by type (new-arrivals, bestsellers)
@@ -84,7 +134,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   // Products are already sorted by createdAt desc, which shows recently added first
 
   // Determine page title based on filter
-  let pageTitle = "Best Sellers Glasses";
+  let pageTitle = "All Products";
   if (filterType === 'new-arrivals') {
     pageTitle = "New Arrivals";
   } else if (filterType === 'bestsellers') {
@@ -94,7 +144,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow pt-36 sm:pt-40 bg-background">
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         <ShopPageClient products={products} title={pageTitle} />
       </main>
       <Footer />

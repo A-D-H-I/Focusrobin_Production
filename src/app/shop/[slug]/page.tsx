@@ -7,9 +7,12 @@ import ShopPageClient from "../ShopPageClient";
 import CategoryBanner from "@/components/shop/category-banner";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
 
-export default async function CustomShopPage({ params }: { params: { slug: string } }) {
+export default async function CustomShopPage({ params }: { params: Promise<{ slug: string }> }) {
+  // Await params (required in Next.js 15)
+  const { slug } = await params;
+  
   // Decode the slug
-  const decodedSlug = decodeURIComponent(params.slug);
+  const decodedSlug = decodeURIComponent(slug);
   
   // Fetch custom shop page from database
   let customPage: any = null;
@@ -70,7 +73,7 @@ export default async function CustomShopPage({ params }: { params: { slug: strin
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow pt-36 sm:pt-40 bg-background">
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         {/* Banner */}
         <CategoryBanner
           title={bannerTitle}

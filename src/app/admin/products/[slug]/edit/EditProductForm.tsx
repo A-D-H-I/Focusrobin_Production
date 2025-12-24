@@ -112,8 +112,18 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
     }
   };
 
+  // Helper function to strip quotes from URLs
+  const stripQuotes = (value: string): string => {
+    if (typeof value !== 'string') return value;
+    return value.replace(/^["']|["']$/g, '').trim();
+  };
+
   const updateVariant = (index: number, field: keyof VariantData, value: string | number) => {
     const updated = [...variants];
+    // Strip quotes from URL fields
+    if (typeof value === 'string' && (field === 'asset_nobg' || field === 'asset_glb' || field === 'asset_tryon' || field === 'asset_hover' || field === 'asset_gallery')) {
+      value = stripQuotes(value);
+    }
     updated[index] = { ...updated[index], [field]: value };
     setVariants(updated);
   };
@@ -203,13 +213,12 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description *</Label>
+            <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
               name="description"
-              required
-              defaultValue={product.description}
-              placeholder="Product description..."
+              defaultValue={product.description || ''}
+              placeholder="Product description (optional)..."
               rows={4}
             />
           </div>
@@ -437,6 +446,18 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
                 defaultValue={product.uvProtection}
                 placeholder="e.g., UV400 Polarized"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="glassShape">Glass Shape</Label>
+              <Input
+                id="glassShape"
+                name="glassShape"
+                defaultValue={product.glassShape || ''}
+                placeholder="e.g., Cat Eye, Rectangle, Round"
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional. Enter the glass shape (e.g., Cat Eye, Rectangle, Round, Aviator)
+              </p>
             </div>
           </div>
         </CardContent>

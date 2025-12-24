@@ -612,9 +612,9 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground">User Management</h1>
           <p className="mt-2 text-muted-foreground">
             View and manage all user accounts, permissions, and related data

@@ -272,7 +272,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                     >
                       {/* Inner card handles perspective & tilt, image wrapper handles parallax */}
                       <Link
-                        href={`/products/${product.id}`}
+                        href={`/products/${product.slug || product.id}`}
                         prefetch={true}
                         className="absolute inset-0 flex items-center justify-center"
                         style={{

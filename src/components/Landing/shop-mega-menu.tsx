@@ -47,16 +47,28 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
   }, [isOpen, availableColors.length]);
 
   useEffect(function handleClickOutside() {
-    function handler(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    function handler(event: MouseEvent | TouchEvent) {
+      const target = event.target as HTMLElement;
+      
+      // Don't close if clicking on a link or inside a link
+      if (target && (target.tagName === 'A' || target.closest('a'))) {
+        // Let the link's onClick handler manage closing the menu
+        return;
+      }
+      
+      // Only close if clicking outside the menu
+      if (menuRef.current && !menuRef.current.contains(target as Node)) {
         onClose();
       }
     }
     if (isOpen) {
-      document.addEventListener("mousedown", handler);
+      // Use click event (not capture phase) to allow link clicks to process first
+      document.addEventListener("click", handler);
+      document.addEventListener("touchstart", handler);
     }
     return function() {
-      document.removeEventListener("mousedown", handler);
+      document.removeEventListener("click", handler);
+      document.removeEventListener("touchstart", handler);
     };
   }, [isOpen, onClose]);
 
@@ -101,7 +113,7 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
   }
 
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-4 z-[110]">
+    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 sm:mt-4 z-[110] w-[calc(100vw-2rem)] max-w-5xl sm:w-[90vw] xl:w-[90vw]">
       <div
         className="absolute -top-4 left-1/2 -translate-x-1/2 w-full h-4 z-[109]"
         onMouseEnter={handleMouseEnter}
@@ -110,49 +122,51 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
       <div
         ref={menuRef}
         className={cn(
-          "w-[90vw] max-w-5xl bg-white shadow-2xl rounded-lg border border-gray-200",
-          "grid grid-cols-3 gap-8 p-8",
+          "w-full bg-white shadow-2xl rounded-lg border border-gray-200",
+          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 p-4 sm:p-6 lg:p-8",
+          "max-h-[80vh] overflow-y-auto",
+          "scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent",
           className
         )}
         onMouseLeave={handleMouseLeave}
         onMouseEnter={handleMouseEnter}
       >
         <div className="space-y-4">
-          <h3 className="font-bold text-black text-base mb-4">Shop</h3>
-          <div className="space-y-3">
-            <Link href="/shop" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+          <h3 className="font-bold text-black text-sm sm:text-base mb-3 sm:mb-4">Shop</h3>
+          <div className="space-y-2 sm:space-y-3">
+            <Link href="/shop" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
               All Sunglasses
             </Link>
-            <Link href="/shop/women" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+            <Link href="/shop/women" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
               Women&apos;s Sunglasses
             </Link>
-            <Link href="/shop/men" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+            <Link href="/shop/men" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
               Men&apos;s Sunglasses
             </Link>
-            <Link href="/shop/kids" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+            <Link href="/shop/kids" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
               Kids Sunglasses
             </Link>
-            <Link href="/shop?filter=bestsellers" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+            <Link href="/shop?filter=bestsellers" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
               Best Sellers
             </Link>
-            <Link href="/shop?filter=new-arrivals" className="block text-black hover:text-primary transition-colors text-sm" onClick={onClose}>
+            <Link href="/shop?filter=new-arrivals" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
               New Arrivals
             </Link>
           </div>
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-bold text-black text-base mb-4">Shop by Frame Color</h3>
+          <h3 className="font-bold text-black text-sm sm:text-base mb-3 sm:mb-4">Shop by Frame Color</h3>
           {isLoadingColors ? (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-3 gap-2 sm:gap-3">
               {[1, 2, 3, 4, 5, 6].map(function(i) {
-                return <div key={i} className="w-12 h-12 rounded-full border-2 border-gray-300 bg-gray-200 animate-pulse" />;
+                return <div key={i} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-gray-300 bg-gray-200 animate-pulse" />;
               })}
             </div>
           ) : availableColors.length === 0 ? (
-            <p className="text-sm text-gray-500">No colors available</p>
+            <p className="text-xs sm:text-sm text-gray-500">No colors available</p>
           ) : (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-3 gap-2 sm:gap-3">
               {availableColors.map(function(color, index) {
                 const colorHex = color.colorHex.startsWith("#") ? color.colorHex : "#" + color.colorHex;
                 const isWhite = colorHex.toLowerCase() === "#ffffff" || colorHex.toLowerCase() === "#fff";
@@ -161,12 +175,12 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
                     key={color.colorHex + "-" + index}
                     href={"/shop?color=" + encodeURIComponent(colorHex)}
                     className="group relative flex justify-center"
-                    onClick={onClose}
+                    onClick={(e) => { e.stopPropagation(); onClose(); }}
                     title={color.colorName}
                   >
                     <div
                       className={cn(
-                        "w-12 h-12 rounded-full border-2 transition-all hover:scale-110 hover:border-primary",
+                        "w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 transition-all hover:scale-110 hover:border-primary",
                         isWhite ? "bg-white border-gray-400" : "border-gray-300"
                       )}
                       style={{ backgroundColor: colorHex }}
@@ -179,17 +193,17 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
         </div>
 
         <div className="space-y-4">
-          <h3 className="font-bold text-black text-base mb-4">Shop by Shape</h3>
-          <div className="grid grid-cols-3 gap-3">
+          <h3 className="font-bold text-black text-sm sm:text-base mb-3 sm:mb-4">Shop by Shape</h3>
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
             {shapes.map(function(shape, index) {
               return (
                 <Link
                   key={index}
                   href={"/shop?shape=" + encodeURIComponent(shape.name.toLowerCase().replace(/\s+/g, "-"))}
-                  className="group flex flex-col items-center p-3 bg-[#F5F5DC] rounded-lg hover:bg-[#E8E8D0] transition-colors"
-                  onClick={onClose}
+                  className="group flex flex-col items-center p-2 sm:p-3 bg-[#F5F5DC] rounded-lg hover:bg-[#E8E8D0] transition-colors"
+                  onClick={(e) => { e.stopPropagation(); onClose(); }}
                 >
-                  <div className="w-12 h-8 mb-2 flex items-center justify-center">
+                  <div className="w-10 h-6 sm:w-12 sm:h-8 mb-1 sm:mb-2 flex items-center justify-center">
                     {shape.icon === "cat-eye" && (
                       <svg viewBox="0 0 24 16" className="w-full h-full">
                         <path d="M2 8 Q6 2, 12 8 Q18 14, 22 8" stroke="black" strokeWidth="1.5" fill="none" />
@@ -241,7 +255,7 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
                       </svg>
                     )}
                   </div>
-                  <span className="text-xs text-black text-center leading-tight">{shape.name}</span>
+                  <span className="text-[10px] sm:text-xs text-black text-center leading-tight">{shape.name}</span>
                 </Link>
               );
             })}

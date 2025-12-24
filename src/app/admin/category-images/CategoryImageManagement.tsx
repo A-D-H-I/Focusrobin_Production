@@ -32,6 +32,7 @@ interface CategoryImage {
   id: string;
   category: string;
   imageUrl: string;
+  mobileTabletImageUrl?: string | null;
   alt: string;
   link: string;
   isActive: boolean;
@@ -58,6 +59,7 @@ export function CategoryImageManagement({ initialImages }: CategoryImageManageme
   const [formData, setFormData] = useState({
     category: '',
     imageUrl: '',
+    mobileTabletImageUrl: '',
     alt: '',
     link: '',
     isActive: true,
@@ -67,6 +69,7 @@ export function CategoryImageManagement({ initialImages }: CategoryImageManageme
     setFormData({
       category: '',
       imageUrl: '',
+      mobileTabletImageUrl: '',
       alt: '',
       link: '',
       isActive: true,
@@ -79,6 +82,7 @@ export function CategoryImageManagement({ initialImages }: CategoryImageManageme
     setFormData({
       category: image.category,
       imageUrl: image.imageUrl,
+      mobileTabletImageUrl: image.mobileTabletImageUrl || '',
       alt: image.alt,
       link: image.link,
       isActive: image.isActive,
@@ -94,6 +98,7 @@ export function CategoryImageManagement({ initialImages }: CategoryImageManageme
     const form = new FormData();
     form.append('category', formData.category);
     form.append('imageUrl', formData.imageUrl);
+    form.append('mobileTabletImageUrl', formData.mobileTabletImageUrl);
     form.append('alt', formData.alt);
     form.append('link', formData.link);
     form.append('isActive', formData.isActive.toString());
@@ -225,7 +230,7 @@ export function CategoryImageManagement({ initialImages }: CategoryImageManageme
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="imageUrl">Image URL</Label>
+                  <Label htmlFor="imageUrl">Desktop Image URL</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 4:3 or 3:2 (Landscape)</span>
                 </div>
                 <Input
@@ -236,7 +241,23 @@ export function CategoryImageManagement({ initialImages }: CategoryImageManageme
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Recommended: 1200x900px (4:3) or 1200x800px (3:2). Each category takes 1/3 of the section width on desktop, full width on mobile.
+                  Recommended: 1200x900px (4:3) or 1200x800px (3:2). Each category takes 1/3 of the section width on desktop.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="mobileTabletImageUrl">Mobile & Tablet Image URL</Label>
+                  <span className="text-xs text-muted-foreground">Aspect Ratio: 9:16 or 3:4 (Portrait)</span>
+                </div>
+                <Input
+                  id="mobileTabletImageUrl"
+                  value={formData.mobileTabletImageUrl}
+                  onChange={(e) => setFormData({ ...formData, mobileTabletImageUrl: e.target.value })}
+                  placeholder="/shopcategory/Men-mobile.jpg"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full width on mobile and tablet devices. Optional - if not provided, desktop image will be used.
                 </p>
               </div>
 
@@ -318,17 +339,37 @@ export function CategoryImageManagement({ initialImages }: CategoryImageManageme
                 <CardTitle className="text-lg">{categoryLabels[image.category] || image.category}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
-                  {image.imageUrl && (
-                    <Image
-                      src={normalizeImageUrl(image.imageUrl)}
-                      alt={image.alt}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 33vw"
-                      unoptimized
-                    />
-                  )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                    {image.imageUrl && (
+                      <Image
+                        src={normalizeImageUrl(image.imageUrl)}
+                        alt="Desktop preview"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                        unoptimized
+                      />
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                      Desktop
+                    </div>
+                  </div>
+                  <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                    {(image.mobileTabletImageUrl || image.imageUrl) && (
+                      <Image
+                        src={normalizeImageUrl(image.mobileTabletImageUrl || image.imageUrl)}
+                        alt="Mobile/Tablet preview"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                        unoptimized
+                      />
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                      Mobile/Tablet
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2 text-sm">

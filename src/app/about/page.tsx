@@ -5,7 +5,7 @@ export default function AboutPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow pt-36 sm:pt-40 bg-background">
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         <div className="max-w-4xl mx-auto py-20 px-4">
           <h1 className="text-4xl font-bold text-foreground mb-8">
             About FocusRobin

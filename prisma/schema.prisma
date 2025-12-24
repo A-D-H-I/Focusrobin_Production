@@ -30,10 +30,10 @@ model Product {
   id             String           @id @default(cuid())
   name           String
   slug           String           @unique
-  description    String
+  description    String?
   basePrice      Decimal          @db.Decimal(10, 2)
   discountPct    Int?             @default(0)
-  cashbackAmount Decimal?         @db.Decimal(10, 2) @default(0) // Cashback amount in Euros (e.g., 2.00 for €2)
+  cashbackAmount Decimal?         @default(0) @db.Decimal(10, 2) // Cashback amount in Euros (e.g., 2.00 for €2)
   gender         Gender[]
   tags           String[]
   frameWidth     Float
@@ -45,6 +45,7 @@ model Product {
   frameMaterial  String
   lensMaterial   String?          @default("Polycarbonate")
   uvProtection   String
+  glassShape     String? // Glass shape (e.g., Cat Eye, Rectangle)
   averageRating  Float            @default(0)
   reviewCount    Int              @default(0)
   isNewlyAdded   Boolean          @default(false) // For "Newly Added Products" section
@@ -88,34 +89,34 @@ model ProductVariant {
 }
 
 model Review {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   rating    Int
   title     String
   comment   String
-  images    String[]  // Array of image URLs
+  images    String[] // Array of image URLs
   productId String?
-  orderId   String?   // Link review to order (only delivered orders can be reviewed)
+  orderId   String? // Link review to order (only delivered orders can be reviewed)
   userId    String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  Product   Product?  @relation(fields: [productId], references: [id], onDelete: SetNull)
-  Order     Order?    @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  User      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  Order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([productId])
   @@index([orderId])
   @@index([userId])
 }
 
 model User {
-  id            String       @id @default(cuid())
-  email         String       @unique
+  id            String     @id @default(cuid())
+  email         String     @unique
   name          String?
   emailVerified DateTime?
   image         String?
-  role          String       @default("USER")
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
+  role          String     @default("USER")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
   accounts      Account[]
   sessions      Session[]
   cart          Cart?
@@ -134,14 +135,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String?  @db.Text
-  access_token      String?  @db.Text
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String?  @db.Text
+  id_token          String? @db.Text
   session_state     String?
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -177,7 +178,7 @@ model CartItem {
   cartId    String
   productId String
   variantId String
-  quantity Int      @default(1)
+  quantity  Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   Cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
@@ -200,28 +201,28 @@ model Wishlist {
 
 // Wallet Models
 model Wallet {
-  id        String            @id @default(cuid())
-  userId    String            @unique
-  balance   Decimal           @default(0) @db.Decimal(10, 2)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
-  User      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String              @id @default(cuid())
+  userId       String              @unique
+  balance      Decimal             @default(0) @db.Decimal(10, 2)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  User         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions WalletTransaction[]
 }
 
 model WalletTransaction {
-  id          String   @id @default(cuid())
+  id          String          @id @default(cuid())
   walletId    String
-  amount      Decimal  @db.Decimal(10, 2)
+  amount      Decimal         @db.Decimal(10, 2)
   type        TransactionType
   description String
-  createdAt   DateTime @default(now())
-  Wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  Wallet      Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
 }
 
 enum TransactionType {
   CREDIT // Money added (cashback, admin credit, refund)
-  DEBIT  // Money spent (purchase, admin deduction)
+  DEBIT // Money spent (purchase, admin deduction)
 }
 
 // Address Model
@@ -244,39 +245,39 @@ model Address {
 
 // Deleted User Archive Model - Stores complete user data before deletion
 model DeletedUser {
-  id            String   @id @default(cuid())
-  originalUserId String  @unique // Original user ID before deletion
-  email         String
-  name          String?
-  image         String?
-  role          String
-  emailVerified DateTime?
-  createdAt     DateTime // Original user creation date
-  deletedAt     DateTime @default(now())
-  
+  id             String    @id @default(cuid())
+  originalUserId String    @unique // Original user ID before deletion
+  email          String
+  name           String?
+  image          String?
+  role           String
+  emailVerified  DateTime?
+  createdAt      DateTime // Original user creation date
+  deletedAt      DateTime  @default(now())
+
   // Store all related data as JSON
-  userData      Json     // Complete user object
-  accountsData  Json     // All OAuth accounts
-  sessionsData  Json     // All sessions
-  cartData      Json?    // Cart and cart items
-  wishlistData  Json     // All wishlist items
-  walletData    Json?    // Wallet and transactions
-  reviewsData   Json     // All reviews
-  addressesData Json     // All addresses
+  userData      Json // Complete user object
+  accountsData  Json // All OAuth accounts
+  sessionsData  Json // All sessions
+  cartData      Json? // Cart and cart items
+  wishlistData  Json // All wishlist items
+  walletData    Json? // Wallet and transactions
+  reviewsData   Json // All reviews
+  addressesData Json // All addresses
 }
 
 model HeroImage {
-  id            String   @id @default(cuid())
+  id              String   @id @default(cuid())
   desktopImageUrl String
   mobileImageUrl  String
-  title         String
-  subtitle      String
-  ctaText       String
-  ctaLink       String
-  isActive      Boolean  @default(true)
-  order         Int      @default(0) // Order for carousel display
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  title           String
+  subtitle        String
+  ctaText         String
+  ctaLink         String
+  isActive        Boolean  @default(true)
+  order           Int      @default(0) // Order for carousel display
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model InstagramImage {
@@ -291,47 +292,51 @@ model InstagramImage {
 }
 
 model CategoryImage {
-  id        String   @id @default(cuid())
-  category  String   @unique // "MEN", "WOMEN", "KIDS"
-  imageUrl  String
-  alt       String
-  link      String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  category             String   @unique // "MEN", "WOMEN", "KIDS"
+  imageUrl             String
+  mobileTabletImageUrl String? // Mobile & Tablet image (optional for backward compatibility)
+  alt                  String
+  link                 String
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model IconicImage {
-  id        String   @id @default(cuid())
-  imageUrl  String
-  alt       String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  imageUrl             String
+  mobileTabletImageUrl String? // Mobile & Tablet image (optional for backward compatibility)
+  alt                  String
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model GiftBanner {
-  id        String   @id @default(cuid())
-  imageUrl  String
-  title     String
-  subtitle  String?
-  link      String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  imageUrl             String
+  mobileTabletImageUrl String? // Mobile & Tablet image (optional for backward compatibility)
+  title                String
+  subtitle             String?
+  link                 String
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model GiftForLovedOnesBanner {
-  id        String   @id @default(cuid())
-  imageUrl  String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  imageUrl             String
+  mobileTabletImageUrl String? // Mobile & Tablet image (optional for backward compatibility)
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model ScrollingBanner {
   id        String   @id @default(cuid())
-  text      String   // Banner text to display
+  text      String // Banner text to display
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -374,31 +379,31 @@ model Settings {
 
 // Navbar Settings Model
 model NavbarSettings {
-  id                    String   @id @default(cuid())
-  iconColorNotScrolled  String   @default("white") // Color for navbar icons when not scrolled (e.g., "white", "black", "#ffffff")
-  logoColorNotScrolled  String   @default("white") // Color for logo when not scrolled (e.g., "white", "black", "#ffffff")
-  isActive              Boolean  @default(true)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  iconColorNotScrolled String   @default("white") // Color for navbar icons when not scrolled (e.g., "white", "black", "#ffffff")
+  logoColorNotScrolled String   @default("white") // Color for logo when not scrolled (e.g., "white", "black", "#ffffff")
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 // Chat Models
 model Chat {
-  id              String        @id @default(cuid())
-  userId          String?
-  userEmail       String        // Store email for non-authenticated users
-  userName        String?       // Store name for non-authenticated users
-  userLanguage    String        @default("en") // User's detected language
-  status          ChatStatus    @default(OPEN)
-  forceClosed     Boolean       @default(false) // If true, user cannot reopen this chat
-  forceClosedAt   DateTime?     // When the chat was force closed
-  forceClosedBy   String?       // Admin ID who force closed it
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  lastMessageAt   DateTime      @default(now())
-  User            User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages        ChatMessage[]
-  
+  id            String        @id @default(cuid())
+  userId        String?
+  userEmail     String // Store email for non-authenticated users
+  userName      String? // Store name for non-authenticated users
+  userLanguage  String        @default("en") // User's detected language
+  status        ChatStatus    @default(OPEN)
+  forceClosed   Boolean       @default(false) // If true, user cannot reopen this chat
+  forceClosedAt DateTime? // When the chat was force closed
+  forceClosedBy String? // Admin ID who force closed it
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  lastMessageAt DateTime      @default(now())
+  User          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages      ChatMessage[]
+
   @@index([userId])
   @@index([status])
   @@index([lastMessageAt])
@@ -406,30 +411,30 @@ model Chat {
 }
 
 model UserBlock {
-  id            String   @id @default(cuid())
-  userId        String?  // If null, blocks by email
-  userEmail     String?  // For anonymous users
-  blockedUntil DateTime  // Block expires at this time
-  reason        String?  // Reason for blocking
-  blockedBy    String   // Admin ID who blocked
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  id           String   @id @default(cuid())
+  userId       String? // If null, blocks by email
+  userEmail    String? // For anonymous users
+  blockedUntil DateTime // Block expires at this time
+  reason       String? // Reason for blocking
+  blockedBy    String // Admin ID who blocked
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   @@index([userId])
   @@index([userEmail])
   @@index([blockedUntil])
 }
 
 model ChatMessage {
-  id                String   @id @default(cuid())
-  chatId            String
-  sender            MessageSender
-  originalText      String   @db.Text // Original message in sender's language
-  translatedText    String   @db.Text // Translated message (to English for admin, to user language for user)
-  language          String   // Language code of the original text
-  createdAt         DateTime @default(now())
-  Chat              Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
-  
+  id             String        @id @default(cuid())
+  chatId         String
+  sender         MessageSender
+  originalText   String        @db.Text // Original message in sender's language
+  translatedText String        @db.Text // Translated message (to English for admin, to user language for user)
+  language       String // Language code of the original text
+  createdAt      DateTime      @default(now())
+  Chat           Chat          @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
   @@index([chatId])
   @@index([createdAt])
 }
@@ -458,7 +463,7 @@ model ContactSubmission {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([email])
   @@index([read])
   @@index([createdAt])
@@ -466,60 +471,60 @@ model ContactSubmission {
 
 // Order Models
 model Order {
-  id              String      @id @default(cuid())
-  userId          String
-  orderNumber     String      @unique // Human-readable order number (e.g., ORD-2024-001)
-  status          OrderStatus @default(PENDING)
-  paymentMethod   String      // card, paypal, apple-pay, google-pay, revolut-pay, bank-transfer
-  paymentStatus   PaymentStatus @default(PENDING)
-  subtotal        Decimal     @db.Decimal(10, 2)
-  shipping        Decimal     @db.Decimal(10, 2) @default(0)
-  total           Decimal     @db.Decimal(10, 2)
-  currency        String      @default("EUR")
-  walletAmountUsed Decimal    @default(0) @db.Decimal(10, 2) // Amount deducted from wallet for this order
-  promoCodeId     String?     // Promo code used for this order
-  promoDiscount   Decimal     @default(0) @db.Decimal(10, 2) // Discount amount from promo code
-  promoCashback   Decimal     @default(0) @db.Decimal(10, 2) // Cashback amount from promo code
-  
+  id               String        @id @default(cuid())
+  userId           String
+  orderNumber      String        @unique // Human-readable order number (e.g., ORD-2024-001)
+  status           OrderStatus   @default(PENDING)
+  paymentMethod    String // card, paypal, apple-pay, google-pay, revolut-pay, bank-transfer
+  paymentStatus    PaymentStatus @default(PENDING)
+  subtotal         Decimal       @db.Decimal(10, 2)
+  shipping         Decimal       @default(0) @db.Decimal(10, 2)
+  total            Decimal       @db.Decimal(10, 2)
+  currency         String        @default("EUR")
+  walletAmountUsed Decimal       @default(0) @db.Decimal(10, 2) // Amount deducted from wallet for this order
+  promoCodeId      String? // Promo code used for this order
+  promoDiscount    Decimal       @default(0) @db.Decimal(10, 2) // Discount amount from promo code
+  promoCashback    Decimal       @default(0) @db.Decimal(10, 2) // Cashback amount from promo code
+
   // Stripe Payment Integration
-  stripeSessionId String?     @unique // Stripe Checkout Session ID
+  stripeSessionId       String? @unique // Stripe Checkout Session ID
   stripePaymentIntentId String? // Stripe Payment Intent ID
-  isPaid            Boolean     @default(false) // Payment status flag
-  
-  shippingProvider String     @default("DHL") // Omniva for Latvia, Lithuania, Estonia; DHL for others
-  trackingNumber  String?     // Tracking number for delivery
-  trackingMessage String?     @db.Text // Admin message/update about tracking
-  
+  isPaid                Boolean @default(false) // Payment status flag
+
+  shippingProvider String  @default("DHL") // Omniva for Latvia, Lithuania, Estonia; DHL for others
+  trackingNumber   String? // Tracking number for delivery
+  trackingMessage  String? @db.Text // Admin message/update about tracking
+
   // Shipping Address
-  shippingName    String
-  shippingPhone   String
+  shippingName         String
+  shippingPhone        String
   shippingAddressLine1 String
   shippingAddressLine2 String?
-  shippingCity    String
-  shippingState   String?
-  shippingPostalCode String
-  shippingCountry String      @default("Ireland")
-  
+  shippingCity         String
+  shippingState        String?
+  shippingPostalCode   String
+  shippingCountry      String  @default("Ireland")
+
   // Billing Address (can be same as shipping)
-  billingName     String?
-  billingPhone    String?
+  billingName         String?
+  billingPhone        String?
   billingAddressLine1 String?
   billingAddressLine2 String?
-  billingCity     String?
-  billingState    String?
-  billingPostalCode String?
-  billingCountry  String?
-  
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  shippedAt       DateTime?
-  deliveredAt     DateTime?
-  
-  User            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  PromoCode       PromoCode?  @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
-  items           OrderItem[]
-  Review          Review[]    // Reviews for this order
-  
+  billingCity         String?
+  billingState        String?
+  billingPostalCode   String?
+  billingCountry      String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+
+  User      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  PromoCode PromoCode?  @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
+  items     OrderItem[]
+  Review    Review[] // Reviews for this order
+
   @@index([userId])
   @@index([orderNumber])
   @@index([status])
@@ -527,23 +532,23 @@ model Order {
 }
 
 model OrderItem {
-  id            String   @id @default(cuid())
-  orderId       String
-  productId     String
-  variantId     String
-  productName   String   // Snapshot of product name at time of order
-  variantName   String   // Snapshot of variant name at time of order
-  sku           String   // Snapshot of SKU at time of order
-  quantity      Int
-  price         Decimal  @db.Decimal(10, 2) // Price per unit at time of order
-  total         Decimal  @db.Decimal(10, 2) // Total for this line item
-  imageUrl      String?  // Snapshot of product image at time of order
-  
-  createdAt     DateTime @default(now())
-  
-  Order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  Product       Product  @relation(fields: [productId], references: [id], onDelete: SetNull)
-  
+  id          String  @id @default(cuid())
+  orderId     String
+  productId   String? // Made nullable to allow product deletion while preserving order history
+  variantId   String
+  productName String // Snapshot of product name at time of order
+  variantName String // Snapshot of variant name at time of order
+  sku         String // Snapshot of SKU at time of order
+  quantity    Int
+  price       Decimal @db.Decimal(10, 2) // Price per unit at time of order
+  total       Decimal @db.Decimal(10, 2) // Total for this line item
+  imageUrl    String? // Snapshot of product image at time of order
+
+  createdAt DateTime @default(now())
+
+  Order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  Product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
   @@index([orderId])
   @@index([productId])
 }
@@ -553,10 +558,10 @@ enum OrderStatus {
   PAID
   SHIPPED
   CANCELLED
-  CONFIRMED  // Keep for backward compatibility
+  CONFIRMED // Keep for backward compatibility
   PROCESSING // Keep for backward compatibility
-  DELIVERED  // Keep for backward compatibility
-  REFUNDED   // Keep for backward compatibility
+  DELIVERED // Keep for backward compatibility
+  REFUNDED // Keep for backward compatibility
 }
 
 enum PaymentStatus {
@@ -571,42 +576,42 @@ enum PaymentStatus {
 model CurrencyRate {
   id          String   @id @default(cuid())
   code        String   @unique // Currency code e.g., "USD", "GBP", "EUR"
-  rate        Float    // Exchange rate relative to EUR (EUR = 1.0)
-  symbol      String   // Currency symbol e.g., "$", "£", "€"
-  name        String   // Full currency name e.g., "US Dollar"
+  rate        Float // Exchange rate relative to EUR (EUR = 1.0)
+  symbol      String // Currency symbol e.g., "$", "£", "€"
+  name        String // Full currency name e.g., "US Dollar"
   lastUpdated DateTime @default(now()) @updatedAt
-  
+
   @@index([code])
 }
 
 model NewsletterSubscription {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id           String   @id @default(cuid())
+  email        String   @unique
   subscribedAt DateTime @default(now())
-  isActive  Boolean  @default(true)
-  
+  isActive     Boolean  @default(true)
+
   @@index([email])
   @@index([isActive])
 }
 
 model PromoCode {
-  id                String    @id @default(cuid())
-  code              String    @unique // Promo code (e.g., "SUMMER2024")
-  description       String?   // Optional description
-  discountPercentage Decimal? @db.Decimal(5, 2) // Discount percentage (e.g., 10.00 for 10%)
-  discountAmount    Decimal?  @db.Decimal(10, 2) // Fixed discount amount in EUR
-  cashbackPercentage Decimal? @db.Decimal(5, 2) // Cashback percentage (e.g., 5.00 for 5%)
-  isActive          Boolean   @default(true)
-  startDate         DateTime  @default(now())
-  endDate           DateTime? // Optional end date
-  usageLimit        Int?      // Maximum number of times this code can be used (null = unlimited)
-  usedCount         Int       @default(0) // Number of times this code has been used
-  minPurchaseAmount Decimal?  @db.Decimal(10, 2) // Minimum purchase amount to use this code
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  Order             Order[]   // Orders that used this promo code
-  
+  id                 String    @id @default(cuid())
+  code               String    @unique // Promo code (e.g., "SUMMER2024")
+  description        String? // Optional description
+  discountPercentage Decimal?  @db.Decimal(5, 2) // Discount percentage (e.g., 10.00 for 10%)
+  discountAmount     Decimal?  @db.Decimal(10, 2) // Fixed discount amount in EUR
+  cashbackPercentage Decimal?  @db.Decimal(5, 2) // Cashback percentage (e.g., 5.00 for 5%)
+  isActive           Boolean   @default(true)
+  startDate          DateTime  @default(now())
+  endDate            DateTime? // Optional end date
+  usageLimit         Int? // Maximum number of times this code can be used (null = unlimited)
+  usedCount          Int       @default(0) // Number of times this code has been used
+  minPurchaseAmount  Decimal?  @db.Decimal(10, 2) // Minimum purchase amount to use this code
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  Order Order[] // Orders that used this promo code
+
   @@index([code])
   @@index([isActive])
   @@index([startDate])

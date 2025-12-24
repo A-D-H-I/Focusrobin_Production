@@ -19,10 +19,16 @@ export default function CurrencySwitcher({ className }: CurrencySwitcherProps) {
 
   return (
     <Select value={currency} onValueChange={setCurrency}>
-      <SelectTrigger className={cn("h-8 w-[90px] bg-transparent border rounded-md text-xs cursor-pointer [&>span]:text-current [&>svg]:text-current [&>svg]:opacity-70", className)}>
+      <SelectTrigger className={cn("h-8 w-[75px] sm:w-[90px] bg-transparent border rounded-md text-xs cursor-pointer [&>span]:text-current [&>svg]:text-current [&>svg]:opacity-70", className)}>
         <SelectValue />
       </SelectTrigger>
-      <SelectContent position="popper" side="bottom" sideOffset={4} className="max-h-[200px] overflow-y-auto">
+      <SelectContent 
+        position="popper" 
+        side="bottom" 
+        sideOffset={4}
+        align="end"
+        className="max-h-[200px] overflow-y-auto z-[110] min-w-[var(--radix-select-trigger-width)]"
+      >
         {supportedCurrencies.map((curr) => (
           <SelectItem key={curr.code} value={curr.code}>
             {curr.name}

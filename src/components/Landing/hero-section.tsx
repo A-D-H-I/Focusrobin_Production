@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import { Camera } from "lucide-react";
 
 interface HeroData {
   id: string;
@@ -180,24 +181,32 @@ export default function HeroSection({ heroData }: HeroSectionProps) {
       </div>
 
       {/* Content Overlay - Fixed positioning to ensure visibility */}
-      <div className="absolute inset-0 z-20 flex items-end justify-center text-center text-white px-4 pb-20 md:pb-34 pointer-events-none">
+      <div className="absolute inset-0 z-20 flex items-end justify-center text-center text-white px-4 pb-24 md:pb-28 lg:pb-16 pointer-events-none">
         <div
           className={cn(
             "transform transition-all duration-1000 ease-out w-full max-w-4xl pointer-events-auto",
             isMounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           )}
         >
-          <h1 className="text-3xl sm:text-4xl md:text-6xl font-headline font-bold mb-4 drop-shadow-lg break-words px-2">
+          <h1 className="text-3xl sm:text-4xl md:text-4xl lg:text-2xl xl:text-3xl font-headline font-bold mb-3 lg:mb-2 drop-shadow-lg break-words px-2">
             {sharedText?.title || "Elevate Your Style, Enhance Your Vision"}
           </h1>
-          <p className="text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-8 drop-shadow-lg break-words px-2">
+          <p className="text-base sm:text-lg md:text-base lg:text-sm xl:text-base max-w-2xl mx-auto mb-6 lg:mb-4 drop-shadow-lg break-words px-2">
             {sharedText?.subtitle || "Shop our latest collection of premium sunglasses & prescription glasses."}
           </p>
-          <Link href={currentRoute || "/shop"}>
-            <Button size="lg" className="rounded-full px-6 sm:px-8 py-5 sm:py-6 text-base sm:text-lg bg-brand-teal hover:bg-brand-teal/90 text-white shadow-lg">
-              {sharedText?.ctaText || "Shop Now"}
-            </Button>
-          </Link>
+          <div className="flex flex-row gap-3 sm:gap-4 justify-center items-center">
+            <Link href={currentRoute || "/shop"}>
+              <Button size="lg" className="rounded-full px-4 sm:px-8 py-5 sm:py-6 lg:px-6 lg:py-4 text-sm sm:text-base md:text-base lg:text-sm xl:text-base bg-brand-teal hover:bg-brand-teal/90 text-white shadow-lg">
+                {sharedText?.ctaText || "Shop Now"}
+              </Button>
+            </Link>
+            <Link href="/shop">
+              <Button size="lg" variant="outline" className="rounded-full px-4 sm:px-8 py-5 sm:py-6 lg:px-6 lg:py-4 text-sm sm:text-base md:text-base lg:text-sm xl:text-base border-2 border-white text-white bg-white/5 backdrop-blur-sm shadow-lg flex items-center gap-2">
+                <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
+                Try On
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 

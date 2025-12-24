@@ -24,6 +24,7 @@ import { normalizeImageUrl } from '@/lib/normalize-image-url';
 interface IconicImage {
   id: string;
   imageUrl: string;
+  mobileTabletImageUrl?: string | null;
   alt: string;
   isActive: boolean;
   createdAt: Date;
@@ -48,6 +49,7 @@ export function IconicImageManagement({ initialImages }: IconicImageManagementPr
 
   const [formData, setFormData] = useState({
     imageUrl: '',
+    mobileTabletImageUrl: '',
     alt: '',
     isActive: false,
   });
@@ -55,6 +57,7 @@ export function IconicImageManagement({ initialImages }: IconicImageManagementPr
   const resetForm = () => {
     setFormData({
       imageUrl: '',
+      mobileTabletImageUrl: '',
       alt: '',
       isActive: false,
     });
@@ -65,6 +68,7 @@ export function IconicImageManagement({ initialImages }: IconicImageManagementPr
   const handleEdit = (image: IconicImage) => {
     setFormData({
       imageUrl: image.imageUrl,
+      mobileTabletImageUrl: image.mobileTabletImageUrl || '',
       alt: image.alt,
       isActive: image.isActive,
     });
@@ -78,6 +82,7 @@ export function IconicImageManagement({ initialImages }: IconicImageManagementPr
 
     const form = new FormData();
     form.append('imageUrl', formData.imageUrl);
+    form.append('mobileTabletImageUrl', formData.mobileTabletImageUrl);
     form.append('alt', formData.alt);
     form.append('isActive', formData.isActive.toString());
 
@@ -215,7 +220,7 @@ export function IconicImageManagement({ initialImages }: IconicImageManagementPr
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="imageUrl">Image URL</Label>
+                  <Label htmlFor="imageUrl">Desktop Image URL</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 16:9 or 21:9 (Landscape)</span>
                 </div>
                 <Input
@@ -227,6 +232,22 @@ export function IconicImageManagement({ initialImages }: IconicImageManagementPr
                 />
                 <p className="text-xs text-muted-foreground">
                   Recommended: 1920x1080px (16:9) or 2560x1080px (21:9). Wide banner format, minimum height 600px.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="mobileTabletImageUrl">Mobile & Tablet Image URL</Label>
+                  <span className="text-xs text-muted-foreground">Aspect Ratio: 9:16 or 3:4 (Portrait)</span>
+                </div>
+                <Input
+                  id="mobileTabletImageUrl"
+                  value={formData.mobileTabletImageUrl}
+                  onChange={(e) => setFormData({ ...formData, mobileTabletImageUrl: e.target.value })}
+                  placeholder="/Iconic/iconicimage2-mobile.png"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used.
                 </p>
               </div>
 
@@ -305,17 +326,37 @@ export function IconicImageManagement({ initialImages }: IconicImageManagementPr
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
-                  {image.imageUrl && (
-                    <Image
-                      src={normalizeImageUrl(image.imageUrl)}
-                      alt={image.alt}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 50vw"
-                      unoptimized
-                    />
-                  )}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                    {image.imageUrl && (
+                      <Image
+                        src={normalizeImageUrl(image.imageUrl)}
+                        alt="Desktop preview"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                        unoptimized
+                      />
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                      Desktop
+                    </div>
+                  </div>
+                  <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                    {(image.mobileTabletImageUrl || image.imageUrl) && (
+                      <Image
+                        src={normalizeImageUrl(image.mobileTabletImageUrl || image.imageUrl)}
+                        alt="Mobile/Tablet preview"
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 768px) 50vw, 25vw"
+                        unoptimized
+                      />
+                    )}
+                    <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                      Mobile/Tablet
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2 text-sm">

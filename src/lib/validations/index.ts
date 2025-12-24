@@ -123,6 +123,7 @@ export const productBaseSchema = z.object({
   frameMaterial: sanitizedString(100).min(2, "Frame material is required"),
   lensMaterial: sanitizedString(100).optional().default("Polycarbonate"),
   uvProtection: sanitizedString(50).min(2, "UV protection info is required"),
+  glassShape: sanitizedString(100).optional().nullable(),
   frameWidth: positiveNumber.optional(),
   lensWidth: positiveNumber.optional(),
   lensHeight: positiveNumber.optional(),

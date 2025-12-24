@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Filter, Eye, Glasses } from "lucide-react";
+import { Filter, LayoutGrid, List } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -21,15 +22,28 @@ import {
 import FilterSidebar from "@/components/shop/filter-sidebar";
 import ProductGrid from "@/components/shop/product-grid";
 import type { Product } from "@/lib/productData";
+import { cn } from "@/lib/utils";
 
 interface ShopPageClientProps {
   products: Product[];
   title?: string;
 }
 
-export default function ShopPageClient({ products, title = "Best Sellers Glasses" }: ShopPageClientProps) {
+export default function ShopPageClient({ products, title = "All Products" }: ShopPageClientProps) {
+  const searchParams = useSearchParams();
   const [filtersApplied, setFiltersApplied] = useState(0);
   const [sortBy, setSortBy] = useState<string>("recommend");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Count applied filters from URL params
+  useEffect(() => {
+    let count = 0;
+    if (searchParams.get('gender')) count += searchParams.getAll('gender').length;
+    if (searchParams.get('color')) count += 1;
+    if (searchParams.get('filter')) count += 1;
+    if (searchParams.get('glassShape')) count += searchParams.getAll('glassShape').length;
+    setFiltersApplied(count);
+  }, [searchParams]);
 
   // Store original order (newest first, as fetched from server)
   const originalOrder = useMemo(() => [...products], [products]);
@@ -60,12 +74,10 @@ export default function ShopPageClient({ products, title = "Best Sellers Glasses
         });
 
       case "newest":
-        // Return original order (products are already sorted by newest from server)
         return [...originalOrder];
 
       case "recommend":
       default:
-        // Recommend: Sort by rating (highest first), then by review count
         return productsCopy.sort((a, b) => {
           const ratingA = a.averageRating || 0;
           const ratingB = b.averageRating || 0;
@@ -82,93 +94,156 @@ export default function ShopPageClient({ products, title = "Best Sellers Glasses
   return (
     <div className="container mx-auto px-4">
       <div className="flex flex-col md:flex-row gap-8 py-8">
-        <div className="hidden md:block md:w-1/4 lg:w-1/5 self-start sticky top-24">
-          <div className="h-[calc(100vh-7rem)] overflow-y-auto">
-            <h2 className="text-2xl font-bold font-headline mb-4">
-              Filters ({filtersApplied})
-            </h2>
-            <FilterSidebar />
+        {/* Desktop Filter Sidebar */}
+        <div className="hidden md:block md:w-72 lg:w-80 flex-shrink-0">
+          <div className="sticky top-32">
+            <div className="max-h-[calc(100vh-10rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
+              <Suspense fallback={<div className="text-muted-foreground">Loading filters...</div>}>
+                <FilterSidebar />
+              </Suspense>
+            </div>
           </div>
         </div>
-        <div className="w-full md:w-3/4 lg:w-4/5">
-          <div className="w-full">
-            <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-              <div className="w-full sm:w-auto text-center md:text-left">
-                <h1 className="text-3xl sm:text-4xl font-headline font-bold">
-                  {title}
-                </h1>
-                <p className="text-muted-foreground mt-1">
-                  Results: {sortedProducts.length}
-                </p>
-              </div>
-              <div className="hidden md:flex items-center gap-2 sm:gap-4 flex-wrap justify-center">
-                <div className="flex items-center border rounded-md">
-                  <Button variant="ghost" className="rounded-r-none border-r text-xs sm:text-sm px-2 sm:px-4">
-                    <Glasses className="mr-1 sm:mr-2 h-4 w-4" />
-                    Product View
-                  </Button>
-                  <Button variant="ghost" className="rounded-l-none text-muted-foreground text-xs sm:text-sm px-2 sm:px-4">
-                    <Eye className="mr-1 sm:mr-2 h-4 w-4" />
-                    Try-On View
-                  </Button>
-                </div>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-auto sm:w-[180px]">
-                    <span className="text-muted-foreground mr-1 hidden sm:inline">Sort by:</span>
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recommend">Recommend</SelectItem>
-                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                    <SelectItem value="newest">Newest</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+        
+        {/* Main Content */}
+        <div className="w-full md:flex-1 min-w-0">
+          {/* Header Section */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-headline font-bold text-foreground">
+                {title}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Showing {sortedProducts.length} results
+              </p>
             </div>
-            <div className="md:hidden mb-6 space-y-4">
-              <div className="flex gap-4">
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" className="flex-1">
-                      <Filter className="mr-2 h-4 w-4" />
-                      Filters ({filtersApplied})
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent
-                    side="left"
-                    className="w-[300px] sm:w-[400px] p-0"
-                  >
-                    <SheetHeader className="p-6 pb-0">
-                      <SheetTitle className="text-2xl font-bold font-headline">
-                        Filters ({filtersApplied})
-                      </SheetTitle>
-                    </SheetHeader>
-                    <ScrollArea className="h-[calc(100%-4rem)]">
-                      <div className="p-6">
-                        <FilterSidebar />
-                      </div>
-                    </ScrollArea>
-                  </SheetContent>
-                </Sheet>
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Sort by" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="recommend">Recommend</SelectItem>
-                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                    <SelectItem value="newest">Newest</SelectItem>
-                  </SelectContent>
-                </Select>
+            
+            {/* Desktop Controls */}
+            <div className="hidden md:flex items-center gap-3">
+              {/* View Toggle */}
+              <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode("grid")}
+                  className={cn(
+                    "h-9 w-9 rounded-none border-0",
+                    viewMode === "grid" 
+                      ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" 
+                      : "hover:bg-muted"
+                  )}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "h-9 w-9 rounded-none border-0 border-l border-border",
+                    viewMode === "list" 
+                      ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" 
+                      : "hover:bg-muted"
+                  )}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
               </div>
+              
+              {/* Sort Dropdown */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-44 h-9">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recommend">Recommended</SelectItem>
+                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                  <SelectItem value="newest">Newest</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <ProductGrid products={sortedProducts} />
+          
+          {/* Mobile Controls */}
+          <div className="md:hidden mb-6 space-y-4">
+            <div className="flex gap-3">
+              {/* Filter Button */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" className="flex-1 h-10">
+                    <Filter className="mr-2 h-4 w-4" />
+                    Filters {filtersApplied > 0 && `(${filtersApplied})`}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="left"
+                  className="w-[300px] sm:w-[350px] p-0"
+                >
+                  <SheetHeader className="p-6 pb-0">
+                    <SheetTitle className="text-xl font-bold font-headline">
+                      Filters
+                    </SheetTitle>
+                  </SheetHeader>
+                  <ScrollArea className="h-[calc(100%-4rem)]">
+                    <div className="p-6">
+                      <Suspense fallback={<div className="text-muted-foreground">Loading filters...</div>}>
+                        <FilterSidebar />
+                      </Suspense>
+                    </div>
+                  </ScrollArea>
+                </SheetContent>
+              </Sheet>
+              
+              {/* View Toggle - Mobile */}
+              <div className="flex items-center border border-border rounded-lg overflow-hidden">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode("grid")}
+                  className={cn(
+                    "h-10 w-10 rounded-none border-0",
+                    viewMode === "grid" 
+                      ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" 
+                      : "hover:bg-muted"
+                  )}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setViewMode("list")}
+                  className={cn(
+                    "h-10 w-10 rounded-none border-0 border-l border-border",
+                    viewMode === "list" 
+                      ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" 
+                      : "hover:bg-muted"
+                  )}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {/* Sort Dropdown - Mobile */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="flex-1 h-10">
+                  <SelectValue placeholder="Sort" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recommend">Recommended</SelectItem>
+                  <SelectItem value="price-asc">Price: Low to High</SelectItem>
+                  <SelectItem value="price-desc">Price: High to Low</SelectItem>
+                  <SelectItem value="newest">Newest</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          
+          {/* Products Grid/List */}
+          <ProductGrid products={sortedProducts} viewMode={viewMode} />
         </div>
       </div>
     </div>
   );
 }
-

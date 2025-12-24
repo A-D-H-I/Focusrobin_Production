@@ -1,7 +1,6 @@
 import Header from '@/components/Landing/header.tsx';
 import HeroSection from '@/components/Landing/hero-section.tsx';
 import IconicSection from '@/components/Landing/iconic-section.tsx';
-import ScrollingBanner from '@/components/Landing/scrolling-banner.tsx';
 import GiftCategoriesSection from '@/components/Landing/gift-categories-section.tsx';
 import GiftBannerSection from '@/components/Landing/gift-banner-section.tsx';
 import GiftForLovedOnesBanner from '@/components/Landing/gift-for-loved-ones-banner.tsx';
@@ -267,31 +266,14 @@ export default async function Home() {
     console.error('Error fetching gift for loved ones banner:', error);
   }
 
-  // Fetch all active scrolling banners from database
-  let scrollingBanners: any[] = [];
-  try {
-    // @ts-ignore
-    if (prisma.scrollingBanner && typeof prisma.scrollingBanner.findMany === 'function') {
-      // @ts-ignore
-      scrollingBanners = await prisma.scrollingBanner.findMany({
-        where: { isActive: true },
-        orderBy: { updatedAt: 'desc' },
-      });
-    }
-  } catch (error) {
-    console.error('Error fetching scrolling banners:', error);
-  }
-
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-grow">
         {heroImages.length > 0 && <HeroSection heroData={heroImages} />}
-        {iconicImage && <IconicSection iconicImage={iconicImage} />}
-        {scrollingBanners.length > 0 && <ScrollingBanner banners={scrollingBanners} />}
-        {categoryImages.length > 0 && <GiftCategoriesSection categoryImages={categoryImages} />}
         <BestsellersCarousel products={products} />
-        {/* 3D Products Section */}
+        {categoryImages.length > 0 && <GiftCategoriesSection categoryImages={categoryImages} />}
+        {/* 3D Products Section - New Arrivals */}
         {products3D.length > 0 && <Products3DSection products={products3D} />}
         {/* Gift for Loved Ones Banner - Always show below best sellers */}
         <GiftForLovedOnesBanner bannerData={giftForLovedOnesBanner} />
@@ -299,6 +281,7 @@ export default async function Home() {
         <div className="bg-background">
           <ValuePropsSection />
           <LensFeatureSection />
+          {iconicImage && <IconicSection iconicImage={iconicImage} />}
           {instagramImages.length > 0 && <InstagramFeedSection instagramImages={instagramImages} />}
         </div>
       </main>

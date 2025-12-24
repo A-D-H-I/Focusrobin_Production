@@ -104,7 +104,7 @@ export default function AdminSettingsPage() {
 
   if (status === 'loading' || isLoading) {
     return (
-      <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="bg-background p-4 md:p-6">
         <div className="mx-auto max-w-4xl">
           <div className="text-center py-12">
             <p className="text-muted-foreground">Loading settings...</p>
@@ -115,9 +115,9 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
             <Settings className="h-8 w-8" />
             Admin Settings

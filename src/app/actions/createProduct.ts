@@ -25,13 +25,14 @@ export interface VariantData {
 const productSchema = z.object({
   name: z.string().trim().min(2).max(200),
   slug: z.string().trim().min(1).max(100),
-  description: z.string().trim().min(10, "Description must be at least 10 characters long").max(5000),
+  description: z.string().trim().max(5000).optional().nullable(),
   basePrice: z.number().positive().max(100000),
   discountPct: z.number().int().min(0).max(99).optional().default(0),
   cashbackAmount: z.number().nonnegative().max(1000).optional().default(0),
   frameMaterial: z.string().trim().min(2).max(100),
   lensMaterial: z.string().trim().max(100).optional().default("Polycarbonate"),
   uvProtection: z.string().trim().min(2).max(50),
+  glassShape: z.string().trim().max(100).optional().nullable(),
   frameWidth: z.number().positive().optional(),
   lensWidth: z.number().positive().optional(),
   lensHeight: z.number().positive().optional(),
@@ -74,7 +75,8 @@ export async function createProduct(formData: FormData) {
       .replace(/[^a-z0-9-]/g, '')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
-    const description = formData.get('description') as string;
+    const descriptionRaw = formData.get('description') as string | null;
+    const description = descriptionRaw?.trim() || null;
     const basePrice = parseFloat(formData.get('basePrice') as string);
     const discountPct = parseInt(formData.get('discountPct') as string) || 0;
     const cashbackAmount = parseFloat(formData.get('cashbackAmount') as string) || 0;
@@ -106,6 +108,8 @@ export async function createProduct(formData: FormData) {
     const frameMaterial = formData.get('frameMaterial') as string;
     const lensMaterial = (formData.get('lensMaterial') as string) || 'Polycarbonate';
     const uvProtection = formData.get('uvProtection') as string;
+    const glassShapeRaw = formData.get('glassShape') as string | null;
+    const glassShape = glassShapeRaw?.trim() || null;
 
     // Validate product data
     const productValidation = productSchema.safeParse({
@@ -118,6 +122,7 @@ export async function createProduct(formData: FormData) {
       frameMaterial,
       lensMaterial,
       uvProtection,
+      glassShape,
       frameWidth,
       lensWidth,
       lensHeight,
@@ -196,7 +201,7 @@ export async function createProduct(formData: FormData) {
       data: {
         name: productValidation.data.name,
         slug: productValidation.data.slug,
-        description: productValidation.data.description,
+        description: productValidation.data.description || null,
         basePrice: productValidation.data.basePrice,
         discountPct: productValidation.data.discountPct || 0,
         cashbackAmount: productValidation.data.cashbackAmount || 0,
@@ -211,6 +216,7 @@ export async function createProduct(formData: FormData) {
         frameMaterial: productValidation.data.frameMaterial,
         lensMaterial: productValidation.data.lensMaterial,
         uvProtection: productValidation.data.uvProtection,
+        glassShape: productValidation.data.glassShape || null,
         categoryId,
         ProductVariant: {
           create: variantsData.map((variant) => {

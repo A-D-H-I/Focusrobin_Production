@@ -24,6 +24,7 @@ import { normalizeImageUrl } from '@/lib/normalize-image-url';
 interface GiftForLovedOnesBanner {
   id: string;
   imageUrl: string;
+  mobileTabletImageUrl?: string | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -48,6 +49,7 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
 
   const [formData, setFormData] = useState({
     imageUrl: initialBanner?.imageUrl || '',
+    mobileTabletImageUrl: initialBanner?.mobileTabletImageUrl || '',
     isActive: initialBanner?.isActive ?? true,
   });
 
@@ -55,11 +57,13 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
     if (banner) {
       setFormData({
         imageUrl: banner.imageUrl,
+        mobileTabletImageUrl: banner.mobileTabletImageUrl || '',
         isActive: banner.isActive,
       });
     } else {
       setFormData({
         imageUrl: '',
+        mobileTabletImageUrl: '',
         isActive: true,
       });
     }
@@ -70,6 +74,7 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
     if (banner) {
       setFormData({
         imageUrl: banner.imageUrl,
+        mobileTabletImageUrl: banner.mobileTabletImageUrl || '',
         isActive: banner.isActive,
       });
       setEditingId(banner.id);
@@ -84,6 +89,7 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
     try {
       const submitFormData = new FormData();
       submitFormData.append('imageUrl', formData.imageUrl);
+      submitFormData.append('mobileTabletImageUrl', formData.mobileTabletImageUrl);
       submitFormData.append('isActive', formData.isActive.toString());
 
       let result;
@@ -188,14 +194,37 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
             </div>
           </CardHeader>
           <CardContent>
-            <div className="relative w-full h-64 rounded-lg overflow-hidden border">
-              <Image
-                src={normalizeImageUrl(banner.imageUrl)}
-                alt="Gift for your loved ones banner"
-                fill
-                className="object-cover"
-                unoptimized
-              />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                {banner.imageUrl && (
+                  <Image
+                    src={normalizeImageUrl(banner.imageUrl)}
+                    alt="Desktop preview"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    unoptimized
+                  />
+                )}
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                  Desktop
+                </div>
+              </div>
+              <div className="relative aspect-video bg-muted rounded-md overflow-hidden">
+                {(banner.mobileTabletImageUrl || banner.imageUrl) && (
+                  <Image
+                    src={normalizeImageUrl(banner.mobileTabletImageUrl || banner.imageUrl)}
+                    alt="Mobile/Tablet preview"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    unoptimized
+                  />
+                )}
+                <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs p-1 text-center">
+                  Mobile/Tablet
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -220,7 +249,10 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="imageUrl">Banner Image URL</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="imageUrl">Desktop Image URL</Label>
+                      <span className="text-xs text-muted-foreground">Aspect Ratio: 16:9 (Wide Banner)</span>
+                    </div>
                     <Input
                       id="imageUrl"
                       value={formData.imageUrl}
@@ -229,9 +261,25 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
                       required
                     />
                     <p className="text-xs text-muted-foreground">
-                      Enter the path to your image file (e.g., /heroimage/HeroImage1.png). 
                       Recommended: 1920x1080px (16:9). Full width banner displayed below best sellers.
                     </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="mobileTabletImageUrl">Mobile & Tablet Image URL</Label>
+                      <span className="text-xs text-muted-foreground">Aspect Ratio: 9:16 or 3:4 (Portrait)</span>
+                    </div>
+                    <Input
+                      id="mobileTabletImageUrl"
+                      value={formData.mobileTabletImageUrl}
+                      onChange={(e) => setFormData({ ...formData, mobileTabletImageUrl: e.target.value })}
+                      placeholder="/heroimage/HeroImage1-mobile.png"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used.
+                    </p>
+                  </div>
                     {formData.imageUrl && (
                       <div className="relative w-full h-48 rounded-lg overflow-hidden border mt-2">
                         <Image
@@ -285,7 +333,10 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-imageUrl">Banner Image URL</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="edit-imageUrl">Desktop Image URL</Label>
+                <span className="text-xs text-muted-foreground">Aspect Ratio: 16:9 (Wide Banner)</span>
+              </div>
               <Input
                 id="edit-imageUrl"
                 value={formData.imageUrl}
@@ -294,9 +345,25 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
                 required
               />
               <p className="text-xs text-muted-foreground">
-                Enter the path to your image file (e.g., /heroimage/HeroImage1.png). 
                 Recommended: 1920x1080px (16:9). Full width banner displayed below best sellers.
               </p>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="edit-mobileTabletImageUrl">Mobile & Tablet Image URL</Label>
+                <span className="text-xs text-muted-foreground">Aspect Ratio: 9:16 or 3:4 (Portrait)</span>
+              </div>
+              <Input
+                id="edit-mobileTabletImageUrl"
+                value={formData.mobileTabletImageUrl}
+                onChange={(e) => setFormData({ ...formData, mobileTabletImageUrl: e.target.value })}
+                placeholder="/heroimage/HeroImage1-mobile.png"
+              />
+              <p className="text-xs text-muted-foreground">
+                Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used.
+              </p>
+            </div>
               {formData.imageUrl && (
                 <div className="relative w-full h-48 rounded-lg overflow-hidden border mt-2">
                   <Image

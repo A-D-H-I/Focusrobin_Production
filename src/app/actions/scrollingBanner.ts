@@ -98,3 +98,24 @@ export async function deleteScrollingBanner(formData: FormData) {
   });
 }
 
+/**
+ * Get all active scrolling banners (Public)
+ */
+export async function getScrollingBanners() {
+  try {
+    // @ts-ignore
+    if (prisma.scrollingBanner && typeof prisma.scrollingBanner.findMany === 'function') {
+      // @ts-ignore
+      const banners = await prisma.scrollingBanner.findMany({
+        where: { isActive: true },
+        orderBy: { updatedAt: 'desc' },
+      });
+      return { success: true, banners };
+    }
+    return { success: true, banners: [] };
+  } catch (error) {
+    console.error('Error fetching scrolling banners:', error);
+    return { success: false, banners: [] };
+  }
+}
+

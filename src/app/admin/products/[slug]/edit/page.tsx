@@ -5,8 +5,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 
-export default async function EditProductPage({ params }: { params: { slug: string } }) {
-  const decodedSlug = decodeURIComponent(params.slug);
+export default async function EditProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  // Await params (required in Next.js 15)
+  const { slug } = await params;
+  
+  const decodedSlug = decodeURIComponent(slug);
   
   // Fetch product by slug from database
   const prismaProduct = (await prisma.product.findUnique({
@@ -32,9 +35,9 @@ export default async function EditProductPage({ params }: { params: { slug: stri
   }
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-4xl">
-        <div className="mb-8">
+        <div className="mb-6">
           <Link href={`/admin/products/${prismaProduct.slug}`}>
             <Button variant="outline" size="sm" className="gap-2 mb-4">
               <ArrowLeft className="h-4 w-4" />

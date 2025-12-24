@@ -8,6 +8,7 @@ import { z } from "zod";
 // Validation schemas
 const giftBannerSchema = z.object({
   imageUrl: z.string().url().max(2048),
+  mobileTabletImageUrl: z.string().url().max(2048).optional().nullable(),
   title: z.string().trim().max(200).optional().default('Gift for your loved ones'),
   subtitle: z.string().trim().max(500).optional().default(''),
   link: z.string().trim().max(500).optional().default('/shop/unisex'),
@@ -29,13 +30,32 @@ export async function createGiftBanner(formData: FormData) {
     }
 
     const imageUrl = formData.get('imageUrl') as string;
+    const mobileTabletImageUrlRaw = formData.get('mobileTabletImageUrl') as string;
+    // Validate URL - if invalid or empty, set to null
+    let mobileTabletImageUrl: string | null = null;
+    if (mobileTabletImageUrlRaw && mobileTabletImageUrlRaw.trim()) {
+      try {
+        new URL(mobileTabletImageUrlRaw.trim());
+        mobileTabletImageUrl = mobileTabletImageUrlRaw.trim();
+      } catch {
+        // Invalid URL, treat as null
+        mobileTabletImageUrl = null;
+      }
+    }
     const title = formData.get('title') as string || 'Gift for your loved ones';
     const subtitle = formData.get('subtitle') as string || '';
     const link = formData.get('link') as string || '/shop/unisex';
     const isActive = formData.get('isActive') === 'true';
 
     // Validate input
-    const validatedInput = giftBannerSchema.safeParse({ imageUrl, title, subtitle, link, isActive });
+    const validatedInput = giftBannerSchema.safeParse({ 
+      imageUrl, 
+      mobileTabletImageUrl,
+      title, 
+      subtitle, 
+      link, 
+      isActive 
+    });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
@@ -44,6 +64,7 @@ export async function createGiftBanner(formData: FormData) {
     const giftBanner = await prisma.giftBanner.create({
       data: {
         imageUrl: validatedInput.data.imageUrl,
+        mobileTabletImageUrl: validatedInput.data.mobileTabletImageUrl || null,
         title: validatedInput.data.title,
         subtitle: validatedInput.data.subtitle || null,
         link: validatedInput.data.link,
@@ -77,13 +98,32 @@ export async function updateGiftBanner(formData: FormData) {
     }
 
     const imageUrl = formData.get('imageUrl') as string;
+    const mobileTabletImageUrlRaw = formData.get('mobileTabletImageUrl') as string;
+    // Validate URL - if invalid or empty, set to null
+    let mobileTabletImageUrl: string | null = null;
+    if (mobileTabletImageUrlRaw && mobileTabletImageUrlRaw.trim()) {
+      try {
+        new URL(mobileTabletImageUrlRaw.trim());
+        mobileTabletImageUrl = mobileTabletImageUrlRaw.trim();
+      } catch {
+        // Invalid URL, treat as null
+        mobileTabletImageUrl = null;
+      }
+    }
     const title = formData.get('title') as string || 'Gift for your loved ones';
     const subtitle = formData.get('subtitle') as string || '';
     const link = formData.get('link') as string || '/shop/unisex';
     const isActive = formData.get('isActive') === 'true';
 
     // Validate input
-    const validatedInput = giftBannerSchema.safeParse({ imageUrl, title, subtitle, link, isActive });
+    const validatedInput = giftBannerSchema.safeParse({ 
+      imageUrl, 
+      mobileTabletImageUrl,
+      title, 
+      subtitle, 
+      link, 
+      isActive 
+    });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
@@ -93,6 +133,7 @@ export async function updateGiftBanner(formData: FormData) {
       where: { id: validatedId.data },
       data: {
         imageUrl: validatedInput.data.imageUrl,
+        mobileTabletImageUrl: validatedInput.data.mobileTabletImageUrl || null,
         title: validatedInput.data.title,
         subtitle: validatedInput.data.subtitle || null,
         link: validatedInput.data.link,

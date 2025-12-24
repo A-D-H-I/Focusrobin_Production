@@ -67,9 +67,12 @@ function normalizeImageUrl(url: string): string {
   return url.startsWith('./') ? url.slice(1) : '/' + url;
 }
 
-export default async function AdminProductDetailPage({ params }: { params: { slug: string } }) {
+export default async function AdminProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  // Await params (required in Next.js 15)
+  const { slug } = await params;
+  
   // Decode the slug
-  const decodedSlug = decodeURIComponent(params.slug);
+  const decodedSlug = decodeURIComponent(slug);
   
   // Fetch product by slug from database
   const prismaProduct = (await prisma.product.findUnique({
@@ -110,7 +113,7 @@ export default async function AdminProductDetailPage({ params }: { params: { slu
   const hoverAssets = getAssetsByType('HOVER');
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
         {/* Header */}
         <div className="mb-6 flex items-center justify-between">

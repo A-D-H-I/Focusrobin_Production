@@ -8,6 +8,7 @@ import { z } from "zod";
 // Validation schemas
 const bannerSchema = z.object({
   imageUrl: z.string().url().max(2048),
+  mobileTabletImageUrl: z.string().url().max(2048).optional().nullable(),
   isActive: z.boolean().optional().default(false),
 });
 
@@ -21,10 +22,26 @@ export async function createGiftForLovedOnesBanner(formData: FormData) {
     await requireAdmin();
 
     const imageUrl = formData.get('imageUrl') as string;
+    const mobileTabletImageUrlRaw = formData.get('mobileTabletImageUrl') as string;
+    // Validate URL - if invalid or empty, set to null
+    let mobileTabletImageUrl: string | null = null;
+    if (mobileTabletImageUrlRaw && mobileTabletImageUrlRaw.trim()) {
+      try {
+        new URL(mobileTabletImageUrlRaw.trim());
+        mobileTabletImageUrl = mobileTabletImageUrlRaw.trim();
+      } catch {
+        // Invalid URL, treat as null
+        mobileTabletImageUrl = null;
+      }
+    }
     const isActive = formData.get('isActive') === 'true';
 
     // Validate input
-    const validatedInput = bannerSchema.safeParse({ imageUrl, isActive });
+    const validatedInput = bannerSchema.safeParse({ 
+      imageUrl, 
+      mobileTabletImageUrl,
+      isActive 
+    });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
@@ -54,10 +71,26 @@ export async function updateGiftForLovedOnesBanner(formData: FormData) {
     }
 
     const imageUrl = formData.get('imageUrl') as string;
+    const mobileTabletImageUrlRaw = formData.get('mobileTabletImageUrl') as string;
+    // Validate URL - if invalid or empty, set to null
+    let mobileTabletImageUrl: string | null = null;
+    if (mobileTabletImageUrlRaw && mobileTabletImageUrlRaw.trim()) {
+      try {
+        new URL(mobileTabletImageUrlRaw.trim());
+        mobileTabletImageUrl = mobileTabletImageUrlRaw.trim();
+      } catch {
+        // Invalid URL, treat as null
+        mobileTabletImageUrl = null;
+      }
+    }
     const isActive = formData.get('isActive') === 'true';
 
     // Validate input
-    const validatedInput = bannerSchema.safeParse({ imageUrl, isActive });
+    const validatedInput = bannerSchema.safeParse({ 
+      imageUrl, 
+      mobileTabletImageUrl,
+      isActive 
+    });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }

@@ -5,9 +5,9 @@ import { Package, Plus, Image as ImageIcon } from 'lucide-react';
 
 export default function AdminProductsManagementPage() {
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
+    <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <Package className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-bold text-foreground">Products Management</h1>

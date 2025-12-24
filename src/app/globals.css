@@ -110,12 +110,33 @@
     scrollbar-width: none;
   }
 
-  /* Hide header when Virtual Try-On is open */
+  /* Hide header and prevent background scrolling when Virtual Try-On is open */
+  body.virtual-tryon-open {
+    overflow: hidden !important;
+  }
+
   body.virtual-tryon-open header {
     display: none !important;
     visibility: hidden !important;
     opacity: 0 !important;
     pointer-events: none !important;
+  }
+
+  /* Hide promotional banner when Virtual Try-On is open */
+  body.virtual-tryon-open div[style*="zIndex: 101"][style*="position: fixed"],
+  body.virtual-tryon-open div[style*="z-index: 101"][style*="position: fixed"],
+  body.virtual-tryon-open > div > div[class*="fixed"][class*="top-0"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    transform: translateY(-100%) !important;
+  }
+
+  html.virtual-tryon-open {
+    overflow: hidden !important;
   }
 
   /* Optimize header for smooth background transitions */
@@ -263,5 +284,25 @@
 
   .animate-scroll:hover {
     animation-play-state: paused;
+  }
+
+  /* Mobile/Tablet page padding - accounts for banner + header */
+  /* Mobile: 40px banner + 80px header = 120px */
+  /* Tablet: 44px banner + 80px header = 124px */
+  /* Desktop: keep existing spacing */
+  .page-content-padding {
+    padding-top: 120px; /* Mobile: banner (40px) + header (80px) */
+  }
+  
+  @media (min-width: 640px) {
+    .page-content-padding {
+      padding-top: 124px; /* Tablet: banner (44px) + header (80px) */
+    }
+  }
+  
+  @media (min-width: 1280px) {
+    .page-content-padding {
+      padding-top: 9rem; /* Desktop: 144px (pt-36) */
+    }
   }
 }

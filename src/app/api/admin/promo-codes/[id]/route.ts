@@ -5,9 +5,12 @@ import { auth } from "@/auth";
 // PUT - Update promo code
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params (required in Next.js 15)
+    const { id } = await params;
+    
     const session = await auth();
     if (!session?.user || (session.user as any).role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -33,7 +36,7 @@ export async function PUT(
         where: { code: code.toUpperCase().trim() },
       });
 
-      if (existing && existing.id !== params.id) {
+      if (existing && existing.id !== id) {
         return NextResponse.json(
           { error: "A promo code with this code already exists" },
           { status: 400 }
@@ -42,7 +45,7 @@ export async function PUT(
     }
 
     const promoCode = await prisma.promoCode.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(code && { code: code.toUpperCase().trim() }),
         ...(description !== undefined && { description: description || null }),
@@ -80,16 +83,19 @@ export async function PUT(
 // DELETE - Delete promo code
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await params (required in Next.js 15)
+    const { id } = await params;
+    
     const session = await auth();
     if (!session?.user || (session.user as any).role !== "ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     await prisma.promoCode.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

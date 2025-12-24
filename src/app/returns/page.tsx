@@ -6,7 +6,7 @@ export default function ReturnsPage() {
   return (
     <div className="flex flex-col min-h-screen bg-brand-white">
       <Header />
-      <main className="flex-grow pt-36 sm:pt-40 pb-16">
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="max-w-4xl mx-auto py-20 px-4">
           <h1 className="text-4xl font-headline font-bold text-brand-blue mb-8">
             Returns and Refunds

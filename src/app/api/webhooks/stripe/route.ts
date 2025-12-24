@@ -380,23 +380,13 @@ export async function POST(request: Request) {
             }
           }
 
-          // Send order confirmation email (async, don't block webhook response)
-          console.log(`[Stripe Webhook] Triggering order confirmation email for order ${orderId}...`);
-          try {
-            const { sendOrderConfirmationEmail } = await import("@/lib/order-email");
-            // Await the email to see the result in logs
-            const emailResult = await sendOrderConfirmationEmail(orderId);
-            if (emailResult.success) {
-              console.log(`[Stripe Webhook] ✓ Order confirmation email sent successfully`);
-            } else {
-              console.error(`[Stripe Webhook] ✗ Order confirmation email failed:`, emailResult.error);
-            }
-          } catch (emailError: any) {
-            console.error('[Stripe Webhook] ✗ Error with order email module:', emailError.message);
-          }
-
+          // NOTE: Only send the invoice email with PDF attachment
+          // The processInvoice function will send the email with PDF
+          // No need to send a separate confirmation email without PDF
+          
           // Generate and send invoices asynchronously (don't block webhook response)
           // This runs in the background so the webhook can respond quickly
+          // This function will also send the order confirmation email WITH PDF attached
           console.log(`[Stripe Webhook] Starting invoice processing for order ${order.orderNumber}...`);
           
           // Run this immediately but don't await it
