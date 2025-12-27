@@ -131,7 +131,7 @@ export default function NewlyAddedProductsPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+            <h1 className="text-brand-h1 font-headline text-foreground flex items-center gap-2">
               <Package className="h-8 w-8 text-primary" />
               Newly Added Products
             </h1>

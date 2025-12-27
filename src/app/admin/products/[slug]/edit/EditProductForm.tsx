@@ -572,7 +572,7 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
 
               {/* Assets Configuration Section */}
               <div className="mt-6 space-y-4 rounded-lg border bg-muted/30 p-4">
-                <h4 className="font-semibold text-sm">Assets Configuration</h4>
+                <h4 className="text-brand-h4 font-headline">Assets Configuration</h4>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor={`variant-${index}-asset_nobg`}>

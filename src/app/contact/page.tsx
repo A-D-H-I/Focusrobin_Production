@@ -21,6 +21,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import ContactChat from "@/components/ContactChat";
 import { sendContactEmail } from "@/app/actions/contact";
 
+// Note: Metadata for client components should be in a parent server component
+// This is handled by the page wrapper if needed
+
 export default function ContactPage() {
   const { data: session } = useSession();
   const [formData, setFormData] = useState({
@@ -135,7 +138,7 @@ export default function ContactPage() {
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
-            <h1 className="text-4xl sm:text-5xl font-headline font-bold text-brand-blue mb-4 text-center">
+            <h1 className="text-brand-h1 font-headline text-brand-blue mb-4 text-center">
               Contact Us
             </h1>
             <p className="text-center text-brand-blue/80 mb-12 max-w-2xl mx-auto">
@@ -146,7 +149,7 @@ export default function ContactPage() {
               {/* Left Column - Contact Information */}
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-2xl font-headline font-bold text-brand-blue mb-2">
+                  <h2 className="text-brand-h2 font-headline text-brand-blue mb-2">
                     Get in Touch
                   </h2>
                   <p className="text-brand-blue/80">
@@ -164,7 +167,7 @@ export default function ContactPage() {
                           <Mail className="h-6 w-6 text-brand-teal" />
                         </div>
                         <div className="flex-grow">
-                          <h3 className="font-headline font-semibold text-brand-blue mb-1">
+                          <h3 className="text-brand-h3 font-headline text-brand-blue mb-1">
                             Email
                           </h3>
                           <a
@@ -186,7 +189,7 @@ export default function ContactPage() {
                           <Phone className="h-6 w-6 text-brand-teal" />
                         </div>
                         <div className="flex-grow">
-                          <h3 className="font-headline font-semibold text-brand-blue mb-1">
+                          <h3 className="text-brand-h3 font-headline text-brand-blue mb-1">
                             Phone
                           </h3>
                           <a
@@ -208,7 +211,7 @@ export default function ContactPage() {
                           <MessageCircle className="h-6 w-6 text-brand-teal" />
                         </div>
                         <div className="flex-grow">
-                          <h3 className="font-headline font-semibold text-brand-blue mb-1">
+                          <h3 className="text-brand-h3 font-headline text-brand-blue mb-1">
                             Live Chat
                           </h3>
                           <p className="text-brand-blue/80 text-sm mb-3">
@@ -249,7 +252,7 @@ export default function ContactPage() {
                     {isSubmitted ? (
                       <div className="text-center py-8">
                         <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                          <h3 className="text-xl font-headline font-semibold text-brand-blue mb-2">
+                          <h3 className="text-brand-h3 font-headline text-brand-blue mb-2">
                             Message Sent!
                           </h3>
                           <p className="text-brand-blue/80">

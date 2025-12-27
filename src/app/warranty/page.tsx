@@ -8,19 +8,19 @@ export default function WarrantyPage() {
       <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="max-w-4xl mx-auto py-20 px-4">
-          <h1 className="text-4xl font-headline font-bold text-brand-blue mb-8">
+          <h1 className="text-brand-h1 font-headline text-brand-blue mb-8">
             Warranty and Repairs
           </h1>
 
           <div className="prose prose-lg max-w-none">
-            <h2 className="text-2xl font-headline font-semibold mt-8 mb-4 text-brand-blue">
+            <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
               1. Warranty Coverage
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-6">
               FocusRobin provides a one-year warranty against manufacturing defects from the date of purchase. This warranty covers: Manufacturing defects, Material defects, Frame adjustments.
             </p>
 
-            <h2 className="text-2xl font-headline font-semibold mt-8 mb-4 text-brand-blue">
+            <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
               2. Repair Services
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-6">

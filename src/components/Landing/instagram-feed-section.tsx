@@ -165,7 +165,7 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
           </div>
           
           {/* Title */}
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2 text-center">
+          <h2 className="text-brand-h2 font-headline text-gray-800 mb-2 text-center">
             Follow Us on Instagram
           </h2>
           
@@ -188,7 +188,7 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
               touchAction: 'pan-x',
             }}
           >
-          <div className="flex gap-0 md:gap-4 min-w-max pb-2 md:px-6">
+          <div className="flex gap-0 md:gap-4 pb-2 md:px-6">
               {instagramImages.map((item, index) => (
                 <div 
                   key={item.id} 

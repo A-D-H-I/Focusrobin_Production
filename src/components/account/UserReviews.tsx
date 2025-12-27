@@ -32,7 +32,7 @@ export default async function UserReviews({ userId }: UserReviewsProps) {
   if (reviews.length === 0) {
     return (
       <div className="bg-white border border-border rounded-lg p-6">
-        <h2 className="text-2xl font-headline font-bold text-brand-blue mb-4">
+        <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
           My Reviews
         </h2>
         <p className="text-muted-foreground">You haven't written any reviews yet.</p>
@@ -42,7 +42,7 @@ export default async function UserReviews({ userId }: UserReviewsProps) {
 
   return (
     <div className="bg-white border border-border rounded-lg p-6">
-      <h2 className="text-2xl font-headline font-bold text-brand-blue mb-4">
+      <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
         My Reviews ({reviews.length})
       </h2>
       <div className="space-y-4">
@@ -52,7 +52,7 @@ export default async function UserReviews({ userId }: UserReviewsProps) {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <h3 className="font-semibold text-lg">{review.title}</h3>
+                    <h3 className="text-brand-h3 font-headline">{review.title}</h3>
                     <Badge variant="outline" className="text-xs">
                       {review.rating}/5
                     </Badge>

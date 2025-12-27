@@ -44,7 +44,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ sl
               Back to Product
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold text-foreground">Edit Product</h1>
+          <h1 className="text-brand-h1 font-headline text-foreground">Edit Product</h1>
           <p className="mt-2 text-muted-foreground">Update product details, variants, and assets</p>
         </div>
         <EditProductForm product={prismaProduct} productId={prismaProduct.id} />

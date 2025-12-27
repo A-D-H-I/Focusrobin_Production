@@ -7,7 +7,6 @@
 
 import 'server-only';
 import { cookies } from "next/headers";
-import { randomBytes, createHmac } from "crypto";
 
 const CSRF_TOKEN_NAME = "__csrf_token";
 const CSRF_SECRET = process.env.CSRF_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret-change-me";
@@ -20,25 +19,71 @@ interface CSRFToken {
 }
 
 /**
- * Generate a cryptographically secure CSRF token
+ * Generate random bytes using Web Crypto API (works in both Node.js and Edge Runtime)
  */
-export function generateCSRFToken(): string {
+async function generateRandomBytes(length: number): Promise<string> {
+  const array = new Uint8Array(length);
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    crypto.getRandomValues(array);
+  } else {
+    // Fallback for Node.js environments that don't have Web Crypto
+    const { randomBytes } = await import("crypto");
+    const nodeBytes = randomBytes(length);
+    array.set(nodeBytes);
+  }
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Create HMAC signature using Web Crypto API (works in both Node.js and Edge Runtime)
+ */
+async function createHMAC(data: string, secret: string): Promise<string> {
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    // Web Crypto API (Edge Runtime compatible)
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const messageData = encoder.encode(data);
+    
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign('HMAC', key, messageData);
+    const hashArray = Array.from(new Uint8Array(signature));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } else {
+    // Fallback for Node.js environments
+    const { createHmac } = await import("crypto");
+    const hmac = createHmac("sha256", secret);
+    hmac.update(data);
+    return hmac.digest("hex");
+  }
+}
+
+/**
+ * Generate a cryptographically secure CSRF token
+ * Works in both Node.js and Edge Runtime
+ */
+export async function generateCSRFToken(): Promise<string> {
   const timestamp = Date.now();
-  const randomPart = randomBytes(CSRF_TOKEN_LENGTH).toString("hex");
+  const randomPart = await generateRandomBytes(CSRF_TOKEN_LENGTH);
   const data = `${randomPart}:${timestamp}`;
   
   // Sign the token with HMAC
-  const hmac = createHmac("sha256", CSRF_SECRET);
-  hmac.update(data);
-  const signature = hmac.digest("hex");
+  const signature = await createHMAC(data, CSRF_SECRET);
   
   return `${data}:${signature}`;
 }
 
 /**
  * Validate a CSRF token
+ * Works in both Node.js and Edge Runtime
  */
-export function validateCSRFToken(token: string): boolean {
+export async function validateCSRFToken(token: string): Promise<boolean> {
   if (!token || typeof token !== "string") {
     return false;
   }
@@ -58,9 +103,7 @@ export function validateCSRFToken(token: string): boolean {
 
   // Verify signature
   const data = `${randomPart}:${timestamp}`;
-  const hmac = createHmac("sha256", CSRF_SECRET);
-  hmac.update(data);
-  const expectedSignature = hmac.digest("hex");
+  const expectedSignature = await createHMAC(data, CSRF_SECRET);
 
   // Constant-time comparison to prevent timing attacks
   if (providedSignature.length !== expectedSignature.length) {
@@ -82,12 +125,12 @@ export async function getCSRFToken(): Promise<string> {
   const cookieStore = await cookies();
   const existingToken = cookieStore.get(CSRF_TOKEN_NAME)?.value;
 
-  if (existingToken && validateCSRFToken(existingToken)) {
+  if (existingToken && await validateCSRFToken(existingToken)) {
     return existingToken;
   }
 
   // Generate new token
-  const newToken = generateCSRFToken();
+  const newToken = await generateCSRFToken();
   
   // Note: Setting cookies in server components requires a response
   // This token should be set via middleware or API route
@@ -99,7 +142,7 @@ export async function getCSRFToken(): Promise<string> {
  * Use this in server actions for sensitive operations
  */
 export async function verifyCSRFToken(providedToken: string): Promise<boolean> {
-  if (!validateCSRFToken(providedToken)) {
+  if (!(await validateCSRFToken(providedToken))) {
     console.warn("[Security][CSRF] Invalid CSRF token provided");
     return false;
   }

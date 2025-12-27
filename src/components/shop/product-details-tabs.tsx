@@ -34,7 +34,7 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
               }}
             />
             <div>
-                <h3 className="font-bold text-foreground font-headline mb-4 text-base sm:text-lg text-center">Specifications</h3>
+                <h3 className="text-brand-h3 font-headline text-foreground mb-4 text-center">Specifications</h3>
                 <div className="overflow-x-auto">
                     <Table>
                         <TableBody>
@@ -77,14 +77,14 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
 
       <TabsContent value="shipping" className="py-4 sm:py-8 px-2">
         <div className="prose max-w-none text-foreground/80">
-            <h3 className="font-bold text-foreground font-headline mb-4 text-base sm:text-lg">Shipping & Returns Policy</h3>
+            <h3 className="text-brand-h3 font-headline text-foreground mb-4">Shipping & Returns Policy</h3>
             <p className="text-sm sm:text-base">We offer free standard shipping on all orders. Expedited shipping options are available at checkout. We provide hassle-free returns and exchanges within 14 days of purchase. Frames must be in their original condition.</p>
         </div>
       </TabsContent>
 
       <TabsContent value="story" className="py-4 sm:py-8 px-2">
         <div className="prose max-w-none text-foreground/80">
-            <h3 className="font-bold text-foreground font-headline mb-4 text-base sm:text-lg">Behind the Design</h3>
+            <h3 className="text-brand-h3 font-headline text-foreground mb-4">Behind the Design</h3>
             <p className="text-sm sm:text-base">The '{product.name}' is inspired by the fusion of classic mid-century aesthetics and modern architectural lines. Our designers aimed to create a frame that feels both timeless and contemporary. Each pair is meticulously handcrafted from premium Italian acetate and lightweight metal, ensuring a perfect balance of style, comfort, and durability for the discerning individual.</p>
         </div>
       </TabsContent>

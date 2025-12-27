@@ -10,7 +10,7 @@ export default function AdminProductsManagementPage() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <Package className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground">Products Management</h1>
+            <h1 className="text-brand-h1 font-headline text-foreground">Products Management</h1>
           </div>
           <p className="mt-2 text-muted-foreground">
             Manage all products, variants, assets, and product-related content

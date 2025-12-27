@@ -1,8 +1,10 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Facebook from "next-auth/providers/facebook";
+import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { verifyCredentials } from "@/app/actions/auth";
 
 // Get environment variables with fallbacks
 const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
@@ -103,6 +105,29 @@ if (facebookClientId && facebookClientSecret) {
     console.warn("⚠️ Facebook provider not added - credentials missing");
   }
 }
+
+// Add Credentials provider for email/password authentication
+providers.push(
+  Credentials({
+    name: "credentials",
+    credentials: {
+      email: { label: "Email", type: "email" },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials) {
+      if (!credentials?.email || !credentials?.password) {
+        return null;
+      }
+
+      const user = await verifyCredentials(
+        credentials.email as string,
+        credentials.password as string
+      );
+
+      return user;
+    },
+  })
+);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma) as any,
@@ -311,7 +336,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     signIn: "/login",
   },
   session: {
-    strategy: "database",
+    strategy: "jwt", // Changed to JWT to support credentials provider
   },
 });
 

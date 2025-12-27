@@ -275,11 +275,13 @@ export default function Header() {
                 // Don't close immediately - let the menu handle its own close with delay
               }}
             >
-              <button
-                type="button"
-                onClick={() => setIsShopMenuOpen(!isShopMenuOpen)}
+              <Link
+                href="/shop?filter=new-arrivals"
+                onClick={() => {
+                  setIsShopMenuOpen(false);
+                }}
                 className={cn(
-                  "text-sm font-bold whitespace-nowrap cursor-pointer py-2 px-2 relative bg-transparent border-none",
+                  "text-sm font-bold whitespace-nowrap cursor-pointer py-2 px-2 relative bg-transparent border-none block",
                   "after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-brand-teal after:transition-all after:duration-300 hover:after:w-full",
                   isSidebarOpen || isScrolled
                     ? 'text-brand-blue hover:text-brand-teal'
@@ -295,7 +297,7 @@ export default function Header() {
                 }
               >
                 Shop
-              </button>
+              </Link>
               <ShopMegaMenu
                 isOpen={isShopMenuOpen}
                 onClose={() => setIsShopMenuOpen(false)}

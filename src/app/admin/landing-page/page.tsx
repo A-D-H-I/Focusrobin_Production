@@ -10,7 +10,7 @@ export default function AdminLandingPage() {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <Layout className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground">Landing Page Management</h1>
+            <h1 className="text-brand-h1 font-headline text-foreground">Landing Page Management</h1>
           </div>
           <p className="mt-2 text-muted-foreground">
             Manage all homepage and landing page content, images, and banners

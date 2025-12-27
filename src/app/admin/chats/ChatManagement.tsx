@@ -333,7 +333,7 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Chat Management</h1>
+            <h1 className="text-brand-h1 font-headline text-foreground">Chat Management</h1>
             <p className="mt-2 text-muted-foreground">
               View and reply to customer messages
             </p>

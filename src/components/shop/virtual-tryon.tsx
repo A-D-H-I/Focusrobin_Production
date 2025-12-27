@@ -463,10 +463,16 @@ export default function VirtualTryOn({
             addToCart(product, currentVariant, 1);
             onClose();
           }}
-          className="w-full py-4 md:py-5 rounded-xl md:rounded-2xl text-white font-black text-base md:text-lg flex items-center justify-center gap-3 shadow-2xl active:scale-[0.98] transition-transform"
+          className="w-full py-2 sm:py-3 md:py-4 lg:py-5 rounded-xl md:rounded-2xl text-white font-black text-[11px] sm:text-sm md:text-base lg:text-lg flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 shadow-2xl active:scale-[0.98] transition-transform min-h-[36px] sm:min-h-[44px] md:min-h-[48px] lg:min-h-[56px] px-3 sm:px-4 md:px-6"
           style={{ backgroundColor: BRAND_COLORS.teal }}
         >
-          <ShoppingCart size={20} /> ADD TO CART — {product.price}
+          <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 flex-shrink-0" />
+          <span className="whitespace-nowrap truncate text-[10px] sm:text-[11px] md:text-sm lg:text-base">
+            <span className="hidden sm:inline">ADD TO CART</span>
+            <span className="sm:hidden">CART</span>
+            <span className="mx-1">—</span>
+            {product.price}
+          </span>
         </button>
       </div>
     </div>

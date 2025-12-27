@@ -86,7 +86,7 @@ export default async function AdminProductsPage() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">All Products</h1>
+            <h1 className="text-brand-h1 font-headline text-foreground">All Products</h1>
             <p className="mt-2 text-muted-foreground">
               Manage and view all products in your store ({products.length} total)
             </p>
@@ -133,7 +133,7 @@ export default async function AdminProductsPage() {
                     )}
                   </div>
                   <CardContent className="p-4">
-                    <h3 className="font-semibold text-lg mb-2 line-clamp-2">{product.name}</h3>
+                    <h3 className="text-brand-h3 font-headline mb-2 line-clamp-2">{product.name}</h3>
                     <p className="text-sm text-muted-foreground mb-2">
                       {product.categories.join(', ')}
                     </p>

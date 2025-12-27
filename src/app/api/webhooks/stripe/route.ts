@@ -4,7 +4,7 @@ import stripe from '@/lib/stripe';
 import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
 import { getInvoiceDataFromOrder } from '@/lib/invoice';
-import { uploadInvoiceToDrive, getOrCreateInvoicesFolder } from '@/lib/google-drive';
+import { uploadInvoiceToDropbox, getOrCreateInvoicesFolder } from '@/lib/dropbox';
 import { sendOrderConfirmationWithDocuments } from '@/lib/invoice-email';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
@@ -25,6 +25,8 @@ async function generateCombinedPDF(invoiceData: any): Promise<Buffer> {
   const greenColor = rgb(0.30, 0.69, 0.31);
   const grayColor = rgb(0.4, 0.4, 0.4);
   const blackColor = rgb(0, 0, 0);
+  const orangeBackground = rgb(1.0, 0.647, 0.0); // Vibrant orange #FFA500
+  const whiteColor = rgb(1.0, 1.0, 1.0);
   
   // Page 1: Payment Receipt
   const page1 = pdfDoc.addPage([595.28, 841.89]);
@@ -78,72 +80,117 @@ async function generateCombinedPDF(invoiceData: any): Promise<Buffer> {
   
   // Page 2: Invoice
   const page2 = pdfDoc.addPage([595.28, 841.89]);
-  page2.drawText('FocusRobin', { x: 50, y: height - 50, size: 24, font: helveticaBold, color: brandColor });
-  page2.drawText('Invoice', { x: 50, y: height - 70, size: 10, font: helvetica, color: grayColor });
-  page2.drawText(`Invoice Number: ${invoiceData.orderNumber}`, { x: 400, y: height - 50, size: 12, font: helvetica, color: blackColor });
-  page2.drawText(`Date: ${dateStr}`, { x: 400, y: height - 70, size: 12, font: helvetica, color: blackColor });
-  page2.drawText(`Order ID: ${invoiceData.orderId.substring(0, 20)}...`, { x: 400, y: height - 90, size: 10, font: helvetica, color: grayColor });
   
-  yPos = height - 130;
-  page2.drawText('Bill To:', { x: 50, y: yPos, size: 14, font: helveticaBold, color: brandColor });
-  yPos -= 25;
-  page2.drawText(invoiceData.customerName, { x: 50, y: yPos, size: 11, font: helvetica, color: blackColor });
-  yPos -= 15;
-  page2.drawText(invoiceData.customerEmail, { x: 50, y: yPos, size: 11, font: helvetica, color: blackColor });
-  yPos -= 15;
-  page2.drawText(invoiceData.shippingAddress.addressLine1, { x: 50, y: yPos, size: 11, font: helvetica, color: blackColor });
-  if (invoiceData.shippingAddress.addressLine2) {
-    yPos -= 15;
-    page2.drawText(invoiceData.shippingAddress.addressLine2, { x: 50, y: yPos, size: 11, font: helvetica, color: blackColor });
-  }
-  yPos -= 15;
-  page2.drawText(`${invoiceData.shippingAddress.city}, ${invoiceData.shippingAddress.postalCode}`, { x: 50, y: yPos, size: 11, font: helvetica, color: blackColor });
-  yPos -= 15;
-  page2.drawText(invoiceData.shippingAddress.country, { x: 50, y: yPos, size: 11, font: helvetica, color: blackColor });
-  
-  yPos -= 40;
-  page2.drawRectangle({ x: 50, y: yPos - 5, width: 500, height: 20, color: rgb(0.95, 0.95, 0.95) });
-  page2.drawText('Item', { x: 55, y: yPos, size: 10, font: helveticaBold, color: brandColor });
-  page2.drawText('Qty', { x: 300, y: yPos, size: 10, font: helveticaBold, color: brandColor });
-  page2.drawText('Price', { x: 370, y: yPos, size: 10, font: helveticaBold, color: brandColor });
-  page2.drawText('Total', { x: 470, y: yPos, size: 10, font: helveticaBold, color: brandColor });
-  
-  yPos -= 20;
-  page2.drawLine({ start: { x: 50, y: yPos + 5 }, end: { x: 550, y: yPos + 5 }, thickness: 1, color: brandColor });
-  
-  yPos -= 10;
-  invoiceData.items.forEach((item: any) => {
-    const itemName = item.name.length > 35 ? item.name.substring(0, 35) + '...' : item.name;
-    const variantName = item.variant.length > 35 ? item.variant.substring(0, 35) + '...' : item.variant;
-    page2.drawText(itemName, { x: 55, y: yPos, size: 10, font: helvetica, color: blackColor });
-    yPos -= 12;
-    page2.drawText(variantName, { x: 55, y: yPos, size: 9, font: helvetica, color: grayColor });
-    page2.drawText(item.quantity.toString(), { x: 300, y: yPos + 6, size: 10, font: helvetica, color: blackColor });
-    page2.drawText(`${invoiceData.currency} ${item.price.toFixed(2)}`, { x: 370, y: yPos + 6, size: 10, font: helvetica, color: blackColor });
-    page2.drawText(`${invoiceData.currency} ${item.total.toFixed(2)}`, { x: 470, y: yPos + 6, size: 10, font: helvetica, color: blackColor });
-    yPos -= 25;
+  // Fill entire page with orange background
+  page2.drawRectangle({
+    x: 0,
+    y: 0,
+    width: width,
+    height: height,
+    color: orangeBackground,
   });
   
-  yPos -= 20;
-  page2.drawLine({ start: { x: 350, y: yPos + 15 }, end: { x: 550, y: yPos + 15 }, thickness: 0.5, color: grayColor });
-  page2.drawText('Subtotal:', { x: 370, y: yPos, size: 10, font: helvetica, color: blackColor });
-  page2.drawText(`${invoiceData.currency} ${invoiceData.subtotal.toFixed(2)}`, { x: 470, y: yPos, size: 10, font: helvetica, color: blackColor });
-  yPos -= 20;
-  page2.drawText('Shipping:', { x: 370, y: yPos, size: 10, font: helvetica, color: blackColor });
-  page2.drawText(`${invoiceData.currency} ${invoiceData.shipping.toFixed(2)}`, { x: 470, y: yPos, size: 10, font: helvetica, color: blackColor });
-  yPos -= 25;
-  page2.drawText('Total:', { x: 370, y: yPos, size: 12, font: helveticaBold, color: brandColor });
-  page2.drawText(`${invoiceData.currency} ${invoiceData.total.toFixed(2)}`, { x: 470, y: yPos, size: 12, font: helveticaBold, color: brandColor });
+  // Header Section
+  let yPos2 = height - 50;
+  page2.drawText(invoiceData.companyName || 'FocusRobin', { x: 50, y: yPos2, size: 32, font: helveticaBold, color: whiteColor });
   
-  page2.drawText('Thank you for your purchase!', { x: 50, y: 50, size: 8, font: helvetica, color: grayColor });
-  page2.drawText('This is an automated invoice generated by FocusRobin.', { x: 50, y: 38, size: 8, font: helvetica, color: grayColor });
+  // Contact Information (right side)
+  const contactInfo = [
+    invoiceData.companyPhone || '+123-456-7890',
+    invoiceData.companyEmail || 'hello@focusrobin.com',
+    invoiceData.companyAddress || '123 Anywhere St., Any City',
+  ];
+  let contactY = height - 50;
+  contactInfo.forEach((info) => {
+    page2.drawText(info, { x: 400, y: contactY, size: 10, font: helvetica, color: whiteColor });
+    contactY -= 15;
+  });
+  
+  // Invoice Title
+  yPos2 -= 50;
+  page2.drawText('Invoice', { x: 50, y: yPos2, size: 28, font: helveticaBold, color: whiteColor });
+  
+  // Invoice Details
+  yPos2 -= 40;
+  page2.drawText(`Invoice Number: [${invoiceData.orderNumber}]`, { x: 50, y: yPos2, size: 12, font: helvetica, color: whiteColor });
+  yPos2 -= 20;
+  page2.drawText(`Billed To: ${invoiceData.customerName}`, { x: 50, y: yPos2, size: 12, font: helvetica, color: whiteColor });
+  
+  // Date and Due Date (right side)
+  const dueDateStr = invoiceData.dueDate?.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }) || '';
+  let dateY = height - 130;
+  page2.drawText(`Date: [${dateStr}]`, { x: 400, y: dateY, size: 12, font: helvetica, color: whiteColor });
+  dateY -= 20;
+  page2.drawText(`Due Date: [${dueDateStr}]`, { x: 400, y: dateY, size: 12, font: helvetica, color: whiteColor });
+  
+  // Draw horizontal line separator
+  yPos2 = height - 220;
+  page2.drawLine({ start: { x: 50, y: yPos2 }, end: { x: 545, y: yPos2 }, thickness: 1, color: whiteColor });
+  
+  // Items Section
+  yPos2 -= 30;
+  page2.drawText('Item', { x: 50, y: yPos2, size: 11, font: helveticaBold, color: whiteColor });
+  page2.drawText('Quantity', { x: 250, y: yPos2, size: 11, font: helveticaBold, color: whiteColor });
+  page2.drawText('Unit Price', { x: 350, y: yPos2, size: 11, font: helveticaBold, color: whiteColor });
+  page2.drawText('Total Price', { x: 450, y: yPos2, size: 11, font: helveticaBold, color: whiteColor });
+  
+  yPos2 -= 25;
+  invoiceData.items.forEach((item: any) => {
+    const itemName = item.name.length > 40 ? item.name.substring(0, 40) + '...' : item.name;
+    page2.drawText(itemName, { x: 50, y: yPos2, size: 10, font: helvetica, color: whiteColor });
+    
+    // Show discount info if applicable
+    if (item.originalPrice && item.discountPct) {
+      page2.drawText(`(${item.discountPct}% off)`, { x: 50, y: yPos2 - 12, size: 8, font: helvetica, color: whiteColor });
+    }
+    
+    page2.drawText(item.quantity.toString(), { x: 250, y: yPos2, size: 10, font: helvetica, color: whiteColor });
+    
+    // Show original price with strikethrough if discounted
+    if (item.originalPrice && item.discountPct) {
+      page2.drawText(`${invoiceData.currency} ${item.originalPrice.toFixed(2)}`, { x: 350, y: yPos2 + 10, size: 8, font: helvetica, color: rgb(0.8, 0.8, 0.8) });
+      page2.drawLine({ start: { x: 350, y: yPos2 + 12 }, end: { x: 410, y: yPos2 + 12 }, thickness: 0.5, color: rgb(0.8, 0.8, 0.8) });
+    }
+    
+    page2.drawText(`${invoiceData.currency} ${item.price.toFixed(2)}`, { x: 350, y: yPos2, size: 10, font: helvetica, color: whiteColor });
+    page2.drawText(`${invoiceData.currency} ${item.total.toFixed(2)}`, { x: 450, y: yPos2, size: 10, font: helvetica, color: whiteColor });
+    yPos2 -= item.originalPrice ? 30 : 20;
+  });
+  
+  // Summary Section
+  yPos2 -= 20;
+  page2.drawLine({ start: { x: 50, y: yPos2 + 10 }, end: { x: 545, y: yPos2 + 10 }, thickness: 1, color: whiteColor });
+  yPos2 -= 20;
+  
+  page2.drawText('SUBTOTAL:', { x: 370, y: yPos2, size: 11, font: helveticaBold, color: whiteColor });
+  page2.drawText(`${invoiceData.currency} ${((invoiceData.subtotal || 0) + (invoiceData.shipping || 0)).toFixed(2)}`, { x: 470, y: yPos2, size: 11, font: helvetica, color: whiteColor });
+  yPos2 -= 20;
+  page2.drawText('DISCOUNT:', { x: 370, y: yPos2, size: 11, font: helveticaBold, color: whiteColor });
+  page2.drawText(`${invoiceData.currency} ${(invoiceData.discount || 0).toFixed(2)}`, { x: 470, y: yPos2, size: 11, font: helvetica, color: whiteColor });
+  if (invoiceData.walletAmount && invoiceData.walletAmount > 0) {
+    yPos2 -= 20;
+    page2.drawText('WALLET AMOUNT:', { x: 370, y: yPos2, size: 11, font: helveticaBold, color: whiteColor });
+    page2.drawText(`-${invoiceData.currency} ${invoiceData.walletAmount.toFixed(2)}`, { x: 470, y: yPos2, size: 11, font: helvetica, color: whiteColor });
+  }
+  yPos2 -= 25;
+  page2.drawText('TOTAL:', { x: 370, y: yPos2, size: 14, font: helveticaBold, color: whiteColor });
+  page2.drawText(`${invoiceData.currency} ${invoiceData.total.toFixed(2)}`, { x: 470, y: yPos2, size: 14, font: helveticaBold, color: whiteColor });
+  
+  // Payment Section
+  yPos2 -= 30;
+  page2.drawLine({ start: { x: 50, y: yPos2 + 10 }, end: { x: 545, y: yPos2 + 10 }, thickness: 1, color: whiteColor });
+  yPos2 -= 30;
+  page2.drawText('Payment', { x: 50, y: yPos2, size: 24, font: helveticaBold, color: whiteColor });
+  yPos2 -= 30;
+  page2.drawText(`Payment Method: ${invoiceData.paymentMethod || 'Online Payment'}`, { x: 50, y: yPos2, size: 12, font: helvetica, color: whiteColor });
+  page2.drawText('THANK YOU!', { x: 400, y: yPos2, size: 24, font: helveticaBold, color: whiteColor });
   
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
 }
 
 /**
- * Process invoice generation, email sending, and Google Drive upload
+ * Process invoice generation, email sending, and Dropbox upload
  * This runs asynchronously to not block the webhook response
  */
 async function processInvoice(orderId: string, orderNumber: string) {
@@ -164,24 +211,24 @@ async function processInvoice(orderId: string, orderNumber: string) {
     const pdfBuffer = await generateCombinedPDF(invoiceData);
     console.log(`[Invoice] Combined PDF generated successfully (${pdfBuffer.length} bytes)`);
     
-    // Upload to Google Drive
-    console.log(`[Invoice] Attempting Google Drive upload...`);
-    let driveResult = null;
+    // Upload to Dropbox
+    console.log(`[Invoice] Attempting Dropbox upload...`);
+    let dropboxResult = null;
     try {
-      const folderId = await getOrCreateInvoicesFolder();
+      const folderPath = await getOrCreateInvoicesFolder();
       const fileName = `FocusRobin-Order-${invoiceData.orderNumber}-Documents-${new Date().toISOString().split('T')[0]}.pdf`;
-      driveResult = await uploadInvoiceToDrive(pdfBuffer, fileName, folderId || undefined);
+      dropboxResult = await uploadInvoiceToDropbox(pdfBuffer, fileName, folderPath || undefined);
       
-      if (driveResult) {
-        console.log(`[Invoice] ✓ Uploaded to Google Drive: ${driveResult.webViewLink}`);
+      if (dropboxResult) {
+        console.log(`[Invoice] ✓ Uploaded to Dropbox: ${dropboxResult.sharedLink}`);
       } else {
-        console.warn(`[Invoice] ✗ Google Drive upload returned null (may not be configured)`);
+        console.warn(`[Invoice] ✗ Dropbox upload returned null (may not be configured)`);
       }
-    } catch (driveError: any) {
-      console.error(`[Invoice] ✗ Google Drive upload error:`, driveError.message);
+    } catch (dropboxError: any) {
+      console.error(`[Invoice] ✗ Dropbox upload error:`, dropboxError.message);
     }
 
-    // Send single email with both documents
+    // Send email with documents
     console.log(`[Invoice] Sending order confirmation email with documents...`);
     try {
       const emailResult = await sendOrderConfirmationWithDocuments(invoiceData);

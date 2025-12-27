@@ -44,6 +44,8 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
   const greenColor = rgb(0.30, 0.69, 0.31); // #4CAF50
   const grayColor = rgb(0.4, 0.4, 0.4);
   const blackColor = rgb(0, 0, 0);
+  const orangeBackground = rgb(1.0, 0.647, 0.0); // Vibrant orange #FFA500
+  const whiteColor = rgb(1.0, 1.0, 1.0);
   
   // ==================== PAGE 1: Payment Receipt ====================
   const page1 = pdfDoc.addPage([595.28, 841.89]); // A4 size
@@ -247,285 +249,326 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
   // ==================== PAGE 2: Invoice ====================
   const page2 = pdfDoc.addPage([595.28, 841.89]); // A4 size
   
-  // Header - Logo
-  page2.drawText('FocusRobin', {
-    x: 50,
-    y: height - 50,
-    size: 24,
-    font: helveticaBold,
-    color: brandColor,
+  // Fill entire page with orange background
+  page2.drawRectangle({
+    x: 0,
+    y: 0,
+    width: width,
+    height: height,
+    color: orangeBackground,
   });
   
+  // Header Section - Company Name and Contact Info
+  let yPos2 = height - 50;
+  
+  // Company Name (large, white, bold)
+  page2.drawText(invoiceData.companyName || 'FocusRobin', {
+    x: 50,
+    y: yPos2,
+    size: 32,
+    font: helveticaBold,
+    color: whiteColor,
+  });
+  
+  // Contact Information (right side, top)
+  const contactInfo = [
+    invoiceData.companyPhone || '+123-456-7890',
+    invoiceData.companyEmail || 'hello@focusrobin.com',
+    invoiceData.companyAddress || '123 Anywhere St., Any City',
+  ];
+  
+  let contactY = height - 50;
+  contactInfo.forEach((info) => {
+    page2.drawText(info, {
+      x: 400,
+      y: contactY,
+      size: 10,
+      font: helvetica,
+      color: whiteColor,
+    });
+    contactY -= 15;
+  });
+  
+  // Invoice Title
+  yPos2 -= 50;
   page2.drawText('Invoice', {
     x: 50,
-    y: height - 70,
-    size: 10,
-    font: helvetica,
-    color: grayColor,
-  });
-  
-  // Invoice details (right side)
-  page2.drawText(`Invoice Number: ${invoiceData.orderNumber}`, {
-    x: 400,
-    y: height - 50,
-    size: 12,
-    font: helvetica,
-    color: blackColor,
-  });
-  
-  page2.drawText(`Date: ${dateStr}`, {
-    x: 400,
-    y: height - 70,
-    size: 12,
-    font: helvetica,
-    color: blackColor,
-  });
-  
-  page2.drawText(`Order ID: ${invoiceData.orderId.substring(0, 20)}...`, {
-    x: 400,
-    y: height - 90,
-    size: 10,
-    font: helvetica,
-    color: grayColor,
-  });
-  
-  // Bill To
-  yPos = height - 130;
-  page2.drawText('Bill To:', {
-    x: 50,
-    y: yPos,
-    size: 14,
+    y: yPos2,
+    size: 28,
     font: helveticaBold,
-    color: brandColor,
+    color: whiteColor,
   });
   
-  yPos -= 25;
-  page2.drawText(invoiceData.customerName, {
+  // Invoice Details (left side)
+  yPos2 -= 40;
+  page2.drawText(`Invoice Number: [${invoiceData.orderNumber}]`, {
     x: 50,
-    y: yPos,
-    size: 11,
+    y: yPos2,
+    size: 12,
     font: helvetica,
-    color: blackColor,
+    color: whiteColor,
   });
   
-  yPos -= 15;
-  page2.drawText(invoiceData.customerEmail, {
+  yPos2 -= 20;
+  page2.drawText(`Billed To: ${invoiceData.customerName}`, {
     x: 50,
-    y: yPos,
-    size: 11,
+    y: yPos2,
+    size: 12,
     font: helvetica,
-    color: blackColor,
+    color: whiteColor,
   });
   
-  yPos -= 15;
-  page2.drawText(invoiceData.shippingAddress.addressLine1, {
+  // Date and Due Date (right side)
+  const dueDateStr = invoiceData.dueDate?.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }) || '';
+  
+  let dateY = height - 130;
+  page2.drawText(`Date: [${dateStr}]`, {
+    x: 400,
+    y: dateY,
+    size: 12,
+    font: helvetica,
+    color: whiteColor,
+  });
+  
+  dateY -= 20;
+  page2.drawText(`Due Date: [${dueDateStr}]`, {
+    x: 400,
+    y: dateY,
+    size: 12,
+    font: helvetica,
+    color: whiteColor,
+  });
+  
+  // Draw horizontal line separator
+  yPos2 = height - 220;
+  page2.drawLine({
+    start: { x: 50, y: yPos2 },
+    end: { x: 545, y: yPos2 },
+    thickness: 1,
+    color: whiteColor,
+  });
+  
+  // Items Section
+  yPos2 -= 30;
+  
+  // Items Table Header
+  page2.drawText('Item', {
     x: 50,
-    y: yPos,
+    y: yPos2,
     size: 11,
-    font: helvetica,
-    color: blackColor,
+    font: helveticaBold,
+    color: whiteColor,
+  });
+  page2.drawText('Quantity', {
+    x: 250,
+    y: yPos2,
+    size: 11,
+    font: helveticaBold,
+    color: whiteColor,
+  });
+  page2.drawText('Unit Price', {
+    x: 350,
+    y: yPos2,
+    size: 11,
+    font: helveticaBold,
+    color: whiteColor,
+  });
+  page2.drawText('Total Price', {
+    x: 450,
+    y: yPos2,
+    size: 11,
+    font: helveticaBold,
+    color: whiteColor,
   });
   
-  if (invoiceData.shippingAddress.addressLine2) {
-    yPos -= 15;
-    page2.drawText(invoiceData.shippingAddress.addressLine2, {
+  // Items List
+  yPos2 -= 25;
+  invoiceData.items.forEach((item) => {
+    // Truncate long names if needed
+    const itemName = item.name.length > 40 ? item.name.substring(0, 40) + '...' : item.name;
+    
+    page2.drawText(itemName, {
       x: 50,
-      y: yPos,
+      y: yPos2,
+      size: 10,
+      font: helvetica,
+      color: whiteColor,
+    });
+    
+    // Show discount info if applicable
+    if (item.originalPrice && item.discountPct) {
+      page2.drawText(`(${item.discountPct}% off)`, {
+        x: 50,
+        y: yPos2 - 12,
+        size: 8,
+        font: helvetica,
+        color: whiteColor,
+      });
+    }
+    
+    page2.drawText(item.quantity.toString(), {
+      x: 250,
+      y: yPos2,
+      size: 10,
+      font: helvetica,
+      color: whiteColor,
+    });
+    
+    // Show original price with strikethrough if discounted
+    if (item.originalPrice && item.discountPct) {
+      page2.drawText(`${invoiceData.currency} ${item.originalPrice.toFixed(2)}`, {
+        x: 350,
+        y: yPos2 + 10,
+        size: 8,
+        font: helvetica,
+        color: rgb(0.8, 0.8, 0.8),
+      });
+      // Draw line through original price
+      page2.drawLine({
+        start: { x: 350, y: yPos2 + 12 },
+        end: { x: 410, y: yPos2 + 12 },
+        thickness: 0.5,
+        color: rgb(0.8, 0.8, 0.8),
+      });
+    }
+    
+    page2.drawText(`${invoiceData.currency} ${item.price.toFixed(2)}`, {
+      x: 350,
+      y: yPos2,
+      size: 10,
+      font: helvetica,
+      color: whiteColor,
+    });
+    page2.drawText(`${invoiceData.currency} ${item.total.toFixed(2)}`, {
+      x: 450,
+      y: yPos2,
+      size: 10,
+      font: helvetica,
+      color: whiteColor,
+    });
+    yPos2 -= item.originalPrice ? 30 : 20;
+  });
+  
+  // Summary Section
+  yPos2 -= 20;
+  // Draw horizontal line separator
+  page2.drawLine({
+    start: { x: 50, y: yPos2 + 10 },
+    end: { x: 545, y: yPos2 + 10 },
+    thickness: 1,
+    color: whiteColor,
+  });
+  
+  yPos2 -= 20;
+  
+  // Subtotal
+  page2.drawText('SUBTOTAL:', {
+    x: 370,
+    y: yPos2,
+    size: 11,
+    font: helveticaBold,
+    color: whiteColor,
+  });
+  page2.drawText(`${invoiceData.currency} ${(invoiceData.subtotal + invoiceData.shipping).toFixed(2)}`, {
+    x: 470,
+    y: yPos2,
+    size: 11,
+    font: helvetica,
+    color: whiteColor,
+  });
+  
+  // Discount
+  yPos2 -= 20;
+  page2.drawText('DISCOUNT:', {
+    x: 370,
+    y: yPos2,
+    size: 11,
+    font: helveticaBold,
+    color: whiteColor,
+  });
+  page2.drawText(`${invoiceData.currency} ${(invoiceData.discount || 0).toFixed(2)}`, {
+    x: 470,
+    y: yPos2,
+    size: 11,
+    font: helvetica,
+    color: whiteColor,
+  });
+  
+  // Wallet Amount
+  if (invoiceData.walletAmount && invoiceData.walletAmount > 0) {
+    yPos2 -= 20;
+    page2.drawText('WALLET AMOUNT:', {
+      x: 370,
+      y: yPos2,
+      size: 11,
+      font: helveticaBold,
+      color: whiteColor,
+    });
+    page2.drawText(`-${invoiceData.currency} ${invoiceData.walletAmount.toFixed(2)}`, {
+      x: 470,
+      y: yPos2,
       size: 11,
       font: helvetica,
-      color: blackColor,
+      color: whiteColor,
     });
   }
   
-  yPos -= 15;
-  page2.drawText(`${invoiceData.shippingAddress.city}, ${invoiceData.shippingAddress.postalCode}`, {
-    x: 50,
-    y: yPos,
-    size: 11,
-    font: helvetica,
-    color: blackColor,
-  });
-  
-  yPos -= 15;
-  page2.drawText(invoiceData.shippingAddress.country, {
-    x: 50,
-    y: yPos,
-    size: 11,
-    font: helvetica,
-    color: blackColor,
-  });
-  
-  // Items Table Header
-  yPos -= 40;
-  
-  // Draw header background
-  page2.drawRectangle({
-    x: 50,
-    y: yPos - 5,
-    width: 500,
-    height: 20,
-    color: rgb(0.95, 0.95, 0.95),
-  });
-  
-  page2.drawText('Item', {
-    x: 55,
-    y: yPos,
-    size: 10,
-    font: helveticaBold,
-    color: brandColor,
-  });
-  page2.drawText('Qty', {
-    x: 300,
-    y: yPos,
-    size: 10,
-    font: helveticaBold,
-    color: brandColor,
-  });
-  page2.drawText('Price', {
+  // Total
+  yPos2 -= 25;
+  page2.drawText('TOTAL:', {
     x: 370,
-    y: yPos,
-    size: 10,
+    y: yPos2,
+    size: 14,
     font: helveticaBold,
-    color: brandColor,
-  });
-  page2.drawText('Total', {
-    x: 470,
-    y: yPos,
-    size: 10,
-    font: helveticaBold,
-    color: brandColor,
-  });
-  
-  // Draw line under header
-  yPos -= 20;
-  page2.drawLine({
-    start: { x: 50, y: yPos + 5 },
-    end: { x: 550, y: yPos + 5 },
-    thickness: 1,
-    color: brandColor,
-  });
-  
-  // Items
-  yPos -= 10;
-  invoiceData.items.forEach((item) => {
-    // Truncate long names
-    const itemName = item.name.length > 35 ? item.name.substring(0, 35) + '...' : item.name;
-    const variantName = item.variant.length > 35 ? item.variant.substring(0, 35) + '...' : item.variant;
-    
-    page2.drawText(itemName, {
-      x: 55,
-      y: yPos,
-      size: 10,
-      font: helvetica,
-      color: blackColor,
-    });
-    
-    yPos -= 12;
-    page2.drawText(variantName, {
-      x: 55,
-      y: yPos,
-      size: 9,
-      font: helvetica,
-      color: grayColor,
-    });
-    
-    page2.drawText(item.quantity.toString(), {
-      x: 300,
-      y: yPos + 6,
-      size: 10,
-      font: helvetica,
-      color: blackColor,
-    });
-    
-    page2.drawText(`${invoiceData.currency} ${item.price.toFixed(2)}`, {
-      x: 370,
-      y: yPos + 6,
-      size: 10,
-      font: helvetica,
-      color: blackColor,
-    });
-    
-    page2.drawText(`${invoiceData.currency} ${item.total.toFixed(2)}`, {
-      x: 470,
-      y: yPos + 6,
-      size: 10,
-      font: helvetica,
-      color: blackColor,
-    });
-    
-    yPos -= 25;
-  });
-  
-  // Totals
-  yPos -= 20;
-  page2.drawLine({
-    start: { x: 350, y: yPos + 15 },
-    end: { x: 550, y: yPos + 15 },
-    thickness: 0.5,
-    color: grayColor,
-  });
-  
-  page2.drawText('Subtotal:', {
-    x: 370,
-    y: yPos,
-    size: 10,
-    font: helvetica,
-    color: blackColor,
-  });
-  page2.drawText(`${invoiceData.currency} ${invoiceData.subtotal.toFixed(2)}`, {
-    x: 470,
-    y: yPos,
-    size: 10,
-    font: helvetica,
-    color: blackColor,
-  });
-  
-  yPos -= 20;
-  page2.drawText('Shipping:', {
-    x: 370,
-    y: yPos,
-    size: 10,
-    font: helvetica,
-    color: blackColor,
-  });
-  page2.drawText(`${invoiceData.currency} ${invoiceData.shipping.toFixed(2)}`, {
-    x: 470,
-    y: yPos,
-    size: 10,
-    font: helvetica,
-    color: blackColor,
-  });
-  
-  yPos -= 25;
-  page2.drawText('Total:', {
-    x: 370,
-    y: yPos,
-    size: 12,
-    font: helveticaBold,
-    color: brandColor,
+    color: whiteColor,
   });
   page2.drawText(`${invoiceData.currency} ${invoiceData.total.toFixed(2)}`, {
     x: 470,
-    y: yPos,
-    size: 12,
+    y: yPos2,
+    size: 14,
     font: helveticaBold,
-    color: brandColor,
+    color: whiteColor,
   });
   
-  // Footer
-  page2.drawText('Thank you for your purchase!', {
-    x: 50,
-    y: 50,
-    size: 8,
-    font: helvetica,
-    color: grayColor,
+  // Draw horizontal line separator
+  yPos2 -= 30;
+  page2.drawLine({
+    start: { x: 50, y: yPos2 + 10 },
+    end: { x: 545, y: yPos2 + 10 },
+    thickness: 1,
+    color: whiteColor,
   });
-  page2.drawText('This is an automated invoice generated by FocusRobin.', {
+  
+  // Payment Section
+  yPos2 -= 30;
+  page2.drawText('Payment', {
     x: 50,
-    y: 38,
-    size: 8,
+    y: yPos2,
+    size: 24,
+    font: helveticaBold,
+    color: whiteColor,
+  });
+  
+  yPos2 -= 30;
+  page2.drawText(`Payment Method: ${invoiceData.paymentMethod || 'Online Payment'}`, {
+    x: 50,
+    y: yPos2,
+    size: 12,
     font: helvetica,
-    color: grayColor,
+    color: whiteColor,
+  });
+  
+  // Thank You Message (right side)
+  page2.drawText('THANK YOU!', {
+    x: 400,
+    y: yPos2,
+    size: 24,
+    font: helveticaBold,
+    color: whiteColor,
   });
   
   // Save the PDF

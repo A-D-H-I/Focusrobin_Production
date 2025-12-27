@@ -103,7 +103,7 @@ export default function ProductPageContent({ product, reviews, relatedProducts }
       </div>
 
       {/* Full Width Sections - Lazy Loaded */}
-      <div className="mt-24 w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
+      <div className="mt-24 w-full overflow-hidden">
         <Suspense fallback={<div className="h-48 bg-muted animate-pulse" />}>
           <PackagingSection />
         </Suspense>
@@ -113,7 +113,7 @@ export default function ProductPageContent({ product, reviews, relatedProducts }
           <ThingsToKnow />
         </Suspense>
       </div>
-      <div className="bg-secondary/50 w-screen relative left-1/2 right-1/2 -ml-[50vw] -mr-[50vw] py-6 mt-12">
+      <div className="bg-secondary/50 w-full overflow-hidden py-6 mt-12">
         <Suspense fallback={<div className="h-64 bg-muted animate-pulse" />}>
           <RelatedProducts products={relatedProducts} />
         </Suspense>

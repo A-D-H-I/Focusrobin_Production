@@ -369,7 +369,7 @@ export default function ChatPage() {
               <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-teal/10 rounded-full mb-4">
                 <MessageCircle className="h-8 w-8 text-brand-teal" />
               </div>
-              <h1 className="text-4xl sm:text-5xl font-headline font-bold text-brand-blue mb-4">
+              <h1 className="text-brand-h1 font-headline text-brand-blue mb-4">
                 Live Chat
               </h1>
               <p className="text-brand-blue/80 max-w-2xl mx-auto">
@@ -383,7 +383,7 @@ export default function ChatPage() {
               <Card className="lg:col-span-1 border border-gray-200 hidden lg:block">
                 <CardContent className="p-0">
                   <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                    <h3 className="font-headline font-semibold text-brand-blue">
+                    <h3 className="text-brand-h3 font-headline text-brand-blue">
                       Chat History
                     </h3>
                     <Button
@@ -468,7 +468,7 @@ export default function ChatPage() {
                 <Card className="lg:hidden border border-gray-200 mb-4">
                   <CardContent className="p-0">
                     <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                      <h3 className="font-headline font-semibold text-brand-blue">
+                      <h3 className="text-brand-h3 font-headline text-brand-blue">
                         Chat History
                       </h3>
                       <div className="flex gap-2">
@@ -552,7 +552,7 @@ export default function ChatPage() {
                       <Bot className="h-5 w-5" />
                     </div>
                     <div>
-                      <h2 className="font-headline font-semibold text-lg">
+                      <h2 className="text-brand-h2 font-headline">
                         FocusRobin Support
                       </h2>
                       <p className="text-sm opacity-90">

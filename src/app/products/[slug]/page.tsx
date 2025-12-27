@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Suspense } from "react";
 import dynamic from "next/dynamic";
@@ -16,7 +17,81 @@ import {
 } from "@/components/ui/breadcrumb"
 import Link from "next/link";
 import ProductPageContent from "./ProductPageContent";
+import { normalizeImageUrl } from "@/lib/normalize-image-url";
 
+// Helper to get OG image with fallback
+function getOGImageUrl(productImage?: string): string {
+  if (productImage) {
+    const normalized = normalizeImageUrl(productImage);
+    return normalized.startsWith('http') ? normalized : `https://focusrobin.com${normalized}`;
+  }
+  // TODO: Add /og.png (1200x630) for better social sharing
+  return 'https://focusrobin.com/Symbol Wide Primary light (Teal).svg';
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const decodedSlug = decodeURIComponent(slug);
+  
+  const prismaProduct = (await prisma.product.findUnique({
+    where: { slug: decodedSlug },
+    include: {
+      ProductVariant: {
+        include: {
+          ProductAsset: true,
+        },
+      },
+    },
+  })) as any;
+
+  if (!prismaProduct) {
+    return {
+      title: 'Product Not Found',
+      description: 'The requested product could not be found.',
+    };
+  }
+
+  const product = mapPrismaProductToProduct(prismaProduct);
+  const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
+  const ogImage = getOGImageUrl(productImage);
+  
+  // Build description with polarized/UV info if available
+  let description = `${product.name} - Premium sunglasses by FocusRobin.`;
+  if (product.uvProtection && product.uvProtection.includes('UV')) {
+    description += ` UV protection included.`;
+  }
+  if (product.description) {
+    description += ` ${product.description.substring(0, 120)}...`;
+  }
+  description += ' Fast shipping to Lithuania and EU/Schengen.';
+
+  return {
+    title: product.name,
+    description,
+    alternates: {
+      canonical: `https://focusrobin.com/products/${slug}`,
+    },
+    openGraph: {
+      type: 'website',
+      title: product.name,
+      description,
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: product.name,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.name,
+      description,
+      images: [ogImage],
+    },
+  };
+}
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   // Await params (required in Next.js 15)
@@ -149,8 +224,93 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const allRelatedProducts = [...relatedPrismaProducts, ...additionalProducts];
   const relatedProducts = allRelatedProducts.map(mapPrismaProductToProduct);
 
+  // Build structured data
+  const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
+  const productImages = product.variants.flatMap(v => v.images || [v.thumbnail]).filter(Boolean);
+  const allImages = productImages.length > 0 
+    ? productImages.map(img => {
+        const normalized = normalizeImageUrl(img);
+        return normalized.startsWith('http') ? normalized : `https://focusrobin.com${normalized}`;
+      })
+    : ['https://focusrobin.com/Symbol Wide Primary light (Teal).svg'];
+
+  // Calculate price - TODO: Use actual price from product data if available
+  const basePrice = Number(product.price.replace(/[^\d.]/g, '')) || 0;
+  const priceCurrency = 'EUR';
+
+  // Product schema
+  const productSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description || `${product.name} - Premium sunglasses by FocusRobin`,
+    image: allImages,
+    brand: {
+      '@type': 'Brand',
+      name: 'FocusRobin',
+    },
+    // Only include offers if we have real price data
+    ...(basePrice > 0 && {
+      offers: {
+        '@type': 'Offer',
+        url: `https://focusrobin.com/products/${slug}`,
+        priceCurrency,
+        price: basePrice.toFixed(2),
+        availability: product.variants.some(v => (v.stock ?? 0) > 0)
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+        seller: {
+          '@type': 'Organization',
+          name: 'FocusRobin',
+        },
+      },
+    }),
+    // Aggregate rating if available
+    ...(product.averageRating && product.reviewCount ? {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: product.averageRating.toString(),
+        reviewCount: product.reviewCount.toString(),
+      },
+    } : {}),
+  };
+
+  // Breadcrumb schema
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://focusrobin.com',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Shop',
+        item: 'https://focusrobin.com/shop',
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: product.name,
+        item: `https://focusrobin.com/products/${slug}`,
+      },
+    ],
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
       <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         <div className="container mx-auto px-4 py-8">

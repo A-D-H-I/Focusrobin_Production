@@ -60,7 +60,7 @@ export default function FAQPage() {
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         <div className="container mx-auto px-4 py-12 md:py-16">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-5xl font-bold font-headline mb-4 text-center">
+            <h1 className="text-brand-h1 font-headline mb-4 text-center">
               Frequently Asked Questions
             </h1>
             <p className="text-lg text-muted-foreground text-center mb-12">
@@ -85,7 +85,7 @@ export default function FAQPage() {
             </Accordion>
 
             <div className="mt-12 p-6 bg-muted rounded-lg text-center">
-              <h2 className="text-2xl font-bold mb-2">Still have questions?</h2>
+              <h2 className="text-brand-h2 font-headline mb-2">Still have questions?</h2>
               <p className="text-muted-foreground mb-4">
                 Can't find the answer you're looking for? Please get in touch with our friendly team.
               </p>

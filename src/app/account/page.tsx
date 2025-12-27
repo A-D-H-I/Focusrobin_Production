@@ -619,9 +619,9 @@ export default function AccountPage() {
               <div className="bg-white border border-border rounded-lg p-8 text-center">
                 <div className="mb-6">
                   <User className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-                  <h1 className="text-2xl font-headline font-bold text-brand-blue mb-2">
+                  <h2 className="text-brand-h2 font-headline text-brand-blue mb-2">
                     Sign In Required
-                  </h1>
+                  </h2>
                   <p className="text-muted-foreground">
                     Please sign in to access your account
                   </p>
@@ -654,7 +654,7 @@ export default function AccountPage() {
       <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="container mx-auto px-4 sm:px-6">
-          <h1 className="text-3xl sm:text-4xl font-headline font-bold text-brand-blue mb-8">
+          <h1 className="text-brand-h1 font-headline text-brand-blue mb-8">
             My Account
           </h1>
 
@@ -699,7 +699,7 @@ export default function AccountPage() {
                 <div className="space-y-6">
                   {/* Welcome Message */}
                   <div className="bg-white border border-border rounded-lg p-6">
-                    <h2 className="text-2xl font-headline font-bold text-brand-blue mb-2">
+                    <h2 className="text-brand-h2 font-headline text-brand-blue mb-2">
                       Hello, {userName}
                     </h2>
                     <p className="text-muted-foreground">
@@ -712,7 +712,7 @@ export default function AccountPage() {
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <Wallet className="h-6 w-6" />
-                        <h3 className="text-xl font-headline font-bold">Robin Wallet</h3>
+                        <h3 className="text-brand-h3 font-headline">Robin Wallet</h3>
                       </div>
                     </div>
                     <div className="mb-4">
@@ -733,7 +733,7 @@ export default function AccountPage() {
 
                   {/* Recent Orders */}
                   <div className="bg-white border border-border rounded-lg p-6">
-                    <h3 className="text-xl font-headline font-bold text-brand-blue mb-4">
+                    <h3 className="text-brand-h3 font-headline text-brand-blue mb-4">
                       Recent Orders
                     </h3>
                     <div className="overflow-x-auto">
@@ -804,7 +804,7 @@ export default function AccountPage() {
 
               {activeTab === 'orders' && (
                 <div className="space-y-6">
-                  <h2 className="text-2xl font-headline font-bold text-brand-blue mb-4">
+                  <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
                     Orders
                   </h2>
                   {isLoadingOrders ? (
@@ -824,7 +824,7 @@ export default function AccountPage() {
                       <div key={order.id} className="bg-white border border-border rounded-lg p-6">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4 pb-4 border-b border-border">
                           <div>
-                            <h3 className="text-lg font-semibold text-brand-blue">Order {order.orderNumber}</h3>
+                            <h3 className="text-brand-h3 font-headline text-brand-blue">Order {order.orderNumber}</h3>
                             <p className="text-sm text-muted-foreground">Placed on {format(new Date(order.createdAt), 'MMM dd, yyyy')}</p>
                           </div>
                           <div className="flex items-center gap-4">
@@ -844,7 +844,7 @@ export default function AccountPage() {
                         {/* Tracking Information */}
                         {(order.trackingNumber || order.trackingMessage) && (
                           <div className="mb-4 p-4 bg-brand-teal/10 border border-brand-teal/20 rounded-lg">
-                            <h4 className="font-semibold text-brand-blue mb-2">Tracking Information</h4>
+                            <h4 className="text-brand-h4 font-headline text-brand-blue mb-2">Tracking Information</h4>
                             {order.shippingProvider && (
                               <p className="text-sm text-muted-foreground mb-1">
                                 <span className="font-medium">Shipping Provider:</span> {order.shippingProvider}
@@ -867,7 +867,7 @@ export default function AccountPage() {
                           {order.items.map((item: any, itemIndex: number) => (
                             <div key={itemIndex} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-muted/30 rounded-lg">
                               <div className="flex-grow">
-                                <h4 className="font-semibold text-brand-blue">{item.productName}</h4>
+                                <h4 className="text-brand-h4 font-headline text-brand-blue">{item.productName}</h4>
                                 <p className="text-sm text-muted-foreground">Variant: {item.variantName}</p>
                                 <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
                                 <p className="text-sm font-semibold text-brand-blue mt-1">
@@ -905,7 +905,7 @@ export default function AccountPage() {
                 <div className="bg-white border border-border rounded-lg p-6">
                   <div className="flex items-center justify-between mb-6">
                     <div>
-                      <h2 className="text-2xl font-headline font-bold text-brand-blue mb-2">
+                      <h2 className="text-brand-h2 font-headline text-brand-blue mb-2">
                         Addresses
                       </h2>
                       <p className="text-muted-foreground">Manage your shipping addresses here.</p>
@@ -982,7 +982,7 @@ export default function AccountPage() {
                             </div>
                           )}
                           <div className="mb-4">
-                            <h3 className="font-semibold text-brand-blue mb-1">{address.fullName}</h3>
+                            <h3 className="text-brand-h3 font-headline text-brand-blue mb-1">{address.fullName}</h3>
                             <p className="text-sm text-muted-foreground">{address.phone}</p>
                           </div>
                           <div className="text-sm text-muted-foreground mb-4 space-y-1">
@@ -1276,7 +1276,7 @@ export default function AccountPage() {
 
               {activeTab === 'wallet' && (
                 <div className="bg-white border border-border rounded-lg p-6">
-                  <h2 className="text-2xl font-headline font-bold text-brand-blue mb-4">
+                  <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
                     Robin Wallet
                   </h2>
                   <div className="bg-gradient-to-br from-brand-teal to-brand-teal/80 rounded-lg p-6 text-white mb-6">
@@ -1295,7 +1295,7 @@ export default function AccountPage() {
                   
                   {walletTransactions.length > 0 ? (
                     <div className="mt-6">
-                      <h3 className="text-lg font-semibold mb-4">Transaction History</h3>
+                      <h3 className="text-brand-h3 font-headline mb-4">Transaction History</h3>
                       <div className="space-y-3">
                         {walletTransactions.map((transaction) => (
                           <div
@@ -1331,7 +1331,7 @@ export default function AccountPage() {
 
               {activeTab === 'reviews' && (
                 <div className="bg-white border border-border rounded-lg p-6">
-                  <h2 className="text-2xl font-headline font-bold text-brand-blue mb-4">
+                  <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
                     My Reviews {userReviews.length > 0 && `(${userReviews.length})`}
                   </h2>
                   <p className="text-muted-foreground mb-4">
@@ -1349,7 +1349,7 @@ export default function AccountPage() {
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-2">
-                                <h3 className="font-semibold text-lg">{review.title}</h3>
+                                <h3 className="text-brand-h3 font-headline">{review.title}</h3>
                                 <Badge variant="outline" className="text-xs">
                                   {review.rating}/5
                                 </Badge>
@@ -1411,7 +1411,7 @@ export default function AccountPage() {
                   {/* Section 1: Personal Information */}
                   <div className="bg-white border border-border rounded-lg p-6">
                     <div className="flex justify-between items-center mb-6">
-                      <h2 className="text-2xl font-headline font-bold text-brand-blue">
+                      <h2 className="text-brand-h2 font-headline text-brand-blue">
                         Personal Information
                       </h2>
                       {!isEditing && (
@@ -1500,7 +1500,7 @@ export default function AccountPage() {
                   {/* Section 2: Password Change (Only in Edit Mode) */}
                   {isEditing && (
                     <div className="bg-white border border-border rounded-lg p-6">
-                      <h2 className="text-2xl font-headline font-bold text-brand-blue mb-6">
+                      <h2 className="text-brand-h2 font-headline text-brand-blue mb-6">
                         Change Password
                       </h2>
 
@@ -1574,7 +1574,7 @@ export default function AccountPage() {
 
                   {/* Section 3: Danger Zone */}
                   <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-                    <h2 className="text-2xl font-headline font-bold text-brand-blue mb-2">
+                    <h2 className="text-brand-h2 font-headline text-brand-blue mb-2">
                       Delete Account
                     </h2>
                     <p className="text-muted-foreground mb-4">

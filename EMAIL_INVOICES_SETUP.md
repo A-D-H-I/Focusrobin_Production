@@ -16,13 +16,12 @@ Both documents are included in a **single PDF file** attached to the email - the
 ✅ **Combined Document** - One PDF with both Payment Receipt and Invoice  
 ✅ **Same as Admin Panel** - The exact same document you can download in admin  
 ✅ **Professional Design** - Beautiful HTML email with all order details  
-✅ **Google Drive Backup** - All documents are also saved to your Google Drive  
 
 ---
 
 ## 🚀 Setup Instructions
 
-### 1️⃣ Email Configuration (Resend)
+### Email Configuration (Resend)
 
 You already have Resend configured for your contact form. Just add these environment variables:
 
@@ -54,7 +53,24 @@ RESEND_VERIFIED_EMAIL=your-verified-email@gmail.com
   - Once verified, update `RESEND_FROM_EMAIL` to use your domain
   - Remove or comment out `RESEND_VERIFIED_EMAIL`
 
-### 2️⃣ Google Drive Configuration (Optional but Recommended)
+---
+
+## 📋 Complete .env.local Example
+
+```env
+# ==================== Resend Email ====================
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxx
+
+# Test Mode (for development)
+RESEND_FROM_EMAIL=onboarding@resend.dev
+RESEND_VERIFIED_EMAIL=focusrobin25@gmail.com
+
+# Production Mode (uncomment when ready)
+# RESEND_FROM_EMAIL=noreply@focusrobin.com
+# Remove or comment out RESEND_VERIFIED_EMAIL when in production
+```
+
+---
 
 To automatically backup invoices to Google Drive:
 
@@ -140,7 +156,6 @@ GOOGLE_DRIVE_FOLDER_ID=your-folder-id-here
 4. You should receive:
    - An email with the subject: "Order Confirmation & Documents - ORD-2024-XXXX"
    - A PDF attachment with both Payment Receipt and Invoice
-5. Check your Google Drive folder (if configured)
 
 ### What the Email Contains
 
@@ -158,7 +173,6 @@ The customer receives a beautiful HTML email with:
 
 - `src/lib/invoice-email.ts` - Email generation and sending
 - `src/lib/invoice.ts` - Invoice data fetching
-- `src/lib/google-drive.ts` - Google Drive upload (optional)
 - `src/app/api/webhooks/stripe/route.ts` - Stripe webhook handler
 - `src/app/api/admin/orders/[orderId]/invoices/route.ts` - Admin download
 
@@ -177,8 +191,6 @@ Order status updated to "CONFIRMED"
     ↓
 System generates combined PDF (Payment Receipt + Invoice)
     ↓
-PDF uploaded to Google Drive (if configured)
-    ↓
 Email sent to customer with PDF attachment
     ↓
 ✅ Done! Customer has their documents
@@ -196,12 +208,6 @@ Email sent to customer with PDF attachment
 - **In test mode:** Check that `RESEND_VERIFIED_EMAIL` is set to your email
 - **In production:** Verify your domain is configured correctly in Resend
 - Check server logs for errors: Look for `[Invoice Email]` messages
-
-### "Google Drive upload failed"
-- Verify all Google Drive environment variables are set
-- Check that the service account has access to the folder
-- Make sure Google Drive API is enabled in your Google Cloud project
-- This is optional - emails will still work without it
 
 ### PDF not generating
 - Check server logs for `[Invoice]` messages
@@ -241,7 +247,6 @@ Look for these in your server logs:
 Once configured, the system runs completely automatically:
 - ✅ Customer completes order → Email sent automatically
 - ✅ Same document as admin panel → Consistent experience
-- ✅ Backed up to Google Drive → Never lose an invoice
 - ✅ Professional appearance → Great customer experience
 
 **No manual intervention needed - it just works!**
@@ -260,6 +265,8 @@ If you're still having issues, check:
 2. Resend API key is valid
 3. Stripe webhook is receiving events
 4. Server has internet connectivity
+
+
 
 
 

@@ -197,7 +197,7 @@ export default function ReviewsManagement({
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-lg">
+                          <h3 className="text-brand-h3 font-headline">
                             {review.User.name || review.User.email.split("@")[0]}
                           </h3>
                           <div className="flex">
@@ -240,7 +240,7 @@ export default function ReviewsManagement({
                       </div>
                     </div>
 
-                    <h4 className="font-semibold mb-2">{review.title}</h4>
+                    <h4 className="text-brand-h4 font-headline mb-2">{review.title}</h4>
                     <p className="text-sm text-muted-foreground mb-3">
                       {review.comment}
                     </p>

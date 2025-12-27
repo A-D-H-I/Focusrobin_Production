@@ -615,7 +615,7 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
     <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">User Management</h1>
+          <h1 className="text-brand-h1 font-headline text-foreground">User Management</h1>
           <p className="mt-2 text-muted-foreground">
             View and manage all user accounts, permissions, and related data
           </p>
@@ -1263,7 +1263,7 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                             </div>
                             {user.wallet && user.wallet.transactions && user.wallet.transactions.length > 0 && (
                               <div className="mt-4">
-                                <h4 className="text-sm font-semibold mb-2">Recent Transactions</h4>
+                                <h4 className="text-brand-h4 font-headline mb-2">Recent Transactions</h4>
                                 <div className="space-y-2">
                                   {user.wallet.transactions.slice(0, 10).map((transaction) => (
                                     <div key={transaction.id}>

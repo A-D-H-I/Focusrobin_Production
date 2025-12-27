@@ -224,29 +224,29 @@ export function SupportChat() {
     return (
       <Card
         key={order.id}
-        className="p-3 bg-muted/50 cursor-pointer hover:bg-muted/80 transition-colors"
+        className="p-2 sm:p-3 bg-muted/50 cursor-pointer hover:bg-muted/80 transition-colors"
         onClick={() => handleOrderClick(order.orderNumber)}
       >
-        <div className="flex justify-between items-start mb-2">
-          <div>
-            <p className="font-semibold text-sm flex items-center gap-1">
-              <Package className="h-3 w-3" />
-              {order.orderNumber}
+        <div className="flex justify-between items-start mb-1.5 sm:mb-2 gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-xs sm:text-sm flex items-center gap-1 truncate">
+              <Package className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">{order.orderNumber}</span>
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[10px] sm:text-xs text-muted-foreground">
               {new Date(order.createdAt).toLocaleDateString()}
             </p>
           </div>
           <span
             className={cn(
-              "text-xs px-2 py-1 rounded font-medium",
+              "text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded font-medium flex-shrink-0",
               statusColors[order.status] || "bg-gray-100 text-gray-800"
             )}
           >
             {order.status}
           </span>
         </div>
-        <div className="text-sm">
+        <div className="text-xs sm:text-sm">
           <p className="font-medium">
             {order.items.length} item{order.items.length !== 1 ? "s" : ""}
           </p>
@@ -271,21 +271,21 @@ export function SupportChat() {
     };
 
     return (
-      <Card className="p-4 bg-muted/50">
-        <div className="space-y-3">
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="font-semibold text-sm flex items-center gap-1">
-                <Package className="h-4 w-4" />
-                {order.orderNumber}
+      <Card className="p-2.5 sm:p-4 bg-muted/50">
+        <div className="space-y-2 sm:space-y-3">
+          <div className="flex justify-between items-start gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-xs sm:text-sm flex items-center gap-1">
+                <Package className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">{order.orderNumber}</span>
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-[10px] sm:text-xs text-muted-foreground">
                 Ordered: {new Date(order.createdAt).toLocaleDateString()}
               </p>
             </div>
             <span
               className={cn(
-                "text-xs px-2 py-1 rounded font-medium",
+                "text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded font-medium flex-shrink-0",
                 statusColors[order.status] || "bg-gray-100 text-gray-800"
               )}
             >
@@ -293,28 +293,28 @@ export function SupportChat() {
             </span>
           </div>
 
-          <p className="text-sm">{order.statusMessage}</p>
+          <p className="text-xs sm:text-sm break-words">{order.statusMessage}</p>
 
           {order.trackingNumber && (
-            <div className="text-sm bg-background/50 p-2 rounded">
-              <p className="font-medium flex items-center gap-1">
-                <Truck className="h-3 w-3" />
-                Tracking: {order.trackingNumber}
+            <div className="text-xs sm:text-sm bg-background/50 p-1.5 sm:p-2 rounded">
+              <p className="font-medium flex items-center gap-1 break-words">
+                <Truck className="h-3 w-3 flex-shrink-0" />
+                <span>Tracking: {order.trackingNumber}</span>
               </p>
               {order.shippingProvider && (
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
                   via {order.shippingProvider}
                 </p>
               )}
               {order.trackingMessage && (
-                <p className="text-xs text-muted-foreground mt-1 italic">
+                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 italic break-words">
                   {order.trackingMessage}
                 </p>
               )}
             </div>
           )}
 
-          <div className="text-xs text-muted-foreground space-y-1">
+          <div className="text-[10px] sm:text-xs text-muted-foreground space-y-0.5 sm:space-y-1">
             {order.shippedAt && (
               <p>Shipped: {new Date(order.shippedAt).toLocaleDateString()}</p>
             )}
@@ -332,21 +332,21 @@ export function SupportChat() {
     return (
       <Card
         className={cn(
-          "p-4",
+          "p-2.5 sm:p-4",
           eligibility.isEligible
             ? "bg-green-50 border-green-200"
             : "bg-yellow-50 border-yellow-200"
         )}
       >
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <RefreshCw className={cn("h-4 w-4", eligibility.isEligible ? "text-green-600" : "text-yellow-600")} />
-            <p className="font-semibold text-sm">
+        <div className="space-y-1.5 sm:space-y-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <RefreshCw className={cn("h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0", eligibility.isEligible ? "text-green-600" : "text-yellow-600")} />
+            <p className="font-semibold text-xs sm:text-sm break-words">
               {eligibility.isEligible ? "✓ Eligible for Refund" : "Not Eligible for Refund"}
             </p>
           </div>
-          <p className="text-sm text-muted-foreground">{eligibility.reason}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs sm:text-sm text-muted-foreground break-words">{eligibility.reason}</p>
+          <p className="text-[10px] sm:text-xs text-muted-foreground">
             Order: {eligibility.orderNumber} • {eligibility.daysSinceOrder} days since delivery
           </p>
         </div>
@@ -409,91 +409,112 @@ export function SupportChat() {
       {/* Chat Bubble Button */}
       {!isOpen && (
         <Button
-          onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 hover:scale-110 transition-transform"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setIsOpen(true);
+          }}
+          className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg z-50 hover:scale-110 transition-transform bg-primary text-primary-foreground"
           size="icon"
+          aria-label="Open chat"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
         </Button>
       )}
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-96 h-[600px] shadow-2xl z-50 flex flex-col">
-          <CardHeader className="flex-shrink-0 border-b flex flex-row items-center justify-between pb-3">
-            <CardTitle className="text-lg">Chat with Robin</CardTitle>
-            <div className="flex items-center gap-2">
+        <>
+          {/* Backdrop for mobile */}
+          <div 
+            className="fixed inset-0 bg-black/20 z-[9998] sm:hidden"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsOpen(false);
+            }}
+            aria-hidden="true"
+          />
+          <Card className="fixed inset-0 sm:bottom-6 sm:right-6 sm:left-auto sm:top-auto sm:w-96 sm:h-[600px] sm:max-h-[600px] shadow-2xl z-[9999] flex flex-col rounded-none sm:rounded-lg bg-background">
+          <CardHeader className="flex-shrink-0 border-b flex flex-row items-center justify-between pb-2 sm:pb-3 px-3 sm:px-6 pt-3 sm:pt-6 bg-background min-h-[56px] sm:min-h-auto" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}>
+            <CardTitle className="text-base sm:text-lg pr-2 flex-1 min-w-0 truncate">Chat with Robin</CardTitle>
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-2">
               {messages.length > 0 && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={clearChatHistory}
-                  className="h-8 w-8"
+                  className="h-8 w-8 sm:h-8 sm:w-8 flex-shrink-0"
                   title="Clear chat history"
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-4 w-4 sm:h-4 sm:w-4" />
                 </Button>
               )}
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsOpen(false)}
-                className="h-8 w-8"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsOpen(false);
+                }}
+                className="h-8 w-8 sm:h-8 sm:w-8 flex-shrink-0"
+                aria-label="Close chat"
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 sm:h-4 sm:w-4" />
               </Button>
             </div>
           </CardHeader>
 
-          <ScrollArea className="flex-1 p-4">
-            <div className="space-y-4">
+          <ScrollArea className="flex-1 p-3 sm:p-4">
+            <div className="space-y-3 sm:space-y-4">
               {messages.length === 0 && !isLoading && (
-                <div className="text-center text-muted-foreground py-8">
-                  <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-sm">
+                <div className="text-center text-muted-foreground py-4 sm:py-8">
+                  <MessageCircle className="h-8 w-8 sm:h-12 sm:w-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+                  <p className="text-xs sm:text-sm px-2">
                     Hi! I'm Robin, your support assistant.
                     <br />
                     How can I help you today?
                   </p>
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-3 sm:mt-4 space-y-1.5 sm:space-y-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full text-left justify-start"
+                      className="w-full text-left justify-start text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
                       onClick={() => sendMessage("Show my orders")}
                     >
-                      <Package className="h-4 w-4 mr-2" />
-                      View my orders
+                      <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 flex-shrink-0" />
+                      <span className="truncate">View my orders</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full text-left justify-start"
+                      className="w-full text-left justify-start text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
                       onClick={() => sendMessage("What is your return policy?")}
                     >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Return policy
+                      <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 flex-shrink-0" />
+                      <span className="truncate">Return policy</span>
                     </Button>
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full text-left justify-start"
+                      className="w-full text-left justify-start text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
                       onClick={() => sendMessage("Shipping information")}
                     >
-                      <Truck className="h-4 w-4 mr-2" />
-                      Shipping info
+                      <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 flex-shrink-0" />
+                      <span className="truncate">Shipping info</span>
                     </Button>
                   </div>
                 </div>
               )}
 
               {messages.map((message) => (
-                <div key={message.id} className="space-y-2">
+                <div key={message.id} className="space-y-1.5 sm:space-y-2">
                   {/* User Message */}
                   {message.role === "user" && (
                     <div className="flex justify-end">
-                      <div className="bg-primary text-primary-foreground rounded-lg px-4 py-2 max-w-[80%]">
-                        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <div className="bg-primary text-primary-foreground rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 max-w-[85%] sm:max-w-[80%]">
+                        <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{message.content}</p>
                       </div>
                     </div>
                   )}
@@ -501,9 +522,9 @@ export function SupportChat() {
                   {/* Assistant Message */}
                   {message.role === "assistant" && (
                     <div className="flex justify-start">
-                      <div className="bg-muted rounded-lg px-4 py-2 max-w-[85%]">
+                      <div className="bg-muted rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 max-w-[90%] sm:max-w-[85%]">
                         {message.content && (
-                          <div className="text-sm">{formatContent(message.content)}</div>
+                          <div className="text-xs sm:text-sm break-words">{formatContent(message.content)}</div>
                         )}
                         {renderMessageData(message.data)}
                       </div>
@@ -514,21 +535,21 @@ export function SupportChat() {
 
               {isLoading && (
                 <div className="flex justify-start">
-                  <div className="bg-muted rounded-lg px-4 py-2 flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">Thinking...</span>
+                  <div className="bg-muted rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 flex items-center gap-1.5 sm:gap-2">
+                    <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
+                    <span className="text-xs sm:text-sm text-muted-foreground">Thinking...</span>
                   </div>
                 </div>
               )}
 
               {errorMessage && (
                 <div className="flex justify-start">
-                  <div className="bg-destructive/10 text-destructive rounded-lg px-4 py-2 max-w-[80%]">
-                    <p className="text-sm">{errorMessage}</p>
+                  <div className="bg-destructive/10 text-destructive rounded-lg px-3 py-1.5 sm:px-4 sm:py-2 max-w-[90%] sm:max-w-[80%]">
+                    <p className="text-xs sm:text-sm break-words">{errorMessage}</p>
                     <Button
                       variant="link"
                       size="sm"
-                      className="p-0 h-auto text-xs"
+                      className="p-0 h-auto text-[10px] sm:text-xs mt-1"
                       onClick={() => setErrorMessage(null)}
                     >
                       Dismiss
@@ -541,26 +562,32 @@ export function SupportChat() {
             </div>
           </ScrollArea>
 
-          <form onSubmit={handleSubmit} className="flex-shrink-0 p-4 border-t">
-            <div className="flex gap-2">
+          <form onSubmit={handleSubmit} className="flex-shrink-0 p-3 sm:p-4 border-t bg-background" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+            <div className="flex gap-1.5 sm:gap-2">
               <Input
                 ref={inputRef}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder="Type your message..."
                 disabled={isLoading}
-                className="flex-1"
+                className="flex-1 text-xs sm:text-sm h-9 sm:h-10 px-3 sm:px-4"
               />
-              <Button type="submit" size="icon" disabled={isLoading || !inputValue.trim()}>
+              <Button 
+                type="submit" 
+                size="icon" 
+                disabled={isLoading || !inputValue.trim()}
+                className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0"
+              >
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 animate-spin" />
                 ) : (
-                  <Send className="h-4 w-4" />
+                  <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 )}
               </Button>
             </div>
           </form>
         </Card>
+        </>
       )}
     </>
   );

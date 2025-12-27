@@ -23,15 +23,17 @@ export default function CategoryBanner({ title, imageSrc, description, link, alt
         priority
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 p-6 md:p-8 lg:p-16 pb-8 md:pb-12 lg:pb-16">
-        <h1 className="text-4xl md:text-5xl lg:text-6xl font-headline font-bold text-white mb-4 drop-shadow-lg">
-          {title}
-        </h1>
-        {description && (
-          <p className="text-white/90 text-lg md:text-xl max-w-2xl drop-shadow-md">
-            {description}
-          </p>
-        )}
+      <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 md:p-8 lg:p-12 pb-6 sm:pb-8 md:pb-10 lg:pb-12 xl:pb-16">
+        <div className="max-w-[45%] lg:max-w-[40%]">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-brand-h1 font-headline text-white mb-2 sm:mb-3 md:mb-4 drop-shadow-lg leading-tight">
+            {title}
+          </h1>
+          {description && (
+            <p className="text-white/90 text-xs sm:text-sm md:text-base lg:text-lg max-w-2xl drop-shadow-md">
+              {description}
+            </p>
+          )}
+        </div>
       </div>
     </>
   );

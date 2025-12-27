@@ -75,17 +75,21 @@ export default function CartPage() {
 
   // formatPrice is now provided by usePrice hook with full currency conversion
 
-  if (cartItems.length === 0) {
-    return (
-      <div className="flex flex-col min-h-screen bg-brand-white">
-        <Header />
-        <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
-          <div className="container mx-auto px-4 sm:px-6">
+  return (
+    <div className="flex flex-col min-h-screen bg-brand-white">
+      <Header />
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
+        <div className="container mx-auto px-4 sm:px-6">
+          <h1 className="text-brand-h1 font-headline text-brand-blue mb-8">
+            Shopping Cart
+          </h1>
+
+          {cartItems.length === 0 ? (
             <div className="max-w-2xl mx-auto text-center py-16">
               <ShoppingBag className="h-24 w-24 mx-auto text-muted-foreground/30 mb-6" />
-              <h1 className="text-3xl sm:text-4xl font-headline font-bold text-brand-blue mb-4">
+              <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
                 Your Cart is Empty
-              </h1>
+              </h2>
               <p className="text-muted-foreground mb-8">
                 Looks like you haven't added anything to your cart yet.
               </p>
@@ -95,21 +99,8 @@ export default function CartPage() {
                 </Button>
               </Link>
             </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col min-h-screen bg-brand-white">
-      <Header />
-      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
-        <div className="container mx-auto px-4 sm:px-6">
-          <h1 className="text-3xl sm:text-4xl font-headline font-bold text-brand-blue mb-8">
-            Shopping Cart
-          </h1>
+          ) : (
+            <>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items - Left Column (2/3 on desktop) */}
@@ -138,7 +129,7 @@ export default function CartPage() {
                     {/* Product Details */}
                     <div className="flex-grow flex flex-col sm:flex-row sm:justify-between gap-4">
                       <div className="flex-grow">
-                        <h3 className="text-lg font-semibold text-brand-blue mb-1">
+                        <h3 className="text-brand-h3 font-headline text-brand-blue mb-1">
                           {item.product.name}
                         </h3>
                         <p className="text-sm text-muted-foreground mb-2">
@@ -192,7 +183,7 @@ export default function CartPage() {
             {/* Order Summary - Right Column (1/3 on desktop) */}
             <div className="lg:col-span-1">
               <div className="bg-white border border-border rounded-lg p-6 sticky top-24">
-                <h2 className="text-xl font-headline font-bold text-brand-blue mb-6">
+                <h2 className="text-brand-h2 font-headline text-brand-blue mb-6">
                   Order Summary
                 </h2>
 
@@ -239,7 +230,9 @@ export default function CartPage() {
                 </Link>
               </div>
             </div>
-          </div>
+            </div>
+            </>
+          )}
         </div>
       </main>
       <Footer />

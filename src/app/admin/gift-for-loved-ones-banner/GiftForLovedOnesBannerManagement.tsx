@@ -279,7 +279,6 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
                     <p className="text-xs text-muted-foreground">
                       Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used.
                     </p>
-                  </div>
                     {formData.imageUrl && (
                       <div className="relative w-full h-48 rounded-lg overflow-hidden border mt-2">
                         <Image
@@ -363,7 +362,6 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
               <p className="text-xs text-muted-foreground">
                 Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used.
               </p>
-            </div>
               {formData.imageUrl && (
                 <div className="relative w-full h-48 rounded-lg overflow-hidden border mt-2">
                   <Image

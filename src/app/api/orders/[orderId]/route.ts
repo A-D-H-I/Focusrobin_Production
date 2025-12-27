@@ -53,6 +53,10 @@ export async function GET(
         paymentStatus: order.paymentStatus,
         isPaid: order.isPaid,
         total: Number(order.total),
+        subtotal: Number(order.subtotal),
+        shipping: Number(order.shipping),
+        walletAmountUsed: order.walletAmountUsed ? Number(order.walletAmountUsed) : 0,
+        promoDiscount: order.promoDiscount ? Number(order.promoDiscount) : 0,
         currency: order.currency,
         items: order.items.map((item) => ({
           productName: item.productName,

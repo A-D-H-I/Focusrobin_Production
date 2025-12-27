@@ -57,7 +57,7 @@ export default function IconicSection({ iconicImage }: IconicSectionProps) {
   return (
     <section 
       ref={sectionRef}
-      className="relative py-0 lg:py-16 lg:py-24 overflow-hidden min-h-[500px] md:min-h-[600px] lg:min-h-[600px] flex flex-col justify-end lg:justify-center"
+      className="relative py-0 lg:py-16 overflow-hidden min-h-[500px] md:min-h-[600px] lg:min-h-[400px] flex flex-col justify-end bg-gradient-to-br from-brand-teal/10 to-brand-blue/10"
     >
       {/* Background Image */}
       <div className="absolute inset-0 z-0 overflow-hidden">
@@ -96,22 +96,22 @@ export default function IconicSection({ iconicImage }: IconicSectionProps) {
       {/* Gradient Overlay for text readability - stronger on mobile/tablet */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent lg:from-black/30 lg:via-black/10 lg:to-transparent z-[1]"></div>
 
-      <div className="container mx-auto px-4 sm:px-6 relative z-10 w-full pb-6 md:pb-8 lg:pb-0">
-        <div className="max-w-2xl">
+      <div className="container mx-auto px-4 sm:px-6 relative z-10 w-full pb-8 sm:pb-10 md:pb-12 lg:pb-16 xl:pb-20 flex flex-col justify-end min-h-full">
+        <div className="max-w-2xl lg:max-w-[45%] xl:max-w-[40%]">
           {/* Text and Buttons */}
-          <div className="flex flex-col justify-end text-center lg:text-left">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-7xl font-headline font-bold text-white mb-3 md:mb-4 lg:mb-12 leading-[1.1] tracking-tight drop-shadow-lg">
+          <div className="flex flex-col text-center lg:text-left">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-brand-h2 font-headline text-white mb-2 sm:mb-3 md:mb-4 leading-[1.1] tracking-tight drop-shadow-lg">
               GIVE SOMETHING ICONIC
             </h2>
             
-            <div className="flex flex-col sm:flex-row gap-3 lg:gap-4 justify-center lg:justify-start">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4 justify-center lg:justify-start">
               <Link href="/shop" prefetch={true}>
-                <Button size="lg" className="rounded-full px-6 py-4 md:px-7 md:py-5 lg:px-8 lg:py-6 text-sm md:text-base lg:text-lg bg-[#4DCECA] text-[#1C3142] hover:bg-[#4DCECA]/90 shadow-xl">
+                <Button size="lg" className="rounded-full px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 lg:px-7 lg:py-4.5 text-xs sm:text-sm md:text-base lg:text-lg bg-[#4DCECA] text-[#1C3142] hover:bg-[#4DCECA]/90 shadow-xl">
                   SHOP SUNGLASSES
                 </Button>
               </Link>
-              <Link href="/shop" prefetch={true}>
-                <Button size="lg" className="rounded-full px-6 py-4 md:px-7 md:py-5 lg:px-8 lg:py-6 text-sm md:text-base lg:text-lg bg-[#4DCECA] text-[#1C3142] hover:bg-[#4DCECA]/90 shadow-xl">
+              <Link href="/try-on" prefetch={true}>
+                <Button size="lg" className="rounded-full px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 lg:px-7 lg:py-4.5 text-xs sm:text-sm md:text-base lg:text-lg bg-[#4DCECA] text-[#1C3142] hover:bg-[#4DCECA]/90 shadow-xl">
                   Virtual Try-On
                 </Button>
               </Link>

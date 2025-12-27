@@ -75,7 +75,7 @@ export default function CustomerReviews({ reviews }: CustomerReviewsProps) {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row gap-8 md:gap-16">
           <div className="md:w-1/3">
-            <h2 className="text-2xl font-bold font-headline mb-4">Customer Reviews</h2>
+            <h2 className="text-brand-h2 font-headline mb-4">Customer Reviews</h2>
             <div className="flex items-center gap-2 mb-2">
                 <div className="flex items-center">
                     {[...Array(5)].map((_, i) => (

@@ -68,7 +68,16 @@ const securityHeaders = [
 // Check if we're in development mode
 const isDev = process.env.NODE_ENV === 'development';
 
+// Standalone output for VPS deployment
+// Disabled on Windows due to symlink permission issues (EPERM)
+// Enable via NEXT_STANDALONE=true environment variable
+const shouldUseStandalone = process.env.NEXT_STANDALONE === 'true' || process.platform !== 'win32';
+
 const nextConfig: NextConfig = {
+  // Standalone output for VPS deployment
+  // This creates a minimal server.js file with only necessary dependencies
+  ...(shouldUseStandalone ? { output: 'standalone' as const } : {}),
+  
   // Security headers applied to all routes (only in production)
   // In development, CSP can block resources when accessing via network IP
   async headers() {
@@ -81,16 +90,54 @@ const nextConfig: NextConfig = {
       {
         // Apply security headers to all routes
         source: '/:path*',
-        headers: securityHeaders,
+        headers: [
+          ...securityHeaders,
+          // Cache-Control for static assets (images, fonts, etc.)
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
       },
       {
-        // Additional headers for API routes
+        // HTML pages - short cache for SSR content
+        source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+        headers: [
+          ...securityHeaders,
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=3600, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        // API routes - no cache
         source: '/api/:path*',
         headers: [
           ...securityHeaders,
           {
             key: 'Cache-Control',
             value: 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          },
+        ],
+      },
+      {
+        // Static assets (Next.js generated)
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Images
+        source: '/_next/image/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },

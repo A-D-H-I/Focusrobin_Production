@@ -289,7 +289,7 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
                 </div>
               </div>
               <div className="absolute bottom-8 left-0 right-0 text-center z-10">
-                <h3 className="text-white font-headline text-2xl font-bold uppercase tracking-wider drop-shadow-lg">
+                <h3 className="text-brand-h3 font-headline text-white uppercase tracking-wider drop-shadow-lg">
                   {categoryLabels[category] || `SHOP FOR ${category}`}
                 </h3>
               </div>
@@ -300,26 +300,15 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
       </div>
 
       {/* Mobile & Tablet: Horizontal Scrollable - Edge to Edge */}
-      <div 
-        className="lg:hidden overflow-hidden relative"
-        style={{
-          width: '100vw',
-          position: 'relative',
-          left: '50%',
-          right: '50%',
-          marginLeft: '-50vw',
-          marginRight: '-50vw',
-        }}
-      >
+      <div className="lg:hidden overflow-hidden relative w-full">
         <div 
           ref={scrollContainerRef}
-          className="overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory"
+          className="overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory w-full"
           style={{
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
             WebkitOverflowScrolling: 'touch',
             touchAction: 'pan-x',
-            width: '100vw',
           }}
         >
           <div className="flex gap-0">
@@ -331,8 +320,7 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
                   key={image.id}
                   href={categoryRoutes[category] || '/shop'} 
                   prefetch={true}
-                  className="relative group overflow-hidden cursor-pointer flex-shrink-0 snap-start min-h-[300px]"
-                  style={{ width: '100vw' }}
+                  className="relative group overflow-hidden cursor-pointer flex-shrink-0 snap-start min-h-[300px] w-screen"
                   aria-label={`Shop for ${category.toLowerCase()}`}
                 >
                   <div className="absolute inset-0 overflow-hidden">
@@ -345,7 +333,7 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
                     />
                   </div>
                   <div className="absolute bottom-8 left-0 right-0 text-center z-10">
-                    <h3 className="text-white font-headline text-xl sm:text-2xl font-bold uppercase tracking-wider drop-shadow-lg">
+                    <h3 className="text-brand-h3 font-headline text-white uppercase tracking-wider drop-shadow-lg">
                       {categoryLabels[category] || `SHOP FOR ${category}`}
                     </h3>
                   </div>
@@ -362,9 +350,8 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
                   key={`duplicate-${image.id}`}
                   href={categoryRoutes[category] || '/shop'} 
                   prefetch={true}
-                  className="relative group overflow-hidden cursor-pointer flex-shrink-0 snap-start min-h-[300px]"
-                  style={{ width: '100vw' }}
-                  aria-label={`Shop for ${category.toLowerCase()}`}
+                  className="relative group overflow-hidden cursor-pointer flex-shrink-0 snap-start min-h-[300px] w-screen"
+                  aria-label={`Shop for ${category.toLowerCase()} (duplicate)`}
                 >
                   <div className="absolute inset-0 overflow-hidden">
                     <Image
@@ -376,7 +363,7 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
                     />
                   </div>
                   <div className="absolute bottom-8 left-0 right-0 text-center z-10">
-                    <h3 className="text-white font-headline text-xl sm:text-2xl font-bold uppercase tracking-wider drop-shadow-lg">
+                    <h3 className="text-brand-h3 font-headline text-white uppercase tracking-wider drop-shadow-lg">
                       {categoryLabels[category] || `SHOP FOR ${category}`}
                     </h3>
                   </div>

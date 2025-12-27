@@ -150,9 +150,12 @@ export async function createOrder(orderData: CreateOrderData) {
         return { error: `Variant not found for product ${cartItem.Product.name}. Please refresh your cart.` };
       }
 
+      // Calculate price with product discount applied
       const basePrice = Number(cartItem.Product.basePrice);
       const variantPrice = variant.price ? Number(variant.price) : null;
-      const price = variantPrice || basePrice;
+      const basePriceBeforeDiscount = variantPrice || basePrice;
+      const discountPct = cartItem.Product.discountPct || 0;
+      const price = basePriceBeforeDiscount * (1 - discountPct / 100);
       const itemTotal = price * cartItem.quantity;
       subtotal += itemTotal;
 

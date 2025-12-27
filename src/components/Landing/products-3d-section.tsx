@@ -12,7 +12,7 @@ export default function Products3DSection({ products }: Products3DSectionProps) 
     <section className="py-20 bg-gradient-to-b from-background to-muted/20">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-4xl sm:text-5xl md:text-6xl font-headline font-bold text-foreground mb-6">
+          <h2 className="text-brand-h2 font-headline text-foreground mb-6">
             New Arrivals
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">

@@ -25,7 +25,7 @@ export default async function NavbarSettingsPage() {
     <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-4xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Navbar Settings</h1>
+          <h1 className="text-brand-h1 font-headline text-foreground">Navbar Settings</h1>
           <p className="mt-2 text-muted-foreground">
             Configure navbar icon and logo colors when not scrolled (on homepage)
           </p>

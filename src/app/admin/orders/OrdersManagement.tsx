@@ -333,7 +333,7 @@ export default function OrdersManagement({
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Orders</h1>
+              <h1 className="text-brand-h1 font-headline text-foreground">Orders</h1>
               <p className="mt-2 text-muted-foreground">
                 Manage and track all customer orders
               </p>
@@ -410,8 +410,8 @@ export default function OrdersManagement({
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-lg">
-                          {order.orderNumber}
+                        <h3 className="text-brand-h3 font-headline">
+                          <span className="break-words">{order.orderNumber}</span>
                         </h3>
                         <Badge className={getStatusColor(order.status)}>
                           {getStatusIcon(order.status)}
@@ -422,7 +422,7 @@ export default function OrdersManagement({
                         </Badge>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-muted-foreground">
-                        <div>
+                        <div className="break-words">
                           <span className="font-medium">Customer:</span>{" "}
                           {order.userName} ({order.userEmail})
                         </div>
@@ -546,7 +546,7 @@ export default function OrdersManagement({
 
                 {/* Customer Info */}
                 <div>
-                  <h3 className="font-semibold text-lg mb-3">Customer Information</h3>
+                  <h3 className="text-brand-h3 font-headline mb-3">Customer Information</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-sm font-semibold text-muted-foreground">Name</Label>
@@ -554,14 +554,14 @@ export default function OrdersManagement({
                     </div>
                     <div>
                       <Label className="text-sm font-semibold text-muted-foreground">Email</Label>
-                      <p>{selectedOrder.userEmail}</p>
+                      <p className="break-words">{selectedOrder.userEmail}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Shipping Address */}
                 <div>
-                  <h3 className="font-semibold text-lg mb-3">Shipping Address</h3>
+                  <h3 className="text-brand-h3 font-headline mb-3">Shipping Address</h3>
                   <div className="p-4 bg-muted rounded-lg">
                     <p className="font-medium">{selectedOrder.shippingName}</p>
                     <p>{selectedOrder.shippingPhone}</p>
@@ -580,7 +580,7 @@ export default function OrdersManagement({
 
                 {/* Tracking Information */}
                 <div>
-                  <h3 className="font-semibold text-lg mb-3">Tracking Information</h3>
+                  <h3 className="text-brand-h3 font-headline mb-3">Tracking Information</h3>
                   <div className="space-y-4 p-4 bg-muted rounded-lg">
                     <div>
                       <Label className="text-sm font-semibold mb-2 block">
@@ -674,7 +674,7 @@ export default function OrdersManagement({
 
                 {/* Order Items */}
                 <div>
-                  <h3 className="font-semibold text-lg mb-3">Order Items</h3>
+                  <h3 className="text-brand-h3 font-headline mb-3">Order Items</h3>
                   <div className="space-y-3">
                     {selectedOrder.items.map((item) => (
                       <div

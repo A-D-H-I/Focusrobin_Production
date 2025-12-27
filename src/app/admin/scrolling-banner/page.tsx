@@ -23,7 +23,7 @@ export default async function AdminScrollingBannerPage() {
     <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Scrolling Banners / Offers</h1>
+          <h1 className="text-brand-h1 font-headline text-foreground">Scrolling Banners / Offers</h1>
           <p className="mt-2 text-muted-foreground">
             Manage multiple scrolling banner offers. All active banners will be displayed on the homepage between "GIVE SOMETHING ICONIC" and "Shop by Category" sections.
           </p>

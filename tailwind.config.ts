@@ -14,11 +14,22 @@ export default {
         headline: ['var(--font-chillax)', 'sans-serif'],
         code: ['monospace'],
       },
+      fontSize: {
+        'brand-h1': ['64px', { lineHeight: '1.1', letterSpacing: '-0.02em', fontWeight: '600' }], // Main Page Titles
+        'brand-h2': ['52px', { lineHeight: '1.2', letterSpacing: '-0.01em', fontWeight: '500' }], // Major Sections
+        'brand-h3': ['36px', { lineHeight: '1.2', fontWeight: '500' }], // Sub-sections
+        'brand-h4': ['28px', { lineHeight: '1.3', fontWeight: '400' }], // Minor headings
+      },
       colors: {
         brand: {
+          // FocusRobin Brand Colors
+          'jet-blue': '#1C3142',
+          'teal': '#4DCECA',
+          'atomic-pink': '#F56278',
+          'canary-yellow': '#FDD131',
+          'smoke-white': '#EFFAFA',
           white: '#FFFFFF',
           blue: 'hsl(var(--foreground))',
-          teal: '#4DCECA',
         },
         teal: {
           primary: '#4DCECA',

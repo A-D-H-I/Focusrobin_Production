@@ -107,7 +107,7 @@ export default function DeletedUsersManagement({ deletedUsers, error, currentUse
     <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Deleted Users Archive</h1>
+          <h1 className="text-brand-h1 font-headline text-foreground">Deleted Users Archive</h1>
           <p className="mt-2 text-muted-foreground">
             View archived user data and permanently delete if needed
           </p>
@@ -371,7 +371,7 @@ export default function DeletedUsersManagement({ deletedUsers, error, currentUse
                                             />
                                           )}
                                           <div className="flex-1">
-                                            <h4 className="font-semibold">{product?.name || 'N/A'}</h4>
+                                            <h4 className="text-brand-h4 font-headline">{product?.name || 'N/A'}</h4>
                                             {variant && (
                                               <p className="text-sm text-muted-foreground">
                                                 Variant: {variant.name} ({variant.colorName}) - SKU: {variant.sku}
@@ -544,7 +544,7 @@ export default function DeletedUsersManagement({ deletedUsers, error, currentUse
                                         </Badge>
                                       )}
                                       <div className="mb-3">
-                                        <h4 className="font-semibold text-brand-blue">{address.fullName}</h4>
+                                        <h4 className="text-brand-h4 font-headline text-brand-blue">{address.fullName}</h4>
                                         <p className="text-sm text-muted-foreground">{address.phone}</p>
                                       </div>
                                       <div className="text-sm text-muted-foreground space-y-1">

@@ -23,7 +23,7 @@ export default function RelatedProducts({ products }: RelatedProductsProps) {
     return (
         <section className="w-full">
             <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
-                <h2 className="text-3xl font-bold font-headline text-center mb-8">You Might Also Like</h2>
+                <h2 className="text-brand-h2 font-headline text-center mb-8">You Might Also Like</h2>
                 <Carousel
                     opts={{
                         align: "start",

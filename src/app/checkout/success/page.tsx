@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Package, Loader2, XCircle } from "lucide-react";
+import { CheckCircle, Package, Loader2, XCircle, RefreshCw, AlertTriangle } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 
 interface OrderDetails {
@@ -17,6 +17,10 @@ interface OrderDetails {
   paymentStatus: string;
   isPaid: boolean;
   total: number;
+  subtotal?: number;
+  shipping?: number;
+  walletAmountUsed?: number;
+  promoDiscount?: number;
   currency: string;
   items: {
     productName: string;
@@ -45,86 +49,123 @@ export default function CheckoutSuccessPage() {
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [hasFetched, setHasFetched] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [pollCount, setPollCount] = useState(0);
+
+  const fetchOrderStatus = useCallback(async (): Promise<OrderDetails | null> => {
+    if (!orderId) return null;
+    
+    try {
+      const response = await fetch(`/api/orders/${orderId}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.order) {
+          return data.order;
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching order status:", err);
+    }
+    return null;
+  }, [orderId]);
+
+  const verifyPayment = useCallback(async () => {
+    if (!orderId) {
+      setError("No order ID provided");
+      setLoading(false);
+      return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 30; // Try for up to 30 seconds
+    const pollInterval = 1000; // Check every 1 second
+
+    const pollOrderStatus = async (): Promise<OrderDetails | null> => {
+      const orderData = await fetchOrderStatus();
+      
+      if (orderData) {
+        setPollCount(attempts + 1);
+        
+        // Check if payment is completed
+        if (orderData.isPaid && orderData.paymentStatus === 'COMPLETED') {
+          return orderData;
+        }
+        
+        // Check if payment failed
+        if (orderData.paymentStatus === 'FAILED' || orderData.status === 'CANCELLED') {
+          setError(`Payment was declined or cancelled. Status: ${orderData.paymentStatus}. Please try again with a different payment method.`);
+          setOrder(orderData);
+          return null;
+        }
+        
+        // Keep polling if we haven't exceeded max attempts
+        if (attempts < maxAttempts) {
+          attempts++;
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
+          return pollOrderStatus();
+        }
+        
+        // Timeout - but still show the order info
+        return orderData;
+      }
+      
+      return null;
+    };
+
+    try {
+      const orderData = await pollOrderStatus();
+      if (orderData) {
+        setOrder(orderData);
+        // Clear cart on successful payment
+        if (orderData.isPaid && orderData.paymentStatus === 'COMPLETED') {
+          clearCart();
+        } else if (!error) {
+          // Payment not completed after polling
+          setError("Payment verification timeout. Your payment may still be processing. Click 'Check Again' to refresh status.");
+        }
+      } else if (!error) {
+        setError("Could not verify payment. Please check your orders page or contact support.");
+      }
+    } catch (err) {
+      console.error("Error verifying payment:", err);
+      if (!error) {
+        setError("An error occurred while verifying your payment. Please check your orders page.");
+      }
+    } finally {
+      setLoading(false);
+      setHasFetched(true);
+    }
+  }, [orderId, clearCart, fetchOrderStatus]);
 
   useEffect(() => {
     // Prevent multiple fetches
     if (hasFetched) return;
-
-    async function verifyPayment() {
-      if (!orderId) {
-        setError("No order ID provided");
-        setLoading(false);
-        return;
-      }
-
-      let attempts = 0;
-      const maxAttempts = 10; // Try for up to 10 seconds
-      const pollInterval = 1000; // Check every 1 second
-
-      const pollOrderStatus = async (): Promise<OrderDetails | null> => {
-        try {
-          // First, try to sync with Stripe if webhook hasn't fired
-          if (attempts === 0) {
-            try {
-              const syncResponse = await fetch('/api/orders/sync-status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ orderId }),
-              });
-              if (syncResponse.ok) {
-                const syncData = await syncResponse.json();
-                console.log('[Success Page] Sync result:', syncData);
-              }
-            } catch (syncErr) {
-              console.error('[Success Page] Sync error:', syncErr);
-            }
-          }
-
-          const response = await fetch(`/api/orders/${orderId}`);
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success && data.order) {
-              // If payment is completed or order is confirmed, we're done
-              if (data.order.paymentStatus === 'COMPLETED' || data.order.status === 'CONFIRMED' || data.order.isPaid) {
-                return data.order;
-              }
-              // Otherwise, keep polling if we haven't exceeded max attempts
-              if (attempts < maxAttempts) {
-                attempts++;
-                await new Promise(resolve => setTimeout(resolve, pollInterval));
-                return pollOrderStatus();
-              }
-              // If we've tried enough times, return what we have
-              return data.order;
-            }
-          }
-        } catch (err) {
-          console.error("Error polling order status:", err);
-        }
-        return null;
-      };
-
-      try {
-        const orderData = await pollOrderStatus();
-        if (orderData) {
-          setOrder(orderData);
-          // Clear cart on successful payment
-          clearCart();
-        } else {
-          setError("Failed to verify payment status");
-        }
-      } catch (err) {
-        console.error("Error verifying payment:", err);
-        setError("An error occurred while verifying your payment");
-      } finally {
-        setLoading(false);
-        setHasFetched(true);
-      }
-    }
-
     verifyPayment();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId]);
+  }, [hasFetched, verifyPayment]);
+
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    setError(null);
+    
+    try {
+      const orderData = await fetchOrderStatus();
+      if (orderData) {
+        setOrder(orderData);
+        if (orderData.isPaid && orderData.paymentStatus === 'COMPLETED') {
+          clearCart();
+          setError(null);
+        } else if (orderData.paymentStatus === 'FAILED' || orderData.status === 'CANCELLED') {
+          setError(`Payment was declined. Status: ${orderData.paymentStatus}. Please try again.`);
+        } else {
+          setError("Payment still processing. Please wait a moment and try again.");
+        }
+      }
+    } catch (err) {
+      setError("Failed to check payment status. Please try again.");
+    } finally {
+      setIsRetrying(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -135,34 +176,9 @@ export default function CheckoutSuccessPage() {
             <div className="flex flex-col items-center justify-center min-h-[400px]">
               <Loader2 className="h-12 w-12 animate-spin text-brand-teal mb-4" />
               <p className="text-lg text-muted-foreground">Verifying your payment...</p>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </>
-    );
-  }
-
-  if (error) {
-    return (
-      <>
-        <Header />
-        <main className="min-h-screen bg-background pt-[120px] sm:pt-[124px] xl:pt-[124px]">
-          <div className="container mx-auto px-4 py-12">
-            <div className="max-w-2xl mx-auto text-center">
-              <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-              <h1 className="text-3xl font-bold font-headline text-brand-blue mb-4">
-                Payment Verification Failed
-              </h1>
-              <p className="text-lg text-muted-foreground mb-8">{error}</p>
-              <div className="flex gap-4 justify-center">
-                <Link href="/checkout">
-                  <Button variant="outline">Try Again</Button>
-                </Link>
-                <Link href="/account?tab=orders">
-                  <Button>View My Orders</Button>
-                </Link>
-              </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Checking payment status ({pollCount}/30)...
+              </p>
             </div>
           </div>
         </main>
@@ -176,19 +192,102 @@ export default function CheckoutSuccessPage() {
       <Header />
       <main className="min-h-screen bg-background pt-[120px] sm:pt-[124px] xl:pt-[124px]">
         <div className="container mx-auto px-4 py-12">
-          <div className="max-w-3xl mx-auto">
-            {/* Success Header */}
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
-                <CheckCircle className="h-12 w-12 text-green-600" />
+          <h1 className="text-brand-h1 font-headline text-brand-blue mb-8 text-center">
+            Checkout Status
+          </h1>
+
+          {/* Payment failed/declined state */}
+          {order && (order.paymentStatus === 'FAILED' || order.status === 'CANCELLED') ? (
+            <div className="max-w-2xl mx-auto text-center">
+              <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+              <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
+                Payment Declined
+              </h2>
+              <p className="text-lg text-muted-foreground mb-4">
+                Your payment could not be processed.
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8 text-left">
+                <p className="text-red-800 font-medium mb-2">Possible reasons:</p>
+                <ul className="text-red-700 text-sm list-disc list-inside space-y-1">
+                  <li>Insufficient funds in your account</li>
+                  <li>Card expired or invalid</li>
+                  <li>Card issuer declined the transaction</li>
+                  <li>Incorrect card details</li>
+                </ul>
               </div>
-              <h1 className="text-3xl font-bold font-headline text-brand-blue mb-2">
-                Payment Successful!
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Thank you for your order. We've sent a confirmation email to your inbox.
+              <div className="flex gap-4 justify-center">
+                <Link href="/checkout">
+                  <Button className="bg-brand-teal hover:bg-brand-teal/90">
+                    Try Again
+                  </Button>
+                </Link>
+                <Link href="/account?tab=orders">
+                  <Button variant="outline">View My Orders</Button>
+                </Link>
+              </div>
+            </div>
+          ) : error && (!order || !order.isPaid) ? (
+            <div className="max-w-2xl mx-auto text-center">
+              <AlertTriangle className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+              <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
+                Payment Verification Pending
+              </h2>
+              <p className="text-lg text-muted-foreground mb-4">{error}</p>
+              
+              {order && (
+                <div className="bg-gray-50 border rounded-lg p-4 mb-6 text-left">
+                  <p className="text-sm font-medium mb-2">Order: {order.orderNumber}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Status: <span className="font-medium">{order.status}</span> • 
+                    Payment: <span className="font-medium">{order.paymentStatus}</span>
+                  </p>
+                </div>
+              )}
+              
+              <div className="flex gap-4 justify-center flex-wrap">
+                <Button 
+                  onClick={handleRetry} 
+                  disabled={isRetrying}
+                  className="bg-brand-teal hover:bg-brand-teal/90"
+                >
+                  {isRetrying ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Checking...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Check Again
+                    </>
+                  )}
+                </Button>
+                <Link href="/checkout">
+                  <Button variant="outline">Try Again</Button>
+                </Link>
+                <Link href="/account?tab=orders">
+                  <Button variant="outline">View My Orders</Button>
+                </Link>
+              </div>
+              
+              <p className="text-sm text-muted-foreground mt-6">
+                If you were charged but see this message, please contact support with your order details.
               </p>
             </div>
+          ) : (
+            <div className="max-w-3xl mx-auto">
+              {/* Success Header */}
+              <div className="text-center mb-8">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-green-100 rounded-full mb-4">
+                  <CheckCircle className="h-12 w-12 text-green-600" />
+                </div>
+                <h2 className="text-brand-h2 font-headline text-brand-blue mb-2">
+                  Payment Successful!
+                </h2>
+                <p className="text-lg text-muted-foreground">
+                  Thank you for your order. We've sent a confirmation email to your inbox.
+                </p>
+              </div>
 
             {order && (
               <Card className="mb-8">
@@ -218,11 +317,39 @@ export default function CheckoutSuccessPage() {
                         </div>
                       ))}
                     </div>
-                    <div className="flex justify-between items-center pt-4 border-t mt-4">
-                      <p className="text-lg font-bold">Total</p>
-                      <p className="text-lg font-bold text-brand-teal">
-                        €{order.total.toFixed(2)}
-                      </p>
+                    
+                    {/* Price Breakdown */}
+                    <div className="pt-4 border-t mt-4 space-y-2">
+                      {order.subtotal && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Subtotal</span>
+                          <span>€{order.subtotal.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {order.shipping !== undefined && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Shipping</span>
+                          <span>{order.shipping === 0 ? 'Free' : `€${order.shipping.toFixed(2)}`}</span>
+                        </div>
+                      )}
+                      {order.promoDiscount && order.promoDiscount > 0 && (
+                        <div className="flex justify-between text-sm text-green-600">
+                          <span>Promo Discount</span>
+                          <span>-€{order.promoDiscount.toFixed(2)}</span>
+                        </div>
+                      )}
+                      {order.walletAmountUsed && order.walletAmountUsed > 0 && (
+                        <div className="flex justify-between text-sm text-blue-600">
+                          <span>Wallet Applied</span>
+                          <span>-€{order.walletAmountUsed.toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center pt-2 border-t">
+                        <p className="text-lg font-bold">Total Paid</p>
+                        <p className="text-lg font-bold text-brand-teal">
+                          €{order.total.toFixed(2)}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
@@ -250,44 +377,24 @@ export default function CheckoutSuccessPage() {
                     </div>
                   </div>
 
-                  {/* Status */}
-                  {order.paymentStatus === 'COMPLETED' || order.isPaid || order.status === 'CONFIRMED' ? (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <span className="font-medium text-green-800">
-                          Payment Successful ✓
-                        </span>
-                      </div>
-                      <p className="text-sm text-green-700">
-                        Your payment has been confirmed. Your order is now being processed and will be shipped soon.
-                      </p>
-                      <div className="mt-3 pt-3 border-t border-green-200">
-                        <p className="text-xs text-green-600">
-                          Payment Status: <span className="font-semibold">COMPLETED</span> • 
-                          Order Status: <span className="font-semibold">Being Processed</span>
-                        </p>
-                      </div>
+                  {/* Success Status */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
+                      <span className="font-medium text-green-800">
+                        Payment Confirmed ✓
+                      </span>
                     </div>
-                  ) : (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Loader2 className="h-5 w-5 text-yellow-600 animate-spin" />
-                        <span className="font-medium text-yellow-800">
-                          Processing Payment...
-                        </span>
-                      </div>
-                      <p className="text-sm text-yellow-700">
-                        We're confirming your payment. This usually takes just a few seconds. Please wait...
+                    <p className="text-sm text-green-700">
+                      Your payment has been confirmed. Your order is now being processed and will be shipped soon.
+                    </p>
+                    <div className="mt-3 pt-3 border-t border-green-200">
+                      <p className="text-xs text-green-600">
+                        Payment Status: <span className="font-semibold">COMPLETED</span> • 
+                        Order Status: <span className="font-semibold">{order.status}</span>
                       </p>
-                      <div className="mt-3 pt-3 border-t border-yellow-200">
-                        <p className="text-xs text-yellow-600">
-                          Payment Status: <span className="font-semibold">{order.paymentStatus}</span> • 
-                          Order Status: <span className="font-semibold">{order.status}</span>
-                        </p>
-                      </div>
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -306,10 +413,10 @@ export default function CheckoutSuccessPage() {
               </Link>
             </div>
           </div>
+          )}
         </div>
       </main>
       <Footer />
     </>
   );
 }
-

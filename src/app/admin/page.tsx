@@ -18,7 +18,7 @@ export default async function AdminDashboard() {
     <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Admin Dashboard</h1>
+          <h1 className="text-brand-h1 font-headline text-foreground">Admin Dashboard</h1>
           <p className="mt-2 text-muted-foreground">Manage your store and products</p>
         </div>
 

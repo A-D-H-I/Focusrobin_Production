@@ -39,9 +39,11 @@ export default function ShopPageClient({ products, title = "All Products" }: Sho
   useEffect(() => {
     let count = 0;
     if (searchParams.get('gender')) count += searchParams.getAll('gender').length;
-    if (searchParams.get('color')) count += 1;
+    if (searchParams.get('color')) count += searchParams.getAll('color').length;
     if (searchParams.get('filter')) count += 1;
     if (searchParams.get('glassShape')) count += searchParams.getAll('glassShape').length;
+    if (searchParams.get('material')) count += searchParams.getAll('material').length;
+    if (searchParams.get('minPrice') || searchParams.get('maxPrice')) count += 1;
     setFiltersApplied(count);
   }, [searchParams]);
 
@@ -110,7 +112,7 @@ export default function ShopPageClient({ products, title = "All Products" }: Sho
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-headline font-bold text-foreground">
+              <h1 className="text-brand-h1 font-headline text-foreground">
                 {title}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">

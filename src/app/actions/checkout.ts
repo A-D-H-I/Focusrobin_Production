@@ -168,9 +168,12 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         };
       }
 
-      const price = variant.price
+      // Calculate price with product discount applied
+      const basePrice = variant.price
         ? Number(variant.price)
         : Number(cartItem.Product.basePrice);
+      const discountPct = cartItem.Product.discountPct || 0;
+      const price = basePrice * (1 - discountPct / 100);
       const itemTotal = price * cartItem.quantity;
       subtotal += itemTotal;
 
@@ -698,8 +701,26 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
 }
 
 /**
- * Sync order status with Stripe (fallback if webhook hasn't fired)
+ * DEPRECATED: Sync order status with Stripe (fallback if webhook hasn't fired)
+ * 
+ * ⚠️ WARNING: This function bypasses proper webhook verification and should NOT be used.
+ * Orders should ONLY be marked as paid via the Stripe webhook to ensure payment integrity.
+ * 
+ * This function is kept for reference but should not be called in production.
  */
+export async function syncOrderStatusWithStripe(orderId: string) {
+  // This function is deprecated and should not be used
+  // Orders must be verified through webhooks only
+  return safeAction(async () => {
+    return { 
+      success: false, 
+      error: "This function is deprecated. Payment verification must happen through webhooks only." 
+    };
+  });
+}
+
+/*
+// ORIGINAL IMPLEMENTATION - REMOVED FOR SECURITY
 export async function syncOrderStatusWithStripe(orderId: string) {
   return safeAction(async () => {
     const { session: userSession } = await requireAuth();
@@ -764,6 +785,7 @@ export async function syncOrderStatusWithStripe(orderId: string) {
     }
   });
 }
+*/
 
 /**
  * Verify a Stripe Checkout Session and get order details

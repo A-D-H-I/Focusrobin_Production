@@ -112,6 +112,7 @@ model User {
   id            String     @id @default(cuid())
   email         String     @unique
   name          String?
+  password      String? // For email/password authentication
   emailVerified DateTime?
   image         String?
   role          String     @default("USER")

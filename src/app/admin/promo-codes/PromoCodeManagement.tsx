@@ -211,7 +211,7 @@ export default function PromoCodeManagement() {
   return (
     <div className="container mx-auto p-4 md:p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Promo Code Management</h1>
+        <h1 className="text-brand-h1 font-headline">Promo Code Management</h1>
         <p className="mt-2 text-muted-foreground">
           Create and manage discount and cashback promo codes
         </p>

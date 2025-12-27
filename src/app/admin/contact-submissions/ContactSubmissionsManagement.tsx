@@ -111,7 +111,7 @@ export default function ContactSubmissionsManagement({
     <div className="bg-background p-4 md:p-6">
       <div className="mx-auto max-w-6xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-foreground">Contact Submissions</h1>
+          <h1 className="text-brand-h1 font-headline text-foreground">Contact Submissions</h1>
           <p className="mt-2 text-muted-foreground">
             View and manage contact form submissions
             {unreadCount > 0 && (
@@ -143,7 +143,7 @@ export default function ContactSubmissionsManagement({
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-lg">
+                        <h3 className="text-brand-h3 font-headline">
                           {submission.firstName} {submission.lastName}
                         </h3>
                         {!submission.read && (

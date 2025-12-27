@@ -164,7 +164,7 @@ export default function ContactChat({ initialChatId }: ContactChatProps) {
                 <Bot className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="font-headline font-semibold text-lg">
+                <h3 className="text-brand-h3 font-headline">
                   FocusRobin Support
                 </h3>
                 <p className="text-sm opacity-90">We're here to help</p>

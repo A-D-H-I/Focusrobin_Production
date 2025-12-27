@@ -26,7 +26,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
     return (
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl font-bold font-headline mb-4">Unique Designs</h2>
+          <h2 className="text-brand-h2 font-headline mb-4">Unique Designs</h2>
           <p className="text-muted-foreground">No products available at the moment.</p>
         </div>
       </section>
@@ -173,9 +173,9 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
   }, [emblaApi]);
 
   return (
-    <section className="bg-brand-white py-8 relative w-full overflow-hidden">
-      <div className="text-center mb-6 px-4">
-        <h2 className="text-brand-blue font-headline text-4xl sm:text-5xl font-bold mb-2">
+    <section className="bg-brand-white py-8 sm:py-12 relative w-full overflow-hidden">
+      <div className="text-center mb-6 sm:mb-8 px-4">
+        <h2 className="text-brand-blue font-headline text-brand-h2 mb-2">
           Unique Designs
         </h2>
         <p className="text-muted-foreground text-sm sm:text-base">
@@ -183,34 +183,35 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
         </p>
       </div>
 
-      <div className="relative w-full max-w-[1800px] mx-auto overflow-hidden">
+      <div className="relative w-full max-w-[1800px] mx-auto overflow-visible px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20">
         <button
           onClick={scrollPrev}
-          className="absolute left-4 md:left-12 top-1/2 -translate-y-1/2 z-30 bg-white/90 hover:bg-white rounded-full p-3 shadow-xl transition-all border border-border/10 hover:scale-110"
+          className="absolute left-1 sm:left-2 md:left-4 top-[45%] -translate-y-1/2 z-40 bg-white/95 hover:bg-white rounded-full p-2 md:p-3 shadow-xl transition-all border border-border/20 hover:scale-110"
           aria-label="Previous product"
         >
-          <ChevronLeft className="h-6 w-6 text-brand-blue" />
+          <ChevronLeft className="h-5 w-5 md:h-6 md:w-6 text-brand-blue" />
         </button>
 
         <button
           onClick={scrollNext}
-          className="absolute right-4 md:right-12 top-1/2 -translate-y-1/2 z-30 bg-white/90 hover:bg-white rounded-full p-3 shadow-xl transition-all border border-border/10 hover:scale-110"
+          className="absolute right-1 sm:right-2 md:right-4 top-[45%] -translate-y-1/2 z-40 bg-white/95 hover:bg-white rounded-full p-2 md:p-3 shadow-xl transition-all border border-border/20 hover:scale-110"
           aria-label="Next product"
         >
-          <ChevronRight className="h-6 w-6 text-brand-blue" />
+          <ChevronRight className="h-5 w-5 md:h-6 md:w-6 text-brand-blue" />
         </button>
 
-        <div className="w-full overflow-visible" ref={emblaRef}>
-          <div className="flex touch-pan-y touch-pinch-zoom">
+        <div className="w-full overflow-hidden" ref={emblaRef}>
+          <div className="flex touch-pan-y touch-pinch-zoom pb-4" style={{ overflow: 'visible' }}>
             {displayProducts.map((product, index) => {
               const isActive = selectedIndex === index;
 
               // Force default styles if not calculated yet
+              // Use better scale values for mobile/tablet visibility
               const style =
                 slideStyles[index] ||
                 (index === midIndex
-                  ? { scale: 1.2, opacity: 1, zIndex: 20, filter: "none" }
-                  : { scale: 0.6, opacity: 0.4, zIndex: 10, filter: "blur(0.5px)" });
+                  ? { scale: 1.0, opacity: 1, zIndex: 20, filter: "none" }
+                  : { scale: 0.7, opacity: 0.5, zIndex: 10, filter: "blur(0.5px)" });
 
               const currentFilter = isActive ? "none" : style.filter;
 
@@ -251,7 +252,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
               return (
                 <div
                   key={product.id}
-                  className="flex-[0_0_75%] md:flex-[0_0_38%] lg:flex-[0_0_32%] min-w-0 relative px-2 md:px-3"
+                  className="flex-[0_0_85%] sm:flex-[0_0_75%] md:flex-[0_0_38%] lg:flex-[0_0_32%] min-w-0 relative px-1 sm:px-2 md:px-3 pb-8"
                   style={{
                     transform: `translate3d(0, 0, 0) scale(${style.scale})`,
                     opacity: style.opacity,
@@ -261,25 +262,28 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                     position: "relative",
                     willChange: "transform, opacity, filter",
                     backfaceVisibility: "hidden",
+                    overflow: "visible",
                   }}
                 >
-                  <div className="bg-transparent py-2 relative" style={{ zIndex: style.zIndex }}>
+                  <div className="bg-transparent py-2 sm:py-4 relative overflow-visible" style={{ zIndex: style.zIndex }}>
                     <motion.div
                       // This is the visual container that will float (y oscillation) for the active slide
-                      className="aspect-[16/9] relative bg-transparent mb-1"
+                      className="aspect-[4/3] sm:aspect-[3/2] md:aspect-[16/9] relative bg-transparent mb-1 sm:mb-2 min-h-[240px] sm:min-h-[300px] md:min-h-0 overflow-visible"
                       animate={isActive ? { y: [0, -20, 0] } : { y: 0 }}
                       transition={isActive ? { duration: 6, repeat: Infinity, ease: "easeInOut" } : {}}
+                      style={{ overflow: 'visible', position: 'relative' }}
                     >
                       {/* Inner card handles perspective & tilt, image wrapper handles parallax */}
                       <Link
                         href={`/products/${product.slug || product.id}`}
                         prefetch={true}
-                        className="absolute inset-0 flex items-center justify-center"
+                        className="absolute inset-0 flex items-center justify-center overflow-visible"
                         style={{
                           willChange: "transform",
                           borderRadius: 12,
                           padding: 0,
                           cursor: "pointer",
+                          overflow: "visible",
                         }}
                       >
                         <div
@@ -295,11 +299,12 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                             if (!isActive) return;
                             handleMouseLeave(index);
                           }}
-                          className="absolute inset-0 flex items-center justify-center"
+                          className="absolute inset-0 flex items-center justify-center overflow-visible"
                           style={{
                             willChange: "transform",
                             borderRadius: 12,
                             padding: 0,
+                            overflow: "visible",
                             // keep pointer events for inner interactions but don't block Link clicks
                             pointerEvents: "auto",
                           }}
@@ -308,11 +313,11 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                             ref={(el) => {
                               imgRefs.current[index] = el;
                             }}
-                            className="relative w-full h-full flex items-center justify-center"
+                            className="relative w-full h-full flex items-center justify-center overflow-visible"
                             style={{
                               willChange: "transform",
                               overflow: "visible",
-                              transform: "scale(1.15)",
+                              transform: isActive ? "scale(1.3)" : "scale(1.1)",
                             }}
                           >
                             {mainImage ? (
@@ -323,8 +328,9 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                                 fill
                                 priority={index === midIndex}
                                 className="object-contain drop-shadow-2xl transition-transform duration-200"
-                                sizes="(max-width: 768px) 85vw, 50vw"
+                                sizes="(max-width: 640px) 90vw, (max-width: 768px) 80vw, 50vw"
                                 unoptimized
+                                style={{ objectFit: 'contain', overflow: 'visible' }}
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg">
@@ -336,12 +342,12 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                       </Link>
                     </motion.div>
 
-                    <div className="text-center relative z-40 drop-shadow-lg pt-0">
-                      <h3 className="text-xl font-bold text-brand-blue mb-3 tracking-tight drop-shadow-md">
+                    <div className="text-center relative z-40 drop-shadow-lg pt-0 pb-4">
+                      <h3 className="text-base sm:text-lg md:text-xl lg:text-brand-h3 font-headline text-brand-blue mb-2 sm:mb-3 tracking-tight drop-shadow-md line-clamp-2 break-words overflow-hidden px-2 sm:px-4">
                         {product.name}
                       </h3>
 
-                             <div className="flex items-center justify-center gap-2 mb-6 flex-wrap">
+                             <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6 flex-wrap px-2 sm:px-4">
                                <p className="text-lg font-medium text-brand-blue/80 drop-shadow-md">
                                  {formatPrice(parseEurPrice(product.price))}
                                </p>
@@ -360,7 +366,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                              </div>
 
                       {product.cashback && parseEurPrice(product.cashback) > 0 && (
-                        <div className="flex justify-center mb-4 relative z-40">
+                        <div className="flex justify-center mb-3 sm:mb-4 relative z-40 px-2 sm:px-4">
                           <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
                             🎁 {formatPrice(parseEurPrice(product.cashback))} cashback
                           </Badge>
@@ -368,7 +374,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                       )}
 
                       {product.variants && product.variants.length > 1 && (
-                        <div className="flex items-center justify-center gap-4 mb-8 flex-wrap relative z-40">
+                        <div className="flex items-center justify-center gap-4 mb-4 sm:mb-6 flex-wrap relative z-40 px-2 sm:px-4">
                           {visibleVariants.map((variant, variantIndex) => (
                             <button
                               key={variant.hex}
@@ -395,7 +401,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                         </div>
                       )}
 
-                      <div className="h-16 flex items-center justify-center relative z-50 mt-4">
+                      <div className="min-h-[64px] sm:min-h-[72px] flex items-center justify-center relative z-50 mt-2 sm:mt-4 pointer-events-auto px-2 sm:px-4">
                         <AnimatePresence mode="wait">
                           {isActive && (
                             <motion.div
@@ -403,11 +409,21 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                               animate={{ opacity: 1, y: 0 }}
                               exit={{ opacity: 0, y: 5 }}
                               transition={{ duration: 0.2 }}
-                              className="relative z-50"
+                              className="relative z-50 pointer-events-auto"
                             >
-                              <Link href={`/products/${product.id}`} prefetch={true} className="relative z-50">
+                              <Link 
+                                href={`/products/${encodeURIComponent(product.slug || product.id)}`} 
+                                prefetch={true} 
+                                className="relative z-50 pointer-events-auto"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                }}
+                              >
                                 <Button
-                                  className="px-8 py-6 text-base font-bold bg-brand-teal text-white hover:bg-brand-teal/90 shadow-lg rounded-full uppercase tracking-wide hover:scale-105 transition-transform relative z-50"
+                                  className="px-6 sm:px-8 py-4 sm:py-6 text-sm sm:text-base font-bold bg-brand-teal text-white hover:bg-brand-teal/90 shadow-lg rounded-full uppercase tracking-wide hover:scale-105 transition-transform relative z-50 pointer-events-auto"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                  }}
                                 >
                                   Shop Now
                                 </Button>

@@ -1,5 +1,3 @@
-"use server";
-
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { auth } from "@/auth";

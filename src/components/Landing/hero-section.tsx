@@ -181,17 +181,17 @@ export default function HeroSection({ heroData }: HeroSectionProps) {
       </div>
 
       {/* Content Overlay - Fixed positioning to ensure visibility */}
-      <div className="absolute inset-0 z-20 flex items-end justify-center text-center text-white px-4 pb-24 md:pb-28 lg:pb-16 pointer-events-none">
+      <div className="absolute inset-0 z-20 flex items-end justify-center text-center text-white px-4 pb-12 sm:pb-16 md:pb-20 lg:pb-16 pointer-events-none">
         <div
           className={cn(
             "transform transition-all duration-1000 ease-out w-full max-w-4xl pointer-events-auto",
             isMounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
           )}
         >
-          <h1 className="text-3xl sm:text-4xl md:text-4xl lg:text-2xl xl:text-3xl font-headline font-bold mb-3 lg:mb-2 drop-shadow-lg break-words px-2">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-brand-h1 font-headline mb-2 sm:mb-2.5 md:mb-3 lg:mb-2 drop-shadow-lg break-words px-2 leading-tight sm:leading-tight md:leading-normal">
             {sharedText?.title || "Elevate Your Style, Enhance Your Vision"}
           </h1>
-          <p className="text-base sm:text-lg md:text-base lg:text-sm xl:text-base max-w-2xl mx-auto mb-6 lg:mb-4 drop-shadow-lg break-words px-2">
+          <p className="text-xs sm:text-sm md:text-base lg:text-sm xl:text-base max-w-2xl mx-auto mb-4 sm:mb-5 md:mb-6 lg:mb-4 drop-shadow-lg break-words px-2">
             {sharedText?.subtitle || "Shop our latest collection of premium sunglasses & prescription glasses."}
           </p>
           <div className="flex flex-row gap-3 sm:gap-4 justify-center items-center">
@@ -200,7 +200,7 @@ export default function HeroSection({ heroData }: HeroSectionProps) {
                 {sharedText?.ctaText || "Shop Now"}
               </Button>
             </Link>
-            <Link href="/shop">
+            <Link href="/try-on">
               <Button size="lg" variant="outline" className="rounded-full px-4 sm:px-8 py-5 sm:py-6 lg:px-6 lg:py-4 text-sm sm:text-base md:text-base lg:text-sm xl:text-base border-2 border-white text-white bg-white/5 backdrop-blur-sm shadow-lg flex items-center gap-2">
                 <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
                 Try On

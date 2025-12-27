@@ -153,7 +153,7 @@ export default function Footer() {
         
         {/* Payment Methods Section */}
         <div className="border-t border-border mt-8 pt-6">
-          <h4 className="text-sm font-semibold mb-4 text-center">
+          <h4 className="text-brand-h4 font-headline mb-4 text-center">
             We Accept
           </h4>
           <div className="flex flex-wrap items-center justify-center gap-2">
@@ -179,6 +179,29 @@ export default function Footer() {
                 );
               }
             })}
+          </div>
+        </div>
+
+        {/* Lithuanian SEO Content Section - Hidden visually but readable by search engines */}
+        <div className="border-t border-border mt-8 pt-6">
+          <div className="sr-only">
+            <h2 className="text-brand-h2 font-headline mb-4">FocusRobin - Premium Sunglasses Lithuania</h2>
+            <p className="text-sm mb-4">
+              FocusRobin offers premium sunglasses Lithuania with fast shipping to Vilnius, Kaunas, and Klaipėda. 
+              Our collection features polarized sunglasses, minimalist eyewear, and designer sunglasses designed 
+              in Lithuania. Shop online for UV400 sunglasses, saulės akiniai internetu, and kokybiški akiniai 
+              with free delivery across the EU.
+            </p>
+            <p className="text-sm mb-4">
+              Akiniai nuo saulės, polarizuoti saulės akiniai, and akiniai su UV apsauga available for men and women. 
+              Find stilingi akiniai, akiniai moterims, and akiniai vyrams in our online store. 
+              Fast shipping to saulės akiniai Vilnius, saulės akiniai Kaunas, and saulės akiniai Klaipėda.
+            </p>
+            <p className="text-sm">
+              Premium sunglasses Lithuania | Sunglasses online Lithuania | Designer sunglasses Lithuania | 
+              Buy sunglasses in Lithuania | Sunglasses in Lithuania | FocusRobin Lithuania | 
+              FocusRobin sunglasses | Premium polarized sunglasses | Minimalist sunglasses | UV400 sunglasses.
+            </p>
           </div>
         </div>
 

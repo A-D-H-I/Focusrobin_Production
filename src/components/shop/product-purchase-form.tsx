@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Product, ProductColorVariant } from "@/lib/productData";
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 import { usePrice } from "@/hooks/usePrice";
-import VirtualTryOn from "@/components/shop/virtual-tryon";
 
 type ProductPurchaseFormProps = {
   product: Product;
@@ -27,6 +27,7 @@ const lensFeatures = [
 ];
 
 export default function ProductPurchaseForm({ product, onVariantChange, selectedVariant: externalSelectedVariant }: ProductPurchaseFormProps) {
+  const router = useRouter();
   const [selectedColor, setSelectedColor] = useState(product.variants[0]?.hex || '#000000');
   const [internalSelectedVariant, setInternalSelectedVariant] = useState(product.variants[0]);
   const selectedVariant = externalSelectedVariant || internalSelectedVariant;
@@ -37,7 +38,6 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   const { toast } = useToast();
   const { formatPrice, parseEurPrice } = usePrice();
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isTryOnOpen, setIsTryOnOpen] = useState(false);
   
   // Check wishlist status when variant changes
   useEffect(() => {
@@ -86,14 +86,14 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl md:text-4xl font-bold font-headline">{product.name}</h1>
+    <div className="space-y-4 sm:space-y-6">
+      <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-brand-h1 font-headline leading-tight sm:leading-normal break-words overflow-hidden">{product.name}</h1>
       
       {/* Virtual Try-On Button - Visible at top on all devices */}
       <Button 
         size="lg" 
         variant="outline" 
-        className="h-14 text-lg border-2 w-full border-primary"
+        className="h-9 sm:h-10 md:h-12 lg:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg border-2 w-full border-primary px-2 sm:px-3 md:px-4 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3"
         onClick={() => {
           if (!selectedVariant) {
             toast({
@@ -103,11 +103,17 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             });
             return;
           }
-          setIsTryOnOpen(true);
+          // Check if selected variant has try-on image, otherwise find one that does
+          const variantWithTryOn = product.variants.find(v => v.tryOn) || selectedVariant;
+          const variantIndex = product.variants.findIndex(v => v.hex === variantWithTryOn.hex);
+          // Navigate to try-on page with product and variant info
+          router.push(`/try-on?product=${encodeURIComponent(product.id)}&variant=${variantIndex}`);
         }}
       >
-        <Camera className="mr-2 h-5 w-5" />
-        Virtual Try-On
+        <Camera className="mr-1 sm:mr-1.5 md:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 flex-shrink-0" />
+        <span className="whitespace-nowrap truncate">
+          <span className="hidden sm:inline">Virtual </span>Try-On
+        </span>
       </Button>
       
       <div className="flex items-center gap-4 flex-wrap">
@@ -151,7 +157,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       </div>
 
       <div>
-          <h3 className="text-md font-semibold mb-3">Color: <span className="font-normal text-muted-foreground">{selectedVariant?.name || 'Default'}</span></h3>
+          <h3 className="text-brand-h3 font-headline mb-3">Color: <span className="font-normal text-muted-foreground">{selectedVariant?.name || 'Default'}</span></h3>
           <div className="flex items-center gap-2 flex-wrap">
               {product.variants.map((variant, idx) => (
                   <button
@@ -178,18 +184,18 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
 
       <div className="space-y-3">
           <div className="flex items-center gap-4">
-              <h3 className="text-md font-semibold">Quantity:</h3>
+              <h3 className="text-brand-h3 font-headline">Quantity:</h3>
               <div className="flex items-center border rounded-md">
                   <Button 
                       variant="ghost" 
                       size="icon" 
                       onClick={() => setQuantity(q => Math.max(1, q-1))} 
-                      className="h-10 w-10"
+                      className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 touch-manipulation p-0 min-w-[28px] sm:min-w-[32px] md:min-w-[40px]"
                       disabled={quantity <= 1}
                   >
-                      <Minus className="h-4 w-4" />
+                      <Minus className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                   </Button>
-                  <span className="w-10 text-center font-bold">{quantity}</span>
+                  <span className="w-8 sm:w-10 md:w-12 text-center font-bold text-xs sm:text-sm md:text-base">{quantity}</span>
                   <Button 
                       variant="ghost" 
                       size="icon" 
@@ -197,10 +203,10 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
                           const maxQuantity = selectedVariant?.stock !== undefined ? selectedVariant.stock : 999;
                           setQuantity(q => Math.min(maxQuantity, q+1));
                       }} 
-                      className="h-10 w-10"
+                      className="h-7 w-7 sm:h-8 sm:w-8 md:h-10 md:w-10 touch-manipulation p-0 min-w-[28px] sm:min-w-[32px] md:min-w-[40px]"
                       disabled={selectedVariant?.stock !== undefined && quantity >= selectedVariant.stock}
                   >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                   </Button>
               </div>
           </div>
@@ -223,10 +229,10 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
           )}
       </div>
       
-      <div className="grid grid-cols-1 gap-4">
+      <div className="grid grid-cols-1 gap-2 sm:gap-3 md:gap-4">
         <Button 
           size="lg" 
-          className="h-14 text-lg w-full"
+          className="h-9 sm:h-10 md:h-12 lg:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg w-full px-2 sm:px-3 md:px-4 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3 font-semibold"
           disabled={selectedVariant?.stock !== undefined && (selectedVariant.stock === 0 || quantity > selectedVariant.stock)}
           onClick={() => {
             if (!selectedVariant) {
@@ -265,12 +271,12 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             });
           }}
         >
-          {selectedVariant?.stock === 0 ? "Out of Stock" : "Add to Cart"}
+          <span className="whitespace-nowrap truncate">{selectedVariant?.stock === 0 ? "Out of Stock" : "Add to Cart"}</span>
         </Button>
         <Button 
           size="lg" 
           variant="outline" 
-          className={cn("h-14 text-lg border-2 w-full", isWishlisted && "border-primary")}
+          className={cn("h-9 sm:h-10 md:h-12 lg:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg border-2 w-full px-2 sm:px-3 md:px-4 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3", isWishlisted && "border-primary")}
           onClick={() => {
             if (!selectedVariant) {
               toast({
@@ -301,20 +307,20 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             }
           }}
         >
-          <Heart className={cn("mr-2 h-5 w-5", isWishlisted && "fill-red-500 text-red-500")} />
-          {isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
+          <Heart className={cn("mr-1 sm:mr-1.5 md:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 flex-shrink-0", isWishlisted && "fill-red-500 text-red-500")} />
+          <span className="whitespace-nowrap truncate">
+            {isWishlisted ? (
+              <>
+                <span className="hidden sm:inline">Remove from </span>Wishlist
+              </>
+            ) : (
+              <>
+                <span className="hidden sm:inline">Add to </span>Wishlist
+              </>
+            )}
+          </span>
         </Button>
       </div>
-
-      {/* Virtual Try-On Modal */}
-      <VirtualTryOn
-        product={product}
-        variants={product.variants}
-        selectedVariantIndex={product.variants.findIndex(v => v.hex === selectedVariant?.hex) || 0}
-        productName={product.name}
-        isOpen={isTryOnOpen}
-        onClose={() => setIsTryOnOpen(false)}
-      />
     </div>
   );
 }

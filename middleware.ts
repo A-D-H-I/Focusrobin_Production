@@ -55,7 +55,7 @@ function getClientIP(request: NextRequest): string {
  * Add security headers to response
  * Skip in development mode for network access compatibility
  */
-function addSecurityHeaders(response: NextResponse, setCsrfCookie: boolean = false): NextResponse {
+async function addSecurityHeaders(response: NextResponse, setCsrfCookie: boolean = false): Promise<NextResponse> {
   // Skip security headers in development for network access compatibility
   const isDev = process.env.NODE_ENV === 'development';
   
@@ -67,7 +67,7 @@ function addSecurityHeaders(response: NextResponse, setCsrfCookie: boolean = fal
   
   // Set CSRF token cookie for forms (only on page requests)
   if (setCsrfCookie) {
-    const csrfToken = generateCSRFToken();
+    const csrfToken = await generateCSRFToken();
     response.cookies.set("__csrf_token", csrfToken, {
       httpOnly: false, // Must be accessible by JS for form submission
       secure: process.env.NODE_ENV === "production",
@@ -83,24 +83,24 @@ function addSecurityHeaders(response: NextResponse, setCsrfCookie: boolean = fal
 /**
  * Create a 403 Forbidden response with security headers
  */
-function forbidden(request: NextRequest, message: string = "Forbidden"): NextResponse {
+async function forbidden(request: NextRequest, message: string = "Forbidden"): Promise<NextResponse> {
   const response = NextResponse.json(
     { error: message, status: 403 },
     { status: 403 }
   );
-  return addSecurityHeaders(response);
+  return await addSecurityHeaders(response);
 }
 
 /**
  * Create a redirect response with security headers
  */
-function secureRedirect(request: NextRequest, path: string): NextResponse {
+async function secureRedirect(request: NextRequest, path: string): Promise<NextResponse> {
   // Use absolute URL for redirect
   const url = request.nextUrl.clone();
   url.pathname = path;
   url.search = ""; // Clear any query params
   const response = NextResponse.redirect(url);
-  return addSecurityHeaders(response);
+  return await addSecurityHeaders(response);
 }
 
 /**
@@ -157,7 +157,7 @@ export async function middleware(request: NextRequest) {
     }
     
     const response = NextResponse.next();
-    return addSecurityHeaders(response);
+    return await addSecurityHeaders(response);
   }
 
   // Protect admin API routes
@@ -165,16 +165,16 @@ export async function middleware(request: NextRequest) {
     const session = await auth();
     
     if (!session || !session.user) {
-      return forbidden(request, "Authentication required");
+      return await forbidden(request, "Authentication required");
     }
     
     const userRole = (session.user as any)?.role;
     if (userRole !== "ADMIN") {
-      return forbidden(request, "Admin access required");
+      return await forbidden(request, "Admin access required");
     }
     
     const response = NextResponse.next();
-    return addSecurityHeaders(response);
+    return await addSecurityHeaders(response);
   }
 
   // === Admin Routes Protection (Strictest) ===
@@ -194,19 +194,19 @@ export async function middleware(request: NextRequest) {
     // Check 1: Must be authenticated - strict check
     if (!session) {
       console.warn(`[Security] BLOCKED: No session for admin route: ${pathname}`);
-      return secureRedirect(request, "/");
+      return await secureRedirect(request, "/");
     }
 
     if (!session.user) {
       console.warn(`[Security] BLOCKED: No user in session for admin route: ${pathname}`);
-      return secureRedirect(request, "/");
+      return await secureRedirect(request, "/");
     }
 
     // Check 2: Must have valid user ID
     const userId = (session.user as any)?.id;
     if (!userId || typeof userId !== "string") {
       console.warn(`[Security] BLOCKED: Invalid user ID for admin route: ${pathname}`);
-      return secureRedirect(request, "/");
+      return await secureRedirect(request, "/");
     }
 
     // Check 3: Must have ADMIN role (strict comparison)
@@ -217,13 +217,13 @@ export async function middleware(request: NextRequest) {
         `[Security] BLOCKED: Non-admin user attempted admin access: ${pathname}, userId: ${userId}, role: ${userRole || "undefined"}`
       );
       // Redirect non-admin users to home page
-      return secureRedirect(request, "/");
+      return await secureRedirect(request, "/");
     }
 
     // Admin authenticated and authorized - allow access
     console.log(`[Security] ALLOWED: Admin access granted for ${pathname}, userId: ${userId}`);
     const response = NextResponse.next();
-    return addSecurityHeaders(response, true); // Set CSRF for admin pages
+    return await addSecurityHeaders(response, true); // Set CSRF for admin pages
   }
 
   // === User Profile/Account Routes Protection ===
@@ -232,12 +232,12 @@ export async function middleware(request: NextRequest) {
 
     if (!isValidSession(session)) {
       console.warn(`[Security] Unauthenticated access attempt to protected route: ${pathname}`);
-      return secureRedirect(request, "/");
+      return await secureRedirect(request, "/");
     }
 
     // User is authenticated
     const response = NextResponse.next();
-    return addSecurityHeaders(response, true); // Set CSRF for user pages
+    return await addSecurityHeaders(response, true); // Set CSRF for user pages
   }
 
   // === Checkout Protection (must be logged in) ===
@@ -245,18 +245,18 @@ export async function middleware(request: NextRequest) {
     const session = await auth();
 
     if (!isValidSession(session)) {
-      return secureRedirect(request, "/");
+      return await secureRedirect(request, "/");
     }
 
     const response = NextResponse.next();
-    return addSecurityHeaders(response, true); // Set CSRF for checkout pages
+    return await addSecurityHeaders(response, true); // Set CSRF for checkout pages
   }
 
   // === Public routes - add security headers ===
   // Set CSRF cookie for non-API routes (pages)
   const isPageRequest = !pathname.startsWith("/api/");
   const response = NextResponse.next();
-  return addSecurityHeaders(response, isPageRequest);
+  return await addSecurityHeaders(response, isPageRequest);
 }
 
 export const config = {

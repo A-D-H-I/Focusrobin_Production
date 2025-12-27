@@ -98,7 +98,7 @@ function ProductCard({ product, showCashback = false, priority = false }: Produc
         <div className="p-4">
           {/* Name and Price on same line */}
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-body text-foreground font-bold text-base flex-1">
+            <h3 className="text-sm sm:text-base md:text-lg lg:text-brand-h3 font-headline text-foreground flex-1 line-clamp-1 break-words overflow-hidden text-ellipsis leading-tight sm:leading-normal">
               {product.name}
             </h3>
             <p className="font-body text-foreground font-bold text-base ml-2">

@@ -9,11 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Product, ProductColorVariant } from "@/lib/productData";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 import { usePrice } from "@/hooks/usePrice";
-import VirtualTryOn from "@/components/shop/virtual-tryon";
 
 type ProductCardProps = {
   product: Product;
@@ -68,10 +68,10 @@ function StarRating({ rating, count }: { rating: number; count?: number }) {
 }
 
 function ProductCard({ product, onColorClick, priority = false, viewMode = "grid" }: ProductCardProps) {
+  const router = useRouter();
   const [hoveredVariant, setHoveredVariant] = useState<ProductColorVariant | null>(null);
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
   const [isImageHovered, setIsImageHovered] = useState(false);
-  const [isTryOnOpen, setIsTryOnOpen] = useState(false);
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
@@ -131,7 +131,11 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
   const handleTryOnClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsTryOnOpen(true);
+    // Check if selected variant has try-on image
+    const variantWithTryOn = product.variants.find(v => v.tryOn) || selectedVariant;
+    const variantIndex = product.variants.findIndex(v => v.hex === variantWithTryOn.hex);
+    // Navigate to try-on page with product and variant info
+    router.push(`/try-on?product=${encodeURIComponent(product.id)}&variant=${variantIndex}`);
   };
 
   // Extract brand name from product name or categories
@@ -148,7 +152,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
           <CardContent className="p-0 flex flex-row h-full">
             {/* Image Section */}
             <div 
-              className="relative w-48 h-48 flex-shrink-0 bg-muted/30 overflow-hidden"
+              className="relative w-24 sm:w-32 md:w-48 h-24 sm:h-32 md:h-48 flex-shrink-0 bg-muted/30 overflow-hidden"
               onMouseEnter={() => !hoveredVariant && setIsImageHovered(true)}
               onMouseLeave={() => setIsImageHovered(false)}
             >
@@ -175,12 +179,12 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
             </div>
 
             {/* Content Section */}
-            <div className="flex-1 p-4 flex flex-col justify-between">
+            <div className="flex-1 p-2 sm:p-3 md:p-4 flex flex-col justify-between">
               <div>
-                <p className="text-sm font-medium text-teal-primary uppercase tracking-wide mb-1">
+                <p className="text-xs sm:text-sm font-medium text-teal-primary uppercase tracking-wide mb-1">
                   {brandName}
                 </p>
-                <h3 className="text-lg font-semibold text-foreground mb-2 line-clamp-1">
+                <h3 className="text-base sm:text-lg md:text-xl lg:text-brand-h3 font-headline text-foreground mb-1 sm:mb-2 line-clamp-1 break-words overflow-hidden text-ellipsis">
                   {product.name}
                 </h3>
                 
@@ -242,46 +246,36 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                 )}
               </div>
 
-              <div className="flex flex-col gap-2 mt-4">
+              <div className="flex flex-col gap-1.5 sm:gap-2 mt-4">
                 <Button 
                   onClick={handleAddToCart}
-                  className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white border-0"
+                  className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white border-0 text-[11px] sm:text-xs md:text-sm px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px]"
                 >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  Add to Cart
+                  <ShoppingCart className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 mr-1 sm:mr-1.5 md:mr-2 flex-shrink-0" />
+                  <span className="whitespace-nowrap truncate">Add to Cart</span>
                 </Button>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5 sm:gap-2">
                   <Button
                     variant="outline"
                     onClick={handleTryOnClick}
-                    className="flex-1 border-teal-primary text-teal-primary hover:bg-teal-primary/10"
+                    className="flex-1 border-teal-primary text-teal-primary hover:bg-teal-primary/10 text-[11px] sm:text-xs md:text-sm px-1.5 sm:px-2 md:px-3 py-1.5 sm:py-2 md:py-2.5 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px]"
                   >
-                    <Glasses className="h-4 w-4 mr-2" />
-                    Try-On
+                    <Glasses className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 mr-1 sm:mr-1.5 md:mr-2 flex-shrink-0" />
+                    <span className="whitespace-nowrap truncate">Try-On</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="icon"
                     onClick={handleWishlistToggle}
-                    className="border-border/50"
+                    className="border-border/50 h-[32px] w-[32px] sm:h-[36px] sm:w-[36px] md:h-10 md:w-10 flex-shrink-0 p-0"
                   >
-                    <Heart className={cn("h-4 w-4", isWishlisted && "fill-red-500 text-red-500")} />
+                    <Heart className={cn("h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4", isWishlisted && "fill-red-500 text-red-500")} />
                   </Button>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Virtual Try-On Modal */}
-        <VirtualTryOn
-          product={product}
-          variants={product.variants}
-          selectedVariantIndex={product.variants.findIndex(v => v.hex === selectedVariant?.hex) || 0}
-          productName={product.name}
-          isOpen={isTryOnOpen}
-          onClose={() => setIsTryOnOpen(false)}
-        />
       </Link>
     );
   }
@@ -337,14 +331,14 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
           </div>
           
           {/* Content Section */}
-          <div className="p-4 flex flex-col flex-grow">
+          <div className="p-2 sm:p-3 md:p-4 flex flex-col flex-grow">
             {/* Brand Name */}
-            <p className="text-xs font-semibold text-teal-primary uppercase tracking-wider mb-1">
+            <p className="text-[10px] sm:text-xs font-semibold text-teal-primary uppercase tracking-wider mb-0.5 sm:mb-1">
               {brandName}
             </p>
             
             {/* Product Name */}
-            <h3 className="text-base font-semibold text-foreground mb-2 line-clamp-1">
+            <h3 className="text-sm sm:text-base md:text-lg lg:text-brand-h3 font-headline text-foreground mb-1 sm:mb-2 line-clamp-1 break-words overflow-hidden text-ellipsis leading-tight sm:leading-normal">
               {product.name}
             </h3>
             
@@ -410,36 +404,28 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
             )}
             
             {/* Buttons */}
-            <div className="flex flex-col gap-2 mt-auto">
+            <div className="flex flex-col gap-1.5 sm:gap-2 mt-auto">
               <Button 
                 onClick={handleAddToCart}
-                className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white border-0 font-semibold shadow-md hover:shadow-lg transition-all duration-300"
+                className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white border-0 font-semibold shadow-md hover:shadow-lg transition-all duration-300 text-[11px] sm:text-xs md:text-sm lg:text-base px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px] lg:min-h-[44px]"
               >
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Add to Cart
+                <ShoppingCart className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-1.5 md:mr-2 flex-shrink-0" />
+                <span className="whitespace-nowrap truncate">Add to Cart</span>
               </Button>
               <Button 
                 variant="outline"
                 onClick={handleTryOnClick}
-                className="w-full border-teal-primary text-teal-primary hover:bg-teal-primary/10 font-semibold"
+                className="w-full border-teal-primary text-teal-primary hover:bg-teal-primary/10 font-semibold text-[11px] sm:text-xs md:text-sm lg:text-base px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px] lg:min-h-[44px]"
               >
-                <Glasses className="h-4 w-4 mr-2" />
-                Virtual Try-On
+                <Glasses className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-1.5 md:mr-2 flex-shrink-0" />
+                <span className="whitespace-nowrap truncate">
+                  <span className="hidden sm:inline">Virtual </span>Try-On
+                </span>
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
-
-      {/* Virtual Try-On Modal */}
-      <VirtualTryOn
-        product={product}
-        variants={product.variants}
-        selectedVariantIndex={product.variants.findIndex(v => v.hex === selectedVariant?.hex) || 0}
-        productName={product.name}
-        isOpen={isTryOnOpen}
-        onClose={() => setIsTryOnOpen(false)}
-      />
     </Link>
   );
 }

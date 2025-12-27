@@ -1,6 +1,8 @@
+import type { Metadata } from 'next';
 import Header from '@/components/Landing/header.tsx';
 import HeroSection from '@/components/Landing/hero-section.tsx';
-import IconicSection from '@/components/Landing/iconic-section.tsx';
+// import IconicSection from '@/components/Landing/iconic-section.tsx';
+import ShopByShapes from '@/components/Landing/shop-by-shapes.tsx';
 import GiftCategoriesSection from '@/components/Landing/gift-categories-section.tsx';
 import GiftBannerSection from '@/components/Landing/gift-banner-section.tsx';
 import GiftForLovedOnesBanner from '@/components/Landing/gift-for-loved-ones-banner.tsx';
@@ -12,9 +14,27 @@ import InstagramFeedSection from '@/components/Landing/instagram-feed-section.ts
 import Footer from '@/components/Landing/footer.tsx';
 import { prisma } from '@/lib/prisma';
 import { mapPrismaProductToProduct } from '@/lib/prisma-product-mapper';
+import { getProductsByGlassShape } from '@/app/actions/getProductsByGlassShape';
 
 // Revalidate this page every 60 seconds to show updated products
 export const revalidate = 60;
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: 'FocusRobin - Premium Sunglasses & Eyewear | Lithuania',
+    description: "Elevate your style with FocusRobin's minimalist eyewear. Premium polarized sunglasses designed in Lithuania. Fast delivery to Vilnius, Kaunas, Klaipėda and across the EU/Schengen.",
+    metadataBase: new URL('https://focusrobin.com'),
+    alternates: {
+      canonical: 'https://focusrobin.com',
+    },
+    openGraph: {
+      description: "Elevate your style with FocusRobin's minimalist eyewear. Premium polarized sunglasses designed in Lithuania. Fast delivery to Vilnius, Kaunas, Klaipėda and across the EU/Schengen.",
+    },
+    twitter: {
+      description: "Elevate your style with FocusRobin's minimalist eyewear. Premium polarized sunglasses designed in Lithuania. Fast delivery to Vilnius, Kaunas, Klaipėda and across the EU/Schengen.",
+    },
+  };
+}
 
 export default async function Home() {
   // Fetch products marked as unique designs (formerly best sellers)
@@ -222,18 +242,26 @@ export default async function Home() {
   }
 
   // Fetch active iconic image from database
-  let iconicImage: any = null;
+  // let iconicImage: any = null;
+  // try {
+  //   // @ts-ignore
+  //   if (prisma.iconicImage && typeof prisma.iconicImage.findFirst === 'function') {
+  //     // @ts-ignore
+  //     iconicImage = await prisma.iconicImage.findFirst({
+  //       where: { isActive: true },
+  //       orderBy: { updatedAt: 'desc' },
+  //     });
+  //   }
+  // } catch (error) {
+  //   console.error('Error fetching iconic image:', error);
+  // }
+
+  // Fetch products by glass shape for Shop By Shapes section
+  let shapesData: any[] = [];
   try {
-    // @ts-ignore
-    if (prisma.iconicImage && typeof prisma.iconicImage.findFirst === 'function') {
-      // @ts-ignore
-      iconicImage = await prisma.iconicImage.findFirst({
-        where: { isActive: true },
-        orderBy: { updatedAt: 'desc' },
-      });
-    }
+    shapesData = await getProductsByGlassShape();
   } catch (error) {
-    console.error('Error fetching iconic image:', error);
+    console.error('Error fetching products by glass shape:', error);
   }
 
   // Fetch active gift banner from database
@@ -266,10 +294,42 @@ export default async function Home() {
     console.error('Error fetching gift for loved ones banner:', error);
   }
 
+  // Structured data for Organization and WebSite
+  const organizationSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: 'FocusRobin',
+    url: 'https://focusrobin.com',
+    logo: 'https://focusrobin.com/Symbol Wide Primary light (Teal).svg',
+    description: 'Premium minimalist sunglasses and eyewear designed in Lithuania. Elevate your style, enhance your vision.',
+    address: {
+      '@type': 'PostalAddress',
+      addressCountry: 'LT',
+    },
+    sameAs: [],
+  };
+
+  const websiteSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'FocusRobin',
+    url: 'https://focusrobin.com',
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+      />
       <Header />
       <main className="flex-grow">
+        {/* Screen-reader-only H1 for SEO */}
+        <h1 className="sr-only">FocusRobin - Premium Eyewear & Sunglasses</h1>
         {heroImages.length > 0 && <HeroSection heroData={heroImages} />}
         <BestsellersCarousel products={products} />
         {categoryImages.length > 0 && <GiftCategoriesSection categoryImages={categoryImages} />}
@@ -277,12 +337,27 @@ export default async function Home() {
         {products3D.length > 0 && <Products3DSection products={products3D} />}
         {/* Gift for Loved Ones Banner - Always show below best sellers */}
         <GiftForLovedOnesBanner bannerData={giftForLovedOnesBanner} />
+        {/* Shop By Shapes Section */}
+        {shapesData.length > 0 && <ShopByShapes shapes={shapesData} />}
         {giftBanner && <GiftBannerSection giftBanner={giftBanner} />}
         <div className="bg-background">
           <ValuePropsSection />
           <LensFeatureSection />
-          {iconicImage && <IconicSection iconicImage={iconicImage} />}
+          {/* {iconicImage && <IconicSection iconicImage={iconicImage} />} */}
           {instagramImages.length > 0 && <InstagramFeedSection instagramImages={instagramImages} />}
+          
+          {/* Lithuanian SEO Content Block */}
+          <section lang="lt" className="container mx-auto px-4 py-12 max-w-4xl">
+            <div className="prose prose-sm max-w-none text-muted-foreground">
+              <p>
+                FocusRobin siūlo kokybiškus akiniai nuo saulės, kurie yra suprojektuoti Lietuvoje. 
+                Mūsų kolekcijoje rasite polarizuoti saulės akiniai su UV apsauga, tinkamus tiek vyrams, 
+                tiek moterims. Pristatome greitai į Vilnių, Kauną, Klaipėdą ir visą EU/Schengen zoną. 
+                Saulės akiniai internetu – patogus būdas rasti stilingus akiniai, kurie puikiai tinka 
+                jūsų stiliui. Visi mūsų akiniai yra su UV apsauga ir atitinka aukščiausius kokybės standartus.
+              </p>
+            </div>
+          </section>
         </div>
       </main>
       <Footer />

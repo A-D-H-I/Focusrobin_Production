@@ -125,7 +125,7 @@ export default async function AdminProductDetailPage({ params }: { params: Promi
               </Button>
             </Link>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
+              <h1 className="text-brand-h1 font-headline text-foreground">{product.name}</h1>
               <p className="text-muted-foreground">Product Details</p>
             </div>
           </div>
@@ -157,7 +157,7 @@ export default async function AdminProductDetailPage({ params }: { params: Promi
                 {/* Gallery Images */}
                 {galleryAssets.length > 0 && (
                   <div>
-                    <h4 className="font-semibold mb-3">Gallery Images ({galleryAssets.length})</h4>
+                    <h4 className="text-brand-h4 font-headline mb-3">Gallery Images ({galleryAssets.length})</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {galleryAssets.map((asset: any, index: number) => {
                         const normalizedUrl = normalizeImageUrl(asset.url);
@@ -190,7 +190,7 @@ export default async function AdminProductDetailPage({ params }: { params: Promi
                 {/* Hover Images */}
                 {hoverAssets.length > 0 && (
                   <div>
-                    <h4 className="font-semibold mb-3">Hover Images ({hoverAssets.length})</h4>
+                    <h4 className="text-brand-h4 font-headline mb-3">Hover Images ({hoverAssets.length})</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {hoverAssets.map((asset: any) => {
                         const normalizedUrl = normalizeImageUrl(asset.url);
@@ -220,7 +220,7 @@ export default async function AdminProductDetailPage({ params }: { params: Promi
                 {/* No Background Images */}
                 {noBgAssets.length > 0 && (
                   <div>
-                    <h4 className="font-semibold mb-3">Transparent Background ({noBgAssets.length})</h4>
+                    <h4 className="text-brand-h4 font-headline mb-3">Transparent Background ({noBgAssets.length})</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {noBgAssets.map((asset: any) => {
                         const normalizedUrl = normalizeImageUrl(asset.url);
@@ -250,7 +250,7 @@ export default async function AdminProductDetailPage({ params }: { params: Promi
                 {/* Try-On Images */}
                 {tryOnAssets.length > 0 && (
                   <div>
-                    <h4 className="font-semibold mb-3">Try-On Images ({tryOnAssets.length})</h4>
+                    <h4 className="text-brand-h4 font-headline mb-3">Try-On Images ({tryOnAssets.length})</h4>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {tryOnAssets.map((asset: any) => {
                         const normalizedUrl = normalizeImageUrl(asset.url);
@@ -280,7 +280,7 @@ export default async function AdminProductDetailPage({ params }: { params: Promi
                 {/* 3D Models */}
                 {glbAssets.length > 0 && (
                   <div>
-                    <h4 className="font-semibold mb-3">3D Models (.glb) ({glbAssets.length})</h4>
+                    <h4 className="text-brand-h4 font-headline mb-3">3D Models (.glb) ({glbAssets.length})</h4>
                     <div className="space-y-2">
                       {glbAssets.map((asset: any) => (
                         <div key={asset.id} className="p-3 bg-muted rounded-lg">
@@ -304,7 +304,7 @@ export default async function AdminProductDetailPage({ params }: { params: Promi
                     <div key={variant.id} className="border rounded-lg p-4">
                       <div className="flex items-start justify-between mb-3">
                         <div>
-                          <h4 className="font-semibold">{variant.name}</h4>
+                          <h4 className="text-brand-h4 font-headline">{variant.name}</h4>
                           <p className="text-sm text-muted-foreground">SKU: {variant.sku}</p>
                         </div>
                         <div className="flex items-center gap-2">

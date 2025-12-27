@@ -437,75 +437,52 @@ export default function CheckoutPage() {
   // Wallet balance and amounts are stored/processed in EUR
   const isNonEurCurrency = currency !== 'EUR';
 
-  // Check if user is logged in
-  if (!session?.user) {
-    return (
-      <div className="flex flex-col min-h-screen bg-brand-white">
-        <Header />
-        <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
-          <div className="container mx-auto px-4 sm:px-6">
-            <div className="max-w-2xl mx-auto text-center py-16">
-              <h1 className="text-3xl sm:text-4xl font-headline font-bold text-brand-blue mb-4">
-                Sign In Required
-              </h1>
-              <p className="text-muted-foreground mb-8">
-                Please sign in to proceed with checkout.
-              </p>
-              <Link href="/api/auth/signin" prefetch={true}>
-                <Button size="lg" className="bg-brand-teal text-white hover:bg-brand-teal/90">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (cartItems.length === 0) {
-    return (
-      <div className="flex flex-col min-h-screen bg-brand-white">
-        <Header />
-        <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
-          <div className="container mx-auto px-4 sm:px-6">
-            <div className="max-w-2xl mx-auto text-center py-16">
-              <h1 className="text-3xl sm:text-4xl font-headline font-bold text-brand-blue mb-4">
-                Your Cart is Empty
-              </h1>
-              <p className="text-muted-foreground mb-8">
-                Add items to your cart to proceed to checkout.
-              </p>
-              <Link href="/shop" prefetch={true}>
-                <Button size="lg" className="bg-brand-teal text-white hover:bg-brand-teal/90">
-                  Continue Shopping
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col min-h-screen bg-brand-white">
       <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
-            <h1 className="text-3xl sm:text-4xl font-headline font-bold text-brand-blue mb-8">
+            <h1 className="text-brand-h1 font-headline text-brand-blue mb-8">
               Checkout
             </h1>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Check if user is logged in */}
+            {!session?.user ? (
+              <div className="max-w-2xl mx-auto text-center py-16">
+                <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
+                  Sign In Required
+                </h2>
+                <p className="text-muted-foreground mb-8">
+                  Please sign in to proceed with checkout.
+                </p>
+                <Link href="/api/auth/signin" prefetch={true}>
+                  <Button size="lg" className="bg-brand-teal text-white hover:bg-brand-teal/90">
+                    Sign In
+                  </Button>
+                </Link>
+              </div>
+            ) : cartItems.length === 0 ? (
+              <div className="max-w-2xl mx-auto text-center py-16">
+                <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
+                  Your Cart is Empty
+                </h2>
+                <p className="text-muted-foreground mb-8">
+                  Add items to your cart to proceed to checkout.
+                </p>
+                <Link href="/shop" prefetch={true}>
+                  <Button size="lg" className="bg-brand-teal text-white hover:bg-brand-teal/90">
+                    Continue Shopping
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left Column - Checkout Form */}
               <div className="lg:col-span-2 space-y-6">
                 {/* Shipping Address */}
                 <div>
-                  <h2 className="text-xl font-headline font-semibold text-brand-blue mb-4">
+                  <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
                     Shipping Address
                   </h2>
                   
@@ -670,7 +647,7 @@ export default function CheckoutPage() {
 
                 {/* Payment Section */}
                 <div>
-                  <h2 className="text-xl font-headline font-semibold text-brand-blue mb-4">
+                  <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
                     Payment
                   </h2>
                   <Card className="border border-gray-200">
@@ -678,7 +655,7 @@ export default function CheckoutPage() {
                       <div className="flex items-center gap-3 mb-4">
                         <Lock className="h-6 w-6 text-brand-teal" />
                         <div>
-                          <h3 className="font-headline font-semibold text-brand-blue">
+                          <h3 className="text-brand-h3 font-headline text-brand-blue">
                             Secure Payment
                           </h3>
                           <p className="text-sm text-muted-foreground">
@@ -702,7 +679,7 @@ export default function CheckoutPage() {
                       {/* Right Column - Order Summary */}
                       <div className="lg:col-span-1">
                         <div className="bg-white border border-gray-200 rounded-lg p-6 sticky top-24">
-                          <h2 className="text-xl font-headline font-bold text-brand-blue mb-6">
+                          <h2 className="text-brand-h2 font-headline text-brand-blue mb-6">
                             Order Summary
                           </h2>
 
@@ -951,6 +928,7 @@ export default function CheckoutPage() {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       </main>
