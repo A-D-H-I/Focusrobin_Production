@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Minus, Plus, Sun, ParkingCircle, Shield, Droplet, Star, Heart, Camera } from "lucide-react";
+import { Minus, Plus, Sun, ParkingCircle, Shield, Droplet, Star, Heart, Camera, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Product, ProductColorVariant } from "@/lib/productData";
@@ -26,18 +26,62 @@ const lensFeatures = [
   { icon: Droplet, text: "Superhydrophobic" },
 ];
 
+
 export default function ProductPurchaseForm({ product, onVariantChange, selectedVariant: externalSelectedVariant }: ProductPurchaseFormProps) {
   const router = useRouter();
   const [selectedColor, setSelectedColor] = useState(product.variants[0]?.hex || '#000000');
   const [internalSelectedVariant, setInternalSelectedVariant] = useState(product.variants[0]);
   const selectedVariant = externalSelectedVariant || internalSelectedVariant;
   const [quantity, setQuantity] = useState(1);
+  const [prescriptionData, setPrescriptionData] = useState<any>(null);
   
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
   const { formatPrice, parseEurPrice } = usePrice();
   const [isWishlisted, setIsWishlisted] = useState(false);
+
+  // Load prescription data from sessionStorage
+  useEffect(() => {
+    const loadPrescriptionData = () => {
+      if (typeof window !== 'undefined') {
+        const stored = sessionStorage.getItem(`prescription_${product.id}`);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            setPrescriptionData(parsed);
+          } catch (error) {
+            console.error('Error parsing prescription data:', error);
+            setPrescriptionData(null);
+          }
+        } else {
+          setPrescriptionData(null);
+        }
+      }
+    };
+
+    // Load on mount
+    loadPrescriptionData();
+
+    // Listen for custom event when prescription is saved
+    const handlePrescriptionSaved = () => {
+      loadPrescriptionData();
+    };
+
+    window.addEventListener('prescription-saved', handlePrescriptionSaved);
+    
+    // Also check on focus (when user returns to tab)
+    const handleFocus = () => {
+      loadPrescriptionData();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('prescription-saved', handlePrescriptionSaved);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [product.id]);
   
   // Check wishlist status when variant changes
   useEffect(() => {
@@ -182,6 +226,13 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
         </div>
       </div>
 
+      <div className="rounded-lg border bg-muted/50 p-4">
+        <div className="flex items-center justify-center gap-3">
+          <CheckCircle2 className="h-6 w-6 text-primary" />
+          <span className="text-base font-bold text-foreground">Three Years Warranty</span>
+        </div>
+      </div>
+
       <div className="space-y-3">
           <div className="flex items-center gap-4">
               <h3 className="text-brand-h3 font-headline">Quantity:</h3>
@@ -273,6 +324,156 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
         >
           <span className="whitespace-nowrap truncate">{selectedVariant?.stock === 0 ? "Out of Stock" : "Add to Cart"}</span>
         </Button>
+        
+        {/* Prescription Lens Section */}
+        {prescriptionData ? (
+          <div className="space-y-3">
+            <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <h3 className="text-brand-h3 font-headline">Prescription Added</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    sessionStorage.removeItem(`prescription_${product.id}`);
+                    setPrescriptionData(null);
+                  }}
+                  className="h-8 text-xs"
+                >
+                  Remove
+                </Button>
+              </div>
+              
+              {/* Prescription Details */}
+              <div className="space-y-3 text-sm">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <p className="font-medium text-muted-foreground mb-1">OD (Right)</p>
+                    <p className="text-foreground">
+                      SPH: {prescriptionData.od.sph} | CYL: {prescriptionData.od.cyl} | AXIS: {prescriptionData.od.axis}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-muted-foreground mb-1">OS (Left)</p>
+                    <p className="text-foreground">
+                      SPH: {prescriptionData.os.sph} | CYL: {prescriptionData.os.cyl} | AXIS: {prescriptionData.os.axis}
+                    </p>
+                  </div>
+                </div>
+                
+                <div>
+                  <p className="font-medium text-muted-foreground mb-1">PD (Pupillary Distance)</p>
+                  <p className="text-foreground">{prescriptionData.pd} mm</p>
+                </div>
+                
+                {/* Rx Config Details */}
+                {prescriptionData.rxConfig && (
+                  <div className="pt-2 border-t space-y-1">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Lens Type:</span>
+                      <span className="font-medium">
+                        {prescriptionData.rxConfig.lensType === 'CLEAR' 
+                          ? 'Clear' 
+                          : prescriptionData.rxConfig.lensType === 'TINTED'
+                          ? 'Tinted'
+                          : prescriptionData.rxConfig.lensType === 'PHOTOCHROMIC_SOLIS'
+                          ? 'Photochromic (Solis II)'
+                          : 'Polarized (NuPolar)'}
+                      </span>
+                    </div>
+                    {prescriptionData.rxConfig.lensIndex && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Lens Index:</span>
+                        <span className="font-medium">{prescriptionData.rxConfig.lensIndex}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Coating:</span>
+                      <span className="font-medium">
+                        {prescriptionData.rxConfig.coating === 'UC' ? 'Uncoated (UC)' :
+                         prescriptionData.rxConfig.coating === 'SERICUM_UV' ? 'UV Protection' :
+                         'Blue PRO'}
+                      </span>
+                    </div>
+                    {prescriptionData.rxConfig.lensType === 'TINTED' && prescriptionData.rxConfig.tintType && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tint:</span>
+                        <span className="font-medium">
+                          {prescriptionData.rxConfig.tintType === 'FULL_TINT_CATALOG' ? 'Full Tint (Catalog)' : 'Gradient Tint'}
+                          {prescriptionData.rxConfig.tintColor && ` - ${prescriptionData.rxConfig.tintColor}`}
+                          {prescriptionData.rxConfig.tintType === 'FULL_TINT_CATALOG' && prescriptionData.rxConfig.tintShadePercent && ` ${prescriptionData.rxConfig.tintShadePercent}%`}
+                          {prescriptionData.rxConfig.tintType === 'GRADIENT' && prescriptionData.rxConfig.tintRecipe && ` (${prescriptionData.rxConfig.tintRecipe})`}
+                        </span>
+                      </div>
+                    )}
+                    {prescriptionData.rxConfig.photochromicColor && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Photochromic Color:</span>
+                        <span className="font-medium">{prescriptionData.rxConfig.photochromicColor}</span>
+                      </div>
+                    )}
+                    {prescriptionData.rxConfig.polarizedColor && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Polarized Color:</span>
+                        <span className="font-medium">{prescriptionData.rxConfig.polarizedColor}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Total Price with Rx */}
+                {prescriptionData.rxPriceBreakdown && (
+                  <div className="pt-2 border-t">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium">Total with Rx:</span>
+                      <span className="text-lg font-bold text-primary">
+                        {formatPrice(prescriptionData.rxPriceBreakdown.totalNet)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Frame + Rx lenses ({formatPrice(prescriptionData.rxPriceBreakdown.rxRetailNet)} add-on)
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            {/* Action Buttons */}
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-9 sm:h-10 md:h-12 lg:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg w-full px-2 sm:px-3 md:px-4 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3 font-semibold"
+              onClick={() => {
+                router.push(`/products/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
+              }}
+            >
+              Edit Prescription
+            </Button>
+            
+            <Button
+              size="lg"
+              className="h-9 sm:h-10 md:h-12 lg:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg w-full px-2 sm:px-3 md:px-4 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3 font-semibold"
+              onClick={() => {
+                // Navigate to prescription page starting at lens selection step (step 3)
+                router.push(`/products/${product.id}/prescription?product=${encodeURIComponent(product.id)}&step=3`);
+              }}
+            >
+              Change Lens Options
+            </Button>
+          </div>
+        ) : (
+          <Button
+            size="lg"
+            className="h-9 sm:h-10 md:h-12 lg:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg w-full px-2 sm:px-3 md:px-4 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3 font-semibold"
+            onClick={() => {
+              router.push(`/products/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
+            }}
+          >
+            <Plus className="mr-1 sm:mr-1.5 md:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 flex-shrink-0" />
+            <span className="whitespace-nowrap truncate">Add Prescription</span>
+          </Button>
+        )}
+        
         <Button 
           size="lg" 
           variant="outline" 
@@ -321,6 +522,11 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
           </span>
         </Button>
       </div>
+      
+      {/* Shipping Signal - Under primary CTA */}
+      <p className="text-xs sm:text-sm text-muted-foreground break-words max-w-full">
+        Designed in Lithuania. Fast delivery of sunglasses across Lithuania and the EU/Schengen.
+      </p>
     </div>
   );
 }

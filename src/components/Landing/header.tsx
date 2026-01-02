@@ -87,9 +87,18 @@ export default function Header() {
   // Load navbar settings
   useEffect(() => {
     const loadSettings = async () => {
-      const result = await getNavbarSettings();
-      if (result.success && result.settings) {
-        setNavbarSettings(result.settings);
+      try {
+        const result = await getNavbarSettings();
+        if (result.success && result.settings) {
+          setNavbarSettings(result.settings);
+        }
+      } catch (error) {
+        // Silently fail and use default settings
+        console.error('Failed to load navbar settings:', error);
+        setNavbarSettings({
+          iconColorNotScrolled: 'white',
+          logoColorNotScrolled: 'white',
+        });
       }
     };
     loadSettings();
@@ -246,7 +255,7 @@ export default function Header() {
               ? "h-16" 
               : !isHomePage 
                 ? "h-20 sm:h-20"
-                : (isScrolled ? "h-16" : "h-24")
+                : (isScrolled ? "h-20" : "h-24")
           )}
         >
           {/* Left Section - Logo */}
@@ -624,34 +633,34 @@ export default function Header() {
           {/* Mobile/Tablet Layout (below xl) */}
           <div
             className={cn(
-              "xl:hidden flex items-center justify-between w-full transition-all duration-300",
+              "xl:hidden flex items-center justify-between w-full transition-all duration-300 px-2 sm:px-4",
               isSidebarOpen 
-                ? "h-16" 
+                ? "h-14 sm:h-16" 
                 : !isHomePage 
-                  ? "h-20 sm:h-20"
-                  : (isScrolled ? "h-16" : "h-24")
+                  ? "h-16 sm:h-20"
+                  : (isScrolled ? "h-16 sm:h-20" : "h-20 sm:h-24")
             )}
           >
             {/* Mobile Logo */}
-            <div className="flex-shrink-0 min-w-[120px] sm:min-w-[140px]">
+            <div className="flex-shrink-0 min-w-[100px] sm:min-w-[120px] md:min-w-[140px]">
               <Logo 
                 className={cn(
-                  "transition-all duration-300",
-                  isSidebarOpen && "max-h-8"
+                  "transition-all duration-300 max-h-7 sm:max-h-8",
+                  isSidebarOpen && "max-h-7"
                 )}
                 logoColor={isSidebarOpen ? undefined : (!isScrolled && navbarSettings ? navbarSettings.logoColorNotScrolled : undefined)}
               />
             </div>
 
             {/* Mobile Right Icons */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
             {/* Right Icons for Mobile/Tablet - Account, Cart, Wishlist */}
             <Link href="/wishlist" prefetch={true} className="xl:hidden">
               <Button 
                 variant="ghost" 
                 size="icon"
                 className={cn(
-                  "h-8 w-8 transition-colors duration-300 relative",
+                  "h-7 w-7 sm:h-8 sm:w-8 transition-colors duration-300 relative",
                   isSidebarOpen
                     ? 'text-brand-blue hover:bg-accent hover:text-brand-blue'
                     : isScrolled 
@@ -669,9 +678,9 @@ export default function Header() {
                   : undefined)
                 }
               >
-                <Heart className="h-5 w-5" />
+                <Heart className="h-4 w-4 sm:h-5 sm:w-5" />
                 {wishlistItems.length > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-[#F56278] rounded-full border-2 border-white"></span>
+                  <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 h-3 w-3 sm:h-4 sm:w-4 bg-[#F56278] rounded-full border border-white sm:border-2"></span>
                 )}
                 <span className="sr-only">Wishlist</span>
               </Button>
@@ -682,7 +691,7 @@ export default function Header() {
                 variant="ghost" 
                 size="icon"
                 className={cn(
-                  "h-8 w-8 transition-colors duration-300 relative",
+                  "h-7 w-7 sm:h-8 sm:w-8 transition-colors duration-300 relative",
                   isSidebarOpen
                     ? 'text-brand-blue hover:bg-accent hover:text-brand-blue'
                     : isScrolled 
@@ -700,9 +709,9 @@ export default function Header() {
                   : undefined)
                 }
               >
-                <ShoppingCart className="h-5 w-5" />
+                <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5" />
                 {getCartItemCount() > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 bg-[#F56278] rounded-full border-2 border-white"></span>
+                  <span className="absolute -top-0.5 -right-0.5 sm:-top-1 sm:-right-1 h-3 w-3 sm:h-4 sm:w-4 bg-[#F56278] rounded-full border border-white sm:border-2"></span>
                 )}
                 <span className="sr-only">Cart</span>
               </Button>
@@ -713,7 +722,7 @@ export default function Header() {
                 variant="ghost" 
                 size="icon"
                 className={cn(
-                  "h-8 w-8 transition-colors duration-300",
+                  "h-7 w-7 sm:h-8 sm:w-8 transition-colors duration-300",
                   isSidebarOpen
                     ? 'text-brand-blue hover:bg-accent hover:text-brand-blue'
                     : isScrolled 
@@ -731,7 +740,7 @@ export default function Header() {
                   : undefined)
                 }
               >
-                <User className="h-5 w-5" />
+                <User className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="sr-only">{session?.user ? "Account" : "Login"}</span>
               </Button>
             </Link>
@@ -755,7 +764,7 @@ export default function Header() {
                   }
                 }}
                 className={cn(
-                  "transition-colors duration-300 rounded-full p-2",
+                  "transition-colors duration-300 rounded-full p-1.5 sm:p-2 h-7 w-7 sm:h-8 sm:w-8",
                   isSidebarOpen
                     ? 'text-brand-blue hover:bg-gray-100 hover:text-brand-blue bg-transparent'
                     : !isScrolled 
@@ -773,7 +782,7 @@ export default function Header() {
                   : undefined)
                 }
               >
-                <Menu className="h-6 w-6" />
+                <Menu className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6" />
                 <span className="sr-only">{isSidebarOpen ? "Close menu" : "Open menu"}</span>
               </Button>
               <SheetContent 

@@ -18,7 +18,7 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: 'https://focusrobin.com/sitemap.xml',
+    sitemap: 'https://focusrobin.lt/sitemap.xml',
   };
 }
 

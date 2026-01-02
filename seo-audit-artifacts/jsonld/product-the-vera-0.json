@@ -1,0 +1,27 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "Vera",
+  "description": "Vera - Premium sunglasses by FocusRobin",
+  "image": [
+    "https://focusrobin.com/Vera - Tortoise/Group 5.png",
+    "https://focusrobin.com/Vera - Tortoise/Group 204.png",
+    "https://focusrobin.com/Vera - Tortoise/Group 4.png",
+    "https://focusrobin.com/Vera - Tortoise/SONIC-C C2 XJ.png"
+  ],
+  "brand": {
+    "@type": "Brand",
+    "name": "FocusRobin"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "https://focusrobin.com/products/the-vera",
+    "priceCurrency": "EUR",
+    "price": "47.50",
+    "availability": "https://schema.org/InStock",
+    "seller": {
+      "@type": "Organization",
+      "name": "FocusRobin"
+    }
+  }
+}

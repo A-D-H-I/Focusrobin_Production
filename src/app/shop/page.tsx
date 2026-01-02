@@ -7,6 +7,7 @@ import ShopPageClient from "./ShopPageClient";
 import { Gender } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { unstable_noStore as noStore } from 'next/cache';
+import { normalizeImageUrl } from "@/lib/normalize-image-url";
 
 // Force dynamic rendering to ensure filters work properly
 export const dynamic = 'force-dynamic';
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
   title: 'Shop Sunglasses',
   description: 'Browse our collection of premium polarized sunglasses. Fast shipping to Lithuania and EU/Schengen. Find your perfect style with UV400 protection.',
   alternates: {
-    canonical: 'https://focusrobin.com/shop',
+    canonical: 'https://focusrobin.lt/shop',
   },
 };
 
@@ -293,8 +294,56 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     pageTitle = "Filtered Products";
   }
 
+  // Build JSON-LD structured data for CollectionPage with ItemList
+  const baseUrl = 'https://focusrobin.lt';
+  const itemListElement = products.map((product, index) => {
+    const prismaProduct = prismaProducts[index];
+    const productSlug = prismaProduct?.slug || '';
+    const productUrl = `${baseUrl}/products/${productSlug}`;
+    
+    // Get product image (use first variant thumbnail)
+    let productImage: string | undefined;
+    if (product.variants && product.variants.length > 0 && product.variants[0].thumbnail) {
+      const normalized = normalizeImageUrl(product.variants[0].thumbnail);
+      productImage = normalized.startsWith('http') 
+        ? normalized 
+        : `${baseUrl}${normalized.startsWith('/') ? normalized : `/${normalized}`}`;
+    }
+
+    const listItem: any = {
+      '@type': 'ListItem',
+      position: index + 1,
+      url: productUrl,
+      name: product.name,
+    };
+
+    // Only include image if available
+    if (productImage) {
+      listItem.image = productImage;
+    }
+
+    return listItem;
+  });
+
+  const collectionPageSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: pageTitle,
+    url: `${baseUrl}/shop`,
+    description: 'Browse our collection of premium polarized sunglasses. Fast shipping to Lithuania and EU/Schengen.',
+    mainEntity: {
+      '@type': 'ItemList',
+      numberOfItems: products.length,
+      itemListElement: itemListElement,
+    },
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageSchema) }}
+      />
       <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         <ShopPageClient products={products} title={pageTitle} />

@@ -18,13 +18,13 @@ const chillax = localFont({
 
 // Helper function to get OG image URL with fallback
 function getOGImageUrl(): string {
-  // TODO: Add /og.png (1200x630) for better social sharing
-  // For now, fallback to logo
-  return '/Symbol Wide Primary light (Teal).svg';
+  // Use raster PNG (1200x630) for optimal social sharing
+  // TODO: Create /public/og.png (1200x630) - currently falls back to placeholder
+  return '/og.png';
 }
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://focusrobin.com'),
+  metadataBase: new URL('https://focusrobin.lt'),
   title: {
     default: 'FocusRobin - Premium Sunglasses & Eyewear | Lithuania',
     template: '%s | FocusRobin Lithuania',
@@ -67,13 +67,13 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_IE',
-    url: 'https://focusrobin.com',
+    url: 'https://focusrobin.lt',
     siteName: 'FocusRobin',
     title: 'FocusRobin - Premium Sunglasses & Eyewear | Lithuania',
     description: 'Elevate your style with FocusRobin\'s minimalist eyewear. Premium polarized sunglasses designed in Lithuania. Fast shipping to Vilnius, Kaunas, Klaipėda, and EU/Schengen.',
     images: [
       {
-        url: getOGImageUrl(),
+        url: 'https://focusrobin.lt/og.png',
         width: 1200,
         height: 630,
         alt: 'FocusRobin - Premium Sunglasses & Eyewear',
@@ -84,7 +84,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'FocusRobin - Premium Sunglasses & Eyewear | Lithuania',
     description: 'Elevate your style with FocusRobin\'s minimalist eyewear. Premium polarized sunglasses designed in Lithuania.',
-    images: [getOGImageUrl()],
+    images: ['https://focusrobin.lt/og.png'],
   },
   robots: {
     index: true,
@@ -101,7 +101,7 @@ export const metadata: Metadata = {
     'google-site-verification': 'verification_code_placeholder',
   },
   alternates: {
-    canonical: 'https://focusrobin.com',
+    canonical: 'https://focusrobin.lt',
   },
   icons: {
     icon: [

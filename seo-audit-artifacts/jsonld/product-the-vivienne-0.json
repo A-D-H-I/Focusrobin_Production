@@ -1,0 +1,31 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Product",
+  "name": "Vivienne",
+  "description": "Vivienne - Premium sunglasses by FocusRobin",
+  "image": [
+    "https://focusrobin.com/Vivienne - Midnight Black/Group 1.png",
+    "https://focusrobin.com/Vivienne - Midnight Black/Group 2.png",
+    "https://focusrobin.com/Vivienne - Midnight Black/ECO.06 C1 XJ.png",
+    "https://focusrobin.com/Vivienne - Midnight Black/Group 205.png",
+    "https://focusrobin.com/Vivienne - Dark Brown/Group 96.png",
+    "https://focusrobin.com/Vivienne - Dark Brown/Group 3.png",
+    "https://focusrobin.com/Vivienne - Dark Brown/ECO.06 C4 XJ.png",
+    "https://focusrobin.com/Vivienne - Dark Brown/Group 170.png"
+  ],
+  "brand": {
+    "@type": "Brand",
+    "name": "FocusRobin"
+  },
+  "offers": {
+    "@type": "Offer",
+    "url": "https://focusrobin.com/products/the-vivienne",
+    "priceCurrency": "EUR",
+    "price": "47.50",
+    "availability": "https://schema.org/InStock",
+    "seller": {
+      "@type": "Organization",
+      "name": "FocusRobin"
+    }
+  }
+}

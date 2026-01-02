@@ -71,7 +71,7 @@ export default async function UserReviews({ userId }: UserReviewsProps) {
                   </div>
                   {review.Product ? (
                     <Link
-                      href={`/products/${review.Product.slug}`}
+                      href={`/shop/${review.Product.slug}`}
                       className="text-sm text-brand-blue hover:underline"
                     >
                       Product: {review.Product.name}

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   title: 'Returns and Refunds',
   description: 'Learn about FocusRobin\'s return policy. 14-day return window for unused items in original packaging. Fast refunds for customers in Lithuania and EU.',
   alternates: {
-    canonical: 'https://focusrobin.com/returns',
+    canonical: 'https://focusrobin.lt/returns',
   },
 };
 
@@ -20,13 +20,13 @@ export default function ReturnsPage() {
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: 'https://focusrobin.com',
+        item: 'https://focusrobin.lt',
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'Returns',
-        item: 'https://focusrobin.com/returns',
+        item: 'https://focusrobin.lt/returns',
       },
     ],
   };

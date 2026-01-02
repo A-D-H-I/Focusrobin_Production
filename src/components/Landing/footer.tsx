@@ -1,5 +1,5 @@
 import { Logo } from "@/components/Landing/logo";
-import { Instagram, RotateCcw, ShieldCheck, Lock, Camera, Truck } from "lucide-react";
+import { Instagram, RotateCcw, ShieldCheck, Lock, Truck } from "lucide-react";
 import Link from 'next/link';
 import { FaCcVisa, FaCcMastercard, FaCcAmex, FaPaypal, FaApplePay, FaGooglePay, FaFacebook } from 'react-icons/fa';
 import { SiKlarna, SiShopify } from 'react-icons/si';
@@ -27,7 +27,7 @@ export default function Footer() {
       {/* Features Banner */}
       <div className="bg-secondary border-b border-border py-4 sm:py-5 md:py-6">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6 lg:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-4">
             {/* 14 Day Return */}
             <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1">
               <div className="flex-shrink-0 mt-0.5 sm:mt-0">
@@ -67,18 +67,6 @@ export default function Footer() {
               </div>
             </div>
 
-            {/* Virtual Try-On */}
-            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1">
-              <div className="flex-shrink-0 mt-0.5 sm:mt-0">
-                <Camera className="h-5 w-5 sm:h-6 sm:w-6 text-brand-blue" />
-              </div>
-              <div className="min-w-0 flex-1 sm:flex-none">
-                <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight break-words">
-                  Virtual Try-On
-                </p>
-              </div>
-            </div>
-
             {/* Free Delivery */}
             <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1">
               <div className="flex-shrink-0 mt-0.5 sm:mt-0">
@@ -87,6 +75,9 @@ export default function Footer() {
               <div className="min-w-0 flex-1 sm:flex-none">
                 <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight break-words">
                   Free Delivery
+                </p>
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-tight break-words mt-0.5">
+                  Within 2 days in Lithuania
                 </p>
               </div>
             </div>
@@ -125,9 +116,10 @@ export default function Footer() {
           <div>
             <h4 className="font-bold font-headline mb-4">Shop</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="#" className="hover:text-primary transition-colors">Sunglasses</Link></li>
+              <li><Link href="/shop" className="hover:text-primary transition-colors">Sunglasses</Link></li>
+              <li><Link href="/shop/prescription-glasses" className="hover:text-primary transition-colors">Prescription Glasses</Link></li>
               <li><Link href="/shop?filter=new-arrivals" className="hover:text-primary transition-colors">New Arrivals</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Bestsellers</Link></li>
+              <li><Link href="/shop?filter=bestsellers" className="hover:text-primary transition-colors">Bestsellers</Link></li>
             </ul>
           </div>
 

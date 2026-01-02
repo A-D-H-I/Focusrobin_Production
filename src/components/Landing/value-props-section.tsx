@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 const valueProps = [
   {
     icon: Sparkles,
-    title: "Crystal Clarity",
-    description: "Our lenses provide unparalleled sharpness and color accuracy.",
+    title: "Fast Delivery",
+    description: "Fast delivery of sunglasses to Vilnius, Kaunas, Klaipėda—and across the EU/Schengen.",
   },
   {
     icon: Gem,

@@ -23,10 +23,10 @@ import { normalizeImageUrl } from "@/lib/normalize-image-url";
 function getOGImageUrl(productImage?: string): string {
   if (productImage) {
     const normalized = normalizeImageUrl(productImage);
-    return normalized.startsWith('http') ? normalized : `https://focusrobin.com${normalized}`;
+    return normalized.startsWith('http') ? normalized : `https://focusrobin.lt${normalized}`;
   }
   // TODO: Add /og.png (1200x630) for better social sharing
-  return 'https://focusrobin.com/Symbol Wide Primary light (Teal).svg';
+  return 'https://focusrobin.lt/Symbol Wide Primary light (Teal).svg';
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -69,7 +69,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: product.name,
     description,
     alternates: {
-      canonical: `https://focusrobin.com/products/${slug}`,
+      canonical: `https://focusrobin.lt/products/${slug}`,
     },
     openGraph: {
       type: 'website',
@@ -100,8 +100,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // Decode the slug in case it's URL-encoded (handles spaces and special characters)
   const decodedSlug = decodeURIComponent(slug);
   
-  // Fetch product by slug from database
-  const prismaProduct = (await prisma.product.findUnique({
+  // Fetch product by slug from database (primary lookup)
+  let prismaProduct = (await prisma.product.findUnique({
     where: { slug: decodedSlug },
     include: {
       ProductVariant: {
@@ -112,9 +112,24 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     },
   })) as any;
 
+  // Fallback: if not found by slug, try to find by ID (in case slug is missing in DB)
+  if (!prismaProduct) {
+    // Try to find by ID if the slug parameter looks like an ID
+    prismaProduct = (await prisma.product.findUnique({
+      where: { id: decodedSlug },
+      include: {
+        ProductVariant: {
+          include: {
+            ProductAsset: true,
+          },
+        },
+      },
+    })) as any;
+  }
+
   // Handle 404 if product not found
   if (!prismaProduct) {
-    console.error(`Product not found with slug: "${decodedSlug}" (original: "${params.slug}")`);
+    console.error(`Product not found with slug: "${decodedSlug}" (original: "${slug}")`);
     notFound();
   }
 
@@ -230,9 +245,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const allImages = productImages.length > 0 
     ? productImages.map(img => {
         const normalized = normalizeImageUrl(img);
-        return normalized.startsWith('http') ? normalized : `https://focusrobin.com${normalized}`;
+        return normalized.startsWith('http') ? normalized : `https://focusrobin.lt${normalized}`;
       })
-    : ['https://focusrobin.com/Symbol Wide Primary light (Teal).svg'];
+    : ['https://focusrobin.lt/Symbol Wide Primary light (Teal).svg'];
 
   // Calculate price - TODO: Use actual price from product data if available
   const basePrice = Number(product.price.replace(/[^\d.]/g, '')) || 0;
@@ -253,7 +268,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     ...(basePrice > 0 && {
       offers: {
         '@type': 'Offer',
-        url: `https://focusrobin.com/products/${slug}`,
+        url: `https://focusrobin.lt/products/${slug}`,
         priceCurrency,
         price: basePrice.toFixed(2),
         availability: product.variants.some(v => (v.stock ?? 0) > 0)
@@ -284,25 +299,25 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: 'https://focusrobin.com',
+        item: 'https://focusrobin.lt',
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'Shop',
-        item: 'https://focusrobin.com/shop',
+        item: 'https://focusrobin.lt/shop',
       },
       {
         '@type': 'ListItem',
         position: 3,
         name: product.name,
-        item: `https://focusrobin.com/products/${slug}`,
+        item: `https://focusrobin.lt/products/${slug}`,
       },
     ],
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="min-h-screen">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
@@ -312,7 +327,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <Header />
-      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
+      <main className="pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         <div className="container mx-auto px-4 py-8">
           <Breadcrumb className="mb-8">
             <BreadcrumbList>

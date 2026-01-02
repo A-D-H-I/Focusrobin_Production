@@ -26,7 +26,7 @@ interface PageSEOProps {
   type?: 'website' | 'article' | 'product';
 }
 
-const baseUrl = 'https://focusrobin.com';
+const baseUrl = 'https://focusrobin.lt';
 
 // English High-Intent Keywords
 const englishKeywords = [
@@ -95,6 +95,9 @@ export function generatePageMetadata({
   // Default OpenGraph image
   const ogImage = image || `${baseUrl}/Symbol Wide Primary light (Teal).svg`;
 
+  // Map 'product' to 'website' for OpenGraph (OpenGraph doesn't support 'product' type)
+  const ogType: 'website' | 'article' = type === 'product' ? 'website' : type;
+
   return {
     title: fullTitle,
     description: metaDescription,
@@ -108,7 +111,7 @@ export function generatePageMetadata({
       },
     },
     openGraph: {
-      type,
+      type: ogType,
       locale: 'en_IE',
       url: canonicalUrl,
       siteName: 'FocusRobin',

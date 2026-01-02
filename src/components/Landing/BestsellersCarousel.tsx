@@ -42,6 +42,9 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
       align: "center",
       containScroll: false,
       startIndex: midIndex,
+      skipSnaps: false,
+      dragFree: false,
+      duration: 25,
     },
     []
   );
@@ -178,12 +181,15 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
         <h2 className="text-brand-blue font-headline text-brand-h2 mb-2">
           Unique Designs
         </h2>
-        <p className="text-muted-foreground text-sm sm:text-base">
+        <p className="text-muted-foreground text-sm sm:text-base mb-2">
           Discover our exclusive collection of distinctive and one-of-a-kind eyewear designs.
+        </p>
+        <p className="text-muted-foreground text-sm sm:text-base">
+          Minimalist sunglasses designed in Lithuania for everyday comfort.
         </p>
       </div>
 
-      <div className="relative w-full max-w-[1800px] mx-auto overflow-visible px-4 sm:px-8 md:px-12 lg:px-16 xl:px-20">
+      <div className="relative w-full max-w-[1800px] mx-auto overflow-visible px-0 sm:px-8 md:px-12 lg:px-16 xl:px-20">
         <button
           onClick={scrollPrev}
           className="absolute left-1 sm:left-2 md:left-4 top-[45%] -translate-y-1/2 z-40 bg-white/95 hover:bg-white rounded-full p-2 md:p-3 shadow-xl transition-all border border-border/20 hover:scale-110"
@@ -252,7 +258,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
               return (
                 <div
                   key={product.id}
-                  className="flex-[0_0_85%] sm:flex-[0_0_75%] md:flex-[0_0_38%] lg:flex-[0_0_32%] min-w-0 relative px-1 sm:px-2 md:px-3 pb-8"
+                  className="flex-[0_0_100%] sm:flex-[0_0_75%] md:flex-[0_0_38%] lg:flex-[0_0_32%] min-w-0 relative px-4 sm:px-4 md:px-5 pb-8 flex-shrink-0"
                   style={{
                     transform: `translate3d(0, 0, 0) scale(${style.scale})`,
                     opacity: style.opacity,
@@ -265,17 +271,17 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                     overflow: "visible",
                   }}
                 >
-                  <div className="bg-transparent py-2 sm:py-4 relative overflow-visible" style={{ zIndex: style.zIndex }}>
+                  <div className="bg-transparent py-2 sm:py-4 relative flex flex-col items-center" style={{ zIndex: style.zIndex, overflow: 'visible' }}>
                     <motion.div
                       // This is the visual container that will float (y oscillation) for the active slide
-                      className="aspect-[4/3] sm:aspect-[3/2] md:aspect-[16/9] relative bg-transparent mb-1 sm:mb-2 min-h-[240px] sm:min-h-[300px] md:min-h-0 overflow-visible"
+                      className="aspect-[3/2] sm:aspect-[3/2] md:aspect-[16/9] relative bg-transparent mb-1 sm:mb-2 h-[200px] sm:h-[240px] md:h-auto w-full max-w-full"
                       animate={isActive ? { y: [0, -20, 0] } : { y: 0 }}
                       transition={isActive ? { duration: 6, repeat: Infinity, ease: "easeInOut" } : {}}
                       style={{ overflow: 'visible', position: 'relative' }}
                     >
                       {/* Inner card handles perspective & tilt, image wrapper handles parallax */}
                       <Link
-                        href={`/products/${product.slug || product.id}`}
+                        href={`/shop/${encodeURIComponent(product.slug || product.id)}`}
                         prefetch={true}
                         className="absolute inset-0 flex items-center justify-center overflow-visible"
                         style={{
@@ -313,11 +319,13 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                             ref={(el) => {
                               imgRefs.current[index] = el;
                             }}
-                            className="relative w-full h-full flex items-center justify-center overflow-visible"
+                            className="relative w-full h-full flex items-center justify-center"
                             style={{
                               willChange: "transform",
                               overflow: "visible",
-                              transform: isActive ? "scale(1.3)" : "scale(1.1)",
+                              transform: "scale(0.8)",
+                              width: "100%",
+                              height: "100%",
                             }}
                           >
                             {mainImage ? (
@@ -328,9 +336,15 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                                 fill
                                 priority={index === midIndex}
                                 className="object-contain drop-shadow-2xl transition-transform duration-200"
-                                sizes="(max-width: 640px) 90vw, (max-width: 768px) 80vw, 50vw"
+                                sizes="(max-width: 640px) 80vw, (max-width: 768px) 70vw, 40vw"
                                 unoptimized
-                                style={{ objectFit: 'contain', overflow: 'visible' }}
+                                style={{ 
+                                  objectFit: 'contain',
+                                  width: '100%',
+                                  height: '100%',
+                                  maxWidth: '100%',
+                                  maxHeight: '100%'
+                                }}
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-muted rounded-lg">
@@ -412,7 +426,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                               className="relative z-50 pointer-events-auto"
                             >
                               <Link 
-                                href={`/products/${encodeURIComponent(product.slug || product.id)}`} 
+                                href={`/shop/${encodeURIComponent(product.slug || product.id)}`} 
                                 prefetch={true} 
                                 className="relative z-50 pointer-events-auto"
                                 onClick={(e) => {

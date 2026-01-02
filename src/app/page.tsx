@@ -15,24 +15,29 @@ import Footer from '@/components/Landing/footer.tsx';
 import { prisma } from '@/lib/prisma';
 import { mapPrismaProductToProduct } from '@/lib/prisma-product-mapper';
 import { getProductsByGlassShape } from '@/app/actions/getProductsByGlassShape';
+import { createPageMetadata } from '@/lib/metadata';
 
 // Revalidate this page every 60 seconds to show updated products
 export const revalidate = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
+  const title = 'FocusRobin - Premium Sunglasses & Eyewear | Lithuania';
+  const description = "Elevate your style with FocusRobin's minimalist eyewear. Premium polarized sunglasses designed in Lithuania. Fast delivery to Vilnius, Kaunas, Klaipėda and across the EU/Schengen.";
+  
   return {
-    title: 'FocusRobin - Premium Sunglasses & Eyewear | Lithuania',
-    description: "Elevate your style with FocusRobin's minimalist eyewear. Premium polarized sunglasses designed in Lithuania. Fast delivery to Vilnius, Kaunas, Klaipėda and across the EU/Schengen.",
-    metadataBase: new URL('https://focusrobin.com'),
+    title,
+    description,
+    metadataBase: new URL('https://focusrobin.lt'),
     alternates: {
-      canonical: 'https://focusrobin.com',
+      canonical: 'https://focusrobin.lt',
     },
-    openGraph: {
-      description: "Elevate your style with FocusRobin's minimalist eyewear. Premium polarized sunglasses designed in Lithuania. Fast delivery to Vilnius, Kaunas, Klaipėda and across the EU/Schengen.",
-    },
-    twitter: {
-      description: "Elevate your style with FocusRobin's minimalist eyewear. Premium polarized sunglasses designed in Lithuania. Fast delivery to Vilnius, Kaunas, Klaipėda and across the EU/Schengen.",
-    },
+    ...createPageMetadata({
+      title,
+      description,
+      url: 'https://focusrobin.lt',
+      type: 'website',
+      twitterCard: 'summary_large_image',
+    }),
   };
 }
 
@@ -299,8 +304,8 @@ export default async function Home() {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     name: 'FocusRobin',
-    url: 'https://focusrobin.com',
-    logo: 'https://focusrobin.com/Symbol Wide Primary light (Teal).svg',
+    url: 'https://focusrobin.lt',
+    logo: 'https://focusrobin.lt/Symbol Wide Primary light (Teal).svg',
     description: 'Premium minimalist sunglasses and eyewear designed in Lithuania. Elevate your style, enhance your vision.',
     address: {
       '@type': 'PostalAddress',
@@ -313,7 +318,7 @@ export default async function Home() {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: 'FocusRobin',
-    url: 'https://focusrobin.com',
+    url: 'https://focusrobin.lt',
   };
 
   return (
@@ -331,6 +336,7 @@ export default async function Home() {
         {/* Screen-reader-only H1 for SEO */}
         <h1 className="sr-only">FocusRobin - Premium Eyewear & Sunglasses</h1>
         {heroImages.length > 0 && <HeroSection heroData={heroImages} />}
+        
         <BestsellersCarousel products={products} />
         {categoryImages.length > 0 && <GiftCategoriesSection categoryImages={categoryImages} />}
         {/* 3D Products Section - New Arrivals */}

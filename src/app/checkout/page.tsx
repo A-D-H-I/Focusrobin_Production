@@ -29,6 +29,37 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { getShippingProvider, getShippingProviderDisplayName } from "@/lib/shipping-provider";
 import { usePrice } from "@/hooks/usePrice";
 
+const SCHENGEN_COUNTRIES = [
+  'Austria',
+  'Belgium',
+  'Croatia',
+  'Czech Republic',
+  'Denmark',
+  'Estonia',
+  'Finland',
+  'France',
+  'Germany',
+  'Greece',
+  'Hungary',
+  'Iceland',
+  'Ireland',
+  'Italy',
+  'Latvia',
+  'Liechtenstein',
+  'Lithuania',
+  'Luxembourg',
+  'Malta',
+  'Netherlands',
+  'Norway',
+  'Poland',
+  'Portugal',
+  'Slovakia',
+  'Slovenia',
+  'Spain',
+  'Sweden',
+  'Switzerland',
+];
+
 export default function CheckoutPage() {
   const { data: session } = useSession();
   const { cartItems, getCartTotal } = useCart();
@@ -609,14 +640,22 @@ export default function CheckoutPage() {
                         <Label htmlFor="shippingCountry" className="text-brand-blue font-semibold mb-2 block">
                           Country <span className="text-red-500">*</span>
                         </Label>
-                        <Input
-                          id="shippingCountry"
+                        <Select
                           value={shippingForm.country}
-                          onChange={(e) => setShippingForm({ ...shippingForm, country: e.target.value })}
-                          className="bg-white border-gray-200 focus:border-brand-teal"
-                          placeholder="Ireland"
+                          onValueChange={(value) => setShippingForm({ ...shippingForm, country: value })}
                           required
-                        />
+                        >
+                          <SelectTrigger id="shippingCountry" className="bg-white border-gray-200 focus:border-brand-teal">
+                            <SelectValue placeholder="Select country" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[300px]">
+                            {SCHENGEN_COUNTRIES.map((country) => (
+                              <SelectItem key={country} value={country}>
+                                {country}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <p className="text-xs text-muted-foreground mt-1">
                           Delivery Provider: <span className="font-semibold text-brand-blue">{getShippingProviderDisplayName(shippingProvider)}</span>
                           {shippingProvider === 'Omniva' && ' (Latvia, Lithuania, Estonia)'}

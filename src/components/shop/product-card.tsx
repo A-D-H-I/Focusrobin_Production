@@ -141,10 +141,14 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
   // Extract brand name from product name or categories
   const brandName = product.categories?.[0] || "Focus Robin";
   
+  // Ensure we always use a URL-safe slug
+  const productSlug = product.slug || product.id;
+  const safeSlug = productSlug ? encodeURIComponent(productSlug) : '';
+  
   if (viewMode === "list") {
     return (
       <Link 
-        href={`/products/${encodeURIComponent(product.slug || product.id)}`} 
+        href={`/shop/${safeSlug}`} 
         prefetch={true} 
         className="block"
       >
@@ -282,7 +286,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
   
   return (
     <Link 
-      href={`/products/${encodeURIComponent(product.slug || product.id)}`} 
+      href={`/shop/${safeSlug}`} 
       prefetch={true} 
       className="block h-full"
     >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,11 @@ import { getAvailableGenderCounts, type GenderCount } from "@/app/actions/getAva
 import { getPriceRange, type PriceRange } from "@/app/actions/getPriceRange";
 import { getAvailableMaterials, type AvailableMaterial } from "@/app/actions/getAvailableMaterials";
 import { getAvailableFrameColors, type AvailableColor } from "@/app/actions/getAvailableColors";
+import { getPrescriptionGlassesGlassShapes } from "@/app/actions/getPrescriptionGlassesGlassShapes";
+import { getPrescriptionGlassesGenderCounts } from "@/app/actions/getPrescriptionGlassesGenderCounts";
+import { getPrescriptionGlassesPriceRange } from "@/app/actions/getPrescriptionGlassesPriceRange";
+import { getPrescriptionGlassesMaterials } from "@/app/actions/getPrescriptionGlassesMaterials";
+import { getPrescriptionGlassesColors } from "@/app/actions/getPrescriptionGlassesColors";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -45,6 +50,10 @@ function CollapsibleSection({ title, defaultOpen = true, children }: Collapsible
 
 export default function FilterSidebar() {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  
+  // Check if we're on prescription glasses page
+  const isPrescriptionGlassesPage = pathname?.includes('/prescription-glasses');
   
   // Price range state
   const [priceRangeData, setPriceRangeData] = useState<PriceRange>({ min: 0, max: 500 });
@@ -87,6 +96,22 @@ export default function FilterSidebar() {
   // Fetch available glass shapes, gender counts, materials, colors, and price range on mount
   useEffect(() => {
     async function fetchData() {
+      if (isPrescriptionGlassesPage) {
+        // Use prescription glasses specific functions
+        const [shapes, genders, materialsData, colorsData, priceRange] = await Promise.all([
+          getPrescriptionGlassesGlassShapes(),
+          getPrescriptionGlassesGenderCounts(),
+          getPrescriptionGlassesMaterials(),
+          getPrescriptionGlassesColors(),
+          getPrescriptionGlassesPriceRange(),
+        ]);
+        setGlassShapes(shapes);
+        setGenderCounts(genders);
+        setMaterials(materialsData);
+        setColors(colorsData);
+        setPriceRangeData(priceRange);
+      } else {
+        // Use regular sunglasses functions
       const [shapes, genders, materialsData, colorsData, priceRange] = await Promise.all([
         getAvailableGlassShapes(),
         getAvailableGenderCounts(),
@@ -99,6 +124,7 @@ export default function FilterSidebar() {
       setMaterials(materialsData);
       setColors(colorsData);
       setPriceRangeData(priceRange);
+      }
       
       // Initialize pending filters from URL params
       const initialGenders = genderParams.map(g => g.toLowerCase());
@@ -118,7 +144,7 @@ export default function FilterSidebar() {
     }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isPrescriptionGlassesPage]);
   
   // Update pending filters when URL params change (for external navigation)
   // Only update if searchParams actually changed to prevent infinite loops
@@ -262,9 +288,11 @@ export default function FilterSidebar() {
       params.set('maxPrice', pendingPriceRange[1].toString());
     }
     
-    const newUrl = params.toString() ? `/shop?${params.toString()}` : '/shop';
+    // Determine base URL based on current page
+    const baseUrl = isPrescriptionGlassesPage ? '/shop/prescription-glasses' : '/shop';
+    const newUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
     navigateWithRefresh(newUrl);
-  }, [searchParams, pendingGenders, pendingGlassShapes, pendingMaterials, pendingColors, pendingPriceRange, priceRangeData, navigateWithRefresh]);
+  }, [searchParams, pendingGenders, pendingGlassShapes, pendingMaterials, pendingColors, pendingPriceRange, priceRangeData, navigateWithRefresh, isPrescriptionGlassesPage]);
   
   // Clear all filters
   const handleClearFilters = useCallback(() => {
@@ -292,9 +320,11 @@ export default function FilterSidebar() {
       params.set('filter', filterType);
     }
     
-    const newUrl = params.toString() ? `/shop?${params.toString()}` : '/shop';
+    // Determine base URL based on current page
+    const baseUrl = isPrescriptionGlassesPage ? '/shop/prescription-glasses' : '/shop';
+    const newUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
     navigateWithRefresh(newUrl);
-  }, [searchParams, priceRangeData, navigateWithRefresh]);
+  }, [searchParams, priceRangeData, navigateWithRefresh, isPrescriptionGlassesPage]);
   
   // Check if there are any pending changes (memoized to prevent unnecessary recalculations)
   const hasPendingChanges = useMemo(() => {

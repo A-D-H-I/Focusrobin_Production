@@ -111,6 +111,14 @@ export async function createProduct(formData: FormData) {
     const glassShapeRaw = formData.get('glassShape') as string | null;
     const glassShape = glassShapeRaw?.trim() || null;
 
+    // Prescription lens images
+    const lensBaseImageUrlRaw = formData.get('lensBaseImageUrl') as string | null;
+    const lensBaseImageUrl = lensBaseImageUrlRaw?.trim() || null;
+    const lensMaskImageUrlRaw = formData.get('lensMaskImageUrl') as string | null;
+    const lensMaskImageUrl = lensMaskImageUrlRaw?.trim() || null;
+    const lensBackgroundImageUrlRaw = formData.get('lensBackgroundImageUrl') as string | null;
+    const lensBackgroundImageUrl = lensBackgroundImageUrlRaw?.trim() || null;
+
     // Validate product data
     const productValidation = productSchema.safeParse({
       name,
@@ -217,7 +225,11 @@ export async function createProduct(formData: FormData) {
         lensMaterial: productValidation.data.lensMaterial,
         uvProtection: productValidation.data.uvProtection,
         glassShape: productValidation.data.glassShape || null,
+        lensBaseImageUrl: lensBaseImageUrl || null,
+        lensMaskImageUrl: lensMaskImageUrl || null,
+        lensBackgroundImageUrl: lensBackgroundImageUrl || null,
         categoryId,
+      } as any,
         ProductVariant: {
           create: variantsData.map((variant) => {
             const assets: Array<{ url: string; type: AssetType; isPrimary: boolean }> = [];

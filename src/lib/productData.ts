@@ -16,6 +16,7 @@ export interface ProductColorVariant {
 
 export interface Product {
   id: string;
+  slug?: string; // URL-friendly slug for routing
   name: string;
   price: string; // Final price (after discount if applicable)
   originalPrice?: string; // Original price before discount

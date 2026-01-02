@@ -1,0 +1,24 @@
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://focusrobin.com"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Shop",
+      "item": "https://focusrobin.com/shop"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Vivienne",
+      "item": "https://focusrobin.com/products/the-vivienne"
+    }
+  ]
+}

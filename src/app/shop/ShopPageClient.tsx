@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Filter, LayoutGrid, List } from "lucide-react";
+import { Filter } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -22,7 +22,6 @@ import {
 import FilterSidebar from "@/components/shop/filter-sidebar";
 import ProductGrid from "@/components/shop/product-grid";
 import type { Product } from "@/lib/productData";
-import { cn } from "@/lib/utils";
 
 interface ShopPageClientProps {
   products: Product[];
@@ -33,7 +32,6 @@ export default function ShopPageClient({ products, title = "All Products" }: Sho
   const searchParams = useSearchParams();
   const [filtersApplied, setFiltersApplied] = useState(0);
   const [sortBy, setSortBy] = useState<string>("recommend");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Count applied filters from URL params
   useEffect(() => {
@@ -122,36 +120,6 @@ export default function ShopPageClient({ products, title = "All Products" }: Sho
             
             {/* Desktop Controls */}
             <div className="hidden md:flex items-center gap-3">
-              {/* View Toggle */}
-              <div className="flex items-center border border-border rounded-lg overflow-hidden">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setViewMode("grid")}
-                  className={cn(
-                    "h-9 w-9 rounded-none border-0",
-                    viewMode === "grid" 
-                      ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" 
-                      : "hover:bg-muted"
-                  )}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setViewMode("list")}
-                  className={cn(
-                    "h-9 w-9 rounded-none border-0 border-l border-border",
-                    viewMode === "list" 
-                      ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" 
-                      : "hover:bg-muted"
-                  )}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-              
               {/* Sort Dropdown */}
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="w-44 h-9">
@@ -165,6 +133,13 @@ export default function ShopPageClient({ products, title = "All Products" }: Sho
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          
+          {/* Shipping Signal - Above product grid */}
+          <div className="mb-6">
+            <p className="text-sm sm:text-base text-muted-foreground break-words max-w-full">
+              Shop sunglasses online with shipping from Lithuania—fast delivery across Lithuania and the EU/Schengen.
+            </p>
           </div>
           
           {/* Mobile Controls */}
@@ -197,36 +172,6 @@ export default function ShopPageClient({ products, title = "All Products" }: Sho
                 </SheetContent>
               </Sheet>
               
-              {/* View Toggle - Mobile */}
-              <div className="flex items-center border border-border rounded-lg overflow-hidden">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setViewMode("grid")}
-                  className={cn(
-                    "h-10 w-10 rounded-none border-0",
-                    viewMode === "grid" 
-                      ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" 
-                      : "hover:bg-muted"
-                  )}
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setViewMode("list")}
-                  className={cn(
-                    "h-10 w-10 rounded-none border-0 border-l border-border",
-                    viewMode === "list" 
-                      ? "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground" 
-                      : "hover:bg-muted"
-                  )}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-              
               {/* Sort Dropdown - Mobile */}
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="flex-1 h-10">
@@ -242,8 +187,8 @@ export default function ShopPageClient({ products, title = "All Products" }: Sho
             </div>
           </div>
           
-          {/* Products Grid/List */}
-          <ProductGrid products={sortedProducts} viewMode={viewMode} />
+          {/* Products Grid */}
+          <ProductGrid products={sortedProducts} viewMode="grid" />
         </div>
       </div>
     </div>

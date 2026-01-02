@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: 'Shipping Information',
   description: 'Learn about FocusRobin\'s shipping options. Fast delivery to Lithuania (Vilnius, Kaunas, Klaipėda) and EU/Schengen countries. Free shipping available.',
   alternates: {
-    canonical: 'https://focusrobin.com/shipping',
+    canonical: 'https://focusrobin.lt/shipping',
   },
 };
 
@@ -19,13 +19,13 @@ export default function ShippingPage() {
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: 'https://focusrobin.com',
+        item: 'https://focusrobin.lt',
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'Shipping',
-        item: 'https://focusrobin.com/shipping',
+        item: 'https://focusrobin.lt/shipping',
       },
     ],
   };
@@ -42,6 +42,11 @@ export default function ShippingPage() {
           <h1 className="text-brand-h1 font-headline text-brand-blue mb-8">
             Shipping Information
           </h1>
+
+          {/* Shipping Signal - Near top of page */}
+          <p className="text-base sm:text-lg text-brand-blue/80 leading-relaxed mb-8 break-words max-w-full">
+            We deliver sunglasses across Lithuania (Vilnius, Kaunas, Klaipėda) and to all EU/Schengen countries.
+          </p>
 
           <div className="prose prose-lg max-w-none">
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">

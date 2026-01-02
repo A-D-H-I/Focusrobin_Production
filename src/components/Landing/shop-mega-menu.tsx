@@ -161,6 +161,9 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
             <Link href="/shop" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
               All Sunglasses
             </Link>
+            <Link href="/shop/prescription-glasses" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm font-semibold" onClick={(e) => { e.stopPropagation(); onClose(); }}>
+              Prescription Glasses
+            </Link>
             <Link href="/shop/women" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
               Women&apos;s Sunglasses
             </Link>

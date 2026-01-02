@@ -1,0 +1,13 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /checkout/
+Disallow: /account/
+Disallow: /cart/
+Disallow: /wishlist/
+Disallow: /chat/
+Disallow: /try-on/
+
+Sitemap: https://focusrobin.com/sitemap.xml
+

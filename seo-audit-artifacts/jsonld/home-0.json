@@ -1,0 +1,13 @@
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "FocusRobin",
+  "url": "https://focusrobin.com",
+  "logo": "https://focusrobin.com/Symbol Wide Primary light (Teal).svg",
+  "description": "Premium minimalist sunglasses and eyewear designed in Lithuania. Elevate your style, enhance your vision.",
+  "address": {
+    "@type": "PostalAddress",
+    "addressCountry": "LT"
+  },
+  "sameAs": []
+}

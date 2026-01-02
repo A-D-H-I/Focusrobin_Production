@@ -47,8 +47,9 @@ export async function uploadInvoiceToDropbox(
   
   const dbx = await getDropboxClient();
   if (!dbx) {
-    console.warn('[Dropbox] Client not available, skipping upload');
-    return null;
+    const errorMsg = '[Dropbox] Client not available, skipping upload. Check DROPBOX_ACCESS_TOKEN environment variable.';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
 
   try {
@@ -114,24 +115,32 @@ export async function uploadInvoiceToDropbox(
       };
     }
 
-    console.error('[Dropbox] Upload succeeded but no result returned');
-    return null;
+    const errorMsg = '[Dropbox] Upload succeeded but no result returned';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   } catch (error: any) {
     console.error('[Dropbox] Error uploading invoice:', error.message);
     
     if (error.status === 401) {
-      console.error('[Dropbox] Authentication failed. Check your DROPBOX_ACCESS_TOKEN');
+      const errorMsg = 'Dropbox authentication failed. Check your DROPBOX_ACCESS_TOKEN. Token may be invalid or expired.';
+      console.error(`[Dropbox] ${errorMsg}`);
+      throw new Error(errorMsg);
     } else if (error.status === 403) {
-      console.error('[Dropbox] Permission denied. Make sure the token has files.content.write permission');
+      const errorMsg = 'Dropbox permission denied. Make sure the token has files.content.write permission.';
+      console.error(`[Dropbox] ${errorMsg}`);
+      throw new Error(errorMsg);
     } else if (error.status === 409) {
-      console.error('[Dropbox] Path error. The folder might not exist or path is invalid');
+      const errorMsg = `Dropbox path error. The folder "${folderPath || process.env.DROPBOX_FOLDER_PATH || '/FocusRobin Invoices'}" might not exist or path is invalid.`;
+      console.error(`[Dropbox] ${errorMsg}`);
+      throw new Error(errorMsg);
     }
     
     if (error.error) {
       console.error('[Dropbox] Error details:', JSON.stringify(error.error, null, 2));
     }
     
-    return null;
+    // Re-throw the error so it can be caught and logged by the caller
+    throw error;
   }
 }
 
@@ -144,8 +153,9 @@ export async function getOrCreateInvoicesFolder(): Promise<string | null> {
   
   const dbx = await getDropboxClient();
   if (!dbx) {
-    console.warn('[Dropbox] Client not available');
-    return null;
+    const errorMsg = '[Dropbox] Client not available. Check DROPBOX_ACCESS_TOKEN environment variable.';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   }
 
   const folderPath = process.env.DROPBOX_FOLDER_PATH || '/FocusRobin Invoices';
@@ -176,18 +186,24 @@ export async function getOrCreateInvoicesFolder(): Promise<string | null> {
       return folderPath;
     }
 
-    console.error('[Dropbox] Failed to create folder');
-    return null;
+    const errorMsg = '[Dropbox] Failed to create folder - no result returned';
+    console.error(errorMsg);
+    throw new Error(errorMsg);
   } catch (error: any) {
     console.error('[Dropbox] Error getting/creating folder:', error.message);
     
     if (error.status === 401) {
-      console.error('[Dropbox] Authentication error. Check your DROPBOX_ACCESS_TOKEN');
+      const errorMsg = 'Dropbox authentication error. Check your DROPBOX_ACCESS_TOKEN. Token may be invalid or expired.';
+      console.error(`[Dropbox] ${errorMsg}`);
+      throw new Error(errorMsg);
     } else if (error.status === 403) {
-      console.error('[Dropbox] Permission error. Token needs files.content.write permission');
+      const errorMsg = 'Dropbox permission error. Token needs files.content.write permission.';
+      console.error(`[Dropbox] ${errorMsg}`);
+      throw new Error(errorMsg);
     }
     
-    return null;
+    // Re-throw the error so it can be caught and logged by the caller
+    throw error;
   }
 }
 

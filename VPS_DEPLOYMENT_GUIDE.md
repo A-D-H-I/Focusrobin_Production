@@ -799,3 +799,4 @@ Common issues and solutions are in the Troubleshooting section above. For additi
 - Check Nginx logs: `sudo tail -f /var/log/nginx/error.log`
 - Check system logs: `journalctl -u nginx -f`
 
+

@@ -1,10 +1,10 @@
 import { MetadataRoute } from 'next';
+import { prisma } from '@/lib/prisma';
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = 'https://focusrobin.com';
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const baseUrl = 'https://focusrobin.lt';
   
   // Static pages with their priorities and change frequencies
-  // Only the required routes for Phase 1
   const staticPages = [
     {
       url: baseUrl,
@@ -44,18 +44,30 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // TODO: Add dynamic product URLs here in Phase 2
-  // Example structure for future implementation:
-  // const products = await prisma.product.findMany({
-  //   select: { slug: true, updatedAt: true },
-  // });
-  // const productUrls = products.map((product) => ({
-  //   url: `${baseUrl}/products/${product.slug}`,
-  //   lastModified: product.updatedAt,
-  //   changeFrequency: 'weekly' as const,
-  //   priority: 0.8,
-  // }));
+  // Fetch product URLs from database
+  try {
+    const products = await prisma.product.findMany({
+      select: {
+        slug: true,
+        updatedAt: true,
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
 
-  return staticPages;
+    const productUrls = products.map((product) => ({
+      url: `${baseUrl}/products/${product.slug}`,
+      lastModified: product.updatedAt,
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    }));
+
+    return [...staticPages, ...productUrls];
+  } catch (error) {
+    // If database query fails, return static pages only
+    console.error('Error fetching products for sitemap:', error);
+    return staticPages;
+  }
 }
 

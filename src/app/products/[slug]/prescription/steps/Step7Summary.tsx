@@ -1,0 +1,213 @@
+"use client";
+
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Check, Edit, Package } from "lucide-react";
+import type { Product } from "@/lib/productData";
+import {
+  type RxPriceResult,
+  FRAME_TYPE_LABELS,
+} from "@/lib/pricing/rx167";
+import {
+  LENS_TYPE_LABELS,
+  COATING_LABELS,
+  type TintType,
+} from "@/lib/lensPricing";
+import type { PrescriptionData, RxConfigData } from "../PrescriptionFlow";
+
+interface Step7SummaryProps {
+  product: Product;
+  prescriptionData: PrescriptionData;
+  rxConfig: RxConfigData;
+  rxPriceResult: RxPriceResult;
+  framePrice: number;
+  formatPrice: (price: number) => string;
+  onConfirm: () => void;
+  onBack: () => void;
+  onEditPrescription: () => void;
+  onEditLens: () => void;
+}
+
+export default function Step7Summary({
+  product,
+  prescriptionData,
+  rxConfig,
+  rxPriceResult,
+  framePrice,
+  formatPrice,
+  onConfirm,
+  onBack,
+  onEditPrescription,
+  onEditLens,
+}: Step7SummaryProps) {
+  const { breakdown, totalNet } = rxPriceResult;
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={onBack} className="h-10 w-10">
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <p className="text-sm text-muted-foreground">Order Summary</p>
+          <h2 className="text-2xl sm:text-3xl font-headline">Review Your Order</h2>
+        </div>
+      </div>
+
+      {/* Product Info */}
+      <div className="flex items-center gap-4 p-4 bg-muted/30 rounded-lg">
+        <Package className="h-8 w-8 text-muted-foreground" />
+        <div className="flex-1">
+          <h3 className="font-semibold">{product.name}</h3>
+          <p className="text-sm text-muted-foreground">Frame</p>
+        </div>
+        <p className="font-semibold">{formatPrice(framePrice)}</p>
+      </div>
+
+      {/* Prescription Summary */}
+      <div className="border rounded-lg overflow-hidden">
+        <div className="flex items-center justify-between p-4 bg-muted/50">
+          <h3 className="font-semibold">Prescription</h3>
+          <Button variant="ghost" size="sm" onClick={onEditPrescription} className="h-8">
+            <Edit className="h-4 w-4 mr-1" /> Edit
+          </Button>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <p className="font-medium text-muted-foreground mb-1">OD (Right Eye)</p>
+              <p>SPH: {prescriptionData.od.sph} | CYL: {prescriptionData.od.cyl} | AXIS: {prescriptionData.od.axis}</p>
+            </div>
+            <div>
+              <p className="font-medium text-muted-foreground mb-1">OS (Left Eye)</p>
+              <p>SPH: {prescriptionData.os.sph} | CYL: {prescriptionData.os.cyl} | AXIS: {prescriptionData.os.axis}</p>
+            </div>
+          </div>
+          <div className="text-sm">
+            <p className="font-medium text-muted-foreground mb-1">Pupillary Distance (PD)</p>
+            <p>{prescriptionData.pd} mm</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Lens Configuration Summary */}
+      <div className="border rounded-lg overflow-hidden">
+        <div className="flex items-center justify-between p-4 bg-muted/50">
+          <h3 className="font-semibold">Lens Configuration</h3>
+          <Button variant="ghost" size="sm" onClick={onEditLens} className="h-8">
+            <Edit className="h-4 w-4 mr-1" /> Edit
+          </Button>
+        </div>
+        <div className="p-4 space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Lens Type:</span>
+            <span className="font-medium">{LENS_TYPE_LABELS[rxConfig.lensType]}</span>
+          </div>
+          {rxConfig.lensIndex && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Lens Index:</span>
+              <span className="font-medium">{rxConfig.lensIndex}</span>
+            </div>
+          )}
+          {rxConfig.lensType === "PHOTOCHROMIC_SOLIS" && rxConfig.photochromicColor && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Photochromic Color:</span>
+              <span className="font-medium">{rxConfig.photochromicColor}</span>
+            </div>
+          )}
+          {rxConfig.lensType === "POLARIZED_NUPOLAR" && rxConfig.polarizedColor && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Polarized Color:</span>
+              <span className="font-medium">{rxConfig.polarizedColor}</span>
+            </div>
+          )}
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Coating:</span>
+            <span className="font-medium">{COATING_LABELS[rxConfig.coating]}</span>
+          </div>
+          {rxConfig.lensType === "TINTED" && rxConfig.tintType && (
+            <>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Tint:</span>
+                <span className="font-medium">
+                  {rxConfig.tintType === "FULL_TINT_CATALOG" ? "Full Tint (Catalog)" : "Gradient Tint"}
+                </span>
+              </div>
+              {rxConfig.tintColor && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tint Color:</span>
+                  <span className="font-medium">
+                    {rxConfig.tintColor}
+                    {rxConfig.tintType === "FULL_TINT_CATALOG" && rxConfig.tintShadePercent && ` ${rxConfig.tintShadePercent}%`}
+                    {rxConfig.tintType === "GRADIENT" && rxConfig.tintRecipe && ` (${rxConfig.tintRecipe})`}
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Frame Type:</span>
+            <span className="font-medium">{FRAME_TYPE_LABELS[rxConfig.frameType]}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Price Breakdown */}
+      <div className="border rounded-lg overflow-hidden">
+        <div className="p-4 bg-muted/50">
+          <h3 className="font-semibold">Price Breakdown</h3>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="flex justify-between text-sm">
+            <span>Frame</span>
+            <span>{formatPrice(framePrice)}</span>
+          </div>
+          <div className="border-t pt-3 space-y-2">
+            <p className="text-sm font-medium text-muted-foreground">Prescription Lenses</p>
+            <div className="flex justify-between text-sm pl-4">
+              <span>Lenses (pair)</span>
+              <span>{formatPrice(breakdown.lensesPair)}</span>
+            </div>
+            {rxConfig.lensType === "TINTED" && rxConfig.tintType && (
+              <div className="flex justify-between text-sm pl-4">
+                <span>Tint Add-on</span>
+                <span>
+                  {formatPrice(
+                    rxConfig.tintType === "FULL_TINT_CATALOG" ? 6.00 : 12.00
+                  )}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between text-sm pl-4">
+              <span>Edging/Mounting</span>
+              <span>{formatPrice(breakdown.edgingFee)}</span>
+            </div>
+          </div>
+          <div className="border-t pt-3 flex justify-between text-sm">
+            <span>Rx Add-on Subtotal</span>
+            <span>{formatPrice(breakdown.rxRetailNet)}</span>
+          </div>
+          <div className="border-t pt-3 flex justify-between text-lg font-bold">
+            <span>Total</span>
+            <span className="text-primary">{formatPrice(totalNet)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Confirmation */}
+      <div className="pt-4 border-t space-y-3">
+        <Button
+          onClick={onConfirm}
+          className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg"
+        >
+          <Check className="mr-2 h-5 w-5" />
+          Confirm Order - {formatPrice(totalNet)}
+        </Button>
+        <p className="text-center text-sm text-muted-foreground">
+          Your prescription lenses will be custom-made for you
+        </p>
+      </div>
+    </div>
+  );
+}
+

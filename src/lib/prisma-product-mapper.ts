@@ -142,8 +142,23 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     : basePrice;
   const finalPrice = `€${discountedPrice.toFixed(2)}`;
 
+  // Generate a URL-safe slug from product name if slug doesn't exist
+  const generateSlug = (name: string): string => {
+    return name
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '') // Remove special characters
+      .replace(/\s+/g, '-') // Replace spaces with hyphens
+      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+  };
+
+  const productSlug = prismaProduct.slug || generateSlug(prismaProduct.name);
+  const productId = prismaProduct.id || prismaProduct.slug || productSlug;
+
   return {
-    id: prismaProduct.slug, // Use slug as id for URL routing
+    id: productId, // Use database ID or slug as fallback
+    slug: productSlug, // URL-friendly slug for routing
     name: prismaProduct.name,
     price: finalPrice, // Final price after discount
     originalPrice: hasDiscount ? originalPrice : undefined, // Original price if discounted

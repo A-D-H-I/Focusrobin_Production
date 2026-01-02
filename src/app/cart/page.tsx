@@ -19,6 +19,7 @@ export default function CartPage() {
   const { currency } = useCurrency();
   const { formatPrice, parseEurPrice } = usePrice();
   const [totalCashback, setTotalCashback] = useState<number>(0);
+  const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
 
   const subtotal = getCartTotal(); // This returns EUR value
   const shipping = 0; // Free shipping
@@ -147,7 +148,20 @@ export default function CartPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => updateQuantity(item.product.id, item.variant.hex, item.quantity - 1)}
+                            disabled={item.quantity <= 1 || updatingItems.has(`${item.product.id}-${item.variant.hex}`)}
+                            onClick={async () => {
+                              const itemKey = `${item.product.id}-${item.variant.hex}`;
+                              setUpdatingItems(prev => new Set(prev).add(itemKey));
+                              try {
+                                await updateQuantity(item.product.id, item.variant.hex, item.quantity - 1);
+                              } finally {
+                                setUpdatingItems(prev => {
+                                  const next = new Set(prev);
+                                  next.delete(itemKey);
+                                  return next;
+                                });
+                              }
+                            }}
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
@@ -158,7 +172,20 @@ export default function CartPage() {
                             variant="ghost"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => updateQuantity(item.product.id, item.variant.hex, item.quantity + 1)}
+                            disabled={updatingItems.has(`${item.product.id}-${item.variant.hex}`)}
+                            onClick={async () => {
+                              const itemKey = `${item.product.id}-${item.variant.hex}`;
+                              setUpdatingItems(prev => new Set(prev).add(itemKey));
+                              try {
+                                await updateQuantity(item.product.id, item.variant.hex, item.quantity + 1);
+                              } finally {
+                                setUpdatingItems(prev => {
+                                  const next = new Set(prev);
+                                  next.delete(itemKey);
+                                  return next;
+                                });
+                              }
+                            }}
                           >
                             <Plus className="h-4 w-4" />
                           </Button>

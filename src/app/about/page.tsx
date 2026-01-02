@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   title: 'About Us',
   description: 'Learn about FocusRobin\'s mission to create high-quality eyewear that combines style, functionality, and sustainability. Designed in Lithuania, shipped worldwide.',
   alternates: {
-    canonical: 'https://focusrobin.com/about',
+    canonical: 'https://focusrobin.lt/about',
   },
 };
 
@@ -19,13 +19,13 @@ export default function AboutPage() {
         '@type': 'ListItem',
         position: 1,
         name: 'Home',
-        item: 'https://focusrobin.com',
+        item: 'https://focusrobin.lt',
       },
       {
         '@type': 'ListItem',
         position: 2,
         name: 'About',
-        item: 'https://focusrobin.com/about',
+        item: 'https://focusrobin.lt/about',
       },
     ],
   };

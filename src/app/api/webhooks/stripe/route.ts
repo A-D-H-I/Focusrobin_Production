@@ -214,18 +214,48 @@ async function processInvoice(orderId: string, orderNumber: string) {
     // Upload to Dropbox
     console.log(`[Invoice] Attempting Dropbox upload...`);
     let dropboxResult = null;
+    let dropboxError: any = null;
     try {
-      const folderPath = await getOrCreateInvoicesFolder();
-      const fileName = `FocusRobin-Order-${invoiceData.orderNumber}-Documents-${new Date().toISOString().split('T')[0]}.pdf`;
-      dropboxResult = await uploadInvoiceToDropbox(pdfBuffer, fileName, folderPath || undefined);
-      
-      if (dropboxResult) {
-        console.log(`[Invoice] ✓ Uploaded to Dropbox: ${dropboxResult.sharedLink}`);
+      // Check if Dropbox is configured
+      if (!process.env.DROPBOX_ACCESS_TOKEN) {
+        console.warn(`[Invoice] ⚠️ DROPBOX_ACCESS_TOKEN not set - skipping Dropbox upload`);
+        console.warn(`[Invoice] To enable Dropbox upload, set DROPBOX_ACCESS_TOKEN in your environment variables`);
+        console.warn(`[Invoice] See DROPBOX_SETUP.md for instructions`);
+        dropboxError = new Error('DROPBOX_ACCESS_TOKEN not configured');
       } else {
-        console.warn(`[Invoice] ✗ Dropbox upload returned null (may not be configured)`);
+        console.log(`[Invoice] Dropbox token found, proceeding with upload...`);
+        const folderPath = await getOrCreateInvoicesFolder();
+        if (!folderPath) {
+          console.error(`[Invoice] ✗ Failed to get or create Dropbox folder`);
+          dropboxError = new Error('Failed to get or create Dropbox folder');
+        } else {
+          const fileName = `FocusRobin-Order-${invoiceData.orderNumber}-Documents-${new Date().toISOString().split('T')[0]}.pdf`;
+          dropboxResult = await uploadInvoiceToDropbox(pdfBuffer, fileName, folderPath);
+          
+          if (dropboxResult) {
+            console.log(`[Invoice] ✓ Uploaded to Dropbox: ${dropboxResult.sharedLink}`);
+            console.log(`[Invoice] ✓ File ID: ${dropboxResult.fileId}`);
+          } else {
+            console.error(`[Invoice] ✗ Dropbox upload returned null - upload may have failed`);
+            dropboxError = new Error('Dropbox upload returned null');
+          }
+        }
       }
-    } catch (dropboxError: any) {
-      console.error(`[Invoice] ✗ Dropbox upload error:`, dropboxError.message);
+    } catch (err: any) {
+      dropboxError = err;
+      console.error(`[Invoice] ✗ Dropbox upload error:`, err.message);
+      console.error(`[Invoice] ✗ Dropbox error stack:`, err.stack);
+      if (err.status) {
+        console.error(`[Invoice] ✗ Dropbox error status: ${err.status}`);
+      }
+      if (err.error) {
+        console.error(`[Invoice] ✗ Dropbox error details:`, JSON.stringify(err.error, null, 2));
+      }
+      // Log helpful troubleshooting information
+      if (err.message?.includes('DROPBOX_ACCESS_TOKEN')) {
+        console.error(`[Invoice] 💡 Troubleshooting: Check your .env.local file and ensure DROPBOX_ACCESS_TOKEN is set`);
+        console.error(`[Invoice] 💡 Run: node scripts/test-dropbox.js to test your Dropbox configuration`);
+      }
     }
 
     // Send email with documents
@@ -241,9 +271,19 @@ async function processInvoice(orderId: string, orderNumber: string) {
       console.error(`[Invoice] ✗ Order confirmation email error:`, emailError.message);
     }
 
-    console.log(`[Invoice] ✓ Invoice processing completed for order ${orderNumber}`);
+    // Log final status
+    if (dropboxError) {
+      console.error(`[Invoice] ⚠️ Invoice processing completed for order ${orderNumber}, but Dropbox upload failed`);
+      console.error(`[Invoice] ⚠️ Error: ${dropboxError.message}`);
+    } else if (dropboxResult) {
+      console.log(`[Invoice] ✓ Invoice processing completed successfully for order ${orderNumber}`);
+      console.log(`[Invoice] ✓ PDF uploaded to Dropbox at: ${dropboxResult.sharedLink}`);
+    } else {
+      console.warn(`[Invoice] ⚠️ Invoice processing completed for order ${orderNumber}, but Dropbox upload was skipped`);
+    }
   } catch (error: any) {
     console.error(`[Invoice] ✗ Invoice processing failed for order ${orderNumber}:`, error.message);
+    console.error(`[Invoice] ✗ Error stack:`, error.stack);
   }
 }
 

@@ -39,7 +39,7 @@ type Review = {
     name: string | null;
     email: string;
   };
-  createdAt: string; // Serialized as ISO string
+  createdAt: string;
   Product?: {
     id: string;
     name: string;
@@ -57,52 +57,61 @@ export default function ProductPageContent({ product, reviews, relatedProducts }
   const [selectedVariant, setSelectedVariant] = useState<ProductColorVariant>(product.variants[0]);
 
   return (
-    <>
-      {/* Main Product Content */}
-      <div className="lg:grid lg:grid-cols-12 lg:gap-12 lg:space-y-0 space-y-12">
-        {/* Left Column - Product Images Stack (Desktop) / Gallery (Mobile) */}
-        <div className="lg:col-span-7 space-y-12">
-          {/* Mobile: Full Product Page Client */}
-          <div className="lg:hidden">
-            <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
-              <ProductPageClient product={product} />
-            </Suspense>
-          </div>
-          
-          {/* Desktop: Image Stack - All images in vertical stack */}
-          <div className="hidden lg:block">
+    <div className="relative">
+      {/* Desktop Layout - Two Column with Sticky Right (Images Only) */}
+      <div className="hidden lg:block">
+        <div 
+          className="flex gap-12"
+          style={{ alignItems: 'flex-start' }}
+        >
+          {/* Left Column - 60% - Product Images Only */}
+          <div className="w-[60%]">
             <ProductGalleryDesktopStack 
               product={product} 
               selectedVariant={selectedVariant}
             />
           </div>
           
-          {/* Product Details Tabs */}
-          <Suspense fallback={<div className="h-64 bg-muted animate-pulse rounded-lg" />}>
-            <ProductDetailsTabs product={product} selectedVariant={selectedVariant} />
-          </Suspense>
-          
-          {/* Customer Reviews */}
-          <Suspense fallback={<div className="h-48 bg-muted animate-pulse rounded-lg" />}>
-            <CustomerReviews reviews={reviews} />
-          </Suspense>
-        </div>
-        
-        {/* Right Column - Sticky Purchase Form */}
-        <div className="lg:col-span-5">
-          <div className="lg:sticky lg:top-8 lg:h-fit">
-            <div className="hidden lg:block">
-              <ProductPurchaseForm 
-                product={product} 
-                selectedVariant={selectedVariant}
-                onVariantChange={setSelectedVariant} 
-              />
-            </div>
+          {/* Right Column - 40% - STICKY (stops when images end) */}
+          <div 
+            className="w-[40%]"
+            style={{
+              position: 'sticky',
+              top: '140px',
+              alignSelf: 'flex-start',
+              height: 'fit-content'
+            }}
+          >
+            <ProductPurchaseForm 
+              product={product} 
+              selectedVariant={selectedVariant}
+              onVariantChange={setSelectedVariant} 
+            />
           </div>
         </div>
       </div>
 
-      {/* Full Width Sections - Lazy Loaded */}
+      {/* Mobile Layout - Stacked */}
+      <div className="lg:hidden space-y-12">
+        <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
+          <ProductPageClient product={product} />
+        </Suspense>
+      </div>
+
+      {/* Full Width Sections - Product Details, Reviews, etc. */}
+      <div className="mt-12 lg:mt-12 space-y-12">
+        {/* Product Details Tabs - Full Width */}
+        <Suspense fallback={<div className="h-64 bg-muted animate-pulse rounded-lg" />}>
+          <ProductDetailsTabs product={product} selectedVariant={selectedVariant} />
+        </Suspense>
+        
+        {/* Customer Reviews - Full Width */}
+        <Suspense fallback={<div className="h-48 bg-muted animate-pulse rounded-lg" />}>
+          <CustomerReviews reviews={reviews} />
+        </Suspense>
+      </div>
+
+      {/* Full Width Sections - Below Main Product Content */}
       <div className="mt-24 w-full overflow-hidden">
         <Suspense fallback={<div className="h-48 bg-muted animate-pulse" />}>
           <PackagingSection />
@@ -118,7 +127,6 @@ export default function ProductPageContent({ product, reviews, relatedProducts }
           <RelatedProducts products={relatedProducts} />
         </Suspense>
       </div>
-    </>
+    </div>
   );
 }
-

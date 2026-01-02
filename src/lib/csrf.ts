@@ -24,12 +24,18 @@ interface CSRFToken {
 async function generateRandomBytes(length: number): Promise<string> {
   const array = new Uint8Array(length);
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    // Web Crypto API (works in both Node.js and Edge Runtime)
     crypto.getRandomValues(array);
   } else {
     // Fallback for Node.js environments that don't have Web Crypto
-    const { randomBytes } = await import("crypto");
-    const nodeBytes = randomBytes(length);
-    array.set(nodeBytes);
+    // Only import if we're definitely in Node.js (not Edge Runtime)
+    if (typeof process !== 'undefined' && process.versions?.node) {
+      const { randomBytes } = await import("crypto");
+      const nodeBytes = randomBytes(length);
+      array.set(nodeBytes);
+    } else {
+      throw new Error('Crypto API not available');
+    }
   }
   return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 }
@@ -56,11 +62,16 @@ async function createHMAC(data: string, secret: string): Promise<string> {
     const hashArray = Array.from(new Uint8Array(signature));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   } else {
-    // Fallback for Node.js environments
-    const { createHmac } = await import("crypto");
-    const hmac = createHmac("sha256", secret);
-    hmac.update(data);
-    return hmac.digest("hex");
+    // Fallback for Node.js environments only (not Edge Runtime)
+    // Only import if we're definitely in Node.js runtime
+    if (typeof process !== 'undefined' && process.versions?.node) {
+      const { createHmac } = await import("crypto");
+      const hmac = createHmac("sha256", secret);
+      hmac.update(data);
+      return hmac.digest("hex");
+    } else {
+      throw new Error('Crypto API not available');
+    }
   }
 }
 

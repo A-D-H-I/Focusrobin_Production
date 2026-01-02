@@ -1,6 +1,15 @@
+import type { Metadata } from 'next';
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: 'Terms of Service | FocusRobin',
+  description: 'Read FocusRobin\'s Terms of Service. Learn about our policies for purchases, shipping, returns, privacy, and customer rights. Governed by Lithuanian law.',
+  alternates: {
+    canonical: 'https://focusrobin.lt/terms',
+  },
+};
 
 export default function TermsPage() {
   return (

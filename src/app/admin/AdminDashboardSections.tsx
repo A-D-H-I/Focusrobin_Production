@@ -13,7 +13,7 @@ export function AdminDashboardSections() {
 
   return (
     <div className="space-y-6">
-      {/* Products Section */}
+      {/* Sunglasses Section */}
       <Collapsible open={isProductsOpen} onOpenChange={setIsProductsOpen}>
         <Card>
           <CollapsibleTrigger asChild>
@@ -21,7 +21,7 @@ export function AdminDashboardSections() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Box className="h-5 w-5 text-primary" />
-                  <CardTitle>Products</CardTitle>
+                  <CardTitle>Sunglasses Products</CardTitle>
                 </div>
                 {isProductsOpen ? (
                   <ChevronDown className="h-5 w-5 text-muted-foreground" />
@@ -34,34 +34,92 @@ export function AdminDashboardSections() {
           <CollapsibleContent>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Add Product Card */}
+                {/* Add Sunglasses Card */}
                 <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <Plus className="h-5 w-5 text-primary" />
-                      <CardTitle>Add Product</CardTitle>
+                      <CardTitle>Add Sunglasses</CardTitle>
                     </div>
-                    <CardDescription>Create a new product with variants and assets</CardDescription>
+                    <CardDescription>Create a new sunglasses product</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Link href="/admin/add">
-                      <Button className="w-full">Add New Product</Button>
+                      <Button className="w-full">Add New Sunglasses</Button>
                     </Link>
                   </CardContent>
                 </Card>
 
-                {/* Products Management Card */}
+                {/* Sunglasses Management Card */}
                 <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <Package className="h-5 w-5 text-primary" />
-                      <CardTitle>Products</CardTitle>
+                      <CardTitle>Manage Sunglasses</CardTitle>
                     </div>
-                    <CardDescription>View and manage all products</CardDescription>
+                    <CardDescription>View and manage all sunglasses</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Link href="/admin/products">
-                      <Button variant="outline" className="w-full">Manage Products</Button>
+                      <Button variant="outline" className="w-full">Manage Sunglasses</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Prescription Glasses Section */}
+      <Collapsible open={isProductsOpen} onOpenChange={setIsProductsOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Box className="h-5 w-5 text-primary" />
+                  <CardTitle>Prescription Glasses Products</CardTitle>
+                </div>
+                {isProductsOpen ? (
+                  <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Add Prescription Glasses Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Plus className="h-5 w-5 text-primary" />
+                      <CardTitle>Add Prescription Glasses</CardTitle>
+                    </div>
+                    <CardDescription>Create a new prescription glasses product</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/prescription-glasses/add">
+                      <Button className="w-full">Add New Prescription Glasses</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Prescription Glasses Management Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Package className="h-5 w-5 text-primary" />
+                      <CardTitle>Manage Prescription Glasses</CardTitle>
+                    </div>
+                    <CardDescription>View and manage all prescription glasses</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/prescription-glasses">
+                      <Button variant="outline" className="w-full">Manage Prescription Glasses</Button>
                     </Link>
                   </CardContent>
                 </Card>
@@ -168,6 +226,22 @@ export function AdminDashboardSections() {
                   <CardContent>
                     <Link href="/admin/shop-banners">
                       <Button variant="outline" className="w-full">Manage Shop Banners</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Prescription Glasses Landing Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Prescription Glasses Landing</CardTitle>
+                    </div>
+                    <CardDescription>Manage prescription glasses page banner</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/prescription-glasses-landing">
+                      <Button variant="outline" className="w-full">Manage Landing Image</Button>
                     </Link>
                   </CardContent>
                 </Card>

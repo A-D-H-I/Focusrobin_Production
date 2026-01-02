@@ -1,0 +1,679 @@
+{
+  "routes": [
+    {
+      "route": "/",
+      "name": "home",
+      "status": 200,
+      "checks": {
+        "title": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania",
+          "expected": "Contains \"FocusRobin\""
+        },
+        "description": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized sunglasses designed ...",
+          "expected": "Non-empty"
+        },
+        "canonical": {
+          "pass": true,
+          "value": "https://focusrobin.com",
+          "expected": "https://focusrobin.com"
+        },
+        "ogTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "ogDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "ogType": {
+          "pass": true,
+          "value": "website"
+        },
+        "ogUrl": {
+          "pass": true,
+          "value": "https://focusrobin.com"
+        },
+        "ogSiteName": {
+          "pass": true,
+          "value": "FocusRobin"
+        },
+        "ogLocale": {
+          "pass": true,
+          "value": "en_IE"
+        },
+        "ogImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "twitterCard": {
+          "pass": true,
+          "value": "summary_large_image"
+        },
+        "twitterTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "twitterDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "twitterImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "noindex": {
+          "pass": true,
+          "value": "Not present",
+          "expected": "Not present"
+        },
+        "jsonLdCount": {
+          "pass": true,
+          "value": 2
+        },
+        "jsonLdOrganization": {
+          "pass": true,
+          "value": "Present"
+        },
+        "jsonLdWebSite": {
+          "pass": true,
+          "value": "Present"
+        },
+        "onPageSunglasses": {
+          "pass": true,
+          "value": "Found"
+        },
+        "onPageLithuania": {
+          "pass": true,
+          "value": "Found"
+        },
+        "onPageEUSchengen": {
+          "pass": true,
+          "value": "Found"
+        },
+        "lithuanianBlock": {
+          "pass": true,
+          "value": "Present"
+        },
+        "ltPhrase1": {
+          "pass": true,
+          "value": 0,
+          "expected": "≤1"
+        },
+        "ltPhrase2": {
+          "pass": true,
+          "value": 0,
+          "expected": "≤1"
+        },
+        "ltPhrase3": {
+          "pass": true,
+          "value": 0,
+          "expected": "≤1"
+        }
+      }
+    },
+    {
+      "route": "/shop",
+      "name": "shop",
+      "status": 200,
+      "checks": {
+        "title": {
+          "pass": true,
+          "value": "Shop Sunglasses | FocusRobin Lithuania",
+          "expected": "Contains \"FocusRobin\""
+        },
+        "description": {
+          "pass": true,
+          "value": "Browse our collection of premium polarized sunglasses. Fast shipping to Lithuania and EU/Schengen. F...",
+          "expected": "Non-empty"
+        },
+        "canonical": {
+          "pass": true,
+          "value": "https://focusrobin.com/shop",
+          "expected": "https://focusrobin.com/shop"
+        },
+        "ogTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "ogDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "ogType": {
+          "pass": true,
+          "value": "website"
+        },
+        "ogUrl": {
+          "pass": true,
+          "value": "https://focusrobin.com"
+        },
+        "ogSiteName": {
+          "pass": true,
+          "value": "FocusRobin"
+        },
+        "ogLocale": {
+          "pass": true,
+          "value": "en_IE"
+        },
+        "ogImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "twitterCard": {
+          "pass": true,
+          "value": "summary_large_image"
+        },
+        "twitterTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "twitterDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "twitterImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "noindex": {
+          "pass": true,
+          "value": "Not present",
+          "expected": "Not present"
+        },
+        "jsonLdCount": {
+          "pass": false,
+          "value": 0
+        },
+        "onPageSunglasses": {
+          "pass": true,
+          "value": "Found"
+        },
+        "onPageLithuania": {
+          "pass": true,
+          "value": "Found"
+        },
+        "onPageEUSchengen": {
+          "pass": true,
+          "value": "Found"
+        },
+        "lithuanianBlock": {
+          "pass": true,
+          "value": "Present"
+        },
+        "ltPhrase1": {
+          "pass": true,
+          "value": 0,
+          "expected": "≤1"
+        },
+        "ltPhrase2": {
+          "pass": true,
+          "value": 0,
+          "expected": "≤1"
+        },
+        "ltPhrase3": {
+          "pass": true,
+          "value": 0,
+          "expected": "≤1"
+        }
+      }
+    },
+    {
+      "route": "/about",
+      "name": "about",
+      "status": 200,
+      "checks": {
+        "title": {
+          "pass": true,
+          "value": "About Us | FocusRobin Lithuania",
+          "expected": "Contains \"FocusRobin\""
+        },
+        "description": {
+          "pass": true,
+          "value": "Learn about FocusRobin&#x27;s mission to create high-quality eyewear that combines style, functional...",
+          "expected": "Non-empty"
+        },
+        "canonical": {
+          "pass": true,
+          "value": "https://focusrobin.com/about",
+          "expected": "https://focusrobin.com/about"
+        },
+        "ogTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "ogDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "ogType": {
+          "pass": true,
+          "value": "website"
+        },
+        "ogUrl": {
+          "pass": true,
+          "value": "https://focusrobin.com"
+        },
+        "ogSiteName": {
+          "pass": true,
+          "value": "FocusRobin"
+        },
+        "ogLocale": {
+          "pass": true,
+          "value": "en_IE"
+        },
+        "ogImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "twitterCard": {
+          "pass": true,
+          "value": "summary_large_image"
+        },
+        "twitterTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "twitterDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "twitterImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "noindex": {
+          "pass": true,
+          "value": "Not present",
+          "expected": "Not present"
+        },
+        "jsonLdCount": {
+          "pass": true,
+          "value": 1
+        },
+        "lithuanianBlockAbsent": {
+          "pass": true,
+          "value": "Absent as expected"
+        }
+      }
+    },
+    {
+      "route": "/contact",
+      "name": "contact",
+      "status": 200,
+      "checks": {
+        "title": {
+          "pass": true,
+          "value": "Contact Us | FocusRobin Lithuania",
+          "expected": "Contains \"FocusRobin\""
+        },
+        "description": {
+          "pass": true,
+          "value": "Get in touch with FocusRobin. We&#x27;re here to help with your eyewear needs. Fast shipping to Lith...",
+          "expected": "Non-empty"
+        },
+        "canonical": {
+          "pass": true,
+          "value": "https://focusrobin.com/contact",
+          "expected": "https://focusrobin.com/contact"
+        },
+        "ogTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "ogDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "ogType": {
+          "pass": true,
+          "value": "website"
+        },
+        "ogUrl": {
+          "pass": true,
+          "value": "https://focusrobin.com"
+        },
+        "ogSiteName": {
+          "pass": true,
+          "value": "FocusRobin"
+        },
+        "ogLocale": {
+          "pass": true,
+          "value": "en_IE"
+        },
+        "ogImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "twitterCard": {
+          "pass": true,
+          "value": "summary_large_image"
+        },
+        "twitterTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "twitterDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "twitterImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "noindex": {
+          "pass": true,
+          "value": "Not present",
+          "expected": "Not present"
+        },
+        "jsonLdCount": {
+          "pass": false,
+          "value": 0
+        },
+        "lithuanianBlockAbsent": {
+          "pass": true,
+          "value": "Absent as expected"
+        }
+      }
+    },
+    {
+      "route": "/shipping",
+      "name": "shipping",
+      "status": 200,
+      "checks": {
+        "title": {
+          "pass": true,
+          "value": "Shipping Information | FocusRobin Lithuania",
+          "expected": "Contains \"FocusRobin\""
+        },
+        "description": {
+          "pass": true,
+          "value": "Learn about FocusRobin&#x27;s shipping options. Fast delivery to Lithuania (Vilnius, Kaunas, Klaiped...",
+          "expected": "Non-empty"
+        },
+        "canonical": {
+          "pass": true,
+          "value": "https://focusrobin.com/shipping",
+          "expected": "https://focusrobin.com/shipping"
+        },
+        "ogTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "ogDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "ogType": {
+          "pass": true,
+          "value": "website"
+        },
+        "ogUrl": {
+          "pass": true,
+          "value": "https://focusrobin.com"
+        },
+        "ogSiteName": {
+          "pass": true,
+          "value": "FocusRobin"
+        },
+        "ogLocale": {
+          "pass": true,
+          "value": "en_IE"
+        },
+        "ogImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "twitterCard": {
+          "pass": true,
+          "value": "summary_large_image"
+        },
+        "twitterTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "twitterDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "twitterImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "noindex": {
+          "pass": true,
+          "value": "Not present",
+          "expected": "Not present"
+        },
+        "jsonLdCount": {
+          "pass": true,
+          "value": 1
+        },
+        "onPageSunglasses": {
+          "pass": true,
+          "value": "Found"
+        },
+        "onPageLithuania": {
+          "pass": true,
+          "value": "Found"
+        },
+        "onPageEUSchengen": {
+          "pass": true,
+          "value": "Found"
+        },
+        "lithuanianBlockAbsent": {
+          "pass": true,
+          "value": "Absent as expected"
+        }
+      }
+    },
+    {
+      "route": "/returns",
+      "name": "returns",
+      "status": 200,
+      "checks": {
+        "title": {
+          "pass": true,
+          "value": "Returns and Refunds | FocusRobin Lithuania",
+          "expected": "Contains \"FocusRobin\""
+        },
+        "description": {
+          "pass": true,
+          "value": "Learn about FocusRobin&#x27;s return policy. 14-day return window for unused items in original packa...",
+          "expected": "Non-empty"
+        },
+        "canonical": {
+          "pass": true,
+          "value": "https://focusrobin.com/returns",
+          "expected": "https://focusrobin.com/returns"
+        },
+        "ogTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "ogDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "ogType": {
+          "pass": true,
+          "value": "website"
+        },
+        "ogUrl": {
+          "pass": true,
+          "value": "https://focusrobin.com"
+        },
+        "ogSiteName": {
+          "pass": true,
+          "value": "FocusRobin"
+        },
+        "ogLocale": {
+          "pass": true,
+          "value": "en_IE"
+        },
+        "ogImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "twitterCard": {
+          "pass": true,
+          "value": "summary_large_image"
+        },
+        "twitterTitle": {
+          "pass": true,
+          "value": "FocusRobin - Premium Sunglasses &amp; Eyewear | Lithuania"
+        },
+        "twitterDescription": {
+          "pass": true,
+          "value": "Elevate your style with FocusRobin&#x27;s minimalist eyewear. Premium polarized ..."
+        },
+        "twitterImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/og.png"
+        },
+        "noindex": {
+          "pass": true,
+          "value": "Not present",
+          "expected": "Not present"
+        },
+        "jsonLdCount": {
+          "pass": true,
+          "value": 1
+        },
+        "lithuanianBlockAbsent": {
+          "pass": true,
+          "value": "Absent as expected"
+        }
+      }
+    },
+    {
+      "route": "/products/the-vera",
+      "name": "product-the-vera",
+      "status": 200,
+      "checks": {
+        "title": {
+          "pass": true,
+          "value": "Vera | FocusRobin Lithuania"
+        },
+        "description": {
+          "pass": true,
+          "value": "Vera - Premium sunglasses by FocusRobin. Fast shipping to Lithuania and EU/Schengen...."
+        },
+        "canonical": {
+          "pass": true,
+          "value": "https://focusrobin.com/products/the-vera",
+          "expected": "https://focusrobin.com/products/the-vera"
+        },
+        "ogTitle": {
+          "pass": true,
+          "value": "Vera"
+        },
+        "ogImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/Vera%20-%20Tortoise/Group%205.png"
+        },
+        "jsonLdProduct": {
+          "pass": true,
+          "value": "Present"
+        },
+        "jsonLdBreadcrumb": {
+          "pass": true,
+          "value": "Present"
+        }
+      }
+    },
+    {
+      "route": "/products/the-vivienne",
+      "name": "product-the-vivienne",
+      "status": 200,
+      "checks": {
+        "title": {
+          "pass": true,
+          "value": "Vivienne | FocusRobin Lithuania"
+        },
+        "description": {
+          "pass": true,
+          "value": "Vivienne - Premium sunglasses by FocusRobin. Fast shipping to Lithuania and EU/Schengen...."
+        },
+        "canonical": {
+          "pass": true,
+          "value": "https://focusrobin.com/products/the-vivienne",
+          "expected": "https://focusrobin.com/products/the-vivienne"
+        },
+        "ogTitle": {
+          "pass": true,
+          "value": "Vivienne"
+        },
+        "ogImage": {
+          "pass": true,
+          "value": "https://focusrobin.com/Vivienne%20-%20Midnight%20Black/Group%201.png"
+        },
+        "jsonLdProduct": {
+          "pass": true,
+          "value": "Present"
+        },
+        "jsonLdBreadcrumb": {
+          "pass": true,
+          "value": "Present"
+        }
+      }
+    }
+  ],
+  "robots": {
+    "status": 200,
+    "checks": {
+      "hasUserAgent": {
+        "pass": true,
+        "value": "Present"
+      },
+      "hasAllow": {
+        "pass": true,
+        "value": "Present"
+      },
+      "hasSitemap": {
+        "pass": true,
+        "value": "Present"
+      }
+    },
+    "content": "User-Agent: *\nAllow: /\nDisallow: /api/\nDisallow: /admin/\nDisallow: /checkout/\nDisallow: /account/\nDisallow: /cart/\nDisallow: /wishlist/\nDisallow: /chat/\nDisallow: /try-on/\n\nSitemap: https://focusrobin.com/sitemap.xml\n\r\n"
+  },
+  "sitemap": {
+    "status": 200,
+    "checks": {
+      "hasUrls": {
+        "pass": true,
+        "value": 8
+      },
+      "hasHome": {
+        "pass": true,
+        "value": "Present"
+      },
+      "hasShop": {
+        "pass": true,
+        "value": "Present"
+      },
+      "hasProducts": {
+        "pass": true,
+        "value": "2 product URLs"
+      }
+    },
+    "content": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n<url>\n<loc>https://focusrobin.com</loc>\n<lastmod>2025-12-27T06:36:36.347Z</lastmod>\n<changefreq>daily</changefreq>\n<priority>1</priority>\n</url>\n<url>\n<loc>https://focusrobin.com/shop</loc>\n<lastmod>2025-12-27T06:36:36.347Z</lastmod>\n<changefreq>daily</changefreq>\n<priority>0.9</priority>\n</url>\n<url>\n<loc>https://focusrobin.com/about</loc>\n<lastmod>2025-12-27T06:36:36.347Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://focusrobin.com/contact</loc>\n<lastmod>2025-12-27T06:36:36.347Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.7</priority>\n</url>\n<url>\n<loc>https://focusrobin.com/shipping</loc>\n<lastmod>2025-12-27T06:36:36.347Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.6</priority>\n</url>\n<url>\n<loc>https://focusrobin.com/returns</loc>\n<lastmod>2025-12-27T06:36:36.347Z</lastmod>\n<changefreq>monthly</changefreq>\n<priority>0.6</priority>\n</url>\n<url>\n<loc>https://focusrobin.com/products/the-vera</loc>\n<lastmod>2025-12-24T13:03:13.759Z</lastmod>\n<changefreq>weekly</changefreq>\n<priority>0.8</priority>\n</url>\n<url>\n<loc>https://focusrobin.com/products/the-vivienne</loc>\n<lastmod>2025-12-24T12:55:00.390Z</lastmod>\n<changefreq>weekly</changefreq>\n<priority>0.8</priority>\n</url>\n</urlset>\n\r\n",
+    "urls": [
+      "https://focusrobin.com",
+      "https://focusrobin.com/shop",
+      "https://focusrobin.com/about",
+      "https://focusrobin.com/contact",
+      "https://focusrobin.com/shipping",
+      "https://focusrobin.com/returns",
+      "https://focusrobin.com/products/the-vera",
+      "https://focusrobin.com/products/the-vivienne"
+    ]
+  },
+  "summary": {
+    "pass": 138,
+    "fail": 2,
+    "warnings": 0
+  }
+}
