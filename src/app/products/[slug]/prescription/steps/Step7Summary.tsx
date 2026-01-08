@@ -11,6 +11,7 @@ import {
   LENS_TYPE_LABELS,
   COATING_LABELS,
   type TintType,
+  TINT_FEES_PAIR,
 } from "@/lib/lensPricing";
 import type { PrescriptionData, RxConfigData } from "../PrescriptionFlow";
 
@@ -173,7 +174,7 @@ export default function Step7Summary({
                 <span>Tint Add-on</span>
                 <span>
                   {formatPrice(
-                    rxConfig.tintType === "FULL_TINT_CATALOG" ? 6.00 : 12.00
+                    TINT_FEES_PAIR[rxConfig.tintType]
                   )}
                 </span>
               </div>

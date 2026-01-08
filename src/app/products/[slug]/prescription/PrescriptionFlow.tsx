@@ -320,7 +320,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       window.dispatchEvent(new Event('prescription-saved'));
     }
     
-    router.push(`/products/${productSlug}/prescription/confirmation`);
+    router.push(`/shop/${productSlug}/prescription/confirmation`);
   };
 
   // Determine next step after coating selection

@@ -51,17 +51,17 @@ describe('calculateRxTotal', () => {
   });
 
   describe('Clear lens + Gradient', () => {
-    it('should calculate tint add-on as 12 per pair', () => {
+    it('should calculate tint add-on as 8 per pair (from CSV)', () => {
       const result = calculateRxTotal({
         ...baseInput,
         tintType: 'GRADIENT',
       });
 
       expect(result.breakdown.tintPairAddOn).toBe(PRICES.tinting.GRADIENT);
-      expect(result.breakdown.tintPairAddOn).toBe(12);
+      expect(result.breakdown.tintPairAddOn).toBe(8); // Updated from 12 to 8 to match CSV
       expect(result.breakdown.lensesPair).toBe(2 * PRICES.lenses.CLEAR_OR_TINT.UC);
       expect(result.breakdown.rxAddOnNet).toBe(
-        2 * PRICES.lenses.CLEAR_OR_TINT.UC + PRICES.edging.FULL_FRAME + 12
+        2 * PRICES.lenses.CLEAR_OR_TINT.UC + PRICES.edging.FULL_FRAME + 8
       );
     });
   });

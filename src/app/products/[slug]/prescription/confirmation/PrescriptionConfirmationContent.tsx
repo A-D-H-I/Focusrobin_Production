@@ -39,21 +39,21 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           setPrescriptionData(parsed);
         } catch (error) {
           console.error('Error parsing prescription data:', error);
-          router.push(`/products/${productSlug}`);
+          router.push(`/shop/${productSlug}`);
         }
       } else {
         // No prescription data, redirect to product page
-        router.push(`/products/${productSlug}`);
+        router.push(`/shop/${productSlug}`);
       }
     }
   }, [productSlug, router]);
 
   const handleEdit = () => {
-    router.push(`/products/${productSlug}/prescription?product=${encodeURIComponent(productSlug)}`);
+    router.push(`/shop/${productSlug}/prescription?product=${encodeURIComponent(productSlug)}`);
   };
 
   const handleContinue = () => {
-    router.push(`/products/${productSlug}`);
+    router.push(`/shop/${productSlug}`);
   };
 
   if (!prescriptionData) {

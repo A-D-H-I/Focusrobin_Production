@@ -299,7 +299,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const itemListElement = products.map((product, index) => {
     const prismaProduct = prismaProducts[index];
     const productSlug = prismaProduct?.slug || '';
-    const productUrl = `${baseUrl}/products/${productSlug}`;
+    const productUrl = `${baseUrl}/shop/${productSlug}`;
     
     // Get product image (use first variant thumbnail)
     let productImage: string | undefined;

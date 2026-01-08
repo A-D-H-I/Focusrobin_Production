@@ -44,7 +44,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
       startIndex: midIndex,
       skipSnaps: false,
       dragFree: false,
-      duration: 25,
+      duration: 15, // Reduced from 25 to make movement faster
     },
     []
   );
@@ -81,12 +81,12 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
     const rotateX = ((cy - y) / cy) * (maxRotate * 0.6); // up/down
 
     // Smooth transform on the inner card (so outer scale stays intact)
-    card.style.transition = "transform 120ms linear";
+    card.style.transition = "transform 80ms linear"; // Reduced from 120ms for faster movement
     card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(6px)`;
 
     // Parallax image (small opposite movement, subtle)
     if (imgWrap) {
-      imgWrap.style.transition = "transform 120ms linear";
+      imgWrap.style.transition = "transform 80ms linear"; // Reduced from 120ms for faster movement
       const parallaxX = -rotateY * 0.8; // inverse to rotation for depth
       const parallaxY = rotateX * 0.6;
       imgWrap.style.transform = `translate3d(${parallaxX}px, ${parallaxY}px, 0)`;
@@ -98,10 +98,10 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
     const imgWrap = imgRefs.current[index];
     if (!card) return;
     // reset transforms
-    card.style.transition = "transform 300ms cubic-bezier(.2,.8,.2,1)";
+    card.style.transition = "transform 200ms cubic-bezier(.2,.8,.2,1)"; // Reduced from 300ms for faster movement
     card.style.transform = `perspective(1000px) rotateX(0deg) rotateY(0deg) translateZ(0)`;
     if (imgWrap) {
-      imgWrap.style.transition = "transform 300ms cubic-bezier(.2,.8,.2,1)";
+      imgWrap.style.transition = "transform 200ms cubic-bezier(.2,.8,.2,1)"; // Reduced from 300ms for faster movement
       imgWrap.style.transform = "translate3d(0,0,0)";
     }
   }, []);
@@ -276,7 +276,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                       // This is the visual container that will float (y oscillation) for the active slide
                       className="aspect-[3/2] sm:aspect-[3/2] md:aspect-[16/9] relative bg-transparent mb-1 sm:mb-2 h-[200px] sm:h-[240px] md:h-auto w-full max-w-full"
                       animate={isActive ? { y: [0, -20, 0] } : { y: 0 }}
-                      transition={isActive ? { duration: 6, repeat: Infinity, ease: "easeInOut" } : {}}
+                      transition={isActive ? { duration: 3, repeat: Infinity, ease: "easeInOut" } : {}} // Reduced from 6s to 3s for faster jumping
                       style={{ overflow: 'visible', position: 'relative' }}
                     >
                       {/* Inner card handles perspective & tilt, image wrapper handles parallax */}

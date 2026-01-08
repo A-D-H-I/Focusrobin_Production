@@ -1,8 +1,13 @@
 /**
  * Lens Pricing Module - Single Source of Truth
  * Handles all lens type, index, coating, and tint pricing calculations
- * Prices from BOD Lenses Price List 2025.xlsx
+ * Prices from BOD Lenses Price List 2025 CSV (auto-generated)
  */
+
+// Import pricing data from CSV (auto-generated)
+import { LENS_PRICE_SINGLE, TINT_FEES_PAIR, EDGING_FEES } from './data/lensPricingData';
+// Import validation to ensure CSV is always the source of truth
+import { validatePricingOnLoad, getValidatedPrice, getValidatedTintFee } from './pricing/validatePricing';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -32,39 +37,15 @@ export const LENS_TYPE_LABELS: Record<LensType, string> = {
 };
 
 // ============================================================================
-// PRICING CONSTANTS (PER SINGLE LENS - from Excel)
+// PRICING CONSTANTS (PER SINGLE LENS - from CSV)
 // ============================================================================
 
-// Single lens prices from Excel "BOD Lenses. Price list 2025.xlsx"
-const LENS_PRICE_SINGLE: Record<LensType, Partial<Record<LensIndex, Record<Coating, number>>>> = {
-  CLEAR: {
-    "1.56": { UC: 8.49, BLUE_PRO: 14.49, SERICUM_UV: 14.49 },
-    "1.60": { UC: 16.98, BLUE_PRO: 22.98, SERICUM_UV: 22.98 },
-    "1.67": { UC: 25.07, BLUE_PRO: 31.07, SERICUM_UV: 31.07 },
-  },
-  TINTED: {
-    // Same base prices as CLEAR, but UC will be disallowed by rules
-    "1.56": { UC: 8.49, BLUE_PRO: 14.49, SERICUM_UV: 14.49 },
-    "1.60": { UC: 16.98, BLUE_PRO: 22.98, SERICUM_UV: 22.98 },
-    "1.67": { UC: 25.07, BLUE_PRO: 31.07, SERICUM_UV: 31.07 },
-  },
-  PHOTOCHROMIC_SOLIS: {
-    "1.56": { UC: 13.53, BLUE_PRO: 19.53, SERICUM_UV: 19.53 },
-    "1.60": { UC: 24.66, BLUE_PRO: 30.66, SERICUM_UV: 30.66 },
-    "1.67": { UC: 32.90, BLUE_PRO: 38.90, SERICUM_UV: 38.90 },
-  },
-  POLARIZED_NUPOLAR: {
-    // No 1.56 available
-    "1.60": { UC: 35.98, BLUE_PRO: 41.98, SERICUM_UV: 41.98 },
-    "1.67": { UC: 58.62, BLUE_PRO: 64.62, SERICUM_UV: 64.62 },
-  },
-};
+// Pricing constants are imported from auto-generated lensPricingData.ts
+// which is generated from data/pricing/bod-lenses-price-list-2025.csv
+// Run: npm run generate-pricing to regenerate after CSV changes
 
-// Tint add-on fees (per pair)
-const TINT_FEES_PAIR: Record<TintType, number> = {
-  FULL_TINT_CATALOG: 6.00,
-  GRADIENT: 12.00,
-};
+// Validate pricing data on module load - ensures CSV is always the source of truth
+validatePricingOnLoad();
 
 // Full Tint shade options by color
 export const FULL_TINT_SHADES: Record<TintColor, readonly number[]> = {
@@ -140,17 +121,27 @@ export function getAllowedCoatings(lensType: LensType): Coating[] {
 
 /**
  * Get base pair price (single lens price * 2)
+ * 
+ * Uses validated pricing data from CSV - throws error if price is missing
  */
 export function getBasePairPrice(
   lensType: LensType,
   index: LensIndex,
   coating: Coating
 ): number {
-  const singlePrice = LENS_PRICE_SINGLE[lensType]?.[index]?.[coating];
-  if (singlePrice === undefined || singlePrice === 0) {
-    return 0;
-  }
-  return round2(2 * singlePrice);
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lensPricing.ts:getBasePairPrice',message:'Function entry',data:{lensType,index,coating},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+  // Use validated price getter - throws error if price is missing
+  const singlePrice = getValidatedPrice(lensType, index, coating);
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lensPricing.ts:getBasePairPrice',message:'Single price from CSV',data:{singlePrice,coating,lensType,index},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+  const pairPrice = round2(2 * singlePrice);
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lensPricing.ts:getBasePairPrice',message:'Pair price calculated',data:{pairPrice,singlePrice},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+  // #endregion
+  return pairPrice;
 }
 
 /**
@@ -160,16 +151,29 @@ export function getCheapestAllowedBasePairPrice(
   lensType: LensType,
   index: LensIndex
 ): number {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lensPricing.ts:getCheapestAllowedBasePairPrice',message:'Function entry',data:{lensType,index},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
   const allowedCoatings = getAllowedCoatings(lensType);
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lensPricing.ts:getCheapestAllowedBasePairPrice',message:'Allowed coatings',data:{allowedCoatings,lensType},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
   const prices = allowedCoatings
     .map((coating) => getBasePairPrice(lensType, index, coating))
     .filter((price) => price > 0);
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lensPricing.ts:getCheapestAllowedBasePairPrice',message:'All prices calculated',data:{prices,allowedCoatings},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
   
   if (prices.length === 0) {
     return 0;
   }
   
-  return round2(Math.min(...prices));
+  const cheapest = round2(Math.min(...prices));
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lensPricing.ts:getCheapestAllowedBasePairPrice',message:'Cheapest price selected',data:{cheapest,prices},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+  // #endregion
+  return cheapest;
 }
 
 /**
@@ -180,13 +184,28 @@ export function getCoatingDeltaPair(
   index: LensIndex,
   coating: Coating
 ): number {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lensPricing.ts:getCoatingDeltaPair',message:'Function entry',data:{lensType,index,coating},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   const basePrice = getBasePairPrice(lensType, index, coating);
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lensPricing.ts:getCoatingDeltaPair',message:'Base price calculated',data:{basePrice,coating},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   const cheapestPrice = getCheapestAllowedBasePairPrice(lensType, index);
-  return round2(basePrice - cheapestPrice);
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lensPricing.ts:getCoatingDeltaPair',message:'Cheapest price calculated',data:{cheapestPrice,lensType,index},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  const delta = round2(basePrice - cheapestPrice);
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'lensPricing.ts:getCoatingDeltaPair',message:'Delta calculated',data:{delta,basePrice,cheapestPrice},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
+  return delta;
 }
 
 /**
  * Calculate total lens pair price (base + tint fee if applicable)
+ * NOTE: Profit is NOT included here - it's added in PrescriptionFlow.tsx
+ * This function returns the base cost price only
  */
 export function calculateLensPairTotal(selection: LensSelection): number {
   const normalized = normalizeSelection(selection);
@@ -200,17 +219,33 @@ export function calculateLensPairTotal(selection: LensSelection): number {
   // Tint fee (only for TINTED)
   let tintFeePair = 0;
   if (normalized.lensType === "TINTED" && normalized.tintType) {
-    tintFeePair = TINT_FEES_PAIR[normalized.tintType];
+    // Use validated fee getter - throws error if fee is missing
+    tintFeePair = getValidatedTintFee(normalized.tintType as keyof typeof TINT_FEES_PAIR);
   }
   
   return round2(basePair + tintFeePair);
 }
 
 /**
- * Get "From €..." price for a lens type and index
- * If index is not supported, uses the first supported index for that lens type
+ * Calculate lens pair price WITH profit incorporated (for display to customer)
+ * Profit is distributed proportionally into the lens price
+ * This is the price that should be shown to customers (profit is hidden)
  */
-export function getFromPricePair(lensType: LensType, index: LensIndex): number {
+export function calculateLensPairTotalWithProfit(
+  selection: LensSelection,
+  fixedProfit: number = 15.00
+): number {
+  const baseTotal = calculateLensPairTotal(selection);
+  // Add profit to the lens pair price (profit is hidden in the price)
+  return round2(baseTotal + fixedProfit);
+}
+
+/**
+ * Get "From €..." price for a lens type and index (WITH profit included)
+ * If index is not supported, uses the first supported index for that lens type
+ * Profit is incorporated into the price (hidden from customer)
+ */
+export function getFromPricePair(lensType: LensType, index: LensIndex, fixedProfit: number = 15.00): number {
   const supportedIndexes = getSupportedIndexes(lensType);
   
   // If the provided index is not supported, use the first supported index
@@ -221,11 +256,15 @@ export function getFromPricePair(lensType: LensType, index: LensIndex): number {
   const fromBase = getCheapestAllowedBasePairPrice(lensType, validIndex);
   
   // If TINTED, add minimum tint fee (FULL_TINT_CATALOG = 6)
+  let baseWithTint = fromBase;
   if (lensType === "TINTED") {
-    return round2(fromBase + TINT_FEES_PAIR.FULL_TINT_CATALOG);
+    // Use validated fee getter - throws error if fee is missing
+    const tintFee = getValidatedTintFee('FULL_TINT_CATALOG');
+    baseWithTint = fromBase + tintFee;
   }
   
-  return round2(fromBase);
+  // Add profit to the price (profit is hidden from customer)
+  return round2(baseWithTint + fixedProfit);
 }
 
 // ============================================================================
@@ -317,5 +356,11 @@ export const PRICES = {
   tintPair: TINT_FEES_PAIR,
 } as const;
 
+// Export TINT_FEES_PAIR directly (used by other modules)
+export { TINT_FEES_PAIR };
+
 // Export for backward compatibility
 export { TINT_FEES_PAIR as TINT_FEES };
+
+// Export edging fees for use in other modules
+export { EDGING_FEES };

@@ -131,13 +131,13 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-brand-h1 font-headline leading-tight sm:leading-normal break-words overflow-hidden">{product.name}</h1>
+      <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[72px] font-headline leading-tight sm:leading-normal break-words overflow-hidden">{product.name}</h1>
       
       {/* Virtual Try-On Button - Visible at top on all devices */}
       <Button 
         size="lg" 
         variant="outline" 
-        className="h-9 sm:h-10 md:h-12 lg:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg border-2 w-full border-primary px-2 sm:px-3 md:px-4 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3"
+        className="h-10 sm:h-12 md:h-14 lg:h-16 text-sm sm:text-base md:text-lg lg:text-xl border-2 w-full border-primary px-2 sm:px-3 md:px-4 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3"
         onClick={() => {
           if (!selectedVariant) {
             toast({
@@ -162,12 +162,12 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       
       <div className="flex items-center gap-4 flex-wrap">
         <div className="flex items-center gap-2">
-          <p className="text-3xl font-bold text-primary">{formatPrice(priceInEur)}</p>
+          <p className="text-4xl font-bold text-primary">{formatPrice(priceInEur)}</p>
           {originalPriceInEur && originalPriceInEur !== priceInEur && (
             <>
-              <p className="text-xl text-muted-foreground line-through">{formatPrice(originalPriceInEur)}</p>
+              <p className="text-2xl text-muted-foreground line-through">{formatPrice(originalPriceInEur)}</p>
               {product.discountPct && (
-                <Badge variant="destructive" className="text-sm">
+                <Badge variant="destructive" className="text-base">
                   -{product.discountPct}%
                 </Badge>
               )}
@@ -175,7 +175,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
           )}
         </div>
         {cashbackInEur && cashbackInEur > 0 && (
-          <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
+          <Badge variant="outline" className="text-base bg-green-50 text-green-700 border-green-200">
             🎁 {formatPrice(cashbackInEur)} cashback
           </Badge>
         )}
@@ -187,7 +187,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             <Star 
               key={i} 
               className={cn(
-                "h-5 w-5", 
+                "h-6 w-6", 
                 i < Math.round(product.averageRating || 4) 
                   ? "text-yellow-400 fill-current" 
                   : "text-gray-300"
@@ -195,13 +195,13 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             />
           ))}
         </div>
-        <p className="text-sm text-muted-foreground hover:underline cursor-pointer">
+        <p className="text-base text-muted-foreground hover:underline cursor-pointer">
           ({product.reviewCount || 0} customer review{product.reviewCount !== 1 ? 's' : ''})
         </p>
       </div>
 
       <div>
-          <h3 className="text-brand-h3 font-headline mb-3">Color: <span className="font-normal text-muted-foreground">{selectedVariant?.name || 'Default'}</span></h3>
+          <h3 className="text-2xl sm:text-3xl font-headline mb-3">Color: <span className="font-normal text-muted-foreground">{selectedVariant?.name || 'Default'}</span></h3>
           <div className="flex items-center gap-2 flex-wrap">
               {product.variants.map((variant, idx) => (
                   <button
@@ -219,8 +219,8 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
         <div className="grid grid-cols-2 gap-4">
           {lensFeatures.map(feature => (
             <div key={feature.text} className="flex items-center gap-3">
-              <feature.icon className="h-6 w-6 text-primary" />
-              <span className="text-sm text-foreground/80 font-medium">{feature.text}</span>
+              <feature.icon className="h-7 w-7 text-primary" />
+              <span className="text-base text-foreground/80 font-medium">{feature.text}</span>
             </div>
           ))}
         </div>
@@ -228,14 +228,14 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
 
       <div className="rounded-lg border bg-muted/50 p-4">
         <div className="flex items-center justify-center gap-3">
-          <CheckCircle2 className="h-6 w-6 text-primary" />
-          <span className="text-base font-bold text-foreground">Three Years Warranty</span>
+          <CheckCircle2 className="h-7 w-7 text-primary" />
+          <span className="text-lg font-bold text-foreground">Three Years Warranty</span>
         </div>
       </div>
 
       <div className="space-y-3">
           <div className="flex items-center gap-4">
-              <h3 className="text-brand-h3 font-headline">Quantity:</h3>
+              <h3 className="text-2xl sm:text-3xl font-headline">Quantity:</h3>
               <div className="flex items-center border rounded-md">
                   <Button 
                       variant="ghost" 
@@ -246,7 +246,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
                   >
                       <Minus className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4" />
                   </Button>
-                  <span className="w-8 sm:w-10 md:w-12 text-center font-bold text-xs sm:text-sm md:text-base">{quantity}</span>
+                  <span className="w-8 sm:w-10 md:w-12 text-center font-bold text-sm sm:text-base md:text-lg">{quantity}</span>
                   <Button 
                       variant="ghost" 
                       size="icon" 
@@ -263,7 +263,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
           </div>
           {/* Show stock when below 10 */}
           {selectedVariant?.stock !== undefined && selectedVariant.stock < 10 && (
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2 text-base">
                   <span className={cn(
                       "font-medium",
                       selectedVariant.stock === 0 
@@ -330,7 +330,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
           <div className="space-y-3">
             <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
               <div className="flex items-center justify-between">
-                <h3 className="text-brand-h3 font-headline">Prescription Added</h3>
+                <h3 className="text-2xl sm:text-3xl font-headline">Prescription Added</h3>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -338,14 +338,14 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
                     sessionStorage.removeItem(`prescription_${product.id}`);
                     setPrescriptionData(null);
                   }}
-                  className="h-8 text-xs"
+                  className="h-9 text-sm"
                 >
                   Remove
                 </Button>
               </div>
               
               {/* Prescription Details */}
-              <div className="space-y-3 text-sm">
+              <div className="space-y-3 text-base">
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <p className="font-medium text-muted-foreground mb-1">OD (Right)</p>
@@ -425,12 +425,12 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
                 {prescriptionData.rxPriceBreakdown && (
                   <div className="pt-2 border-t">
                     <div className="flex justify-between items-center">
-                      <span className="font-medium">Total with Rx:</span>
-                      <span className="text-lg font-bold text-primary">
+                      <span className="text-base font-medium">Total with Rx:</span>
+                      <span className="text-xl font-bold text-primary">
                         {formatPrice(prescriptionData.rxPriceBreakdown.totalNet)}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       Frame + Rx lenses ({formatPrice(prescriptionData.rxPriceBreakdown.rxRetailNet)} add-on)
                     </p>
                   </div>
@@ -444,7 +444,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
               variant="outline"
               className="h-9 sm:h-10 md:h-12 lg:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg w-full px-2 sm:px-3 md:px-4 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3 font-semibold"
               onClick={() => {
-                router.push(`/products/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
+                router.push(`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
               }}
             >
               Edit Prescription
@@ -455,7 +455,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
               className="h-9 sm:h-10 md:h-12 lg:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg w-full px-2 sm:px-3 md:px-4 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3 font-semibold"
               onClick={() => {
                 // Navigate to prescription page starting at lens selection step (step 3)
-                router.push(`/products/${product.id}/prescription?product=${encodeURIComponent(product.id)}&step=3`);
+                router.push(`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}&step=3`);
               }}
             >
               Change Lens Options
@@ -466,7 +466,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             size="lg"
             className="h-9 sm:h-10 md:h-12 lg:h-14 text-[11px] sm:text-sm md:text-base lg:text-lg w-full px-2 sm:px-3 md:px-4 lg:px-6 py-1.5 sm:py-2 md:py-2.5 lg:py-3 font-semibold"
             onClick={() => {
-              router.push(`/products/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
+              router.push(`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
             }}
           >
             <Plus className="mr-1 sm:mr-1.5 md:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 md:h-5 md:w-5 flex-shrink-0" />
@@ -524,7 +524,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       </div>
       
       {/* Shipping Signal - Under primary CTA */}
-      <p className="text-xs sm:text-sm text-muted-foreground break-words max-w-full">
+      <p className="text-sm sm:text-base text-muted-foreground break-words max-w-full">
         Designed in Lithuania. Fast delivery of sunglasses across Lithuania and the EU/Schengen.
       </p>
     </div>

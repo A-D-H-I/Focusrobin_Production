@@ -16,7 +16,7 @@ export default function WishlistPage() {
       <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="container mx-auto px-4 sm:px-6">
-          <h1 className="text-brand-h1 font-headline text-brand-blue mb-8">
+          <h1 className="text-brand-h1 font-headline text-brand-blue mb-8 text-center">
             Your Wishlist
           </h1>
 

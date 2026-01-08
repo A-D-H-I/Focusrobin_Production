@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 interface Dimensions {
   frameWidth: number;
@@ -30,47 +31,14 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
     return `${displayValue}${unit === "in" ? "in" : "mm"}`;
   };
 
-  // Get display values
-  const frameWidth = dimensions.frameWidth;
-  const lensWidth = dimensions.lensWidth;
-  const lensHeight = dimensions.lensHeight;
-  const bridgeWidth = dimensions.bridgeWidth;
-  const templeLength = dimensions.templeLength;
+  // Get display values with fallbacks
+  const frameWidth = dimensions.frameWidth || 128;
+  const lensWidth = dimensions.lensWidth || 52;
+  const lensHeight = dimensions.lensHeight || 39;
+  const bridgeWidth = dimensions.bridgeWidth || 18;
+  const templeLength = dimensions.templeLength || 145;
 
-  // Calculate frame width in pixels based on actual measurement
-  // Use a scale factor: if frameWidth is 125mm, make it visually 300px wide
-  const scaleFactor = 2.4; // Adjust this to make the diagram bigger
-  const frameWidthPx = (frameWidth || 125) * scaleFactor;
-  
-  // Calculate lens dimensions proportionally
-  const lensWidthPx = (lensWidth || 54) * scaleFactor;
-  const lensHeightPx = (lensHeight || 45) * scaleFactor;
-  const bridgeWidthPx = (bridgeWidth || 16) * scaleFactor;
-  const lensSpacing = 60; // Increased gap between lenses for bridge measurement
-  
-  // SVG coordinates - centered glasses in viewBox
-  const centerY = 200; // Moved down to accommodate extended lenses
-  const topPadding = 60; // Space for frame width measurement
-  const lensExtension = 30; // Extra space to extend lenses downward
-  
-  // Calculate the total width needed for the diagram
-  const totalContentWidth = lensWidthPx * 2 + bridgeWidthPx + lensSpacing + 30; // 30 for temple/hinge on each side
-  const viewBoxWidth = Math.max(frameWidthPx + 200, totalContentWidth + 100); // Ensure viewBox is wide enough
-  const centerX = viewBoxWidth / 2; // True center of the viewBox
-  
-  // Calculate positions
-  const leftLensX = centerX - lensWidthPx - bridgeWidthPx / 2 - lensSpacing / 2;
-  const rightLensX = centerX + bridgeWidthPx / 2 + lensSpacing / 2;
-  const lensY = centerY - lensHeightPx / 2;
-  
-  // Calculate frame width line endpoints (should match actual frame width)
-  const frameLeftX = leftLensX - 15; // Left temple/hinge position
-  const frameRightX = rightLensX + lensWidthPx + 15; // Right temple/hinge position
-  const actualFrameWidthPx = frameRightX - frameLeftX;
-
-  return (
-    <div className="relative w-full bg-card/50 rounded-lg border p-6 sm:p-8">
-      {/* MM/IN Toggle */}
+  const unitToggle = (
       <div className="absolute top-4 right-4 flex items-center border rounded-md p-1 bg-background z-10">
         <Button
           variant={unit === "mm" ? "secondary" : "ghost"}
@@ -89,299 +57,158 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
           IN
         </Button>
       </div>
+  );
 
-      {/* SVG Diagram */}
-      <svg
-        viewBox={`0 0 ${viewBoxWidth} 450`}
-        className="w-full h-auto min-h-[450px]"
-        role="img"
-        aria-label="Glasses frame dimensions diagram"
-        preserveAspectRatio="xMidYMid meet"
+  return (
+    <div className="relative w-full max-w-5xl mx-auto rounded-lg border bg-card/50 p-4 sm:p-6 pt-12 sm:pt-16">
+      {unitToggle}
+
+      {/* Frame Width View */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="mb-12 sm:mb-20"
       >
-        {/* Frame Width Measurement - Top */}
-        <g>
-          {/* Dotted line - spans actual frame width */}
-          <line
-            x1={frameLeftX}
-            y1={topPadding}
-            x2={frameRightX}
-            y2={topPadding}
-            stroke="#1C3142"
-            strokeWidth="2"
-            strokeDasharray="4,4"
-            opacity="0.7"
-          />
-          {/* Left screw head */}
-          <circle cx={frameLeftX} cy={topPadding} r="5" fill="#1C3142" />
-          <line
-            x1={frameLeftX - 3}
-            y1={topPadding}
-            x2={frameLeftX + 3}
-            y2={topPadding}
-            stroke="hsl(var(--background))"
-            strokeWidth="1.5"
-          />
-          {/* Right screw head */}
-          <circle cx={frameRightX} cy={topPadding} r="5" fill="#1C3142" />
-          <line
-            x1={frameRightX - 3}
-            y1={topPadding}
-            x2={frameRightX + 3}
-            y2={topPadding}
-            stroke="hsl(var(--background))"
-            strokeWidth="1.5"
-          />
-          {/* Label */}
-          <text
-            x={centerX}
-            y={topPadding - 30}
-            textAnchor="middle"
-            className="font-headline text-sm"
-            fill="#1C3142"
-            opacity="0.7"
-          >
-            Frame width
-          </text>
-          <text
-            x={centerX}
-            y={topPadding - 12}
-            textAnchor="middle"
-            className="font-sans text-lg font-bold"
-            fill="#1C3142"
-          >
-            {formatValue(frameWidth)}
-          </text>
-        </g>
+        {/* Frame Width Label */}
+        <div className="text-center mb-6 sm:mb-8">
+          <p className="text-sm text-muted-foreground mb-1">Frame width</p>
+          <p className="text-2xl sm:text-3xl font-semibold text-foreground">{formatValue(frameWidth)}</p>
+        </div>
 
-        {/* Glasses Frame Outline - Wayfarer style */}
-        <g>
-          {/* Left lens frame - rounded rectangle (extended downward) */}
-          <path
-            d={`M ${leftLensX} ${lensY + 8}
-                L ${leftLensX} ${lensY + lensHeightPx + lensExtension - 8}
-                Q ${leftLensX} ${lensY + lensHeightPx + lensExtension}, ${leftLensX + 8} ${lensY + lensHeightPx + lensExtension}
-                L ${leftLensX + lensWidthPx - 8} ${lensY + lensHeightPx + lensExtension}
-                Q ${leftLensX + lensWidthPx} ${lensY + lensHeightPx + lensExtension}, ${leftLensX + lensWidthPx} ${lensY + lensHeightPx + lensExtension - 8}
-                L ${leftLensX + lensWidthPx} ${lensY + 8}
-                Q ${leftLensX + lensWidthPx} ${lensY}, ${leftLensX + lensWidthPx - 8} ${lensY}
-                L ${leftLensX + 8} ${lensY}
-                Q ${leftLensX} ${lensY}, ${leftLensX} ${lensY + 8}
-                Z`}
-            fill="none"
-            stroke="#1C3142"
-            strokeWidth="2.5"
-          />
-          {/* Left temple hinge */}
-          <rect
-            x={frameLeftX}
-            y={centerY - 4}
-            width="8"
-            height="8"
-            fill="none"
-            stroke="#1C3142"
-            strokeWidth="2.5"
-          />
-          <line
-            x1={frameLeftX}
-            y1={centerY}
-            x2={frameLeftX + 8}
-            y2={centerY}
-            stroke="hsl(var(--background))"
-            strokeWidth="1.5"
-          />
+        {/* Glasses Front View */}
+        <div className="relative flex items-center justify-center gap-4 sm:gap-6 mt-12 sm:mt-24 w-full max-w-[700px] mx-auto">
+          
+          {/* Frame Width Indicator Line - Positioned to match frame width including temple arms */}
+          {/* Width calculation: left temple tip (26px/36px) + left lens (128px/176px) + gap (16px/24px) + bridge (64px/80px) + gap (16px/24px) + right lens (128px/176px) + right temple tip (26px/36px) */}
+          <div className="absolute -top-12 sm:-top-16 left-1/2 -translate-x-1/2 w-[404px] sm:w-[552px] flex items-center">
+            {/* Left dot - aligned with tip of left temple arm (temple line 24px/32px + square overlap 2px/4px) */}
+            <div className="absolute -left-[26px] sm:-left-[36px] w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-foreground flex-shrink-0"></div>
+            {/* Dashed line spanning the full frame width */}
+            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-[2px] border-t-2 border-dashed border-border"></div>
+            {/* Right dot - aligned with tip of right temple arm */}
+            <div className="absolute -right-[26px] sm:-right-[36px] w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-foreground flex-shrink-0"></div>
+          </div>
+          {/* Left Lens */}
+          <div className="relative">
+            <div className="w-32 h-24 sm:w-44 sm:h-32 border-4 border-foreground rounded-full relative">
+              {/* Lens Width Indicator Line */}
+              <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 flex items-center">
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-foreground flex-shrink-0"></div>
+                <div className="flex-1 h-[2px] border-t-2 border-dashed border-border"></div>
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-foreground flex-shrink-0"></div>
+              </div>
+              
+              {/* Lens Width Label */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center mt-6 sm:mt-8">
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">Lens width</p>
+                <p className="text-sm sm:text-lg font-semibold text-foreground">{formatValue(lensWidth)}</p>
+              </div>
+              
+              {/* Bridge connection point (left side) - extends to connect with bridge */}
+              <div className="absolute -right-[1px] top-1/2 -translate-y-1/2 w-[1px] h-4 bg-foreground"></div>
+            </div>
+            
+            {/* Temple Arm Left */}
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full">
+              <div className="w-6 sm:w-8 h-1 bg-foreground"></div>
+              <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-foreground rounded-sm -ml-0.5 sm:-ml-1 -mt-0.5"></div>
+            </div>
+          </div>
 
-          {/* Bridge - Visual connection between lenses */}
-          <line
-            x1={leftLensX + lensWidthPx}
-            y1={centerY}
-            x2={rightLensX}
-            y2={centerY}
-            stroke="#1C3142"
-            strokeWidth="2.5"
-          />
+          {/* Bridge - Connected to both lenses */}
+          <div className="relative">
+            <div className="w-16 sm:w-20 h-1 bg-foreground relative">
+              {/* Left connection to left lens */}
+              <div className="absolute -left-[1px] top-1/2 -translate-y-1/2 w-[1px] h-4 bg-foreground"></div>
+              {/* Right connection to right lens */}
+              <div className="absolute -right-[1px] top-1/2 -translate-y-1/2 w-[1px] h-4 bg-foreground"></div>
+            </div>
+            {/* Bridge Label */}
+            <div className="absolute -bottom-10 sm:-bottom-12 left-1/2 -translate-x-1/2 text-center whitespace-nowrap">
+              <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5">Bridge</p>
+              <p className="text-sm sm:text-lg font-semibold text-foreground">{formatValue(bridgeWidth)}</p>
+            </div>
+          </div>
 
-          {/* Right lens frame - rounded rectangle (extended downward) */}
-          <path
-            d={`M ${rightLensX} ${lensY + 8}
-                L ${rightLensX} ${lensY + lensHeightPx + lensExtension - 8}
-                Q ${rightLensX} ${lensY + lensHeightPx + lensExtension}, ${rightLensX + 8} ${lensY + lensHeightPx + lensExtension}
-                L ${rightLensX + lensWidthPx - 8} ${lensY + lensHeightPx + lensExtension}
-                Q ${rightLensX + lensWidthPx} ${lensY + lensHeightPx + lensExtension}, ${rightLensX + lensWidthPx} ${lensY + lensHeightPx + lensExtension - 8}
-                L ${rightLensX + lensWidthPx} ${lensY + 8}
-                Q ${rightLensX + lensWidthPx} ${lensY}, ${rightLensX + lensWidthPx - 8} ${lensY}
-                L ${rightLensX + 8} ${lensY}
-                Q ${rightLensX} ${lensY}, ${rightLensX} ${lensY + 8}
-                Z`}
-            fill="none"
-            stroke="#1C3142"
-            strokeWidth="2.5"
-          />
-          {/* Right temple hinge */}
-          <rect
-            x={frameRightX - 8}
-            y={centerY - 4}
-            width="8"
-            height="8"
-            fill="none"
-            stroke="#1C3142"
-            strokeWidth="2.5"
-          />
-          <line
-            x1={frameRightX - 8}
-            y1={centerY}
-            x2={frameRightX}
-            y2={centerY}
-            stroke="hsl(var(--background))"
-            strokeWidth="1.5"
-          />
-        </g>
+          {/* Right Lens */}
+          <div className="relative">
+            <div className="w-32 h-24 sm:w-44 sm:h-32 border-4 border-foreground rounded-full relative">
+              {/* Lens Height Indicator - Full vertical line with dots */}
+              <div className="absolute left-1/2 top-0 bottom-0 flex flex-col items-center" style={{ left: 'calc(5% + 20px)' }}>
+                {/* Top dot */}
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-foreground flex-shrink-0 mt-2 sm:mt-3"></div>
+                
+                {/* Top dashed segment */}
+                <div className="flex-1 w-[2px] border-l-2 border-dashed border-border mt-1"></div>
+                
+                {/* Solid connecting line in the middle */}
+                <div className="w-[2px] h-8 sm:h-12 bg-border"></div>
+                
+                {/* Bottom dashed segment */}
+                <div className="flex-1 w-[2px] border-l-2 border-dashed border-border"></div>
+                
+                {/* Bottom dot */}
+                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-foreground flex-shrink-0 mb-2 sm:mb-3"></div>
+              </div>
+              
+              {/* Lens Height Label */}
+              <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-center" style={{ left: 'calc(40% + 35px)' }}>
+                <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 whitespace-nowrap">Lens height</p>
+                <p className="text-sm sm:text-lg font-semibold text-foreground">{formatValue(lensHeight)}</p>
+              </div>
 
-        {/* Lens Width Measurement - Inside left lens */}
-        <g>
-          <line
-            x1={leftLensX + 8}
-            y1={centerY}
-            x2={leftLensX + lensWidthPx - 8}
-            y2={centerY}
-            stroke="#1C3142"
-            strokeWidth="2"
-            strokeDasharray="4,4"
-            opacity="0.7"
-          />
-          <text
-            x={leftLensX + lensWidthPx / 2}
-            y={centerY - 20}
-            textAnchor="middle"
-            className="font-headline text-sm"
-            fill="#1C3142"
-            opacity="0.7"
-          >
-            Lens width
-          </text>
-          <text
-            x={leftLensX + lensWidthPx / 2}
-            y={centerY + 15}
-            textAnchor="middle"
-            className="font-sans text-base font-bold"
-            fill="#1C3142"
-          >
-            {formatValue(lensWidth)}
-          </text>
-        </g>
+              {/* Bridge connection point (right side) - extends to connect with bridge */}
+              <div className="absolute -left-[1px] top-1/2 -translate-y-1/2 w-[1px] h-4 bg-foreground"></div>
+            </div>
+            
+            {/* Temple Arm Right */}
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full">
+              <div className="w-1.5 sm:w-2 h-1.5 sm:h-2 bg-foreground rounded-sm -mr-0.5 sm:-mr-1 -mt-0.5"></div>
+              <div className="w-6 sm:w-8 h-1 bg-foreground"></div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
-        {/* Lens Height Measurement - Inside right lens */}
-        <g>
-          <line
-            x1={rightLensX + lensWidthPx / 2}
-            y1={lensY + 8}
-            x2={rightLensX + lensWidthPx / 2}
-            y2={lensY + lensHeightPx + lensExtension - 8}
-            stroke="#1C3142"
-            strokeWidth="2"
-            strokeDasharray="4,4"
-            opacity="0.7"
-          />
-          <text
-            x={rightLensX + lensWidthPx / 2 + 40}
-            y={centerY}
-            textAnchor="middle"
-            className="font-headline text-sm"
-            fill="#1C3142"
-            opacity="0.7"
-            transform={`rotate(90 ${rightLensX + lensWidthPx / 2 + 40} ${centerY})`}
-          >
-            Lens height
-          </text>
-          <text
-            x={rightLensX + lensWidthPx / 2 + 20}
-            y={centerY}
-            textAnchor="middle"
-            className="font-sans text-base font-bold"
-            fill="#1C3142"
-            transform={`rotate(90 ${rightLensX + lensWidthPx / 2 + 20} ${centerY})`}
-          >
-            {formatValue(lensHeight)}
-          </text>
-        </g>
-
-        {/* Bridge Measurement - Positioned between lenses, perfectly centered */}
-        <g>
-          {/* Bridge measurement line - touches lens edges but doesn't overlap */}
-          <line
-            x1={leftLensX + lensWidthPx}
-            y1={centerY + 20}
-            x2={rightLensX}
-            y2={centerY + 20}
-            stroke="#1C3142"
-            strokeWidth="2"
-            strokeDasharray="4,4"
-            opacity="0.7"
-          />
-          {/* Bridge label - with proper spacing */}
-          <text
-            x={centerX}
-            y={centerY + 38}
-            textAnchor="middle"
-            className="font-headline text-sm"
-            fill="#1C3142"
-            opacity="0.7"
-          >
-            Bridge
-          </text>
-          {/* Bridge value - with proper spacing */}
-          <text
-            x={centerX}
-            y={centerY + 55}
-            textAnchor="middle"
-            className="font-sans text-base font-bold"
-            fill="#1C3142"
-          >
-            {formatValue(bridgeWidth)}
-          </text>
-        </g>
-      </svg>
-
-      {/* Temple Length - Separate section below with dividing line */}
+      {/* Temple Length View */}
       {templeLength !== undefined && (
-        <div className="-mt-20 pt-0 border-t">
-          <div className="text-center">
-            <p className="text-sm text-foreground/70 mb-2 font-headline">Temple length</p>
-            <p className="text-2xl font-bold font-headline text-foreground mb-4">
-              {formatValue(templeLength)}
-            </p>
-            <svg
-              viewBox="0 0 200 40"
-              className="w-full max-w-md mx-auto"
-              role="img"
-              aria-label="Temple length diagram"
-            >
-              {/* Temple length line */}
-              <line
-                x1="10"
-                y1="20"
-                x2="190"
-                y2="20"
-                stroke="hsl(var(--foreground))"
-                strokeWidth="1.5"
-                strokeDasharray="2,2"
-                opacity="0.6"
-              />
-              {/* End markers */}
-              <line x1="10" y1="15" x2="10" y2="25" stroke="hsl(var(--foreground))" strokeWidth="2" />
-              <line x1="190" y1="15" x2="190" y2="25" stroke="hsl(var(--foreground))" strokeWidth="2" />
-              {/* Temple shape */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="border-t border-border pt-8 sm:pt-16"
+        >
+          <div className="max-w-md mx-auto">
+            {/* Temple Label */}
+            <div className="text-center mb-6 sm:mb-8">
+              <p className="text-lg sm:text-xl font-semibold text-foreground">{formatValue(templeLength)}</p>
+            </div>
+
+            {/* Temple Arm Illustration */}
+            <div className="relative">
+              <svg viewBox="0 0 400 80" className="w-full h-auto">
+                {/* Measurement Line */}
+                <line x1="50" y1="20" x2="350" y2="20" stroke="hsl(var(--border))" strokeWidth="2" />
+                <line x1="50" y1="15" x2="50" y2="25" stroke="hsl(var(--foreground))" strokeWidth="2" />
+                <line x1="350" y1="15" x2="350" y2="25" stroke="hsl(var(--foreground))" strokeWidth="2" />
+                
+                {/* Temple Arm Shape */}
               <path
-                d="M 10 20 L 150 20 L 170 30 Q 180 35, 185 30"
+                  d="M 50 45 L 280 45 Q 320 45 340 55 L 355 65"
                 fill="none"
                 stroke="hsl(var(--foreground))"
-                strokeWidth="2"
+                  strokeWidth="3"
+                  strokeLinecap="round"
               />
+                
+                {/* Hinge */}
+                <rect x="45" y="40" width="10" height="10" fill="hsl(var(--foreground))" rx="1" />
             </svg>
           </div>
         </div>
+        </motion.div>
       )}
-
     </div>
   );
 }
-

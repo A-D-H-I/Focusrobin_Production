@@ -123,11 +123,11 @@ export default function PrescriptionForm({ product, productSlug }: PrescriptionF
       description: "Your prescription has been saved successfully.",
     });
     
-    router.push(`/products/${productSlug}/prescription/confirmation`);
+    router.push(`/shop/${productSlug}/prescription/confirmation`);
   };
 
   const handleClose = () => {
-    router.push(`/products/${productSlug}`);
+    router.push(`/shop/${productSlug}`);
   };
 
   return (

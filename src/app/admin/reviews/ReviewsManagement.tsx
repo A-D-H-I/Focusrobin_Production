@@ -265,7 +265,7 @@ export default function ReviewsManagement({
                     <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                       {review.Product && (
                         <Link
-                          href={`/products/${review.Product.slug}`}
+                          href={`/shop/${review.Product.slug}`}
                           className="hover:underline"
                         >
                           Product: {review.Product.name}

@@ -64,17 +64,17 @@ export default function ProductPageContent({ product, reviews, relatedProducts }
           className="flex gap-12"
           style={{ alignItems: 'flex-start' }}
         >
-          {/* Left Column - 60% - Product Images Only */}
-          <div className="w-[60%]">
+          {/* Left Column - 55% - Product Images Only */}
+          <div className="w-[55%]">
             <ProductGalleryDesktopStack 
               product={product} 
               selectedVariant={selectedVariant}
             />
           </div>
           
-          {/* Right Column - 40% - STICKY (stops when images end) */}
+          {/* Right Column - 45% - STICKY (stops when images end) */}
           <div 
-            className="w-[40%]"
+            className="w-[45%]"
             style={{
               position: 'sticky',
               top: '140px',
@@ -82,11 +82,14 @@ export default function ProductPageContent({ product, reviews, relatedProducts }
               height: 'fit-content'
             }}
           >
-            <ProductPurchaseForm 
-              product={product} 
-              selectedVariant={selectedVariant}
-              onVariantChange={setSelectedVariant} 
-            />
+            {/* Scale down the entire product information group by 20% */}
+            <div style={{ transform: 'scale(0.8)', transformOrigin: 'top left' }}>
+              <ProductPurchaseForm 
+                product={product} 
+                selectedVariant={selectedVariant}
+                onVariantChange={setSelectedVariant} 
+              />
+            </div>
           </div>
         </div>
       </div>

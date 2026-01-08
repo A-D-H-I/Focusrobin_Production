@@ -1,5 +1,10 @@
 // Rx Lens Pricing Module for Mono RX 1.67 Lenses
-// Based on BOD Lenses Price List 2025
+// Based on BOD Lenses Price List 2025 CSV (auto-generated)
+
+// Import pricing data from CSV (auto-generated)
+import { LENS_PRICE_SINGLE, TINT_FEES_PAIR, EDGING_FEES } from '../data/lensPricingData';
+// Import validation to ensure CSV is always the source of truth
+import { validatePricingOnLoad, getValidatedPrice, getValidatedTintFee, getValidatedEdgingFee } from './validatePricing';
 
 export type Coating = "UC" | "BLUE_PRO";
 export type LensCategory = "CLEAR_OR_TINT" | "PHOTOCHROMIC_SOLIS" | "POLARIZED_NUPOLAR";
@@ -63,27 +68,55 @@ export type PhotochromicColor = (typeof PHOTOCHROMIC_COLORS)[number];
 export const POLARIZED_COLORS = ["Brown", "Grey", "Green"] as const;
 export type PolarizedColor = (typeof POLARIZED_COLORS)[number];
 
-// Price constants (EUR) from BOD Lenses Price List 2025
+// Price constants (EUR) from BOD Lenses Price List 2025 CSV
+// Auto-generated from data/pricing/bod-lenses-price-list-2025.csv
+// Run: npm run generate-pricing to regenerate after CSV changes
+
+// Validate pricing data on module load - ensures CSV is always the source of truth
+validatePricingOnLoad();
+
+/**
+ * Get lens price for 1.67 index (validated from CSV)
+ * 
+ * This function ensures prices come from CSV and throws errors if missing.
+ * No hardcoded fallbacks - CSV is the only source of truth.
+ */
+function getLensPrice167(lensType: "CLEAR" | "PHOTOCHROMIC_SOLIS" | "POLARIZED_NUPOLAR", coating: "UC" | "BLUE_PRO"): number {
+  return getValidatedPrice(lensType, "1.67", coating);
+}
+
 export const PRICES = {
-  // Per 1 lens prices
+  // Per 1 lens prices (1.67 index only for this module)
+  // All prices are validated from CSV - no hardcoded fallbacks
   lenses: {
-    CLEAR_OR_TINT: { UC: 25.07, BLUE_PRO: 31.07 },
-    PHOTOCHROMIC_SOLIS: { UC: 32.90, BLUE_PRO: 38.90 },
-    POLARIZED_NUPOLAR: { UC: 58.62, BLUE_PRO: 64.62 },
+    CLEAR_OR_TINT: {
+      UC: getLensPrice167("CLEAR", "UC"),
+      BLUE_PRO: getLensPrice167("CLEAR", "BLUE_PRO"),
+    },
+    PHOTOCHROMIC_SOLIS: {
+      UC: getLensPrice167("PHOTOCHROMIC_SOLIS", "UC"),
+      BLUE_PRO: getLensPrice167("PHOTOCHROMIC_SOLIS", "BLUE_PRO"),
+    },
+    POLARIZED_NUPOLAR: {
+      UC: getLensPrice167("POLARIZED_NUPOLAR", "UC"),
+      BLUE_PRO: getLensPrice167("POLARIZED_NUPOLAR", "BLUE_PRO"),
+    },
   },
   // Per PAIR tinting service (not per lens)
+  // All fees are validated from CSV - no hardcoded fallbacks
   tinting: {
     NONE: 0,
-    FULL_CATALOG: 6,      // €6.00 per pair
-    GRADIENT: 12,         // €12.00 per pair
+    FULL_CATALOG: getValidatedTintFee('FULL_TINT_CATALOG'),
+    GRADIENT: getValidatedTintFee('GRADIENT'),
   },
   // Per order edging/mounting fee
+  // All fees are validated from CSV - no hardcoded fallbacks
   edging: {
-    FULL_FRAME: 4.60,
-    NYLON_FRAME: 5.90,
-    RIMLESS_PRESSING: 12.00,
-    RIMLESS_INDIVIDUAL: 20.00,
-    LINDBERG_COMPLEX: 20.00,
+    FULL_FRAME: getValidatedEdgingFee('FULL_FRAME'),
+    NYLON_FRAME: getValidatedEdgingFee('NYLON_FRAME'),
+    RIMLESS_PRESSING: getValidatedEdgingFee('RIMLESS_PRESSING'),
+    RIMLESS_INDIVIDUAL: getValidatedEdgingFee('RIMLESS_INDIVIDUAL'),
+    LINDBERG_COMPLEX: getValidatedEdgingFee('LINDBERG_COMPLEX'),
   },
 } as const;
 

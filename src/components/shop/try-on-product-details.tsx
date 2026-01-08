@@ -272,7 +272,7 @@ export default function TryOnProductDetails({
           <Button
             variant="outline"
             onClick={() => {
-              router.push(`/products/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
+              router.push(`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
             }}
             className="flex-1 h-6 text-[9px] px-1"
           >

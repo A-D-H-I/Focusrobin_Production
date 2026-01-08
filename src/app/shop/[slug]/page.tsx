@@ -62,101 +62,101 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
 
   // If custom page exists and is visible, render it
   if (customPage && customPage.isVisible) {
-    // Fetch products by their slugs
-    const productSlugs = customPage.products || [];
-    let prismaProducts: any[] = [];
-    
-    if (productSlugs.length > 0) {
-      try {
-        prismaProducts = await prisma.product.findMany({
-          where: {
-            slug: {
-              in: productSlugs,
+  // Fetch products by their slugs
+  const productSlugs = customPage.products || [];
+  let prismaProducts: any[] = [];
+  
+  if (productSlugs.length > 0) {
+    try {
+      prismaProducts = await prisma.product.findMany({
+        where: {
+          slug: {
+            in: productSlugs,
+          },
+        },
+        include: {
+          ProductVariant: {
+            include: {
+              ProductAsset: true,
             },
           },
-          include: {
-            ProductVariant: {
-              include: {
-                ProductAsset: true,
-              },
-            },
-          },
-          orderBy: {
-            createdAt: 'desc',
-          },
-        });
-      } catch (error) {
-        console.error('Error fetching products for custom shop page:', error);
-      }
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+      });
+    } catch (error) {
+      console.error('Error fetching products for custom shop page:', error);
     }
+  }
 
-    // Map Prisma products to frontend Product type
-    const products = prismaProducts.map(mapPrismaProductToProduct);
+  // Map Prisma products to frontend Product type
+  const products = prismaProducts.map(mapPrismaProductToProduct);
 
-    // Banner data
-    const bannerTitle = customPage.name;
-    const bannerDescription = customPage.description || '';
-    const bannerImage = normalizeImageUrl(customPage.bannerImage);
-    const bannerAlt = customPage.name || 'Shop page banner';
+  // Banner data
+  const bannerTitle = customPage.name;
+  const bannerDescription = customPage.description || '';
+  const bannerImage = normalizeImageUrl(customPage.bannerImage);
+  const bannerAlt = customPage.name || 'Shop page banner';
 
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
-          {/* Banner */}
-          <CategoryBanner
-            title={bannerTitle}
-            imageSrc={bannerImage}
-            description={bannerDescription}
-            alt={bannerAlt}
-          />
+  return (
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
+        {/* Banner */}
+        <CategoryBanner
+          title={bannerTitle}
+          imageSrc={bannerImage}
+          description={bannerDescription}
+          alt={bannerAlt}
+        />
 
-          {/* Video Section */}
-          {customPage.videoUrl && (
-            <section className="w-full py-12 bg-background">
-              <div className="container mx-auto px-4">
-                <div className="max-w-4xl mx-auto">
-                  <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-                    {customPage.videoUrl.includes('youtube.com') || customPage.videoUrl.includes('youtu.be') ? (
-                      <iframe
-                        src={customPage.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                        title={customPage.name}
-                        className="w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video
-                        src={customPage.videoUrl}
-                        controls
-                        className="w-full h-full object-contain"
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                    )}
-                  </div>
+        {/* Video Section */}
+        {customPage.videoUrl && (
+          <section className="w-full py-12 bg-background">
+            <div className="container mx-auto px-4">
+              <div className="max-w-4xl mx-auto">
+                <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+                  {customPage.videoUrl.includes('youtube.com') || customPage.videoUrl.includes('youtu.be') ? (
+                    <iframe
+                      src={customPage.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                      title={customPage.name}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <video
+                      src={customPage.videoUrl}
+                      controls
+                      className="w-full h-full object-contain"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  )}
                 </div>
               </div>
-            </section>
-          )}
-
-          {/* Products Grid */}
-          <div className="bg-background py-8">
-            <div className="container mx-auto px-4">
-              {products.length > 0 ? (
-                <ShopPageClient products={products} title={customPage.name} />
-              ) : (
-                <div className="text-center py-16">
-                  <p className="text-muted-foreground text-lg">No products found for this page.</p>
-                </div>
-              )}
             </div>
+          </section>
+        )}
+
+        {/* Products Grid */}
+        <div className="bg-background py-8">
+          <div className="container mx-auto px-4">
+            {products.length > 0 ? (
+              <ShopPageClient products={products} title={customPage.name} />
+            ) : (
+              <div className="text-center py-16">
+                <p className="text-muted-foreground text-lg">No products found for this page.</p>
+              </div>
+            )}
           </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
+}
 
   // If not a custom page, try to find a product
   // Fetch product by slug from database (primary lookup)

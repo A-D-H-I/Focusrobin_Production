@@ -698,7 +698,7 @@ export default function OrdersManagement({
                         <div className="flex-1">
                           {item.productSlug ? (
                             <Link
-                              href={`/products/${item.productSlug}`}
+                              href={`/shop/${item.productSlug}`}
                               className="font-semibold hover:underline"
                             >
                               {item.productName}

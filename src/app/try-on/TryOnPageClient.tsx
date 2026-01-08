@@ -72,7 +72,7 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
 
     const productId = searchParams.get("product");
     const variantIndex = searchParams.get("variant");
-
+    
     if (productId) {
       const product = products.find((p) => p.id === productId);
       if (product) {
@@ -82,7 +82,7 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
         return;
       }
     }
-
+    
     // Auto-select first available product if none selected
     if (!selectedProduct && availableProducts.length > 0) {
       const firstProduct = availableProducts[0];
@@ -132,7 +132,7 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
 
   // No product selected yet - show product selection grid (scrollable)
   if (!selectedProduct) {
-    return (
+  return (
       <div className="h-[calc(100vh-124px)] flex flex-col">
         {/* Header with back button */}
         <div className="py-4 px-4 flex-shrink-0">
@@ -149,23 +149,23 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
           </div>
           <div className="text-center mt-2">
             <h1 className="text-2xl md:text-3xl font-headline font-semibold text-foreground mb-1">
-              Virtual Try-On
-            </h1>
+          Virtual Try-On
+        </h1>
             <p className="text-muted-foreground text-sm max-w-2xl mx-auto">
               Select a frame to try on virtually
-            </p>
-          </div>
+        </p>
+      </div>
         </div>
 
         <ScrollArea className="flex-1 px-4">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-4">
-            {availableProducts.map((product) => {
+          {availableProducts.map((product) => {
               const tryOnVariant = product.variants.find((v) => v.tryOn) || product.variants[0];
               const variantIndex = product.variants.findIndex((v) => v.hex === tryOnVariant.hex);
 
-              return (
+            return (
                 <button
-                  key={product.id}
+                key={product.id}
                   onClick={() => handleProductSelect(product, variantIndex)}
                   className="group text-left rounded-lg border border-border/50 overflow-hidden hover:shadow-lg transition-all duration-300 bg-card"
                 >
@@ -189,12 +189,12 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
                       {product.variants.filter((v) => v.tryOn).length} colors
                     </p>
                   </div>
-                </button>
-              );
-            })}
-          </div>
+                            </button>
+                          );
+                        })}
+                      </div>
         </ScrollArea>
-      </div>
+                  </div>
     );
   }
 
@@ -350,7 +350,7 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
             {selectedVariant?.stock === 0 ? "Out of Stock" : `Add to Cart — ${selectedProduct.price}`}
           </Button>
         </div>
-      </div>
+    </div>
     </>
   );
 }
