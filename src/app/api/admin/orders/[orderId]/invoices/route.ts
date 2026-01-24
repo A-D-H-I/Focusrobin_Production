@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { getInvoiceDataFromOrder, InvoiceData } from '@/lib/invoice';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { generatePrescriptionPDF, extractPrescriptionFromOrderItem, hasValidPrescriptionValues } from '@/lib/prescription-pdf';
 
 // Set runtime to nodejs
 export const runtime = 'nodejs';
@@ -583,23 +584,91 @@ export async function GET(
     // Await params in Next.js 15
     const { orderId } = await params;
 
+    // Get order with items (including prescription data)
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+        User: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      console.error(`[Invoice API] Order not found: ${orderId}`);
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
     // Get invoice data
     const invoiceData = await getInvoiceDataFromOrder(orderId);
     
     if (!invoiceData) {
-      console.error(`[Invoice API] Order not found: ${orderId}`);
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+      console.error(`[Invoice API] Invoice data not found: ${orderId}`);
+      return NextResponse.json({ error: 'Invoice data not found' }, { status: 404 });
     }
 
     console.log(`[Invoice API] Generating invoices for order: ${invoiceData.orderNumber}`);
 
     try {
       // Generate combined PDF using pdf-lib
-      const pdfBytes = await generateCombinedPDF(invoiceData);
-      console.log(`[Invoice API] PDF generated successfully, size: ${pdfBytes.length} bytes`);
+      const invoicePdfBytes = await generateCombinedPDF(invoiceData);
+      console.log(`[Invoice API] Invoice PDF generated successfully, size: ${invoicePdfBytes.length} bytes`);
 
-      // Return the PDF as response
-      return new NextResponse(pdfBytes, {
+      // Check if any order items have VALID prescription data (not just the field exists)
+      const prescriptionItems = order.items.filter(item => 
+        item.prescriptionData && hasValidPrescriptionValues(item.prescriptionData)
+      );
+      
+      if (prescriptionItems.length === 0) {
+        // No valid prescription data, return just the invoice PDF
+        console.log(`[Invoice API] No items with valid prescription values found`);
+        return new NextResponse(invoicePdfBytes, {
+          headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `attachment; filename="Invoices-${invoiceData.orderNumber}.pdf"`,
+          },
+        });
+      }
+
+      // Generate prescription PDFs and merge them
+      console.log(`[Invoice API] Found ${prescriptionItems.length} items with valid prescription data`);
+      
+      // Load the invoice PDF
+      const mergedPdf = await PDFDocument.load(invoicePdfBytes);
+      
+      // Generate and append prescription PDFs for each item with valid prescription values
+      for (const item of prescriptionItems) {
+        console.log(`[Invoice API] Processing prescription for: ${item.productName}`);
+        const prescriptionPdfData = await extractPrescriptionFromOrderItem(
+          {
+            productName: item.productName,
+            prescriptionData: item.prescriptionData,
+          },
+          order.orderNumber,
+          order.createdAt,
+          order.User?.name || order.shippingName,
+          order.User?.email || 'customer@example.com'
+        );
+        
+        if (prescriptionPdfData) {
+          console.log(`[Invoice API] Generating prescription PDF for: ${item.productName}`);
+          const prescriptionPdfBuffer = await generatePrescriptionPDF(prescriptionPdfData);
+          const prescriptionPdf = await PDFDocument.load(prescriptionPdfBuffer);
+          const pages = await mergedPdf.copyPages(prescriptionPdf, prescriptionPdf.getPageIndices());
+          pages.forEach(page => mergedPdf.addPage(page));
+        }
+      }
+      
+      // Save the merged PDF
+      const mergedPdfBytes = await mergedPdf.save();
+      console.log(`[Invoice API] Merged PDF generated successfully, size: ${mergedPdfBytes.length} bytes`);
+
+      // Return the merged PDF as response
+      return new NextResponse(mergedPdfBytes, {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': `attachment; filename="Invoices-${invoiceData.orderNumber}.pdf"`,

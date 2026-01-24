@@ -28,40 +28,108 @@ interface PageSEOProps {
 
 const baseUrl = 'https://focusrobin.lt';
 
-// English High-Intent Keywords
-const englishKeywords = [
+// English High-Intent Keywords - Sunglasses
+const englishSunglassesKeywords = [
   'Premium sunglasses Lithuania',
-  'Polarized sunglasses',
+  'Polarized sunglasses Lithuania',
   'Minimalist sunglasses',
   'Sunglasses online Lithuania',
   'Designer sunglasses Lithuania',
-  'UV400 sunglasses',
+  'UV400 sunglasses Lithuania',
   'Buy sunglasses in Lithuania',
-  'Sunglasses in Lithuania',
-  'FocusRobin',
-  'FocusRobin Lithuania',
-  'FocusRobin sunglasses',
+  'Buy sunglasses online Lithuania',
+  'Sunglasses shop Lithuania',
+  'Best sunglasses Lithuania',
+  'Affordable sunglasses Lithuania',
+  'Men sunglasses Lithuania',
+  'Women sunglasses Lithuania',
 ];
 
-// Lithuanian High-Intent Keywords
-const lithuanianKeywords = [
+// English High-Intent Keywords - Prescription Glasses
+const englishPrescriptionKeywords = [
+  'Prescription glasses Lithuania',
+  'Prescription eyewear Lithuania',
+  'Buy prescription glasses online Lithuania',
+  'Prescription glasses online Lithuania',
+  'Designer prescription glasses Lithuania',
+  'Premium prescription eyewear Lithuania',
+  'Optical glasses Lithuania',
+  'Reading glasses Lithuania',
+  'Eyeglasses Lithuania',
+  'Eye glasses shop Lithuania',
+  'Prescription lenses Lithuania',
+  'Optical store Lithuania',
+];
+
+// Brand Keywords - Enhanced
+const brandKeywords = [
+  'FocusRobin',
+  'Focus Robin',
+  'FocusRobin Lithuania',
+  'FocusRobin Lietuva',
+  'FocusRobin sunglasses',
+  'FocusRobin prescription glasses',
+  'FocusRobin eyewear',
+  'FocusRobin glasses',
+  'buy FocusRobin sunglasses',
+  'buy FocusRobin glasses',
+  'FocusRobin shop',
+];
+
+// Lithuanian High-Intent Keywords - Sunglasses
+const lithuanianSunglassesKeywords = [
   'akiniai nuo saulės',
+  'saulės akiniai',
   'saulės akiniai internetu',
   'polarizuoti saulės akiniai',
   'akiniai su UV apsauga',
   'akiniai vyrams',
   'akiniai moterims',
+  'pigūs saulės akiniai',
+  'kokybiški saulės akiniai',
+  'dizaineriniai akiniai',
   'saulės akiniai Vilnius',
   'saulės akiniai Kaunas',
   'saulės akiniai Klaipėda',
 ];
 
-// Geo-Targeting Keywords
+// Lithuanian High-Intent Keywords - Prescription Glasses
+const lithuanianPrescriptionKeywords = [
+  'korekciniai akiniai',
+  'akiniai su dioptrijomis',
+  'receptiniai akiniai',
+  'korekciniai akiniai internetu',
+  'optiniai akiniai Lietuva',
+  'akiniai regėjimui',
+  'akiniai su lęšiais',
+  'optika internetu',
+  'akinių parduotuvė',
+  'korekciniai akiniai Vilnius',
+  'korekciniai akiniai Kaunas',
+  'korekciniai akiniai Klaipėda',
+];
+
+// Geo-Targeting Keywords - Enhanced
 const geoKeywords = [
   'sunglasses Vilnius',
   'sunglasses Kaunas',
   'sunglasses Klaipėda',
+  'sunglasses Šiauliai',
+  'sunglasses Panevėžys',
+  'prescription glasses Vilnius',
+  'prescription glasses Kaunas',
+  'prescription glasses Klaipėda',
+  'eyewear Vilnius',
+  'eyewear Kaunas',
+  'eyewear Lithuania',
+  'optical shop Vilnius',
+  'optical shop Lithuania',
+  'glasses shop Lithuania',
 ];
+
+// Combined keyword sets for easy access
+const englishKeywords = [...englishSunglassesKeywords, ...englishPrescriptionKeywords, ...brandKeywords];
+const lithuanianKeywords = [...lithuanianSunglassesKeywords, ...lithuanianPrescriptionKeywords];
 
 export function generatePageMetadata({
   title,
@@ -152,18 +220,27 @@ export function generatePageMetadata({
  */
 export function generateImageAltText(
   productName: string,
-  context: 'hero' | 'product' | 'gallery' | 'thumbnail' = 'product'
+  context: 'hero' | 'product' | 'gallery' | 'thumbnail' = 'product',
+  productType: 'sunglasses' | 'prescription' = 'sunglasses'
 ): string {
-  const baseText = `${productName} - FocusRobin Premium Sunglasses`;
+  if (productType === 'prescription') {
+    const prescriptionContextText = {
+      hero: `${productName} - Premium Prescription Glasses Lithuania`,
+      product: `${productName} - Designer Prescription Eyewear | FocusRobin Lithuania`,
+      gallery: `${productName} - Prescription Glasses Collection`,
+      thumbnail: `${productName} - Prescription Eyewear Lithuania`,
+    };
+    return prescriptionContextText[context] || `${productName} - FocusRobin Premium Prescription Glasses`;
+  }
   
-  const contextText = {
+  const sunglassesContextText = {
     hero: `${productName} - Premium Polarized Sunglasses Lithuania`,
     product: `${productName} - Designer Sunglasses | FocusRobin Lithuania`,
     gallery: `${productName} - Minimalist Sunglasses Collection`,
     thumbnail: `${productName} - UV400 Sunglasses Lithuania`,
   };
 
-  return contextText[context] || baseText;
+  return sunglassesContextText[context] || `${productName} - FocusRobin Premium Sunglasses`;
 }
 
 /**
@@ -178,20 +255,30 @@ export function generateProductStructuredData(product: {
   description?: string;
   image?: string;
   inStock?: boolean;
+  productType?: 'sunglasses' | 'prescription';
 }) {
+  const isPrescription = product.productType === 'prescription';
+  const defaultDescription = isPrescription
+    ? `${product.name} - Premium prescription eyewear by FocusRobin Lithuania`
+    : `${product.name} - Premium polarized sunglasses by FocusRobin Lithuania`;
+  
+  // Use /shop/ path for product URLs (consistent with sitemap)
+  const productUrl = `${baseUrl}/shop/${product.slug}`;
+  
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
-    description: product.description || `${product.name} - Premium polarized sunglasses by FocusRobin Lithuania`,
+    description: product.description || defaultDescription,
     image: product.image || `${baseUrl}/Symbol Wide Primary light (Teal).svg`,
     brand: {
       '@type': 'Brand',
       name: 'FocusRobin',
     },
+    category: isPrescription ? 'Prescription Eyewear' : 'Sunglasses',
     offers: {
       '@type': 'Offer',
-      url: `${baseUrl}/products/${product.slug}`,
+      url: productUrl,
       priceCurrency: product.currency || 'EUR',
       price: product.price,
       availability: product.inStock 
@@ -221,7 +308,7 @@ export function generateOrganizationStructuredData() {
     name: 'FocusRobin',
     url: baseUrl,
     logo: `${baseUrl}/Symbol Wide Primary light (Teal).svg`,
-    description: 'Premium minimalist sunglasses and eyewear designed in Lithuania. Elevate your style, enhance your vision.',
+    description: 'Premium minimalist sunglasses and prescription eyewear designed in Lithuania. Elevate your style, enhance your vision with polarized sunglasses and prescription glasses.',
     address: {
       '@type': 'PostalAddress',
       addressCountry: 'LT',
@@ -234,4 +321,16 @@ export function generateOrganizationStructuredData() {
     ],
   };
 }
+
+/**
+ * Export keyword arrays for use in other components
+ */
+export {
+  englishSunglassesKeywords,
+  englishPrescriptionKeywords,
+  brandKeywords,
+  lithuanianSunglassesKeywords,
+  lithuanianPrescriptionKeywords,
+  geoKeywords,
+};
 

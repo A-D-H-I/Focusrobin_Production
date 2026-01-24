@@ -146,13 +146,13 @@ export default async function AdminProductsPage() {
                       )}
                     </div>
                     <div className="flex gap-2">
-                      <Link href={`/admin/products/${product.id}`} className="flex-1">
+                      <Link href={`/admin/products/${product.slug}`} className="flex-1">
                         <Button variant="outline" className="w-full gap-2" size="sm">
                           <Eye className="h-4 w-4" />
                           View
                         </Button>
                       </Link>
-                      <Link href={`/admin/products/${product.id}/edit`}>
+                      <Link href={`/admin/products/${product.slug}/edit`}>
                         <Button variant="outline" className="gap-2" size="sm">
                           <Edit className="h-4 w-4" />
                           Edit

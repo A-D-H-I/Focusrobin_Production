@@ -6,6 +6,8 @@ import type { FullPrescriptionData } from "@/app/shop/[slug]/prescription/Prescr
 
 /**
  * Save prescription data for logged-in user
+ * NOTE: Only ONE prescription per user (shared across all products)
+ * productSlug is stored for reference but doesn't affect uniqueness
  */
 export async function saveUserPrescription(
   productSlug: string,
@@ -33,17 +35,28 @@ export async function saveUserPrescription(
       rxPriceBreakdown,
     } = prescriptionData;
 
-    // Create or update prescription
+    console.log('[saveUserPrescription] Saving prescription (one per user, shared across products):', {
+      userId,
+      productSlug,
+      hasPrism,
+      odPrismHorizontal: od.prismHorizontal,
+      odPrismHorizontalBase: od.prismHorizontalBase,
+      odPrismVertical: od.prismVertical,
+      odPrismVerticalBase: od.prismVerticalBase,
+      osPrismHorizontal: os.prismHorizontal,
+      osPrismHorizontalBase: os.prismHorizontalBase,
+      osPrismVertical: os.prismVertical,
+      osPrismVerticalBase: os.prismVerticalBase,
+    });
+
+    // Create or update prescription (one per user, productSlug is just for reference)
     const prescription = await prisma.userPrescription.upsert({
       where: {
-        userId_productSlug: {
-          userId,
-          productSlug,
-        },
+        userId: userId, // Unique constraint is on userId only
       },
       create: {
         userId,
-        productSlug,
+        productSlug: productSlug || null, // Optional: last product used
         odSph: od.sph,
         odCyl: od.cyl,
         odAxis: od.axis,
@@ -51,12 +64,19 @@ export async function saveUserPrescription(
         osCyl: os.cyl,
         osAxis: os.axis,
         pd,
-        // TODO: Add these fields to Prisma schema: pdOd String?, pdOs String?, prescriptionImageUrl String?
-        // pdOd: pdOd || null,
-        // pdOs: pdOs || null,
-        // prescriptionImageUrl: prescriptionImageUrl || null, // S3 URL for uploaded prescription image
+        pdOd: pdOd || null,
+        pdOs: pdOs || null,
         hasTwoPDs,
         hasPrism,
+        odPrismHorizontal: od.prismHorizontal || null,
+        odPrismHorizontalBase: od.prismHorizontalBase || null,
+        odPrismVertical: od.prismVertical || null,
+        odPrismVerticalBase: od.prismVerticalBase || null,
+        osPrismHorizontal: os.prismHorizontal || null,
+        osPrismHorizontalBase: os.prismHorizontalBase || null,
+        osPrismVertical: os.prismVertical || null,
+        osPrismVerticalBase: os.prismVerticalBase || null,
+        prescriptionImageUrl: prescriptionImageUrl || null,
         lensType: rxConfig.lensType,
         lensIndex: rxConfig.lensIndex,
         coating: rxConfig.coating,
@@ -74,6 +94,7 @@ export async function saveUserPrescription(
         totalNet: rxPriceBreakdown?.totalNet ? rxPriceBreakdown.totalNet : null,
       },
       update: {
+        productSlug: productSlug || null, // Update last product reference
         odSph: od.sph,
         odCyl: od.cyl,
         odAxis: od.axis,
@@ -81,12 +102,19 @@ export async function saveUserPrescription(
         osCyl: os.cyl,
         osAxis: os.axis,
         pd,
-        // TODO: Add these fields to Prisma schema: pdOd String?, pdOs String?, prescriptionImageUrl String?
-        // pdOd: pdOd || null,
-        // pdOs: pdOs || null,
-        // prescriptionImageUrl: prescriptionImageUrl || null, // S3 URL for uploaded prescription image
+        pdOd: pdOd || null,
+        pdOs: pdOs || null,
         hasTwoPDs,
         hasPrism,
+        odPrismHorizontal: od.prismHorizontal || null,
+        odPrismHorizontalBase: od.prismHorizontalBase || null,
+        odPrismVertical: od.prismVertical || null,
+        odPrismVerticalBase: od.prismVerticalBase || null,
+        osPrismHorizontal: os.prismHorizontal || null,
+        osPrismHorizontalBase: os.prismHorizontalBase || null,
+        osPrismVertical: os.prismVertical || null,
+        osPrismVerticalBase: os.prismVerticalBase || null,
+        prescriptionImageUrl: prescriptionImageUrl || null,
         lensType: rxConfig.lensType,
         lensIndex: rxConfig.lensIndex,
         coating: rxConfig.coating,
@@ -111,6 +139,8 @@ export async function saveUserPrescription(
 
 /**
  * Get saved prescription for logged-in user
+ * NOTE: Returns the single prescription for the user (shared across all products)
+ * productSlug parameter is kept for backward compatibility but not used in query
  */
 export async function getUserPrescription(productSlug: string) {
   return safeAction(async () => {
@@ -121,12 +151,10 @@ export async function getUserPrescription(productSlug: string) {
       return { error: "User not authenticated" };
     }
 
+    // Get the single prescription for this user (shared across all products)
     const prescription = await prisma.userPrescription.findUnique({
       where: {
-        userId_productSlug: {
-          userId,
-          productSlug,
-        },
+        userId: userId, // Unique constraint is on userId only
       },
     });
 
@@ -140,15 +168,26 @@ export async function getUserPrescription(productSlug: string) {
         sph: prescription.odSph,
         cyl: prescription.odCyl,
         axis: prescription.odAxis,
+        prismHorizontal: prescription.odPrismHorizontal || undefined,
+        prismHorizontalBase: prescription.odPrismHorizontalBase || undefined,
+        prismVertical: prescription.odPrismVertical || undefined,
+        prismVerticalBase: prescription.odPrismVerticalBase || undefined,
       },
       os: {
         sph: prescription.osSph,
         cyl: prescription.osCyl,
         axis: prescription.osAxis,
+        prismHorizontal: prescription.osPrismHorizontal || undefined,
+        prismHorizontalBase: prescription.osPrismHorizontalBase || undefined,
+        prismVertical: prescription.osPrismVertical || undefined,
+        prismVerticalBase: prescription.osPrismVerticalBase || undefined,
       },
       pd: prescription.pd,
+      pdOd: prescription.pdOd || undefined,
+      pdOs: prescription.pdOs || undefined,
       hasTwoPDs: prescription.hasTwoPDs,
       hasPrism: prescription.hasPrism,
+      prescriptionImageUrl: prescription.prescriptionImageUrl || undefined,
       rxConfig: {
         lensType: prescription.lensType as any,
         lensIndex: prescription.lensIndex as any,
@@ -171,6 +210,14 @@ export async function getUserPrescription(productSlug: string) {
           }
         : undefined,
     };
+
+    console.log('[getUserPrescription] Loaded prescription from DB:', {
+      hasPrism: fullData.hasPrism,
+      odPrismHorizontal: fullData.od.prismHorizontal,
+      odPrismHorizontalBase: fullData.od.prismHorizontalBase,
+      osPrismHorizontal: fullData.os.prismHorizontal,
+      osPrismHorizontalBase: fullData.os.prismHorizontalBase,
+    });
 
     return { prescription: fullData };
   });

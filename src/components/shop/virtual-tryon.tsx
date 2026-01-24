@@ -60,12 +60,14 @@ export default function VirtualTryOn({
   const [isModelReady, setIsModelReady] = useState(false);
   const [isFaceDetected, setIsFaceDetected] = useState(false);
 
-  // Controls for fine-tuning
-  const [scaleFactor, setScaleFactor] = useState(1.05);
-  const [verticalOffset, setVerticalOffset] = useState(0.40);
+  // Free placement position (offset from detected face position)
+  const [glassesOffset, setGlassesOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // Refs
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const glassesImagesRef = useRef<Map<number, HTMLImageElement>>(new Map());
   const landmarkerRef = useRef<any>(null);
   const faceDataRef = useRef<FaceData | null>(null); // CACHED face detection results
@@ -78,17 +80,22 @@ export default function VirtualTryOn({
     setPortalContainer(document.body);
   }, []);
 
-  // Lock scroll when open
+  // Lock scroll when open with scrollbar compensation
   useEffect(() => {
     if (isOpen) {
+      // Calculate and store scrollbar width before hiding overflow
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = "hidden";
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
       document.body.style.touchAction = "none";
     } else {
       document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
       document.body.style.touchAction = "";
     }
     return () => {
       document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
       document.body.style.touchAction = "";
     };
   }, [isOpen]);
@@ -169,46 +176,83 @@ export default function VirtualTryOn({
       faceDataRef.current = null; // Clear cached face data
       setIsFaceDetected(false);
       setImageSrc(url);
-      setScaleFactor(1.05);
-      setVerticalOffset(0.40);
+      setGlassesOffset({ x: 0, y: 0 }); // Reset position
     }
   };
 
-  // Draw glasses on canvas using CACHED face data (fast!)
+  // Draw glasses on canvas using CACHED face data and displayed image dimensions
   const drawGlasses = useCallback(() => {
     try {
       const faceData = faceDataRef.current;
       const glassesImg = glassesImagesRef.current.get(currentVariantIndex);
       const canvas = canvasRef.current;
-      const ctx = canvas?.getContext("2d");
+      const userImg = document.getElementById("user-photo") as HTMLImageElement;
 
-      if (!faceData || !glassesImg || !canvas || !ctx) {
+      if (!faceData || !glassesImg || !canvas || !userImg) {
         return;
       }
 
-      // Wait for glasses image to load
-      if (!glassesImg.complete || glassesImg.naturalWidth === 0) {
-        return; // Don't set onload to avoid potential loops
+      // Wait for images to load
+      if (!glassesImg.complete || glassesImg.naturalWidth === 0 || !userImg.complete) {
+        return;
       }
 
-      // Set canvas size
-      canvas.width = faceData.canvasWidth;
-      canvas.height = faceData.canvasHeight;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
-      // Calculate glasses dimensions
-      const glassesWidth = faceData.faceWidth * scaleFactor;
+      // Get displayed image dimensions (not natural dimensions)
+      // Use getBoundingClientRect for accurate displayed size
+      const rect = userImg.getBoundingClientRect();
+      const displayedWidth = rect.width;
+      const displayedHeight = rect.height;
+      const naturalWidth = userImg.naturalWidth;
+      const naturalHeight = userImg.naturalHeight;
+
+      // Calculate scale factor between natural and displayed size
+      const scaleX = displayedWidth / naturalWidth;
+      const scaleY = displayedHeight / naturalHeight;
+
+      // Set canvas size to match displayed image size exactly
+      // Use devicePixelRatio for crisp rendering on high-DPI displays
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = displayedWidth * dpr;
+      canvas.height = displayedHeight * dpr;
+      
+      // Set canvas style to match image exactly
+      if (canvas.style) {
+        canvas.style.width = `${displayedWidth}px`;
+        canvas.style.height = `${displayedHeight}px`;
+        canvas.style.maxWidth = '100%';
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+      }
+      
+      // Scale context to match device pixel ratio
+      ctx.scale(dpr, dpr);
+
+      // Scale face data coordinates to displayed size
+      const scaledNx = faceData.nx * scaleX;
+      const scaledNy = faceData.ny * scaleY;
+      const scaledFaceWidth = faceData.faceWidth * scaleX;
+
+      // Calculate glasses dimensions (maintain aspect ratio)
+      const glassesWidth = scaledFaceWidth * 1.05; // Default scale
       const imgRatio = glassesImg.height / glassesImg.width;
       const glassesHeight = glassesWidth * imgRatio;
 
       // Draw
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, displayedWidth, displayedHeight);
       ctx.save();
-      ctx.translate(faceData.nx, faceData.ny);
+      
+      // Apply rotation and position with offset
+      ctx.translate(scaledNx + glassesOffset.x, scaledNy + glassesOffset.y);
       ctx.rotate(faceData.angle);
+      
       ctx.drawImage(
         glassesImg,
         -glassesWidth / 2,
-        -glassesHeight * verticalOffset,
+        -glassesHeight * 0.4, // Default vertical offset (40% up)
         glassesWidth,
         glassesHeight
       );
@@ -216,7 +260,7 @@ export default function VirtualTryOn({
     } catch (error) {
       console.error("Error drawing glasses:", error);
     }
-  }, [currentVariantIndex, scaleFactor, verticalOffset]);
+  }, [currentVariantIndex, glassesOffset]);
 
   // Run face detection ONCE when image is loaded, then cache results
   const detectFace = useCallback(() => {
@@ -225,9 +269,8 @@ export default function VirtualTryOn({
     }
 
     const userImg = document.getElementById("user-photo") as HTMLImageElement;
-    const canvas = canvasRef.current;
 
-    if (!userImg || !canvas) {
+    if (!userImg) {
       return;
     }
 
@@ -255,7 +298,7 @@ export default function VirtualTryOn({
         const eyeL = landmarks[33];
         const eyeR = landmarks[263];
 
-        // Calculate and CACHE face data
+        // Calculate and CACHE face data (using natural dimensions)
         const lx = leftTemple.x * w;
         const ly = leftTemple.y * h;
         const rx = rightTemple.x * w;
@@ -276,7 +319,9 @@ export default function VirtualTryOn({
 
         setStatus("");
         setIsFaceDetected(true);
-        drawGlasses(); // Draw immediately after detection
+        setGlassesOffset({ x: 0, y: 0 }); // Reset position on new detection
+        // Small delay to ensure image is rendered
+        setTimeout(() => drawGlasses(), 50);
       } else {
         setStatus("No face detected. Please try again.");
         faceDataRef.current = null;
@@ -295,20 +340,114 @@ export default function VirtualTryOn({
   // Trigger face detection when image changes
   useEffect(() => {
     if (imageSrc && isModelReady) {
-      // Small delay to ensure image is rendered in DOM
-      const timer = setTimeout(() => {
-        detectFace();
-      }, 150);
-      return () => clearTimeout(timer);
+      const userImg = document.getElementById("user-photo") as HTMLImageElement;
+      
+      if (userImg) {
+        const handleImageLoad = () => {
+          // Small delay to ensure image is rendered in DOM
+          setTimeout(() => {
+            detectFace();
+          }, 100);
+        };
+        
+        if (userImg.complete) {
+          handleImageLoad();
+        } else {
+          userImg.addEventListener('load', handleImageLoad);
+          return () => userImg.removeEventListener('load', handleImageLoad);
+        }
+      }
     }
   }, [imageSrc, isModelReady, detectFace]);
 
-  // Redraw glasses when variant or settings change (NO face detection!)
+  // Handle drag for free placement
+  const handleDragStart = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isFaceDetected || !faceDataRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    setIsDragging(true);
+    const userImg = document.getElementById("user-photo") as HTMLImageElement;
+    if (!userImg) return;
+    
+    const rect = userImg.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    
+    // Store initial drag position relative to image
+    const mouseX = clientX - rect.left;
+    const mouseY = clientY - rect.top;
+    
+    // Calculate current glasses position on screen
+    const scaleX = userImg.clientWidth / userImg.naturalWidth;
+    const scaleY = userImg.clientHeight / userImg.naturalHeight;
+    const scaledNx = faceDataRef.current.nx * scaleX;
+    const scaledNy = faceDataRef.current.ny * scaleY;
+    const currentGlassesX = scaledNx + glassesOffset.x;
+    const currentGlassesY = scaledNy + glassesOffset.y;
+    
+    // Store offset from mouse position to glasses position
+    setDragStart({ 
+      x: mouseX - currentGlassesX, 
+      y: mouseY - currentGlassesY 
+    });
+  };
+
+  const handleDragMove = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDragging || !isFaceDetected || !faceDataRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const userImg = document.getElementById("user-photo") as HTMLImageElement;
+    if (!userImg) return;
+    
+    const rect = userImg.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    
+    // Calculate mouse position relative to image
+    const mouseX = clientX - rect.left;
+    const mouseY = clientY - rect.top;
+    
+    // Calculate face position in displayed coordinates
+    const scaleX = userImg.clientWidth / userImg.naturalWidth;
+    const scaleY = userImg.clientHeight / userImg.naturalHeight;
+    const scaledNx = faceDataRef.current.nx * scaleX;
+    const scaledNy = faceDataRef.current.ny * scaleY;
+    
+    // Calculate new offset: where mouse is minus face position minus drag offset
+    setGlassesOffset({ 
+      x: mouseX - scaledNx - dragStart.x, 
+      y: mouseY - scaledNy - dragStart.y 
+    });
+  };
+
+  const handleDragEnd = (e?: React.MouseEvent | React.TouchEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setIsDragging(false);
+  };
+
+  // Redraw glasses when variant or position changes (NO face detection!)
   useEffect(() => {
     if (isFaceDetected && faceDataRef.current) {
       drawGlasses();
     }
-  }, [currentVariantIndex, scaleFactor, verticalOffset, isFaceDetected, drawGlasses]);
+  }, [currentVariantIndex, glassesOffset, isFaceDetected, drawGlasses]);
+
+  // Update canvas on window resize
+  useEffect(() => {
+    if (!isFaceDetected || !imageSrc) return;
+    
+    const handleResize = () => {
+      drawGlasses();
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [isFaceDetected, imageSrc, drawGlasses]);
 
   if (!isOpen) return null;
 
@@ -323,22 +462,26 @@ export default function VirtualTryOn({
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 md:p-6 bg-black/30 backdrop-blur-md z-20 flex-shrink-0">
-        <Logo className="w-24 md:w-28" logoColor="white" />
+      <div 
+        className="flex items-center justify-between px-3 py-2.5 sm:p-4 md:p-6 bg-black/30 backdrop-blur-md z-20 flex-shrink-0"
+        style={{ paddingTop: 'max(0.625rem, env(safe-area-inset-top, 0.625rem))' }}
+      >
+        <Logo className="w-20 sm:w-24 md:w-28" logoColor="white" />
         <button
           onClick={onClose}
-          className="p-2 md:p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors"
+          className="p-1.5 sm:p-2 md:p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors touch-manipulation"
+          aria-label="Close"
         >
-          <X size={24} />
+          <X size={20} className="sm:w-6 sm:h-6" />
         </button>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6">
+      <div className="flex-1 overflow-y-auto px-3 py-4 sm:p-4 md:p-6 pb-20 sm:pb-24 md:pb-28">
         <div className="max-w-xl mx-auto">
           {/* Title */}
           <h2
-            className="text-2xl md:text-3xl font-bold mb-6 text-center text-white"
+            className="text-xl sm:text-2xl md:text-3xl font-bold mb-4 sm:mb-6 text-center text-white"
             style={{ fontFamily: "Chillax, sans-serif" }}
           >
             Virtual Try-On
@@ -346,29 +489,29 @@ export default function VirtualTryOn({
 
           {/* Status */}
           {status && status !== "Ready" && (
-            <div className="mb-4 p-3 bg-white/10 rounded-lg text-center">
-              <p className="text-white text-sm">{status}</p>
+            <div className="mb-3 sm:mb-4 p-2.5 sm:p-3 bg-white/10 rounded-lg text-center">
+              <p className="text-white text-xs sm:text-sm">{status}</p>
             </div>
           )}
 
           {/* COLOR SELECTOR */}
-          <div className="mb-6">
+          <div className="mb-4 sm:mb-6">
             <label
-              className="block text-sm font-bold mb-3 text-left"
+              className="block text-xs sm:text-sm font-bold mb-2 sm:mb-3 text-left"
               style={{ color: BRAND_COLORS.smokeWhite, fontFamily: "Chillax, sans-serif" }}
             >
               Choose Color
             </label>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {variants.map((variant, idx) => (
                 <button
                   key={`variant-${idx}-${variant.name}`}
                   onClick={() => setCurrentVariantIndex(idx)}
                   className={cn(
-                    "p-3 rounded-lg border-2 transition-all",
+                    "p-2 sm:p-3 rounded-lg border-2 transition-all touch-manipulation",
                     currentVariantIndex === idx
                       ? "border-[#4DCECA] shadow-lg scale-105"
-                      : "border-white/20 hover:border-white/40"
+                      : "border-white/20 active:border-white/40"
                   )}
                   style={{
                     backgroundColor:
@@ -381,7 +524,7 @@ export default function VirtualTryOn({
                     className="w-full h-auto rounded"
                   />
                   <p
-                    className="text-xs mt-2 font-medium text-center"
+                    className="text-[10px] sm:text-xs mt-1.5 sm:mt-2 font-medium text-center"
                     style={{
                       color: currentVariantIndex === idx ? BRAND_COLORS.teal : BRAND_COLORS.smokeWhite,
                       fontFamily: "Chillax, sans-serif",
@@ -395,52 +538,74 @@ export default function VirtualTryOn({
           </div>
 
           {/* Photo Upload Area */}
-          <div className="relative w-full bg-slate-800 rounded-2xl overflow-hidden min-h-[300px] md:min-h-[400px] mb-6 border border-white/10">
+          <div 
+            ref={containerRef}
+            className="relative w-full bg-slate-800 rounded-xl sm:rounded-2xl overflow-hidden min-h-[250px] sm:min-h-[300px] md:min-h-[400px] mb-4 sm:mb-6 border border-white/10"
+            style={{ 
+              maxWidth: '100%', 
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'center'
+            }}
+          >
             {imageSrc ? (
-              <>
-                <img id="user-photo" src={imageSrc} alt="User" className="w-full h-auto block" />
-                <canvas ref={canvasRef} className="absolute top-0 left-0 w-full h-full pointer-events-none" />
-              </>
+              <div 
+                className="relative w-full flex items-start justify-center" 
+                style={{ 
+                  maxWidth: '100%', 
+                  overflow: 'hidden',
+                  margin: '0 auto'
+                }}
+              >
+                <img 
+                  id="user-photo" 
+                  src={imageSrc} 
+                  alt="User" 
+                  className="block max-w-full h-auto"
+                  style={{ 
+                    display: 'block', 
+                    maxWidth: '100%', 
+                    width: '100%',
+                    height: 'auto',
+                    objectFit: 'contain',
+                    margin: '0 auto'
+                  }}
+                />
+                {isFaceDetected && (
+                  <canvas 
+                    ref={canvasRef} 
+                    className="absolute top-0 left-0 touch-manipulation"
+                    style={{ 
+                      cursor: isDragging ? 'grabbing' : 'grab',
+                      pointerEvents: 'auto',
+                      display: 'block',
+                      maxWidth: '100%',
+                      width: '100%',
+                      height: 'auto'
+                    }}
+                    onMouseDown={handleDragStart}
+                    onMouseMove={handleDragMove}
+                    onMouseUp={handleDragEnd}
+                    onMouseLeave={handleDragEnd}
+                    onTouchStart={handleDragStart}
+                    onTouchMove={handleDragMove}
+                    onTouchEnd={handleDragEnd}
+                  />
+                )}
+              </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-[300px] md:h-[400px] text-white/40">
-                <Camera size={48} className="mb-4" style={{ color: BRAND_COLORS.teal }} />
-                <span style={{ fontFamily: "Chillax, sans-serif" }}>Upload a photo to start</span>
+              <div className="flex flex-col items-center justify-center h-[250px] sm:h-[300px] md:h-[400px] text-white/40 px-4 w-full">
+                <Camera size={40} className="sm:w-12 sm:h-12 mb-3 sm:mb-4" style={{ color: BRAND_COLORS.teal }} />
+                <span className="text-xs sm:text-sm text-center" style={{ fontFamily: "Chillax, sans-serif" }}>Upload a photo to start</span>
               </div>
             )}
           </div>
 
-          {/* Fine-tune Controls */}
-          {imageSrc && isFaceDetected && (
-            <div className="grid grid-cols-2 gap-4 mb-6 p-4 rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.05)" }}>
-              <div className="flex flex-col text-left">
-                <label className="text-sm font-bold mb-2" style={{ color: BRAND_COLORS.smokeWhite, fontFamily: "Chillax, sans-serif" }}>
-                  Width Adjustment
-                </label>
-                <input
-                  type="range" min="0.9" max="1.2" step="0.01"
-                  value={scaleFactor}
-                  onChange={(e) => setScaleFactor(parseFloat(e.target.value))}
-                  className="accent-[#4DCECA] h-2 bg-white/20 rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
-              <div className="flex flex-col text-left">
-                <label className="text-sm font-bold mb-2" style={{ color: BRAND_COLORS.smokeWhite, fontFamily: "Chillax, sans-serif" }}>
-                  Height Position
-                </label>
-                <input
-                  type="range" min="0.2" max="0.6" step="0.01"
-                  value={verticalOffset}
-                  onChange={(e) => setVerticalOffset(parseFloat(e.target.value))}
-                  className="accent-[#4DCECA] h-2 bg-white/20 rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
-            </div>
-          )}
-
           {/* Upload Button */}
-          <div className="mb-6 flex flex-col gap-3 items-center">
+          <div className="mb-4 sm:mb-6 flex flex-col gap-3 items-center">
             <label
-              className="inline-block px-6 py-3 rounded-full font-bold text-white cursor-pointer transition-transform hover:scale-105 shadow-lg"
+              className="inline-block px-5 sm:px-6 py-2.5 sm:py-3 rounded-full font-bold text-white cursor-pointer transition-transform active:scale-95 sm:hover:scale-105 shadow-lg touch-manipulation text-xs sm:text-sm"
               style={{ backgroundColor: BRAND_COLORS.teal, fontFamily: "Chillax, sans-serif" }}
             >
               {imageSrc ? "Upload New Photo" : "Upload Photo"}
@@ -448,29 +613,34 @@ export default function VirtualTryOn({
             </label>
           </div>
 
-          {/* Spacer */}
-          <div className="h-24"></div>
+          {/* Spacer for fixed footer */}
+          <div className="h-20 sm:h-24 md:h-28"></div>
         </div>
       </div>
 
       {/* Fixed Footer */}
       <div
-        className="fixed bottom-0 left-0 right-0 p-4 md:p-6 bg-slate-900/95 backdrop-blur-xl border-t border-white/10"
-        style={{ zIndex: 100000 }}
+        className="fixed bottom-0 left-0 right-0 px-3 py-2.5 sm:p-4 md:p-6 bg-slate-900/95 backdrop-blur-xl border-t border-white/10"
+        style={{ 
+          zIndex: 100000,
+          paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom, 0.625rem))',
+          paddingLeft: 'max(0.75rem, env(safe-area-inset-left, 0.75rem))',
+          paddingRight: 'max(0.75rem, env(safe-area-inset-right, 0.75rem))',
+        }}
       >
         <button
           onClick={() => {
             addToCart(product, currentVariant, 1);
             onClose();
           }}
-          className="w-full py-2 sm:py-3 md:py-4 lg:py-5 rounded-xl md:rounded-2xl text-white font-black text-[11px] sm:text-sm md:text-base lg:text-lg flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 shadow-2xl active:scale-[0.98] transition-transform min-h-[36px] sm:min-h-[44px] md:min-h-[48px] lg:min-h-[56px] px-3 sm:px-4 md:px-6"
+          className="w-full py-3 sm:py-3.5 md:py-4 lg:py-5 rounded-lg sm:rounded-xl md:rounded-2xl text-white font-black text-sm sm:text-base md:text-lg flex items-center justify-center gap-2 sm:gap-2.5 md:gap-3 shadow-2xl active:scale-[0.97] transition-transform min-h-[48px] sm:min-h-[52px] md:min-h-[56px] px-4 sm:px-5 md:px-6 touch-manipulation"
           style={{ backgroundColor: BRAND_COLORS.teal }}
         >
-          <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 flex-shrink-0" />
-          <span className="whitespace-nowrap truncate text-[10px] sm:text-[11px] md:text-sm lg:text-base">
+          <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 flex-shrink-0" />
+          <span className="whitespace-nowrap truncate text-sm sm:text-base md:text-lg font-semibold">
             <span className="hidden sm:inline">ADD TO CART</span>
             <span className="sm:hidden">CART</span>
-            <span className="mx-1">—</span>
+            <span className="mx-1.5">—</span>
             {product.price}
           </span>
         </button>

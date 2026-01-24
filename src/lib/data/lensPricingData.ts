@@ -2,8 +2,18 @@
  * Auto-generated from BOD Lenses Price List 2025 CSV
  * DO NOT EDIT MANUALLY - Run: npm run generate-pricing
  * 
- * Source: data/pricing/bod-lenses-price-list-2025.csv
- * Generated: 2026-01-07T21:59:03.368Z
+ * CSV is the SOURCE OF TRUTH for all pricing data.
+ * Any manual edits to this file will be overwritten.
+ * 
+ * Source: G:\Dev\focusrobinsite\data\pricing\bod-lenses-price-list-2025.csv
+ * Generated: 2026-01-24T13:17:05.919Z
+ * 
+ * CSV Metadata:
+ *   - Last Modified: 2026-01-07T21:19:14.396Z
+ *   - File Size: 54384 bytes
+ *   - Line Count: 636
+ *   - Checksum: 61a2c64af2f91a43b63d05afec3e3f95d4d86f597f4c0b37aa443761b7a28b1e
+ *   - Supported Models Extracted: 8
  */
 
 export const LENS_PRICE_SINGLE: Record<string, Partial<Record<string, Record<string, number>>>> = {
@@ -39,4 +49,18 @@ export const EDGING_FEES = {
   RIMLESS_PRESSING: 12,
   RIMLESS_INDIVIDUAL: 20,
   LINDBERG_COMPLEX: 20,
+} as const;
+
+/**
+ * CSV metadata for integrity validation
+ * Used to verify that generated data matches CSV source
+ */
+export const CSV_METADATA = {
+  filePath: "G:/Dev/focusrobinsite/data/pricing/bod-lenses-price-list-2025.csv",
+  lastModified: "2026-01-07T21:19:14.396Z",
+  fileSize: 54384,
+  lineCount: 636,
+  checksum: "61a2c64af2f91a43b63d05afec3e3f95d4d86f597f4c0b37aa443761b7a28b1e",
+  supportedModelsCount: 8,
+  generatedAt: "2026-01-24T13:17:05.920Z",
 } as const;

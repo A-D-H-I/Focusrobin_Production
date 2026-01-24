@@ -184,14 +184,23 @@ export default function PrescriptionProductImage({
   lensMaskImageUrl,
   lensBackgroundImageUrl,
 }: PrescriptionProductImageProps) {
+  // Use prop as primary source, with event listener as secondary for real-time updates
   const [currentRxConfig, setCurrentRxConfig] = useState<RxConfigData | undefined>(rxConfig);
   const [photochromicOutdoor, setPhotochromicOutdoor] = useState(false);
 
+  // Sync with prop when it changes (e.g., when product changes or prescription loads)
+  useEffect(() => {
+    if (rxConfig) {
+      setCurrentRxConfig(rxConfig);
+    }
+  }, [rxConfig]);
+
+  // Also listen to custom events for real-time updates during selection
   useEffect(() => {
     const handleConfigUpdate = (event: CustomEvent<RxConfigData>) => {
       setCurrentRxConfig(event.detail);
       // Reset outdoor toggle when switching away from photochromic
-      if (event.detail.lensCategory !== "PHOTOCHROMIC_SOLIS") {
+      if (event.detail.lensType !== "PHOTOCHROMIC_SOLIS") {
         setPhotochromicOutdoor(false);
       }
     };
@@ -273,11 +282,10 @@ export default function PrescriptionProductImage({
     maskPosition: "center center",
     maskRepeat: "no-repeat",
     maskMode: "luminance",
-    // @ts-expect-error - WebKit prefix properties
     WebkitMaskSize: "contain",
     WebkitMaskPosition: "center center",
     WebkitMaskRepeat: "no-repeat",
-  };
+  } as React.CSSProperties;
 
   return (
     <div className="relative w-full aspect-square lg:h-[400px] bg-muted rounded-lg overflow-hidden">

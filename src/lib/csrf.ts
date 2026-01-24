@@ -23,17 +23,19 @@ interface CSRFToken {
  */
 async function generateRandomBytes(length: number): Promise<string> {
   const array = new Uint8Array(length);
+  // Always use Web Crypto API if available (works in both Node.js and Edge Runtime)
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-    // Web Crypto API (works in both Node.js and Edge Runtime)
     crypto.getRandomValues(array);
+  } else if (typeof globalThis !== 'undefined' && (globalThis as any).crypto?.getRandomValues) {
+    (globalThis as any).crypto.getRandomValues(array);
   } else {
-    // Fallback for Node.js environments that don't have Web Crypto
-    // Only import if we're definitely in Node.js (not Edge Runtime)
-    if (typeof process !== 'undefined' && process.versions?.node) {
-      const { randomBytes } = await import("crypto");
-      const nodeBytes = randomBytes(length);
+    // Fallback: Only use Node.js crypto if Web Crypto is not available
+    // This file is marked 'server-only' so it will only run in Node.js
+    try {
+      const nodeCrypto = require("crypto");
+      const nodeBytes = nodeCrypto.randomBytes(length);
       array.set(nodeBytes);
-    } else {
+    } catch {
       throw new Error('Crypto API not available');
     }
   }
@@ -44,8 +46,8 @@ async function generateRandomBytes(length: number): Promise<string> {
  * Create HMAC signature using Web Crypto API (works in both Node.js and Edge Runtime)
  */
 async function createHMAC(data: string, secret: string): Promise<string> {
+  // Always prefer Web Crypto API (Edge Runtime compatible)
   if (typeof crypto !== 'undefined' && crypto.subtle) {
-    // Web Crypto API (Edge Runtime compatible)
     const encoder = new TextEncoder();
     const keyData = encoder.encode(secret);
     const messageData = encoder.encode(data);
@@ -61,15 +63,31 @@ async function createHMAC(data: string, secret: string): Promise<string> {
     const signature = await crypto.subtle.sign('HMAC', key, messageData);
     const hashArray = Array.from(new Uint8Array(signature));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } else if (typeof globalThis !== 'undefined' && (globalThis as any).crypto?.subtle) {
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const messageData = encoder.encode(data);
+    
+    const key = await (globalThis as any).crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const signature = await (globalThis as any).crypto.subtle.sign('HMAC', key, messageData);
+    const hashArray = Array.from(new Uint8Array(signature));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   } else {
-    // Fallback for Node.js environments only (not Edge Runtime)
-    // Only import if we're definitely in Node.js runtime
-    if (typeof process !== 'undefined' && process.versions?.node) {
-      const { createHmac } = await import("crypto");
-      const hmac = createHmac("sha256", secret);
+    // Fallback for Node.js environments only
+    // This file is marked 'server-only' so it will only run in Node.js
+    try {
+      const nodeCrypto = require("crypto");
+      const hmac = nodeCrypto.createHmac("sha256", secret);
       hmac.update(data);
       return hmac.digest("hex");
-    } else {
+    } catch {
       throw new Error('Crypto API not available');
     }
   }

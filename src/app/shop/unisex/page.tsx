@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { prisma } from "@/lib/prisma";
@@ -5,6 +6,30 @@ import { mapPrismaProductToProduct } from "@/lib/prisma-product-mapper";
 import ShopPageClient from "../ShopPageClient";
 import CategoryBanner from "@/components/shop/category-banner";
 import { Gender } from "@prisma/client";
+
+export const metadata: Metadata = {
+  title: 'Unisex Sunglasses & Eyewear',
+  description: 'Shop versatile unisex sunglasses and eyewear at FocusRobin. Polarized lenses, UV400 protection, minimalist frames designed in Lithuania. Fast shipping to Vilnius, Kaunas, and EU.',
+  keywords: [
+    'unisex sunglasses',
+    'unisex eyewear Lithuania',
+    'universal sunglasses',
+    'minimalist sunglasses',
+    'polarized unisex sunglasses',
+    'designer unisex eyewear',
+  ],
+  alternates: {
+    canonical: 'https://focusrobin.lt/shop/unisex',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IE',
+    url: 'https://focusrobin.lt/shop/unisex',
+    siteName: 'FocusRobin',
+    title: 'Unisex Sunglasses & Eyewear | FocusRobin Lithuania',
+    description: 'Shop versatile unisex sunglasses and eyewear. Polarized lenses, UV400 protection, minimalist frames designed in Lithuania.',
+  },
+};
 
 interface UnisexShopPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

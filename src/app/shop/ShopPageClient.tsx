@@ -26,9 +26,10 @@ import type { Product } from "@/lib/productData";
 interface ShopPageClientProps {
   products: Product[];
   title?: string;
+  searchQuery?: string;
 }
 
-export default function ShopPageClient({ products, title = "All Products" }: ShopPageClientProps) {
+export default function ShopPageClient({ products, title = "All Products", searchQuery }: ShopPageClientProps) {
   const searchParams = useSearchParams();
   const [filtersApplied, setFiltersApplied] = useState(0);
   const [sortBy, setSortBy] = useState<string>("recommend");
@@ -42,6 +43,7 @@ export default function ShopPageClient({ products, title = "All Products" }: Sho
     if (searchParams.get('glassShape')) count += searchParams.getAll('glassShape').length;
     if (searchParams.get('material')) count += searchParams.getAll('material').length;
     if (searchParams.get('minPrice') || searchParams.get('maxPrice')) count += 1;
+    if (searchParams.get('search')) count += 1; // Count search as a filter
     setFiltersApplied(count);
   }, [searchParams]);
 
@@ -114,7 +116,16 @@ export default function ShopPageClient({ products, title = "All Products" }: Sho
                 {title}
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Showing {sortedProducts.length} results
+                {searchQuery ? (
+                  <>
+                    {sortedProducts.length === 0 
+                      ? `No products found for "${searchQuery}"`
+                      : `Found ${sortedProducts.length} ${sortedProducts.length === 1 ? 'product' : 'products'} for "${searchQuery}"`
+                    }
+                  </>
+                ) : (
+                  `Showing ${sortedProducts.length} results`
+                )}
               </p>
             </div>
             

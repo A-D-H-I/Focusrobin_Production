@@ -7,18 +7,18 @@ import { cn } from "@/lib/utils";
 const valueProps = [
   {
     icon: Sparkles,
-    title: "Fast Delivery",
-    description: "Fast delivery of sunglasses to Vilnius, Kaunas, Klaipėda—and across the EU/Schengen.",
+    title: "Fast Delivery Lithuania & EU",
+    description: "Fast delivery of FocusRobin sunglasses and prescription glasses to Vilnius, Kaunas, Klaipėda, and across the EU/Schengen. Free shipping in Lithuania.",
   },
   {
     icon: Gem,
-    title: "Premium Quality",
-    description: "Crafted from the finest materials for durability and comfort.",
+    title: "Premium Quality Eyewear",
+    description: "FocusRobin glasses are crafted from premium materials with UV400 protection and polarized lenses for superior comfort and durability.",
   },
   {
     icon: ShieldCheck,
     title: "1-Year Warranty",
-    description: "We stand by our products with a comprehensive warranty.",
+    description: "Every pair of FocusRobin sunglasses and prescription glasses comes with a comprehensive 1-year warranty. Shop with confidence.",
   },
 ];
 

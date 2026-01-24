@@ -55,38 +55,60 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
   const ogImage = getOGImageUrl(productImage);
   
-  // Build description with polarized/UV info if available
-  let description = `${product.name} - Premium sunglasses by FocusRobin.`;
+  // Build SEO-optimized description
+  let description = `Buy ${product.name} from FocusRobin Lithuania.`;
   if (product.uvProtection && product.uvProtection.includes('UV')) {
-    description += ` UV protection included.`;
+    description += ` Features UV400 protection.`;
   }
+  description += ` Premium polarized sunglasses with fast delivery to Vilnius, Kaunas, Klaipėda and EU.`;
   if (product.description) {
-    description += ` ${product.description.substring(0, 120)}...`;
+    description += ` ${product.description.substring(0, 100)}`;
   }
-  description += ' Fast shipping to Lithuania and EU/Schengen.';
+  
+  // Build SEO-optimized title
+  const seoTitle = `${product.name} | FocusRobin Sunglasses Lithuania`;
+  
+  // Keywords for product pages
+  const productKeywords = [
+    `${product.name}`,
+    `${product.name} sunglasses`,
+    `buy ${product.name}`,
+    'FocusRobin',
+    'FocusRobin sunglasses',
+    'sunglasses Lithuania',
+    'buy sunglasses online Lithuania',
+    'polarized sunglasses',
+    'UV400 sunglasses',
+    'premium sunglasses Lithuania',
+    'sunglasses Vilnius',
+    'sunglasses Kaunas',
+    'saulės akiniai',
+    'saulės akiniai internetu',
+  ];
 
   return {
-    title: product.name,
+    title: seoTitle,
     description,
+    keywords: productKeywords,
     alternates: {
-      canonical: `https://focusrobin.lt/products/${slug}`,
+      canonical: `https://focusrobin.lt/shop/${slug}`,
     },
     openGraph: {
       type: 'website',
-      title: product.name,
+      title: seoTitle,
       description,
       images: [
         {
           url: ogImage,
           width: 1200,
           height: 630,
-          alt: product.name,
+          alt: `${product.name} - FocusRobin Premium Sunglasses Lithuania`,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: product.name,
+      title: seoTitle,
       description,
       images: [ogImage],
     },
@@ -268,7 +290,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     ...(basePrice > 0 && {
       offers: {
         '@type': 'Offer',
-        url: `https://focusrobin.lt/products/${slug}`,
+        url: `https://focusrobin.lt/shop/${slug}`,
         priceCurrency,
         price: basePrice.toFixed(2),
         availability: product.variants.some(v => (v.stock ?? 0) > 0)
@@ -311,7 +333,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         '@type': 'ListItem',
         position: 3,
         name: product.name,
-        item: `https://focusrobin.lt/products/${slug}`,
+        item: `https://focusrobin.lt/shop/${slug}`,
       },
     ],
   };

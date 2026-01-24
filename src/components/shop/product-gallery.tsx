@@ -6,9 +6,8 @@ import * as React from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Camera, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Product, ProductColorVariant } from "@/lib/productData";
-import VirtualTryOn from "./virtual-tryon";
 
 type ProductGalleryProps = {
   product: Product;
@@ -50,7 +49,6 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
   const [mainImage, setMainImage] = useState(() => allImages[0] || '');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isTryOnOpen, setIsTryOnOpen] = useState(false);
   
   // Update main image when variant or images change (data from database)
   useEffect(() => {
@@ -92,13 +90,17 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
       }
     }
     setIsFullscreen(true);
-    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    // Prevent background scrolling with scrollbar compensation
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = 'hidden';
+    document.body.style.paddingRight = `${scrollbarWidth}px`;
   };
 
   // Handle closing fullscreen
   const closeFullscreen = () => {
     setIsFullscreen(false);
     document.body.style.overflow = 'unset';
+    document.body.style.paddingRight = '';
   };
 
   // Handle navigation in fullscreen
@@ -118,6 +120,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
       if (e.key === 'Escape') {
         setIsFullscreen(false);
         document.body.style.overflow = 'unset';
+        document.body.style.paddingRight = '';
       } else if (e.key === 'ArrowLeft') {
         setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
       } else if (e.key === 'ArrowRight') {
@@ -183,19 +186,6 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
                 <span>No image available</span>
               </div>
             )}
-            <div className="absolute top-4 right-4 flex gap-2 z-10">
-              <Button 
-                variant="outline" 
-                className="bg-background/80 hover:bg-background"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsTryOnOpen(true);
-                }}
-              >
-                <Camera className="mr-2 h-4 w-4" />
-                Virtual Try-On
-              </Button>
-            </div>
           </div>
         </div>
       </div>
@@ -269,16 +259,6 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
           )}
         </div>
       )}
-
-      {/* Virtual Try-On */}
-      <VirtualTryOn
-        product={product}
-        variants={product.variants}
-        selectedVariantIndex={product.variants.findIndex(v => v.hex === selectedVariant.hex && v.name === selectedVariant.name)}
-        productName={product.name}
-        isOpen={isTryOnOpen}
-        onClose={() => setIsTryOnOpen(false)}
-      />
     </>
   );
 }

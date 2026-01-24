@@ -349,8 +349,14 @@ export async function getUserOrders() {
     const userId = session.user.id;
 
     // IDOR Protection: Only fetch orders for current user
+    // Exclude orders with FAILED or PENDING payment status
     const orders = await prisma.order.findMany({
-      where: { userId },
+      where: { 
+        userId,
+        paymentStatus: {
+          notIn: ['FAILED', 'PENDING']
+        }
+      },
       include: {
         items: {
           include: {
@@ -375,14 +381,37 @@ export async function getUserOrders() {
         orderNumber: order.orderNumber,
         status: order.status,
         paymentStatus: order.paymentStatus,
+        paymentMethod: order.paymentMethod,
         total: Number(order.total),
+        subtotal: order.subtotal ? Number(order.subtotal) : null,
+        shippingCost: order.shippingCost ? Number(order.shippingCost) : null,
+        tax: order.tax ? Number(order.tax) : null,
         currency: order.currency,
         shippingProvider: order.shippingProvider,
+        shippingCountry: order.shippingCountry,
         trackingNumber: order.trackingNumber,
         trackingMessage: order.trackingMessage,
         createdAt: order.createdAt,
         shippedAt: order.shippedAt,
         deliveredAt: order.deliveredAt,
+        // Shipping address
+        shippingName: order.shippingName,
+        shippingPhone: order.shippingPhone,
+        shippingAddressLine1: order.shippingAddressLine1,
+        shippingAddressLine2: order.shippingAddressLine2,
+        shippingCity: order.shippingCity,
+        shippingState: order.shippingState,
+        shippingPostalCode: order.shippingPostalCode,
+        shippingCountry: order.shippingCountry,
+        // Billing address
+        billingName: order.billingName,
+        billingPhone: order.billingPhone,
+        billingAddressLine1: order.billingAddressLine1,
+        billingAddressLine2: order.billingAddressLine2,
+        billingCity: order.billingCity,
+        billingState: order.billingState,
+        billingPostalCode: order.billingPostalCode,
+        billingCountry: order.billingCountry,
         items: order.items.map((item) => ({
           id: item.id,
           productId: item.productId,
@@ -394,6 +423,7 @@ export async function getUserOrders() {
           price: Number(item.price),
           total: Number(item.total),
           imageUrl: item.imageUrl,
+          prescriptionData: item.prescriptionData || null,
         })),
       })),
     };
@@ -459,6 +489,9 @@ export async function getAllOrders() {
         updatedAt: order.updatedAt,
         shippedAt: order.shippedAt,
         deliveredAt: order.deliveredAt,
+        shippingProvider: order.shippingProvider,
+        trackingNumber: order.trackingNumber,
+        trackingMessage: order.trackingMessage,
         items: order.items.map((item) => ({
           id: item.id,
           productId: item.productId,
@@ -470,6 +503,7 @@ export async function getAllOrders() {
           price: Number(item.price),
           total: Number(item.total),
           imageUrl: item.imageUrl,
+          prescriptionData: item.prescriptionData, // Include prescription data for lens manufacturer
         })),
       })),
     };

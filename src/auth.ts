@@ -228,108 +228,177 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
       return true;
     },
-    async session({ session, user }: any) {
-      if (session?.user) {
-        let userId: string | undefined;
+    // JWT callback - CRITICAL for JWT strategy to work properly
+    // This encodes user data into the JWT token on sign-in and refreshes
+    async jwt({ token, user, account, trigger }) {
+      // On initial sign-in, store user data in token
+      if (user) {
+        // User object is available on sign-in
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.picture = user.image;
         
-        // Try to get user ID from user parameter (database strategy)
-        if (user?.id) {
-          userId = user.id;
+        // For credentials provider, user.role is already available from verifyCredentials
+        if ((user as any).role) {
+          token.role = (user as any).role;
+          console.log('[JWT] Role from user object:', token.role);
         }
-        // Fallback: fetch user by email
-        else if (session.user.email) {
-          const dbUser = await prisma.user.findUnique({
-            where: { email: session.user.email },
-            select: { id: true, role: true },
-          });
-          if (dbUser) {
-            userId = dbUser.id;
-            session.user.role = dbUser.role;
+        
+        // For OAuth providers or if role is missing, fetch from database
+        if (!token.role && user.email) {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { email: user.email },
+              select: { id: true, role: true },
+            });
+            if (dbUser) {
+              token.id = dbUser.id;
+              token.role = dbUser.role;
+              console.log('[JWT] Role from database:', token.role);
+            }
+          } catch (error) {
+            console.error('Error fetching user role in jwt callback:', error);
           }
         }
-
-        // Fetch user with role if we have userId
-        if (userId) {
+        
+        // Default to USER if no role found
+        if (!token.role) {
+          token.role = "USER";
+          console.log('[JWT] Default role assigned: USER');
+        }
+        
+        console.log('[JWT] Final token on sign-in:', { id: token.id, email: token.email, role: token.role });
+      }
+      
+      // On session update or refresh, ensure we have the latest role
+      if (trigger === "update" && token.email) {
+        try {
           const dbUser = await prisma.user.findUnique({
-            where: { id: userId },
+            where: { email: token.email as string },
             select: { id: true, role: true },
           });
-
           if (dbUser) {
-            session.user.id = dbUser.id;
-            session.user.role = dbUser.role;
+            token.id = dbUser.id;
+            token.role = dbUser.role;
+          }
+        } catch (error) {
+          console.error('Error refreshing user role in jwt callback:', error);
+        }
+      }
+      
+      return token;
+    },
+    async session({ session, token }: any) {
+      if (session?.user && token) {
+        // With JWT strategy, user data comes from the token (set in jwt callback)
+        // This is much more efficient as it doesn't require DB lookups on every request
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.user.image = token.picture as string;
+        
+        // Handle role - if not in token (old sessions), fetch from DB
+        if (token.role) {
+          session.user.role = token.role as string;
+        } else if (token.id) {
+          // Fallback for existing sessions without role in token
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { role: true },
+            });
+            session.user.role = dbUser?.role || "USER";
+            console.log('[Session] Fetched role from DB for existing token:', session.user.role);
+          } catch (error) {
+            session.user.role = "USER";
+            console.error('Error fetching role in session callback:', error);
+          }
+        } else {
+          session.user.role = "USER";
+        }
+        
+        console.log('[Session] Final session user:', { id: session.user.id, email: session.user.email, role: session.user.role });
+        
+        // Process welcome bonus for new users (only if needed)
+        // This is a fallback in case the signIn callback didn't process it
+        if (token.id) {
+          try {
+            const userWithCreatedAt = await prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { createdAt: true },
+            });
 
-            // Fallback: Check and process welcome bonus if user was created recently (within last 5 minutes)
-            // This ensures welcome bonus is given even if signIn callback failed
-            try {
-              const userWithCreatedAt = await prisma.user.findUnique({
-                where: { id: dbUser.id },
-                select: { createdAt: true },
-              });
+            // Only check if user was created in the last 5 minutes (likely new user)
+            if (userWithCreatedAt) {
+              const userAge = Date.now() - new Date(userWithCreatedAt.createdAt).getTime();
+              const fiveMinutes = 5 * 60 * 1000;
 
-              // Only check if user was created in the last 5 minutes (likely new user)
-              if (userWithCreatedAt) {
-                const userAge = Date.now() - new Date(userWithCreatedAt.createdAt).getTime();
-                const fiveMinutes = 5 * 60 * 1000;
-
-                if (userAge < fiveMinutes) {
-                  let wallet = await (prisma as any).wallet.findUnique({
-                    where: { userId: dbUser.id },
+              if (userAge < fiveMinutes) {
+                let wallet = await (prisma as any).wallet.findUnique({
+                  where: { userId: token.id },
+                });
+                
+                if (!wallet) {
+                  wallet = await (prisma as any).wallet.create({
+                    data: { userId: token.id, balance: 0 },
                   });
-                  
-                  if (!wallet) {
-                    wallet = await (prisma as any).wallet.create({
-                      data: { userId: dbUser.id, balance: 0 },
-                    });
-                  }
+                }
 
-                  const hasWelcomeBonus = await (prisma as any).walletTransaction.findFirst({
-                    where: {
-                      walletId: wallet.id,
-                      description: { contains: 'Welcome bonus' },
-                    },
+                const hasWelcomeBonus = await (prisma as any).walletTransaction.findFirst({
+                  where: {
+                    walletId: wallet.id,
+                    description: { contains: 'Welcome bonus' },
+                  },
+                });
+
+                if (!hasWelcomeBonus) {
+                  const welcomeBonusSetting = await (prisma as any).settings.findUnique({
+                    where: { key: 'welcome_bonus_amount' },
                   });
 
-                  if (!hasWelcomeBonus) {
-                    const welcomeBonusSetting = await (prisma as any).settings.findUnique({
-                      where: { key: 'welcome_bonus_amount' },
+                  const welcomeBonusAmount = welcomeBonusSetting 
+                    ? parseFloat(welcomeBonusSetting.value) || 0 
+                    : 10.00;
+
+                  if (welcomeBonusAmount > 0) {
+                    await (prisma as any).wallet.update({
+                      where: { id: wallet.id },
+                      data: {
+                        balance: {
+                          increment: welcomeBonusAmount,
+                        },
+                      },
                     });
 
-                    const welcomeBonusAmount = welcomeBonusSetting 
-                      ? parseFloat(welcomeBonusSetting.value) || 0 
-                      : 10.00;
+                    await (prisma as any).walletTransaction.create({
+                      data: {
+                        walletId: wallet.id,
+                        amount: welcomeBonusAmount,
+                        type: 'CREDIT',
+                        description: `Welcome bonus - €${welcomeBonusAmount.toFixed(2)}`,
+                      },
+                    });
 
-                    if (welcomeBonusAmount > 0) {
-                      await (prisma as any).wallet.update({
-                        where: { id: wallet.id },
-                        data: {
-                          balance: {
-                            increment: welcomeBonusAmount,
-                          },
-                        },
-                      });
-
-                      await (prisma as any).walletTransaction.create({
-                        data: {
-                          walletId: wallet.id,
-                          amount: welcomeBonusAmount,
-                          type: 'CREDIT',
-                          description: `Welcome bonus - €${welcomeBonusAmount.toFixed(2)}`,
-                        },
-                      });
-
-                      console.log(`✅ Welcome bonus of €${welcomeBonusAmount.toFixed(2)} credited to user ${dbUser.id} (via session callback fallback)`);
-                    }
+                    console.log(`✅ Welcome bonus of €${welcomeBonusAmount.toFixed(2)} credited to user ${token.id} (via session callback fallback)`);
                   }
                 }
               }
-            } catch (error) {
-              // Silently fail - don't log to avoid spam
             }
+          } catch (error) {
+            // Silently fail - don't log to avoid spam
           }
         }
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      // Allow relative callback URLs
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      // Allow callback URLs on the same origin
+      if (new URL(url).origin === baseUrl) return url;
+      // Default to home page
+      return baseUrl;
     },
   },
   pages: {

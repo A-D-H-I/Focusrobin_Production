@@ -2,7 +2,6 @@ import { Logo } from "@/components/Landing/logo";
 import { Instagram, RotateCcw, ShieldCheck, Lock, Truck } from "lucide-react";
 import Link from 'next/link';
 import { FaCcVisa, FaCcMastercard, FaCcAmex, FaPaypal, FaApplePay, FaGooglePay, FaFacebook } from 'react-icons/fa';
-import { SiKlarna, SiShopify } from 'react-icons/si';
 import { NewsletterForm } from "./newsletter-form";
 
 export default function Footer() {
@@ -13,13 +12,7 @@ export default function Footer() {
     { name: 'American Express', icon: FaCcAmex, hasIcon: true },
     { name: 'PayPal', icon: FaPaypal, hasIcon: true },
     { name: 'Apple Pay', icon: FaApplePay, hasIcon: true },
-    { name: 'Google Pay', icon: FaGooglePay, hasIcon: true },
-    { name: 'Klarna', icon: SiKlarna, hasIcon: true },
-    { name: 'Shop Pay', icon: SiShopify, hasIcon: true },
-    { name: 'iDEAL', hasIcon: false },
-    { name: 'Bancontact', hasIcon: false },
-    { name: 'Blik', hasIcon: false },
-    { name: 'UnionPay', hasIcon: false }
+    { name: 'Google Pay', icon: FaGooglePay, hasIcon: true }
   ];
 
   return (
@@ -55,14 +48,14 @@ export default function Footer() {
               </div>
             </div>
 
-            {/* 1 Year Warranty */}
+            {/* 3 Year Warranty */}
             <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1">
               <div className="flex-shrink-0 mt-0.5 sm:mt-0">
                 <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-brand-blue" />
               </div>
               <div className="min-w-0 flex-1 sm:flex-none">
                 <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight break-words">
-                  1 Year Warranty
+                  3 Year Warranty
                 </p>
               </div>
             </div>
@@ -117,7 +110,6 @@ export default function Footer() {
             <h4 className="font-bold font-headline mb-4">Shop</h4>
             <ul className="space-y-2 text-sm">
               <li><Link href="/shop" className="hover:text-primary transition-colors">Sunglasses</Link></li>
-              <li><Link href="/shop/prescription-glasses" className="hover:text-primary transition-colors">Prescription Glasses</Link></li>
               <li><Link href="/shop?filter=new-arrivals" className="hover:text-primary transition-colors">New Arrivals</Link></li>
               <li><Link href="/shop?filter=bestsellers" className="hover:text-primary transition-colors">Bestsellers</Link></li>
             </ul>
@@ -126,11 +118,12 @@ export default function Footer() {
           <div>
             <h4 className="font-bold font-headline mb-4">Help & Support</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="#" className="hover:text-primary transition-colors">Help & Guides</Link></li>
               <li><Link href="/faq" prefetch={true} className="hover:text-primary transition-colors">FAQs</Link></li>
               <li><Link href="/terms" prefetch={true} className="hover:text-primary transition-colors">Terms of Service</Link></li>
               <li><Link href="/warranty" prefetch={true} className="hover:text-primary transition-colors">Terms of Warranty</Link></li>
               <li><Link href="/returns" prefetch={true} className="hover:text-primary transition-colors">Returns and Refunds</Link></li>
+              <li><Link href="/privacy" prefetch={true} className="hover:text-primary transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/cookie-preferences" prefetch={true} className="hover:text-primary transition-colors">Cookie Preferences</Link></li>
             </ul>
           </div>
 
@@ -174,25 +167,25 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Lithuanian SEO Content Section - Hidden visually but readable by search engines */}
+        {/* SEO Content Section - Visible text for SEO */}
         <div className="border-t border-border mt-8 pt-6">
-          <div className="sr-only">
-            <h2 className="text-brand-h2 font-headline mb-4">FocusRobin - Premium Sunglasses Lithuania</h2>
-            <p className="text-sm mb-4">
-              FocusRobin offers premium sunglasses Lithuania with fast shipping to Vilnius, Kaunas, and Klaipėda. 
-              Our collection features polarized sunglasses, minimalist eyewear, and designer sunglasses designed 
-              in Lithuania. Shop online for UV400 sunglasses, saulės akiniai internetu, and kokybiški akiniai 
-              with free delivery across the EU.
+          <div className="text-center max-w-4xl mx-auto">
+            <h2 className="text-base font-headline mb-3 text-secondary-foreground/80">
+              FocusRobin - Premium Sunglasses & Prescription Glasses Lithuania
+            </h2>
+            <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+              Shop FocusRobin for premium sunglasses and prescription glasses in Lithuania. 
+              Fast delivery to Vilnius, Kaunas, Klaipėda, Šiauliai, Panevėžys and across the EU. 
+              Our collection features polarized UV400 sunglasses, designer eyewear, and quality prescription glasses online.
             </p>
-            <p className="text-sm mb-4">
-              Akiniai nuo saulės, polarizuoti saulės akiniai, and akiniai su UV apsauga available for men and women. 
-              Find stilingi akiniai, akiniai moterims, and akiniai vyrams in our online store. 
-              Fast shipping to saulės akiniai Vilnius, saulės akiniai Kaunas, and saulės akiniai Klaipėda.
+            <p className="text-xs text-muted-foreground leading-relaxed mb-3">
+              Saulės akiniai internetu | Korekciniai akiniai Lietuva | Akiniai su dioptrijomis | 
+              Polarizuoti akiniai | Akiniai vyrams ir moterims | Optika internetu
             </p>
-            <p className="text-sm">
-              Premium sunglasses Lithuania | Sunglasses online Lithuania | Designer sunglasses Lithuania | 
-              Buy sunglasses in Lithuania | Sunglasses in Lithuania | FocusRobin Lithuania | 
-              FocusRobin sunglasses | Premium polarized sunglasses | Minimalist sunglasses | UV400 sunglasses.
+            <p className="text-[10px] text-muted-foreground/70">
+              FocusRobin Lithuania | Buy sunglasses online Lithuania | Buy prescription glasses online Lithuania | 
+              Sunglasses Vilnius | Sunglasses Kaunas | Prescription glasses Vilnius | Eyewear shop Lithuania | 
+              Best sunglasses Lithuania | Premium eyewear EU shipping
             </p>
           </div>
         </div>

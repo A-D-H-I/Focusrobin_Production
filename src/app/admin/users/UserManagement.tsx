@@ -37,7 +37,8 @@ import {
   Shield,
   Edit,
   Trash2,
-  Wallet
+  Wallet,
+  Eye
 } from 'lucide-react';
 import { format } from 'date-fns';
 import Image from 'next/image';
@@ -82,11 +83,43 @@ interface UserData {
   updatedAt: Date;
   accounts: any[];
   sessions: any[];
+  prescriptions?: Array<{
+    id: string;
+    productSlug: string;
+    odSph: string;
+    odCyl: string;
+    odAxis: string;
+    osSph: string;
+    osCyl: string;
+    osAxis: string;
+    pd: string;
+    pdOd: string | null;
+    pdOs: string | null;
+    hasTwoPDs: boolean;
+    hasPrism: boolean;
+    odPrismHorizontal: string | null;
+    odPrismHorizontalBase: string | null;
+    odPrismVertical: string | null;
+    odPrismVerticalBase: string | null;
+    osPrismHorizontal: string | null;
+    osPrismHorizontalBase: string | null;
+    osPrismVertical: string | null;
+    osPrismVerticalBase: string | null;
+    prescriptionImageUrl: string | null;
+    lensType: string;
+    lensIndex: string;
+    coating: string;
+    frameType: string;
+    createdAt: Date;
+    updatedAt: Date;
+  }>;
   cart: {
     id: string;
     items: Array<{
       id: string;
       quantity: number;
+      variantId: string;
+      prescriptionData: any;
       Product: any;
     }>;
   } | null;
@@ -906,6 +939,7 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                                   <TableRow>
                                     <TableHead>Product</TableHead>
                                     <TableHead>Variant</TableHead>
+                                    <TableHead>Type</TableHead>
                                     <TableHead>Quantity</TableHead>
                                     <TableHead>Price</TableHead>
                                     <TableHead>Actions</TableHead>
@@ -914,14 +948,152 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                                 <TableBody>
                                   {user.cart.items.map((item: any) => {
                                     const product = item.Product;
-                                    const variant = product.ProductVariant.find((v: any) => v.id === item.Product.ProductVariant[0]?.id);
+                                    const variant = product.ProductVariant.find((v: any) => v.id === item.variantId);
                                     const price = Number(product.basePrice);
+                                    const hasPrescription = !!item.prescriptionData;
+                                    const rxData = item.prescriptionData;
+                                    
+                                    // Calculate total price including prescription if applicable
+                                    let totalPrice = price;
+                                    if (hasPrescription && rxData?.rxPriceBreakdown?.totalNet) {
+                                      totalPrice = rxData.rxPriceBreakdown.totalNet;
+                                    }
+                                    
                                     return (
                                       <TableRow key={item.id}>
-                                        <TableCell className="font-medium">{product.name}</TableCell>
+                                        <TableCell className="font-medium">
+                                          <div>
+                                            {product.name}
+                                            {hasPrescription && (
+                                              <span className="ml-2 text-xs text-primary font-semibold">✓ Rx</span>
+                                            )}
+                                          </div>
+                                        </TableCell>
                                         <TableCell>{variant?.name || variant?.colorName || 'N/A'}</TableCell>
+                                        <TableCell>
+                                          {hasPrescription ? (
+                                            <Dialog>
+                                              <DialogTrigger asChild>
+                                                <Button variant="outline" size="sm" className="text-xs">
+                                                  <Eye className="h-3 w-3 mr-1" />
+                                                  Prescription
+                                                </Button>
+                                              </DialogTrigger>
+                                              <DialogContent className="max-w-2xl">
+                                                <DialogHeader>
+                                                  <DialogTitle>Prescription Details</DialogTitle>
+                                                  <DialogDescription>
+                                                    Prescription data for {product.name}
+                                                  </DialogDescription>
+                                                </DialogHeader>
+                                                <div className="space-y-4">
+                                                  {rxData?.rxValues && (
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                      <div className="border rounded-lg p-3">
+                                                        <p className="text-xs font-semibold text-muted-foreground mb-2">OD (Right Eye)</p>
+                                                        <div className="text-sm space-y-1">
+                                                          <p>SPH: {rxData.rxValues.odSph} | CYL: {rxData.rxValues.odCyl} | AXIS: {rxData.rxValues.odAxis}</p>
+                                                          {rxData.rxValues.hasPrism && rxData.rxValues.odPrismHorizontal && (
+                                                            <p className="text-xs text-muted-foreground">
+                                                              H Prism: {rxData.rxValues.odPrismHorizontal} {rxData.rxValues.odPrismHorizontalBase}
+                                                            </p>
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                      <div className="border rounded-lg p-3">
+                                                        <p className="text-xs font-semibold text-muted-foreground mb-2">OS (Left Eye)</p>
+                                                        <div className="text-sm space-y-1">
+                                                          <p>SPH: {rxData.rxValues.osSph} | CYL: {rxData.rxValues.osCyl} | AXIS: {rxData.rxValues.osAxis}</p>
+                                                          {rxData.rxValues.hasPrism && rxData.rxValues.osPrismHorizontal && (
+                                                            <p className="text-xs text-muted-foreground">
+                                                              H Prism: {rxData.rxValues.osPrismHorizontal} {rxData.rxValues.osPrismHorizontalBase}
+                                                            </p>
+                                                          )}
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                  {rxData?.rxValues && (
+                                                    <div className="text-sm">
+                                                      <span className="font-medium">PD: </span>
+                                                      {rxData.rxValues.hasTwoPDs ? (
+                                                        <span>OD: {rxData.rxValues.pdOd}mm | OS: {rxData.rxValues.pdOs}mm</span>
+                                                      ) : (
+                                                        <span>{rxData.rxValues.pd}mm</span>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                  {rxData?.rxConfig && (
+                                                    <div className="border-t pt-3 space-y-2">
+                                                      <div className="grid grid-cols-2 gap-4 text-sm">
+                                                        <div>
+                                                          <span className="font-medium">Lens Type: </span>
+                                                          <span>{rxData.rxConfig.lensType}</span>
+                                                        </div>
+                                                        <div>
+                                                          <span className="font-medium">Index: </span>
+                                                          <span>{rxData.rxConfig.lensIndex}</span>
+                                                        </div>
+                                                      </div>
+                                                      <div className="grid grid-cols-2 gap-4 text-sm">
+                                                        <div>
+                                                          <span className="font-medium">Coating: </span>
+                                                          <span>{rxData.rxConfig.coating}</span>
+                                                        </div>
+                                                        <div>
+                                                          <span className="font-medium">Frame Type: </span>
+                                                          <span>{rxData.rxConfig.frameType}</span>
+                                                        </div>
+                                                      </div>
+                                                      {rxData.rxConfig.tintColor && (
+                                                        <div className="text-sm">
+                                                          <span className="font-medium">Tint: </span>
+                                                          <span>{rxData.rxConfig.tintColor} ({rxData.rxConfig.tintType})</span>
+                                                        </div>
+                                                      )}
+                                                    </div>
+                                                  )}
+                                                  {rxData?.rxPriceBreakdown && (
+                                                    <div className="border-t pt-3">
+                                                      <p className="font-semibold mb-2">Price Breakdown</p>
+                                                      <div className="text-sm space-y-1">
+                                                        <div className="flex justify-between">
+                                                          <span>Frame:</span>
+                                                          <span>€{price.toFixed(2)}</span>
+                                                        </div>
+                                                        <div className="flex justify-between">
+                                                          <span>Rx Lenses:</span>
+                                                          <span>€{rxData.rxPriceBreakdown.rxRetailNet?.toFixed(2) || '0.00'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between font-semibold border-t pt-1">
+                                                          <span>Total:</span>
+                                                          <span>€{rxData.rxPriceBreakdown.totalNet?.toFixed(2) || '0.00'}</span>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                  {rxData?.rxValues?.prescriptionImageUrl && (
+                                                    <div className="text-sm">
+                                                      <span className="font-medium">Prescription Image: </span>
+                                                      <a 
+                                                        href={rxData.rxValues.prescriptionImageUrl} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="text-brand-teal hover:underline"
+                                                      >
+                                                        View uploaded prescription
+                                                      </a>
+                                                    </div>
+                                                  )}
+                                                </div>
+                                              </DialogContent>
+                                            </Dialog>
+                                          ) : (
+                                            <Badge variant="secondary">Standard</Badge>
+                                          )}
+                                        </TableCell>
                                         <TableCell>{item.quantity}</TableCell>
-                                        <TableCell>€{(price * item.quantity).toFixed(2)}</TableCell>
+                                        <TableCell>€{(totalPrice * item.quantity).toFixed(2)}</TableCell>
                                         <TableCell>
                                           <div className="flex gap-2">
                                             <Dialog open={editingCartItem === item.id} onOpenChange={(open) => {
@@ -1381,6 +1553,115 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                               </div>
                             )}
                           </div>
+
+                          {/* Saved Prescriptions */}
+                          {user.prescriptions && user.prescriptions.length > 0 && (
+                            <div>
+                              <h3 className="font-semibold mb-2 flex items-center gap-2">
+                                <Eye className="h-4 w-4" />
+                                Saved Prescriptions ({user.prescriptions.length})
+                              </h3>
+                              <div className="space-y-4">
+                                {user.prescriptions.map((prescription) => (
+                                  <div key={prescription.id} className="border rounded-lg p-4 bg-muted/30">
+                                    <div className="mb-3 pb-2 border-b">
+                                      <p className="font-medium text-sm">Product: <span className="text-brand-teal">{prescription.productSlug}</span></p>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Last updated: {format(new Date(prescription.updatedAt), 'PPp')}
+                                      </p>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 mb-3">
+                                      <div>
+                                        <p className="text-xs font-semibold text-muted-foreground mb-1">OD (Right Eye)</p>
+                                        <div className="text-sm space-y-0.5">
+                                          <p>SPH: {prescription.odSph} | CYL: {prescription.odCyl} | AXIS: {prescription.odAxis}</p>
+                                          {prescription.hasPrism && (
+                                            <>
+                                              {prescription.odPrismHorizontal && (
+                                                <p className="text-xs text-muted-foreground">
+                                                  H Prism: {prescription.odPrismHorizontal} {prescription.odPrismHorizontalBase}
+                                                </p>
+                                              )}
+                                              {prescription.odPrismVertical && (
+                                                <p className="text-xs text-muted-foreground">
+                                                  V Prism: {prescription.odPrismVertical} {prescription.odPrismVerticalBase}
+                                                </p>
+                                              )}
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <div>
+                                        <p className="text-xs font-semibold text-muted-foreground mb-1">OS (Left Eye)</p>
+                                        <div className="text-sm space-y-0.5">
+                                          <p>SPH: {prescription.osSph} | CYL: {prescription.osCyl} | AXIS: {prescription.osAxis}</p>
+                                          {prescription.hasPrism && (
+                                            <>
+                                              {prescription.osPrismHorizontal && (
+                                                <p className="text-xs text-muted-foreground">
+                                                  H Prism: {prescription.osPrismHorizontal} {prescription.osPrismHorizontalBase}
+                                                </p>
+                                              )}
+                                              {prescription.osPrismVertical && (
+                                                <p className="text-xs text-muted-foreground">
+                                                  V Prism: {prescription.osPrismVertical} {prescription.osPrismVerticalBase}
+                                                </p>
+                                              )}
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="border-t pt-3 space-y-2">
+                                      <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                          <span className="font-medium">PD: </span>
+                                          {prescription.hasTwoPDs ? (
+                                            <span>OD: {prescription.pdOd}mm | OS: {prescription.pdOs}mm</span>
+                                          ) : (
+                                            <span>{prescription.pd}mm</span>
+                                          )}
+                                        </div>
+                                        <div>
+                                          <span className="font-medium">Prism: </span>
+                                          <span>{prescription.hasPrism ? 'Yes' : 'No'}</span>
+                                        </div>
+                                      </div>
+                                      <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                          <span className="font-medium">Lens: </span>
+                                          <span>{prescription.lensType} ({prescription.lensIndex})</span>
+                                        </div>
+                                        <div>
+                                          <span className="font-medium">Coating: </span>
+                                          <span>{prescription.coating}</span>
+                                        </div>
+                                      </div>
+                                      <div className="text-sm">
+                                        <span className="font-medium">Frame Type: </span>
+                                        <span>{prescription.frameType}</span>
+                                      </div>
+                                      {prescription.prescriptionImageUrl && (
+                                        <div className="text-sm">
+                                          <span className="font-medium">Image: </span>
+                                          <a 
+                                            href={prescription.prescriptionImageUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-brand-teal hover:underline"
+                                          >
+                                            View uploaded prescription
+                                          </a>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Empty States */}
                           {cartItemCount === 0 && wishlistCount === 0 && reviewCount === 0 && (

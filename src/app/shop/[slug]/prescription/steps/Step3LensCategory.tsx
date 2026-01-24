@@ -10,15 +10,19 @@ import {
   LENS_TYPE_LABELS,
   getFromPricePair,
   getSupportedIndexes,
+  getAllowedCoatings,
   normalizeSelection,
   type LensSelection,
+  calculateLensPairTotalWithProfit,
 } from "@/lib/lensPricing";
+import { FIXED_PROFIT } from "@/lib/pricing/rx167";
 import type { RxConfigData } from "../PrescriptionFlow";
 import { type RxPriceResult } from "@/lib/pricing/rx167";
 
 interface Step3LensCategoryProps {
   rxConfig: RxConfigData;
   onConfigUpdate: (data: Partial<RxConfigData>) => void;
+  onConfigUpdateDefault?: (data: Partial<RxConfigData>) => void; // For default/mount applications
   onNext: () => void;
   onBack: () => void;
   formatPrice: (price: number) => string;
@@ -63,6 +67,7 @@ const LENS_INDICES: LensIndex[] = ["1.56", "1.60", "1.67"];
 export default function Step3LensCategory({
   rxConfig,
   onConfigUpdate,
+  onConfigUpdateDefault,
   onNext,
   onBack,
   formatPrice,
@@ -72,7 +77,12 @@ export default function Step3LensCategory({
   const currentLensIndex = rxConfig.lensIndex || "1.56";
   const currentLensType = rxConfig.lensType || "CLEAR";
   
+  // Use default handler if provided (won't overwrite user selections)
+  const applyDefaultUpdate = onConfigUpdateDefault || onConfigUpdate;
+  
   // Ensure CLEAR 1.56 is selected by default when component loads (only if not already set)
+  // Also ensure coating is set if missing
+  // This uses the default handler which respects hasUserMadeLensSelection flag
   useEffect(() => {
     const needsUpdate: Partial<RxConfigData> = {};
     
@@ -92,8 +102,17 @@ export default function Step3LensCategory({
       }
     }
     
+    // Ensure coating is set if missing (use first allowed coating for current lens type)
+    if (!rxConfig.coating && rxConfig.lensType) {
+      const allowedCoatings = getAllowedCoatings(rxConfig.lensType);
+      if (allowedCoatings.length > 0) {
+        needsUpdate.coating = allowedCoatings[0];
+      }
+    }
+    
     if (Object.keys(needsUpdate).length > 0) {
-      onConfigUpdate(needsUpdate);
+      // Use the default handler - this won't override user selections
+      applyDefaultUpdate(needsUpdate);
     }
   }, []); // Only run on mount
   
@@ -211,7 +230,7 @@ export default function Step3LensCategory({
             const indexToUse = supportedIndicesForOption.includes(currentLensIndex)
               ? currentLensIndex
               : supportedIndicesForOption[0];
-            const fromPrice = getFromPricePair(option.value, indexToUse);
+            const fromPrice = indexToUse ? getFromPricePair(option.value, indexToUse, FIXED_PROFIT) : 0;
 
             // Check if this option needs color selection
             const needsPhotochromicColor = option.value === "PHOTOCHROMIC_SOLIS" && isSelected;
@@ -227,23 +246,29 @@ export default function Step3LensCategory({
                     isSelected ? "border-primary bg-primary/10" : "border-border bg-background"
                   )}
                 >
-                  {isSelected && (
-                    <div className="absolute top-4 right-4 h-6 w-6 rounded-full bg-primary flex items-center justify-center">
-                      <Check className="h-4 w-4 text-primary-foreground" />
-                    </div>
-                  )}
-                  
                   <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
                     <Icon className="h-5 w-5 text-primary" />
                   </div>
                   
-                  <div className="flex-1 pr-6">
-                    <h3 className="text-base font-semibold mb-0.5">{option.label}</h3>
-                    <p className="text-xs text-muted-foreground mb-1">{option.description}</p>
-                    <p className="text-xs font-medium text-primary">
-                      From {formatPrice(fromPrice)} per pair
-                    </p>
+                  <div className={cn("flex-1", isSelected ? "pr-12" : "pr-2")}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1">
+                        <h3 className="text-base font-semibold mb-0.5">{option.label}</h3>
+                        <p className="text-xs text-muted-foreground mb-1">{option.description}</p>
+                      </div>
+                      {indexToUse && (
+                        <span className="text-sm font-semibold text-primary whitespace-nowrap">
+                          From {formatPrice(fromPrice)}
+                        </span>
+                      )}
+                    </div>
                   </div>
+                  
+                  {isSelected && (
+                    <div className="absolute top-4 right-4 h-6 w-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                      <Check className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                  )}
                 </button>
 
                 {/* Color Selection for Photochromic - expands below the option */}
@@ -306,7 +331,22 @@ export default function Step3LensCategory({
       {/* Action Buttons */}
       <div className="pt-2 border-t">
         <Button
-          onClick={onNext}
+          onClick={() => {
+            // Ensure coating is set before navigating to step 4
+            // This prevents prices from changing when entering step 4
+            if (rxConfig.lensType && !rxConfig.coating) {
+              const allowedCoatings = getAllowedCoatings(rxConfig.lensType);
+              if (allowedCoatings.length > 0) {
+                onConfigUpdate({ coating: allowedCoatings[0] });
+                // Wait for state update before navigating
+                requestAnimationFrame(() => {
+                  onNext();
+                });
+                return;
+              }
+            }
+            onNext();
+          }}
           disabled={
             !rxConfig.lensType ||
             (rxConfig.lensType === "PHOTOCHROMIC_SOLIS" && !rxConfig.photochromicColor) ||

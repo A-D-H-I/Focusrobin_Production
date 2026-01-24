@@ -63,14 +63,7 @@ export default function Step4Coating({
   // Calculate price delta (difference from cheapest allowed coating)
   const getPriceDelta = (coating: Coating): number => {
     if (!rxConfig.lensType || !rxConfig.lensIndex) return 0;
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Step4Coating.tsx:getPriceDelta',message:'Calculating price delta',data:{lensType:rxConfig.lensType,lensIndex:rxConfig.lensIndex,coating},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    const delta = getCoatingDeltaPair(rxConfig.lensType, rxConfig.lensIndex, coating);
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Step4Coating.tsx:getPriceDelta',message:'Price delta result',data:{delta,coating},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    return delta;
+    return getCoatingDeltaPair(rxConfig.lensType, rxConfig.lensIndex, coating);
   };
 
   // Get base pair price for a coating
@@ -84,11 +77,7 @@ export default function Step4Coating({
   const getPerLensPrice = (coating: Coating): number => {
     if (!rxConfig.lensType || !rxConfig.lensIndex) return 0;
     const pairPrice = getBasePairPrice(rxConfig.lensType, rxConfig.lensIndex, coating);
-    const perLensPrice = pairPrice / 2; // Convert pair price to per-lens price
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Step4Coating.tsx:getPerLensPrice',message:'Per-lens price calculated',data:{perLensPrice,pairPrice,coating,lensType:rxConfig.lensType,lensIndex:rxConfig.lensIndex},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    return perLensPrice;
+    return pairPrice / 2; // Convert pair price to per-lens price
   };
 
   return (
@@ -110,9 +99,6 @@ export default function Step4Coating({
           const isSelected = rxConfig.coating === option.value;
           const Icon = option.icon;
           const delta = getPriceDelta(option.value);
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/c913d761-7a80-4407-9ec9-0890b22819ca',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Step4Coating.tsx:render',message:'Rendering coating option',data:{coating:option.value,delta,isSelected,lensType:rxConfig.lensType,lensIndex:rxConfig.lensIndex},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-          // #endregion
 
           return (
             <button
@@ -124,34 +110,33 @@ export default function Step4Coating({
                   isSelected ? "border-primary bg-primary/10" : "border-border bg-background"
                 )}
               >
-              {isSelected && (
-                <div className="absolute top-3 right-3 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                  <Check className="h-3 w-3 text-primary-foreground" />
-                </div>
-              )}
-              
               <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
                 <Icon className="h-5 w-5 text-primary" />
               </div>
               
-              <div className="flex-1 pr-6">
-                <h3 className="text-base font-semibold mb-0.5">{COATING_LABELS[option.value]}</h3>
-                <p className="text-xs text-muted-foreground mb-1">{option.description}</p>
-                {delta === 0 ? (
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Included
-                    </p>
-                    <p className="text-xs text-muted-foreground/70">
-                      Base price: {formatPrice(getBasePrice(option.value))} per pair
-                    </p>
+              <div className={cn("flex-1", isSelected ? "pr-12" : "pr-2")}>
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <h3 className="text-base font-semibold mb-0.5">{COATING_LABELS[option.value]}</h3>
+                    <p className="text-xs text-muted-foreground mb-1">{option.description}</p>
+                    {delta === 0 ? (
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Included
+                      </p>
+                    ) : (
+                      <p className="text-sm font-semibold text-primary">
+                        +{formatPrice(delta)}
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-sm font-medium text-primary">
-                    {formatPrice(getPerLensPrice(option.value))} per lens
-                  </p>
-                )}
+                </div>
               </div>
+              
+              {isSelected && (
+                <div className="absolute top-3 right-3 h-5 w-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                  <Check className="h-3 w-3 text-primary-foreground" />
+                </div>
+              )}
             </button>
           );
         })}

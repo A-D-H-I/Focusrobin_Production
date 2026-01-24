@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
-import { CheckCircle2, Edit, ShoppingCart, Package } from "lucide-react";
+import { CheckCircle2, Edit, ShoppingCart } from "lucide-react";
 import PrescriptionProductImage from "../PrescriptionProductImage";
 import type { Product } from "@/lib/productData";
 import { usePrice } from "@/hooks/usePrice";
+import { getUserPrescription } from "@/app/actions/prescription";
+import { useCart } from "@/context/CartContext";
+import { useToast } from "@/hooks/use-toast";
 import {
   LENS_TYPE_LABELS,
   COATING_LABELS,
@@ -24,42 +28,77 @@ interface PrescriptionConfirmationContentProps {
 
 export default function PrescriptionConfirmationContent({ product, productSlug }: PrescriptionConfirmationContentProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const { formatPrice, parseEurPrice } = usePrice();
+  const { addToCart } = useCart();
+  const { toast } = useToast();
   const [prescriptionData, setPrescriptionData] = useState<FullPrescriptionData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const framePrice = parseEurPrice(product.price);
 
   useEffect(() => {
-    // Load prescription data from sessionStorage
-    if (typeof window !== 'undefined') {
-      const stored = sessionStorage.getItem(`prescription_${productSlug}`);
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored) as FullPrescriptionData;
-          setPrescriptionData(parsed);
-        } catch (error) {
-          console.error('Error parsing prescription data:', error);
-          router.push(`/shop/${productSlug}`);
+    const loadPrescriptionData = async () => {
+      setIsLoading(true);
+      try {
+        if (session?.user) {
+          // Load from database (shared prescription per user)
+          const result = await getUserPrescription(productSlug);
+          if (result && 'prescription' in result && result.prescription) {
+            setPrescriptionData(result.prescription);
+          } else {
+            // No prescription found, redirect to product page
+            router.push(`/shop/${productSlug}`);
+            return;
+          }
+        } else {
+          // Guest user - load from localStorage
+          if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('prescription_shared');
+            if (stored) {
+              try {
+                const parsed = JSON.parse(stored) as FullPrescriptionData;
+                setPrescriptionData(parsed);
+              } catch (error) {
+                console.error('Error parsing prescription data:', error);
+                router.push(`/shop/${productSlug}`);
+                return;
+              }
+            } else {
+              // No prescription data, redirect to product page
+              router.push(`/shop/${productSlug}`);
+              return;
+            }
+          }
         }
-      } else {
-        // No prescription data, redirect to product page
+      } catch (error) {
+        console.error('Error loading prescription data:', error);
         router.push(`/shop/${productSlug}`);
+      } finally {
+        setIsLoading(false);
       }
-    }
-  }, [productSlug, router]);
+    };
+
+    loadPrescriptionData();
+  }, [productSlug, router, session]);
 
   const handleEdit = () => {
-    router.push(`/shop/${productSlug}/prescription?product=${encodeURIComponent(productSlug)}`);
+    router.push(`/shop/${productSlug}/prescription?step=1`);
   };
 
   const handleContinue = () => {
     router.push(`/shop/${productSlug}`);
   };
 
-  if (!prescriptionData) {
+  if (isLoading) {
     return (
       <div className="h-96 bg-muted animate-pulse rounded-lg" />
     );
+  }
+
+  if (!prescriptionData) {
+    return null;
   }
 
   const selectedVariant = product.variants[0];
@@ -67,6 +106,97 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
   const normalizedImage = productImage ? normalizeImageUrl(productImage) : '';
   const rxConfig = prescriptionData.rxConfig;
   const priceBreakdown = prescriptionData.rxPriceBreakdown;
+
+  // Check if prescription has prism values
+  const hasPrism = prescriptionData.hasPrism || 
+    (prescriptionData.od.prismHorizontal && prescriptionData.od.prismHorizontal !== "0.00") ||
+    (prescriptionData.od.prismVertical && prescriptionData.od.prismVertical !== "0.00") ||
+    (prescriptionData.os.prismHorizontal && prescriptionData.os.prismHorizontal !== "0.00") ||
+    (prescriptionData.os.prismVertical && prescriptionData.os.prismVertical !== "0.00");
+
+  const handleAddToCart = async () => {
+    if (!prescriptionData || !selectedVariant) {
+      console.error('Missing prescriptionData or selectedVariant:', { prescriptionData, selectedVariant });
+      toast({
+        title: "Error",
+        description: "Missing prescription or product data. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsAddingToCart(true);
+    try {
+      // Prepare prescription data for cart in a standardized format
+      // This format works for both database storage and frontend display
+      const cartPrescriptionData = {
+        rxValues: {
+          // OD (Right Eye)
+          odSph: prescriptionData.od.sph,
+          odCyl: prescriptionData.od.cyl,
+          odAxis: prescriptionData.od.axis,
+          // OS (Left Eye)
+          osSph: prescriptionData.os.sph,
+          osCyl: prescriptionData.os.cyl,
+          osAxis: prescriptionData.os.axis,
+          // PD
+          pd: prescriptionData.pd,
+          pdOd: prescriptionData.pdOd,
+          pdOs: prescriptionData.pdOs,
+          hasTwoPDs: prescriptionData.hasTwoPDs,
+          // Prism
+          hasPrism: hasPrism,
+          odPrismHorizontal: prescriptionData.od.prismHorizontal,
+          odPrismHorizontalBase: prescriptionData.od.prismHorizontalBase,
+          odPrismVertical: prescriptionData.od.prismVertical,
+          odPrismVerticalBase: prescriptionData.od.prismVerticalBase,
+          osPrismHorizontal: prescriptionData.os.prismHorizontal,
+          osPrismHorizontalBase: prescriptionData.os.prismHorizontalBase,
+          osPrismVertical: prescriptionData.os.prismVertical,
+          osPrismVerticalBase: prescriptionData.os.prismVerticalBase,
+          // Prescription image if uploaded
+          prescriptionImageUrl: prescriptionData.prescriptionImageUrl,
+        },
+        rxConfig: rxConfig,
+        rxPriceBreakdown: priceBreakdown,
+      };
+      
+      console.log('[CONFIRMATION] Adding to cart:', {
+        productId: product.id,
+        productSlug: product.slug,
+        productName: product.name,
+        variantName: selectedVariant.name,
+        variantSku: selectedVariant.sku,
+        variantHex: selectedVariant.hex,
+        hasPrescription: true,
+        prescriptionData: cartPrescriptionData,
+      });
+      
+      // Await the addToCart function to ensure it completes
+      await addToCart(product, selectedVariant, 1, cartPrescriptionData);
+      
+      console.log('[CONFIRMATION] addToCart completed');
+      
+      toast({
+        title: "Added to cart",
+        description: `${product.name} with prescription has been added to your cart.`,
+      });
+      
+      // Small delay to allow state to propagate, then redirect
+      await new Promise(resolve => setTimeout(resolve, 300));
+      console.log('[CONFIRMATION] Redirecting to cart...');
+      router.push('/cart');
+    } catch (error) {
+      console.error('[CONFIRMATION] Error adding to cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -76,6 +206,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           imageUrl={normalizedImage}
           alt={product.name}
           productName={product.name}
+          rxConfig={rxConfig}
         />
         
         <div className="space-y-4 mt-6">
@@ -139,67 +270,121 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
             </div>
           </div>
 
-          {/* Prescription Details */}
+          {/* Prescription Details - Table Format */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Prescription Details</h3>
             
-            <div className="space-y-4">
-              {/* OD (Right Eye) */}
-              <div className="border rounded-lg p-4">
-                <h4 className="font-semibold mb-3">OD (Right Eye)</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground mb-1">SPH</p>
-                    <p className="font-mono font-medium">{prescriptionData.od.sph}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground mb-1">CYL</p>
-                    <p className="font-mono font-medium">{prescriptionData.od.cyl}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground mb-1">AXIS</p>
-                    <p className="font-mono font-medium">{prescriptionData.od.axis}°</p>
-                  </div>
+            <div className="border rounded-lg bg-muted/30">
+              {/* Main Prescription Table */}
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-muted/50 border-b">
+                    <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-medium">Eye</th>
+                    <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">SPH</th>
+                    <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">CYL</th>
+                    <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">AXIS</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b">
+                    <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">OD (Right)</td>
+                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.sph}</td>
+                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.cyl}</td>
+                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.axis}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">OS (Left)</td>
+                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.sph}</td>
+                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.cyl}</td>
+                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.axis}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* PD Section */}
+              <div className="p-3 sm:p-4 border-t">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <span className="text-xs sm:text-sm font-medium text-muted-foreground">PD (Pupillary Distance)</span>
+                  <span className="text-xs sm:text-sm font-medium break-words">
+                    {prescriptionData.hasTwoPDs ? (
+                      <>
+                        OD: {prescriptionData.pdOd && prescriptionData.pdOd !== "" ? `${prescriptionData.pdOd} mm` : "N/A"} | 
+                        OS: {prescriptionData.pdOs && prescriptionData.pdOs !== "" ? `${prescriptionData.pdOs} mm` : "N/A"}
+                      </>
+                    ) : (
+                      <>
+                        {prescriptionData.pd && prescriptionData.pd !== "" ? `${prescriptionData.pd} mm` : "Not set"}
+                      </>
+                    )}
+                  </span>
                 </div>
               </div>
 
-              {/* OS (Left Eye) */}
-              <div className="border rounded-lg p-4">
-                <h4 className="font-semibold mb-3">OS (Left Eye)</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground mb-1">SPH</p>
-                    <p className="font-mono font-medium">{prescriptionData.os.sph}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground mb-1">CYL</p>
-                    <p className="font-mono font-medium">{prescriptionData.os.cyl}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground mb-1">AXIS</p>
-                    <p className="font-mono font-medium">{prescriptionData.os.axis}°</p>
-                  </div>
+              {/* Prism Section - Show if hasPrism is true */}
+              {hasPrism && (
+                <div className="p-3 sm:p-4 border-t">
+                  <h4 className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3">Prism Correction</h4>
+                  <table className="w-full text-xs sm:text-sm">
+                    <thead>
+                      <tr className="bg-muted/50 border-b">
+                        <th className="p-1.5 sm:p-2 text-left text-[10px] sm:text-xs font-medium">Eye</th>
+                        <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">H. Prism</th>
+                        <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">Base</th>
+                        <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">V. Prism</th>
+                        <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">Base</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b">
+                        <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OD (Right)</td>
+                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                          {prescriptionData.od.prismHorizontal && prescriptionData.od.prismHorizontal !== "0.00" 
+                            ? prescriptionData.od.prismHorizontal 
+                            : "-"}
+                        </td>
+                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                          {prescriptionData.od.prismHorizontalBase && prescriptionData.od.prismHorizontalBase !== "" 
+                            ? prescriptionData.od.prismHorizontalBase 
+                            : "-"}
+                        </td>
+                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                          {prescriptionData.od.prismVertical && prescriptionData.od.prismVertical !== "0.00" 
+                            ? prescriptionData.od.prismVertical 
+                            : "-"}
+                        </td>
+                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                          {prescriptionData.od.prismVerticalBase && prescriptionData.od.prismVerticalBase !== "" 
+                            ? prescriptionData.od.prismVerticalBase 
+                            : "-"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OS (Left)</td>
+                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                          {prescriptionData.os.prismHorizontal && prescriptionData.os.prismHorizontal !== "0.00" 
+                            ? prescriptionData.os.prismHorizontal 
+                            : "-"}
+                        </td>
+                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                          {prescriptionData.os.prismHorizontalBase && prescriptionData.os.prismHorizontalBase !== "" 
+                            ? prescriptionData.os.prismHorizontalBase 
+                            : "-"}
+                        </td>
+                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                          {prescriptionData.os.prismVertical && prescriptionData.os.prismVertical !== "0.00" 
+                            ? prescriptionData.os.prismVertical 
+                            : "-"}
+                        </td>
+                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                          {prescriptionData.os.prismVerticalBase && prescriptionData.os.prismVerticalBase !== "" 
+                            ? prescriptionData.os.prismVerticalBase 
+                            : "-"}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-              </div>
-
-              {/* PD */}
-              <div className="border rounded-lg p-4">
-                <h4 className="font-semibold mb-3">PD (Pupillary Distance)</h4>
-                {prescriptionData.hasTwoPDs ? (
-                  <div className="space-y-2">
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">OD (Right)</p>
-                      <p className="text-lg font-mono font-medium">{prescriptionData.pdOd || "N/A"} mm</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground mb-1">OS (Left)</p>
-                      <p className="text-lg font-mono font-medium">{prescriptionData.pdOs || "N/A"} mm</p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-lg font-mono font-medium">{prescriptionData.pd} mm</p>
-                )}
-              </div>
+              )}
             </div>
           </div>
 
@@ -270,10 +455,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
               
               <div className="border rounded-lg p-4 space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    Frame
-                  </span>
+                  <span>Frame</span>
                   <span>{formatPrice(framePrice)}</span>
                 </div>
                 <div className="border-t pt-3 space-y-2">
@@ -302,11 +484,12 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           {/* Action Buttons */}
           <div className="pt-4 border-t space-y-3">
             <Button
-              onClick={handleContinue}
+              onClick={handleAddToCart}
+              disabled={isAddingToCart || !selectedVariant}
               className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
               <ShoppingCart className="mr-2 h-5 w-5" />
-              Return to Product
+              {isAddingToCart ? "Adding to Cart..." : "Add to Cart with Prescription"}
             </Button>
             <Button
               variant="outline"
@@ -316,10 +499,16 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
               <Edit className="mr-2 h-4 w-4" />
               Edit Configuration
             </Button>
+            <Button
+              variant="outline"
+              onClick={handleContinue}
+              className="w-full h-12"
+            >
+              Return to Product
+            </Button>
           </div>
         </div>
       </div>
     </div>
   );
 }
-

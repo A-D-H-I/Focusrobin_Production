@@ -1,13 +1,11 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useMemo } from "react";
 import PrescriptionFlow from "./PrescriptionFlow";
 import PrescriptionProductImage from "./PrescriptionProductImage";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
 import type { Product } from "@/lib/productData";
 import { PrescriptionPriceProvider, usePrescriptionPrice } from "./context/PrescriptionPriceContext";
-import PriceSummary from "./components/PriceSummary";
-import { usePrice } from "@/hooks/usePrice";
 
 interface PrescriptionPageClientProps {
   product: Product;
@@ -33,71 +31,67 @@ function PrescriptionPageContent({
   const normalizedLensMask = lensMaskImageUrl ? normalizeImageUrl(lensMaskImageUrl) : null;
   const normalizedLensBackground = lensBackgroundImageUrl ? normalizeImageUrl(lensBackgroundImageUrl) : null;
 
-  const { rxPriceResult, framePrice, formatPrice, prescriptionData, currentStep } = usePrescriptionPrice();
-  const { parseEurPrice } = usePrice();
-  
-  // Calculate frame price from product if not available in context
-  const calculatedFramePrice = framePrice || parseEurPrice(product.price);
+  const { rxPriceResult, framePrice, formatPrice, prescriptionData, currentStep, rxConfig: contextRxConfig } = usePrescriptionPrice();
 
-  // Check if prescription values are entered (not defaults)
-  const hasPrescriptionValues = prescriptionData && (
-    prescriptionData.od.sph !== "0.00" ||
-    prescriptionData.od.cyl !== "0.00" ||
-    prescriptionData.od.axis !== "0" ||
-    prescriptionData.os.sph !== "0.00" ||
-    prescriptionData.os.cyl !== "0.00" ||
-    prescriptionData.os.axis !== "0" ||
-    prescriptionData.pd !== "62"
-  );
+  // For steps 0 and 1, only show frame price
+  // For steps 3+, show full breakdown
+  const showFullBreakdown = currentStep >= 3;
 
-  // Show subtotal from Step 3 (Choose Lens Type) onwards
-  // Step 3 is "Choose Lens Type" - show subtotal when on lens selection step and beyond
-  const shouldShowSubtotal = currentStep >= 3;
+  // Fallback formatPrice function if not yet initialized - ensure it's always a function
+  const safeFormatPrice = useMemo(() => {
+    if (typeof formatPrice === 'function') {
+      return formatPrice;
+    }
+    // Fallback function if formatPrice is not available
+    return (price: number) => `€${price.toFixed(2)}`;
+  }, [formatPrice]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
       {/* Left Column - Sticky Product Display with Real-time Processing */}
       <div className="lg:sticky lg:top-8 lg:h-fit space-y-3">
-        {/* Price Summary above image - Only show when prescription values are entered */}
-        {formatPrice && rxPriceResult && hasPrescriptionValues && (
-          <PriceSummary
-            rxPriceResult={rxPriceResult}
-            framePrice={calculatedFramePrice}
-            formatPrice={formatPrice}
-            className="border-t-0 pt-0"
-          />
-        )}
-        
         <div className="max-w-sm mx-auto lg:max-w-full">
           <PrescriptionProductImage
             imageUrl={normalizedImage}
             alt={product.name}
             productName={product.name}
+            rxConfig={contextRxConfig || undefined}
             lensBaseImageUrl={normalizedLensBase}
             lensMaskImageUrl={normalizedLensMask}
             lensBackgroundImageUrl={normalizedLensBackground}
           />
         </div>
         
-        {/* Subtotal below product image - Show from Step 3 (Choose Lens Type) onwards */}
-        {formatPrice && shouldShowSubtotal && (
-          <div className="border-t pt-3">
-            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
-              <div>
-                <p className="text-sm font-medium text-foreground">Subtotal</p>
-                <p className="text-xs text-muted-foreground/70 mt-0.5">
-                  Frame + Lenses
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xl font-bold text-primary">
-                  {formatPrice(rxPriceResult?.totalNet || calculatedFramePrice || 0)}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">Including VAT</p>
-              </div>
-            </div>
+        {/* Order Summary Section */}
+        <div className="border rounded-lg p-4 bg-muted/30 space-y-2">
+          <h3 className="font-semibold text-sm mb-3">Order Summary</h3>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">Frame</span>
+            <span className="font-medium">{safeFormatPrice(framePrice || 0)}</span>
           </div>
-        )}
+          
+          {/* Show full breakdown only for steps 3+ */}
+          {showFullBreakdown && rxPriceResult && formatPrice && (
+            <>
+              {rxPriceResult.breakdown.lensesPair > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Lenses (pair)</span>
+                  <span className="font-medium">{safeFormatPrice(rxPriceResult.breakdown.lensesPair)}</span>
+                </div>
+              )}
+              {rxPriceResult.breakdown.edgingFee > 0 && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Edging/Mounting</span>
+                  <span className="font-medium">{safeFormatPrice(rxPriceResult.breakdown.edgingFee)}</span>
+                </div>
+              )}
+              <div className="pt-2 border-t flex items-center justify-between">
+                <span className="font-semibold">Subtotal</span>
+                <span className="text-lg font-bold text-primary">{safeFormatPrice(rxPriceResult.totalNet)}</span>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Right Column - Dynamic Content */}

@@ -4,6 +4,7 @@ import { useSession } from 'next-auth/react';
 import type { Product, ProductColorVariant } from '@/lib/productData';
 import { toggleWishlist as toggleWishlistAction, getWishlist, isInWishlist as isInWishlistAction } from '@/app/actions/user';
 import { mapDbWishlistItemToWishlistItem, type WishlistItem } from '@/lib/cart-wishlist-mapper';
+import { trackMetaEvent } from '@/components/analytics/MetaPixel';
 
 interface WishlistContextType {
   wishlistItems: WishlistItem[];
@@ -90,6 +91,21 @@ export const WishlistProvider = ({ children }: { children: ReactNode }) => {
       return [...prevItems, { product, variant }];
     });
     setWishlistProductIds(prev => new Set([...prev, product.id]));
+
+    // Track AddToWishlist event with Meta Pixel
+    try {
+      const price = parseFloat(product.price.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+      const category = product.gender?.join(', ') || 'Sunglasses';
+      trackMetaEvent('AddToWishlist', {
+        content_ids: [product.slug || product.id],
+        content_name: product.name,
+        content_category: category,
+        value: price,
+        currency: 'EUR',
+      });
+    } catch (trackError) {
+      console.error('[Wishlist] Meta Pixel tracking error:', trackError);
+    }
 
     if (session?.user) {
       // User is logged in - save to database

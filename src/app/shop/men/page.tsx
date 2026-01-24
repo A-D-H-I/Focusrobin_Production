@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { prisma } from "@/lib/prisma";
@@ -5,6 +6,31 @@ import { mapPrismaProductToProduct } from "@/lib/prisma-product-mapper";
 import ShopPageClient from "../ShopPageClient";
 import CategoryBanner from "@/components/shop/category-banner";
 import { Gender } from "@prisma/client";
+
+export const metadata: Metadata = {
+  title: 'Men\'s Sunglasses & Eyewear',
+  description: 'Shop premium men\'s sunglasses and eyewear at FocusRobin. Polarized lenses, UV400 protection, stylish frames designed in Lithuania. Fast shipping to Vilnius, Kaunas, and EU. Akiniai vyrams.',
+  keywords: [
+    'men sunglasses',
+    'mens sunglasses Lithuania',
+    'akiniai vyrams',
+    'vyriški saulės akiniai',
+    'polarized sunglasses men',
+    'designer sunglasses men',
+    'UV400 sunglasses men',
+  ],
+  alternates: {
+    canonical: 'https://focusrobin.lt/shop/men',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IE',
+    url: 'https://focusrobin.lt/shop/men',
+    siteName: 'FocusRobin',
+    title: 'Men\'s Sunglasses & Eyewear | FocusRobin Lithuania',
+    description: 'Shop premium men\'s sunglasses and eyewear. Polarized lenses, UV400 protection, stylish frames designed in Lithuania.',
+  },
+};
 
 interface MenShopPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

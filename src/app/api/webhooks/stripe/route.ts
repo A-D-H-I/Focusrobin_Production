@@ -7,6 +7,7 @@ import { getInvoiceDataFromOrder } from '@/lib/invoice';
 import { uploadInvoiceToDropbox, getOrCreateInvoicesFolder } from '@/lib/dropbox';
 import { sendOrderConfirmationWithDocuments } from '@/lib/invoice-email';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { generatePrescriptionPDF, extractPrescriptionFromOrderItem, hasValidPrescriptionValues, PrescriptionPDFData } from '@/lib/prescription-pdf';
 
 // Disable body parsing, Stripe needs raw body
 export const runtime = 'nodejs';
@@ -197,6 +198,25 @@ async function processInvoice(orderId: string, orderNumber: string) {
   console.log(`[Invoice] Starting invoice processing for order ${orderNumber}...`);
   
   try {
+    // Get order with items (including prescription data)
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+        User: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+      },
+    });
+    
+    if (!order) {
+      console.error(`[Invoice] Order not found: ${orderId}`);
+      return;
+    }
+    
     // Get invoice data
     console.log(`[Invoice] Fetching invoice data for order ${orderId}...`);
     const invoiceData = await getInvoiceDataFromOrder(orderId);
@@ -205,11 +225,73 @@ async function processInvoice(orderId: string, orderNumber: string) {
       return;
     }
     console.log(`[Invoice] Invoice data retrieved for customer: ${invoiceData.customerEmail}`);
+    
+    // Extract prescription data from order items
+    // IMPORTANT: Only generate prescription PDF for items with ACTUAL prescription values
+    // Not just items that have prescriptionData field (which might be empty or just have pricing)
+    const prescriptionDataList: PrescriptionPDFData[] = [];
+    for (const item of order.items) {
+      // Use the validation helper to check if this item has actual prescription values
+      console.log(`[Invoice] Checking item "${item.productName}" (SKU: ${item.sku}, ID: ${item.id}):`, {
+        hasPrescriptionData: !!item.prescriptionData,
+        prescriptionDataKeys: item.prescriptionData ? Object.keys(item.prescriptionData) : [],
+      });
+      
+      if (item.prescriptionData && hasValidPrescriptionValues(item.prescriptionData)) {
+        console.log(`[Invoice] Item "${item.productName}" (SKU: ${item.sku}) has valid prescription data, generating PDF...`);
+        const prescriptionPdfData = await extractPrescriptionFromOrderItem(
+          {
+            productName: item.productName,
+            variantName: item.variantName,
+            sku: item.sku,
+            prescriptionData: item.prescriptionData,
+          },
+          order.orderNumber,
+          order.createdAt,
+          order.User?.name || order.shippingName,
+          order.User?.email || 'customer@example.com'
+        );
+        
+        if (prescriptionPdfData) {
+          prescriptionDataList.push(prescriptionPdfData);
+          console.log(`[Invoice] Successfully extracted prescription data for: ${item.productName} (SKU: ${item.sku})`);
+        }
+      } else if (item.prescriptionData) {
+        console.log(`[Invoice] Item "${item.productName}" (SKU: ${item.sku}) has prescriptionData but NO valid prescription values - skipping PDF`);
+        console.log(`[Invoice] Prescription data structure:`, JSON.stringify(item.prescriptionData, null, 2));
+      } else {
+        console.log(`[Invoice] Item "${item.productName}" (SKU: ${item.sku}) is a non-prescription item`);
+      }
+    }
+    
+    console.log(`[Invoice] Total prescription items found: ${prescriptionDataList.length}`);
 
     // Generate combined PDF (Payment Receipt + Invoice)
     console.log(`[Invoice] Generating combined PDF (Payment Receipt + Invoice)...`);
-    const pdfBuffer = await generateCombinedPDF(invoiceData);
+    let pdfBuffer = await generateCombinedPDF(invoiceData);
     console.log(`[Invoice] Combined PDF generated successfully (${pdfBuffer.length} bytes)`);
+    
+    // If there are prescription items, generate and append prescription PDFs
+    if (prescriptionDataList.length > 0) {
+      console.log(`[Invoice] Appending ${prescriptionDataList.length} prescription PDF(s) to combined document...`);
+      
+      // Load the combined PDF
+      const mergedPdf = await PDFDocument.load(pdfBuffer);
+      
+      // Generate and append prescription PDFs
+      for (const prescriptionData of prescriptionDataList) {
+        console.log(`[Invoice] Generating prescription PDF for: ${prescriptionData.productName}`);
+        const prescriptionPdfBuffer = await generatePrescriptionPDF(prescriptionData);
+        const prescriptionPdf = await PDFDocument.load(prescriptionPdfBuffer);
+        const pages = await mergedPdf.copyPages(prescriptionPdf, prescriptionPdf.getPageIndices());
+        pages.forEach(page => mergedPdf.addPage(page));
+      }
+      
+      // Save the merged PDF
+      const mergedPdfBytes = await mergedPdf.save();
+      pdfBuffer = Buffer.from(mergedPdfBytes);
+      console.log(`[Invoice] Merged PDF with prescriptions generated (${pdfBuffer.length} bytes)`);
+    }
     
     // Upload to Dropbox
     console.log(`[Invoice] Attempting Dropbox upload...`);
@@ -258,12 +340,15 @@ async function processInvoice(orderId: string, orderNumber: string) {
       }
     }
 
-    // Send email with documents
+    // Send email with documents (including prescription PDFs if any)
     console.log(`[Invoice] Sending order confirmation email with documents...`);
     try {
-      const emailResult = await sendOrderConfirmationWithDocuments(invoiceData);
+      const emailResult = await sendOrderConfirmationWithDocuments(invoiceData, prescriptionDataList.length > 0 ? prescriptionDataList : undefined);
       if (emailResult.success) {
         console.log(`[Invoice] ✓ Order confirmation email sent successfully`);
+        if (prescriptionDataList.length > 0) {
+          console.log(`[Invoice] ✓ Email includes ${prescriptionDataList.length} prescription PDF(s)`);
+        }
       } else {
         console.error(`[Invoice] ✗ Order confirmation email failed:`, emailResult.error);
       }
@@ -322,6 +407,7 @@ export async function POST(request: Request) {
       
       console.log(`[Stripe Webhook] Checkout session completed: ${session.id}`);
       console.log(`[Stripe Webhook] Payment status: ${session.payment_status}`);
+      console.log(`[Stripe Webhook] Session mode: ${session.mode}`);
       console.log(`[Stripe Webhook] Metadata:`, session.metadata);
 
       const orderId = session.metadata?.orderId;
@@ -334,6 +420,17 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: 'No orderId in metadata' }, { status: 400 });
       }
 
+      // Only process if payment is actually paid
+      // checkout.session.completed can fire even when payment_status is 'unpaid'
+      if (session.payment_status !== 'paid') {
+        console.warn(`[Stripe Webhook] Checkout session completed but payment_status is '${session.payment_status}', not 'paid'. Skipping order update.`);
+        console.warn(`[Stripe Webhook] This usually means payment was not completed or was cancelled.`);
+        return NextResponse.json({ 
+          received: true, 
+          message: `Payment status is '${session.payment_status}', not 'paid'. Order not updated.` 
+        });
+      }
+
       try {
         // Update the order
         // When payment is successful:
@@ -342,19 +439,19 @@ export async function POST(request: Request) {
         const order = await prisma.order.update({
           where: { id: orderId },
           data: {
-            isPaid: session.payment_status === 'paid',
-            paymentStatus: session.payment_status === 'paid' ? 'COMPLETED' : 'PROCESSING',
-            status: session.payment_status === 'paid' ? 'CONFIRMED' : 'PENDING',
+            isPaid: true,
+            paymentStatus: 'COMPLETED',
+            status: 'CONFIRMED',
             stripePaymentIntentId: typeof session.payment_intent === 'string' 
               ? session.payment_intent 
               : session.payment_intent?.id || null,
           },
         });
 
-        console.log(`[Stripe Webhook] Order ${order.orderNumber} updated to ${order.status}`);
+        console.log(`[Stripe Webhook] ✓ Order ${order.orderNumber} updated to CONFIRMED with payment COMPLETED`);
 
         // Update wallet transaction description if wallet was used and payment succeeded
-        if (session.payment_status === 'paid' && walletAmountUsed > 0 && walletTransactionId) {
+        if (walletAmountUsed > 0 && walletTransactionId) {
           try {
             await prisma.walletTransaction.update({
               where: { id: walletTransactionId },
@@ -370,7 +467,7 @@ export async function POST(request: Request) {
         }
 
         // If payment is complete, clear the user's cart and update stock
-        if (session.payment_status === 'paid' && userId) {
+        if (userId) {
           // Get order items to update stock
           const orderItems = await prisma.orderItem.findMany({
             where: { orderId },
@@ -512,30 +609,46 @@ export async function POST(request: Request) {
             try {
               const wallet = await prisma.wallet.findUnique({
                 where: { userId },
+                include: {
+                  transactions: {
+                    where: {
+                      description: {
+                        contains: `Refund for cancelled order ${session.metadata?.orderNumber || orderId}`,
+                      },
+                      type: 'CREDIT',
+                    },
+                    take: 1,
+                  },
+                },
               });
 
               if (wallet) {
-                // Refund the wallet amount
-                await prisma.wallet.update({
-                  where: { userId },
-                  data: {
-                    balance: {
-                      increment: walletAmountUsed,
+                // Check if already refunded
+                if (wallet.transactions.length > 0) {
+                  console.log(`[Stripe Webhook] Wallet already refunded for order ${orderId}`);
+                } else {
+                  // Refund the wallet amount
+                  await prisma.wallet.update({
+                    where: { userId },
+                    data: {
+                      balance: {
+                        increment: walletAmountUsed,
+                      },
                     },
-                  },
-                });
+                  });
 
-                // Create refund transaction
-                await prisma.walletTransaction.create({
-                  data: {
-                    walletId: wallet.id,
-                    amount: walletAmountUsed,
-                    type: 'CREDIT',
-                    description: `Refund for cancelled order ${session.metadata?.orderNumber || orderId}`,
-                  },
-                });
+                  // Create refund transaction
+                  await prisma.walletTransaction.create({
+                    data: {
+                      walletId: wallet.id,
+                      amount: walletAmountUsed,
+                      type: 'CREDIT',
+                      description: `Refund for cancelled order ${session.metadata?.orderNumber || orderId}`,
+                    },
+                  });
 
-                console.log(`[Stripe Webhook] Refunded ${walletAmountUsed} EUR to wallet for cancelled order`);
+                  console.log(`[Stripe Webhook] Refunded ${walletAmountUsed} EUR to wallet for cancelled order`);
+                }
               }
             } catch (walletError) {
               console.error('[Stripe Webhook] Error refunding wallet:', walletError);
@@ -545,6 +658,41 @@ export async function POST(request: Request) {
         } catch (error) {
           console.error('[Stripe Webhook] Error marking order as expired:', error);
         }
+      }
+
+      return NextResponse.json({ received: true });
+    }
+
+    case 'payment_intent.succeeded': {
+      const paymentIntent = event.data.object as Stripe.PaymentIntent;
+      
+      console.log(`[Stripe Webhook] Payment intent succeeded: ${paymentIntent.id}`);
+      console.log(`[Stripe Webhook] Payment intent status: ${paymentIntent.status}`);
+      console.log(`[Stripe Webhook] Amount: ${paymentIntent.amount} ${paymentIntent.currency}`);
+      
+      // Find order by payment intent ID and ensure it's marked as paid
+      try {
+        const order = await prisma.order.findFirst({
+          where: { stripePaymentIntentId: paymentIntent.id },
+        });
+
+        if (order && (!order.isPaid || order.paymentStatus !== 'COMPLETED')) {
+          await prisma.order.update({
+            where: { id: order.id },
+            data: {
+              isPaid: true,
+              paymentStatus: 'COMPLETED',
+              status: order.status === 'PENDING' ? 'CONFIRMED' : order.status,
+            },
+          });
+          console.log(`[Stripe Webhook] ✓ Order ${order.orderNumber} confirmed via payment_intent.succeeded`);
+        } else if (order) {
+          console.log(`[Stripe Webhook] Order ${order.orderNumber} already marked as paid`);
+        } else {
+          console.log(`[Stripe Webhook] No order found for payment intent ${paymentIntent.id}`);
+        }
+      } catch (error) {
+        console.error('[Stripe Webhook] Error updating order from payment_intent.succeeded:', error);
       }
 
       return NextResponse.json({ received: true });
@@ -582,30 +730,46 @@ export async function POST(request: Request) {
             try {
               const wallet = await prisma.wallet.findUnique({
                 where: { userId: order.User.id },
+                include: {
+                  transactions: {
+                    where: {
+                      description: {
+                        contains: `Refund for failed payment - Order ${order.orderNumber}`,
+                      },
+                      type: 'CREDIT',
+                    },
+                    take: 1,
+                  },
+                },
               });
 
               if (wallet) {
-                // Refund the wallet amount
-                await prisma.wallet.update({
-                  where: { userId: order.User.id },
-                  data: {
-                    balance: {
-                      increment: walletAmountUsed,
+                // Check if already refunded
+                if (wallet.transactions.length > 0) {
+                  console.log(`[Stripe Webhook] Wallet already refunded for failed payment order ${order.orderNumber}`);
+                } else {
+                  // Refund the wallet amount
+                  await prisma.wallet.update({
+                    where: { userId: order.User.id },
+                    data: {
+                      balance: {
+                        increment: walletAmountUsed,
+                      },
                     },
-                  },
-                });
+                  });
 
-                // Create refund transaction
-                await prisma.walletTransaction.create({
-                  data: {
-                    walletId: wallet.id,
-                    amount: walletAmountUsed,
-                    type: 'CREDIT',
-                    description: `Refund for failed payment - Order ${order.orderNumber}`,
-                  },
-                });
+                  // Create refund transaction
+                  await prisma.walletTransaction.create({
+                    data: {
+                      walletId: wallet.id,
+                      amount: walletAmountUsed,
+                      type: 'CREDIT',
+                      description: `Refund for failed payment - Order ${order.orderNumber}`,
+                    },
+                  });
 
-                console.log(`[Stripe Webhook] Refunded ${walletAmountUsed} EUR to wallet for failed payment`);
+                  console.log(`[Stripe Webhook] Refunded ${walletAmountUsed} EUR to wallet for failed payment`);
+                }
               }
             } catch (walletError) {
               console.error('[Stripe Webhook] Error refunding wallet:', walletError);

@@ -42,6 +42,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
+import { LENS_TYPE_LABELS, COATING_LABELS } from "@/lib/lensPricing";
+import { FRAME_TYPE_LABELS } from "@/lib/pricing/rx167";
+import { getDeliveryTime } from "@/lib/delivery-time";
 
 // Helper function to convert Google Drive links
 function convertGoogleDriveLink(url: string): string {
@@ -105,6 +108,7 @@ interface OrderItem {
   price: number;
   total: number;
   imageUrl: string | null;
+  prescriptionData?: any; // Prescription data for lens manufacturer
 }
 
 interface Order {
@@ -178,6 +182,63 @@ const getStatusIcon = (status: string) => {
     default:
       return <Clock className="h-4 w-4" />;
   }
+};
+
+// Helper function to extract prescription data (handles both flat and nested formats)
+const extractPrescriptionData = (prescriptionData: any) => {
+  if (!prescriptionData) return null;
+  
+  const rxValues = prescriptionData.rxValues || prescriptionData;
+  
+  // Extract OD (Right Eye) - handle both formats
+  const od = {
+    sph: rxValues.od?.sph || rxValues.odSph || '0.00',
+    cyl: rxValues.od?.cyl || rxValues.odCyl || '0.00',
+    axis: rxValues.od?.axis || rxValues.odAxis || '0',
+    prismHorizontal: rxValues.od?.prismHorizontal || rxValues.odPrismHorizontal,
+    prismHorizontalBase: rxValues.od?.prismHorizontalBase || rxValues.odPrismHorizontalBase,
+    prismVertical: rxValues.od?.prismVertical || rxValues.odPrismVertical,
+    prismVerticalBase: rxValues.od?.prismVerticalBase || rxValues.odPrismVerticalBase,
+  };
+  
+  // Extract OS (Left Eye) - handle both formats
+  const os = {
+    sph: rxValues.os?.sph || rxValues.osSph || '0.00',
+    cyl: rxValues.os?.cyl || rxValues.osCyl || '0.00',
+    axis: rxValues.os?.axis || rxValues.osAxis || '0',
+    prismHorizontal: rxValues.os?.prismHorizontal || rxValues.osPrismHorizontal,
+    prismHorizontalBase: rxValues.os?.prismHorizontalBase || rxValues.osPrismHorizontalBase,
+    prismVertical: rxValues.os?.prismVertical || rxValues.osPrismVertical,
+    prismVerticalBase: rxValues.os?.prismVerticalBase || rxValues.osPrismVerticalBase,
+  };
+  
+  // Extract PD
+  const pd = rxValues.pd || prescriptionData.pd || '';
+  const pdOd = rxValues.pdOd || prescriptionData.pdOd;
+  const pdOs = rxValues.pdOs || prescriptionData.pdOs;
+  const hasTwoPDs = rxValues.hasTwoPDs || prescriptionData.hasTwoPDs || false;
+  
+  // Extract prism flag
+  const hasPrism = rxValues.hasPrism || prescriptionData.hasPrism || 
+    !!(od.prismHorizontal && od.prismHorizontal !== '0.00') ||
+    !!(od.prismVertical && od.prismVertical !== '0.00') ||
+    !!(os.prismHorizontal && os.prismHorizontal !== '0.00') ||
+    !!(os.prismVertical && os.prismVertical !== '0.00');
+  
+  // Extract lens configuration
+  const rxConfig = prescriptionData.rxConfig;
+  
+  return {
+    od,
+    os,
+    pd,
+    pdOd,
+    pdOs,
+    hasTwoPDs,
+    hasPrism,
+    rxConfig,
+    prescriptionImageUrl: rxValues.prescriptionImageUrl || prescriptionData.prescriptionImageUrl,
+  };
 };
 
 export default function OrdersManagement({
@@ -442,6 +503,18 @@ export default function OrdersManagement({
                         {order.items.length} item(s) •{" "}
                         <span className="font-medium">Payment:</span>{" "}
                         {order.paymentMethod}
+                        {order.shippingCountry && (() => {
+                          const deliveryTime = getDeliveryTime(
+                            order.items.map((item: any) => ({
+                              prescriptionData: item.prescriptionData,
+                              productSlug: item.productSlug,
+                            })),
+                            order.shippingCountry
+                          );
+                          return (
+                            <> • <span className="font-medium">Delivery:</span> {deliveryTime}</>
+                          );
+                        })()}
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -575,6 +648,22 @@ export default function OrdersManagement({
                       {` ${selectedOrder.shippingPostalCode}`}
                     </p>
                     <p>{selectedOrder.shippingCountry}</p>
+                    {selectedOrder.shippingCountry && (() => {
+                      const deliveryTime = getDeliveryTime(
+                        selectedOrder.items.map((item: any) => ({
+                          prescriptionData: item.prescriptionData,
+                          productSlug: item.productSlug,
+                        })),
+                        selectedOrder.shippingCountry
+                      );
+                      return (
+                        <div className="mt-3 pt-3 border-t border-border">
+                          <p className="text-sm font-semibold text-blue-900">
+                            📦 Expected Delivery: {deliveryTime}
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -676,52 +765,225 @@ export default function OrdersManagement({
                 <div>
                   <h3 className="text-brand-h3 font-headline mb-3">Order Items</h3>
                   <div className="space-y-3">
-                    {selectedOrder.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-4 p-4 border rounded-lg"
-                      >
-                        {item.imageUrl && (() => {
-                          const normalizedUrl = normalizeImageUrl(item.imageUrl);
-                          return normalizedUrl ? (
-                            <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted">
-                              <Image
-                                src={normalizedUrl}
-                                alt={item.productName}
-                                fill
-                                className="object-cover"
-                                unoptimized={!normalizedUrl.startsWith('http')}
-                              />
+                    {selectedOrder.items.map((item) => {
+                      const prescription = extractPrescriptionData(item.prescriptionData);
+                      const hasPrescription = !!prescription && (
+                        (prescription.od.sph !== '0.00' && prescription.od.sph !== '0') ||
+                        (prescription.od.cyl !== '0.00' && prescription.od.cyl !== '0') ||
+                        (prescription.os.sph !== '0.00' && prescription.os.sph !== '0') ||
+                        (prescription.os.cyl !== '0.00' && prescription.os.cyl !== '0') ||
+                        !!prescription.rxConfig
+                      );
+                      
+                      return (
+                        <div key={item.id} className="space-y-3">
+                          <div className="flex items-center gap-4 p-4 border rounded-lg">
+                            {item.imageUrl && (() => {
+                              const normalizedUrl = normalizeImageUrl(item.imageUrl);
+                              return normalizedUrl ? (
+                                <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted">
+                                  <Image
+                                    src={normalizedUrl}
+                                    alt={item.productName}
+                                    fill
+                                    className="object-cover"
+                                    unoptimized={!normalizedUrl.startsWith('http')}
+                                  />
+                                </div>
+                              ) : null;
+                            })()}
+                            <div className="flex-1">
+                              {item.productSlug ? (
+                                <Link
+                                  href={`/shop/${item.productSlug}`}
+                                  className="font-semibold hover:underline"
+                                >
+                                  {item.productName}
+                                </Link>
+                              ) : (
+                                <span className="font-semibold text-muted-foreground">
+                                  {item.productName} <span className="text-xs">(Product Deleted)</span>
+                                </span>
+                              )}
+                              <p className="text-sm text-muted-foreground">
+                                {item.variantName} • SKU: {item.sku}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Quantity: {item.quantity} × {formatPrice(item.price, selectedOrder.currency)} = {formatPrice(item.total, selectedOrder.currency)}
+                              </p>
+                              {hasPrescription && (
+                                <Badge className="mt-2 bg-blue-100 text-blue-800">
+                                  📋 Prescription Lenses
+                                </Badge>
+                              )}
                             </div>
-                          ) : null;
-                        })()}
-                        <div className="flex-1">
-                          {item.productSlug ? (
-                            <Link
-                              href={`/shop/${item.productSlug}`}
-                              className="font-semibold hover:underline"
-                            >
-                              {item.productName}
-                            </Link>
-                          ) : (
-                            <span className="font-semibold text-muted-foreground">
-                              {item.productName} <span className="text-xs">(Product Deleted)</span>
-                            </span>
+                            <div className="text-right">
+                              <p className="font-semibold">
+                                {formatPrice(item.total, selectedOrder.currency)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {/* Prescription Details for Lens Manufacturer */}
+                          {hasPrescription && prescription && (
+                            <div className="ml-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                              <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                                <span>🔬 Prescription Details for Lens Manufacturer</span>
+                              </h4>
+                              
+                              {/* Prescription Values Table */}
+                              <div className="mb-4">
+                                <h5 className="text-sm font-semibold text-blue-800 mb-2">Prescription Values</h5>
+                                <div className="overflow-x-auto">
+                                  <table className="w-full text-sm border-collapse">
+                                    <thead>
+                                      <tr className="bg-blue-100">
+                                        <th className="border border-blue-300 px-2 py-1 text-left">Eye</th>
+                                        <th className="border border-blue-300 px-2 py-1 text-center">SPH</th>
+                                        <th className="border border-blue-300 px-2 py-1 text-center">CYL</th>
+                                        <th className="border border-blue-300 px-2 py-1 text-center">AXIS</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      <tr>
+                                        <td className="border border-blue-300 px-2 py-1 font-medium">OD (Right)</td>
+                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.od.sph}</td>
+                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.od.cyl}</td>
+                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.od.axis}°</td>
+                                      </tr>
+                                      <tr>
+                                        <td className="border border-blue-300 px-2 py-1 font-medium">OS (Left)</td>
+                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.os.sph}</td>
+                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.os.cyl}</td>
+                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.os.axis}°</td>
+                                      </tr>
+                                    </tbody>
+                                  </table>
+                                </div>
+                                
+                                {/* PD Values */}
+                                <div className="mt-3 text-sm">
+                                  <span className="font-semibold text-blue-800">PD (Pupillary Distance):</span>{' '}
+                                  {prescription.hasTwoPDs ? (
+                                    <span>OD: {prescription.pdOd || 'N/A'} mm | OS: {prescription.pdOs || 'N/A'} mm</span>
+                                  ) : (
+                                    <span>{prescription.pd || 'N/A'} mm</span>
+                                  )}
+                                </div>
+                                
+                                {/* Prism Values */}
+                                {prescription.hasPrism && (
+                                  <div className="mt-3">
+                                    <h6 className="text-sm font-semibold text-blue-800 mb-1">Prism Correction</h6>
+                                    <div className="overflow-x-auto">
+                                      <table className="w-full text-xs border-collapse">
+                                        <thead>
+                                          <tr className="bg-blue-100">
+                                            <th className="border border-blue-300 px-1 py-1 text-left">Eye</th>
+                                            <th className="border border-blue-300 px-1 py-1 text-center">H. Prism</th>
+                                            <th className="border border-blue-300 px-1 py-1 text-center">Base H</th>
+                                            <th className="border border-blue-300 px-1 py-1 text-center">V. Prism</th>
+                                            <th className="border border-blue-300 px-1 py-1 text-center">Base V</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          <tr>
+                                            <td className="border border-blue-300 px-1 py-1 font-medium">OD</td>
+                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismHorizontal || '-'}</td>
+                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismHorizontalBase || '-'}</td>
+                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismVertical || '-'}</td>
+                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismVerticalBase || '-'}</td>
+                                          </tr>
+                                          <tr>
+                                            <td className="border border-blue-300 px-1 py-1 font-medium">OS</td>
+                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismHorizontal || '-'}</td>
+                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismHorizontalBase || '-'}</td>
+                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismVertical || '-'}</td>
+                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismVerticalBase || '-'}</td>
+                                          </tr>
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              
+                              {/* Lens Configuration */}
+                              {prescription.rxConfig && (
+                                <div className="mt-4 pt-4 border-t border-blue-300">
+                                  <h5 className="text-sm font-semibold text-blue-800 mb-2">Lens Configuration</h5>
+                                  <div className="grid grid-cols-2 gap-2 text-sm">
+                                    <div>
+                                      <span className="font-medium text-blue-700">Lens Type:</span>{' '}
+                                      <span>{LENS_TYPE_LABELS[prescription.rxConfig.lensType as keyof typeof LENS_TYPE_LABELS] || prescription.rxConfig.lensType}</span>
+                                    </div>
+                                    {prescription.rxConfig.lensIndex && (
+                                      <div>
+                                        <span className="font-medium text-blue-700">Lens Index:</span>{' '}
+                                        <span>{prescription.rxConfig.lensIndex}</span>
+                                      </div>
+                                    )}
+                                    <div>
+                                      <span className="font-medium text-blue-700">Coating:</span>{' '}
+                                      <span>{COATING_LABELS[prescription.rxConfig.coating as keyof typeof COATING_LABELS] || prescription.rxConfig.coating}</span>
+                                    </div>
+                                    <div>
+                                      <span className="font-medium text-blue-700">Frame Type:</span>{' '}
+                                      <span>{FRAME_TYPE_LABELS[prescription.rxConfig.frameType as keyof typeof FRAME_TYPE_LABELS] || prescription.rxConfig.frameType}</span>
+                                    </div>
+                                    {prescription.rxConfig.lensType === "TINTED" && prescription.rxConfig.tintType && (
+                                      <>
+                                        <div>
+                                          <span className="font-medium text-blue-700">Tint Type:</span>{' '}
+                                          <span>{prescription.rxConfig.tintType === "FULL_TINT_CATALOG" ? "Full Tint (Catalog)" : "Gradient Tint"}</span>
+                                        </div>
+                                        {prescription.rxConfig.tintColor && (
+                                          <div>
+                                            <span className="font-medium text-blue-700">Tint Color:</span>{' '}
+                                            <span>
+                                              {prescription.rxConfig.tintColor}
+                                              {prescription.rxConfig.tintType === "FULL_TINT_CATALOG" && prescription.rxConfig.tintShadePercent && ` ${prescription.rxConfig.tintShadePercent}%`}
+                                              {prescription.rxConfig.tintType === "GRADIENT" && prescription.rxConfig.tintRecipe && ` (${prescription.rxConfig.tintRecipe})`}
+                                            </span>
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+                                    {prescription.rxConfig.photochromicColor && (
+                                      <div>
+                                        <span className="font-medium text-blue-700">Photochromic Color:</span>{' '}
+                                        <span>{prescription.rxConfig.photochromicColor}</span>
+                                      </div>
+                                    )}
+                                    {prescription.rxConfig.polarizedColor && (
+                                      <div>
+                                        <span className="font-medium text-blue-700">Polarized Color:</span>{' '}
+                                        <span>{prescription.rxConfig.polarizedColor}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Prescription Image */}
+                              {prescription.prescriptionImageUrl && (
+                                <div className="mt-3 pt-3 border-t border-blue-300">
+                                  <span className="text-sm font-semibold text-blue-800">Prescription Image:</span>{' '}
+                                  <a 
+                                    href={prescription.prescriptionImageUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline text-sm"
+                                  >
+                                    View Uploaded Prescription
+                                  </a>
+                                </div>
+                              )}
+                            </div>
                           )}
-                          <p className="text-sm text-muted-foreground">
-                            {item.variantName} • SKU: {item.sku}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Quantity: {item.quantity} × {formatPrice(item.price, selectedOrder.currency)} = {formatPrice(item.total, selectedOrder.currency)}
-                          </p>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold">
-                            {formatPrice(item.total, selectedOrder.currency)}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 

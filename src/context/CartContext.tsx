@@ -4,16 +4,19 @@ import { useSession } from 'next-auth/react';
 import type { Product, ProductColorVariant } from '@/lib/productData';
 import { addToCart as addToCartAction, removeFromCart as removeFromCartAction, updateCartItemQuantity as updateCartItemQuantityAction, getCart } from '@/app/actions/user';
 import { mapDbCartItemToCartItem, type CartItem } from '@/lib/cart-wishlist-mapper';
+import { trackAddToCart } from '@/components/analytics/MetaPixel';
+import { trackGA4AddToCart } from '@/components/analytics/GoogleAnalytics';
 
 interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (product: Product, variant: ProductColorVariant, quantity?: number) => Promise<void>;
-  removeFromCart: (productId: string, variantHex: string) => Promise<void>;
-  updateQuantity: (productId: string, variantHex: string, quantity: number) => Promise<void>;
+  addToCart: (product: Product, variant: ProductColorVariant, quantity?: number, prescriptionData?: any) => Promise<void>;
+  removeFromCart: (productId: string, variantHex: string, prescriptionData?: any) => Promise<void>;
+  updateQuantity: (productId: string, variantHex: string, quantity: number, prescriptionData?: any) => Promise<void>;
   clearCart: () => void;
   getCartTotal: () => number;
   getCartItemCount: () => number;
   isLoading: boolean;
+  refreshCart: () => Promise<void>;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -21,13 +24,39 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 const CART_STORAGE_KEY = 'focusrobin-cart';
 const MERGE_FLAG_KEY = 'focusrobin-cart-merged';
 
+// Helper function to compare prescription data objects
+function isPrescriptionDataEqual(data1: any, data2: any): boolean {
+  // Both null/undefined
+  if (!data1 && !data2) return true;
+  // One is null/undefined, other is not
+  if (!data1 || !data2) return false;
+  
+  // Deep comparison using sorted JSON stringify
+  const normalize = (obj: any): string => {
+    if (obj === null || obj === undefined) return 'null';
+    if (typeof obj !== 'object') return JSON.stringify(obj);
+    if (Array.isArray(obj)) return JSON.stringify(obj.map(normalize));
+    
+    // Sort object keys and stringify
+    const sorted = Object.keys(obj).sort().reduce((acc: any, key: string) => {
+      acc[key] = obj[key];
+      return acc;
+    }, {});
+    return JSON.stringify(sorted, Object.keys(sorted).sort());
+  };
+  
+  return normalize(data1) === normalize(data2);
+}
+
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const { data: session, status } = useSession();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedFromDb, setHasLoadedFromDb] = useState(false);
   const isMergingRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
   const hasInitializedRef = useRef(false);
+  const isLoadingCartRef = useRef(false);
 
   // Initial load from localStorage on mount (before session is determined)
   useEffect(() => {
@@ -173,30 +202,88 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [session?.user?.id]);
 
+  // Function to refresh cart from database
+  const refreshCart = useCallback(async () => {
+    if (!session?.user?.id) {
+      console.log('[CART] refreshCart: No user session, skipping');
+      return;
+    }
+
+    console.log('[CART] refreshCart: Loading cart from database...');
+    try {
+      const result = await getCart();
+      
+      console.log('[CART] refreshCart: Got result from getCart:', {
+        hasItems: !!result.items,
+        itemCount: result.items?.length || 0,
+        items: result.items?.map((i: any) => ({
+          id: i.id,
+          productId: i.productId,
+          hasPrescription: !!i.prescriptionData
+        }))
+      });
+      
+      if (result.items && result.items.length > 0) {
+        console.log('[CART] refreshCart: Mapping', result.items.length, 'items...');
+        const mappedItems: CartItem[] = result.items
+          .map((item: any, index: number) => {
+            console.log(`[CART] refreshCart: Mapping item ${index + 1}/${result.items.length}...`);
+            return mapDbCartItemToCartItem(item);
+          })
+          .filter((item: CartItem | null): item is CartItem => {
+            if (item === null) {
+              console.warn('[CART] refreshCart: Item mapping returned null');
+            }
+            return item !== null;
+          });
+        
+        console.log('[CART] refreshCart: Successfully mapped', mappedItems.length, 'items from database');
+        console.log('[CART] refreshCart: Mapped items:', mappedItems.map(i => ({
+          product: i.product.name,
+          variant: i.variant.name,
+          quantity: i.quantity,
+          hasPrescription: !!i.prescriptionData
+        })));
+        
+        setCartItems(mappedItems);
+        setHasLoadedFromDb(true);
+        
+        // Clear localStorage for logged-in users - database is source of truth
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(CART_STORAGE_KEY);
+        }
+      } else {
+        console.log('[CART] refreshCart: No items in database cart - result:', result);
+        setCartItems([]);
+        setHasLoadedFromDb(true);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(CART_STORAGE_KEY);
+        }
+      }
+    } catch (error) {
+      console.error('[CART] refreshCart: Error loading cart:', error);
+    }
+  }, [session?.user?.id]);
+
   // Load cart when session changes
   useEffect(() => {
     const loadCart = async () => {
-      console.log('[CART] Loading cart, status:', status, 'user:', session?.user?.id ? 'yes' : 'no');
-      
-      // Don't wait for session to load - if not logged in, use localStorage immediately
-      if (status === 'loading' && !session?.user?.id) {
-        // While session is loading and we don't have a user, keep localStorage cart
-        const stored = localStorage.getItem(CART_STORAGE_KEY);
-        if (stored) {
-          try {
-            const parsed = JSON.parse(stored);
-            const items = Array.isArray(parsed) ? parsed : [];
-            if (items.length > 0 && cartItems.length === 0) {
-              console.log('[CART] Session loading - keeping localStorage cart:', items.length, 'items');
-              setCartItems(items);
-            }
-          } catch (error) {
-            console.error('[CART] Error parsing localStorage while session loading:', error);
-          }
-        }
+      // Prevent concurrent loads
+      if (isLoadingCartRef.current) {
+        console.log('[CART] Already loading cart, skipping...');
         return;
       }
 
+      console.log('[CART] Loading cart, status:', status, 'user:', session?.user?.id ? 'yes' : 'no');
+      
+      // Wait for session to be determined before making decisions
+      if (status === 'loading') {
+        console.log('[CART] Session still loading, waiting...');
+        // Don't clear cart while session is loading
+        return;
+      }
+
+      isLoadingCartRef.current = true;
       setIsLoading(true);
 
       try {
@@ -218,7 +305,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             console.log('[CART] ========================================');
             console.log('[CART] NEW LOGIN DETECTED - MERGING GUEST CART');
             console.log('[CART] User ID:', currentUserId);
-            console.log('[CART] Previous User ID:', lastUserIdRef.current);
             console.log('[CART] Guest cart exists:', !!guestCartData);
             console.log('[CART] ========================================');
             
@@ -234,7 +320,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 
                 // Wait for database to update
                 console.log('[CART] Waiting for database to update...');
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                await new Promise(resolve => setTimeout(resolve, 500));
                 console.log('[CART] Database update wait complete');
               } else {
                 console.log('[CART] Guest cart is empty or invalid, clearing');
@@ -258,21 +344,61 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           
           console.log('[CART] Database cart result:', {
             hasItems: !!result.items,
-            itemCount: result.items?.length || 0
+            itemCount: result.items?.length || 0,
+            rawItems: result.items?.map((i: any) => ({
+              id: i.id,
+              productId: i.productId,
+              variantId: i.variantId,
+              quantity: i.quantity,
+              hasPrescriptionData: !!i.prescriptionData,
+              prescriptionDataType: i.prescriptionData ? typeof i.prescriptionData : 'null',
+              productName: i.Product?.name,
+            }))
           });
           
           if (result.items && result.items.length > 0) {
+            console.log('[CART] Starting to map', result.items.length, 'items...');
             const mappedItems: CartItem[] = result.items
-              .map((item: any) => mapDbCartItemToCartItem(item))
+              .map((item: any, index: number) => {
+                console.log(`[CART] Mapping item ${index + 1}:`, {
+                  id: item.id,
+                  productName: item.Product?.name,
+                  hasPrescription: !!item.prescriptionData
+                });
+                const mapped = mapDbCartItemToCartItem(item);
+                if (!mapped) {
+                  console.error(`[CART] Failed to map item ${index + 1}!`);
+                }
+                return mapped;
+              })
               .filter((item: CartItem | null): item is CartItem => item !== null);
             
             console.log('[CART] Mapped', mappedItems.length, 'items from database');
-            console.log('[CART] Setting cart items in state...');
+            console.log('[CART] Mapped items:', mappedItems.map(i => ({
+              product: i.product.name,
+              variant: i.variant.name,
+              quantity: i.quantity,
+              hasPrescription: !!i.prescriptionData
+            })));
+            console.log('[CART] Setting cart items from database...');
             setCartItems(mappedItems);
-            console.log('[CART] Cart items set successfully');
+            setHasLoadedFromDb(true);
+            console.log('[CART] Cart items set successfully from database');
+            
+            // Clear localStorage for logged-in users - database is source of truth
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem(CART_STORAGE_KEY);
+            }
           } else {
-            console.log('[CART] No items in database cart');
+            console.log('[CART] No items in database cart - clearing local cart');
+            console.log('[CART] Full getCart result:', JSON.stringify(result, null, 2));
+            // For logged-in users, database is source of truth
             setCartItems([]);
+            setHasLoadedFromDb(true);
+            // Also clear localStorage for logged-in users
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem(CART_STORAGE_KEY);
+            }
           }
         } else {
           // User not logged in - load from localStorage
@@ -286,182 +412,215 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             lastUserIdRef.current = null;
           }
 
+          setHasLoadedFromDb(false);
+
           const stored = localStorage.getItem(CART_STORAGE_KEY);
           if (stored) {
             try {
               const parsed = JSON.parse(stored);
               const items = Array.isArray(parsed) ? parsed : [];
               console.log('[CART] Loaded', items.length, 'items from localStorage');
-              console.log('[CART] Guest cart items:', items);
-              
-              // Only update if we have items or if current cart is empty
-              if (items.length > 0 || cartItems.length === 0) {
-                setCartItems(items);
-              }
+              setCartItems(items);
             } catch (error) {
               console.error('[CART] Error parsing localStorage:', error);
               localStorage.removeItem(CART_STORAGE_KEY);
-              // Only clear cart if we can't parse - don't clear if localStorage is valid
-              if (cartItems.length === 0) {
-                setCartItems([]);
-              }
+              setCartItems([]);
             }
           } else {
             console.log('[CART] No guest cart in localStorage');
-            // Only clear cart if localStorage is actually empty
-            if (cartItems.length > 0) {
-              console.log('[CART] localStorage empty but cart has items - keeping cart items');
-            } else {
-              setCartItems([]);
-            }
+            setCartItems([]);
           }
         }
       } catch (error) {
         console.error('[CART] Error loading cart:', error);
       } finally {
         setIsLoading(false);
+        isLoadingCartRef.current = false;
       }
     };
 
     loadCart();
   }, [session?.user?.id, status, mergeGuestCartToDatabase]);
 
-  // Save to localStorage when cart changes (only for guests)
+  // Save to localStorage when cart changes (ONLY for guest users, not logged-in users)
+  // For logged-in users, database is the source of truth - localStorage should be cleared
   useEffect(() => {
-    if (!session?.user && typeof window !== 'undefined' && hasInitializedRef.current) {
-      try {
-        const cartData = JSON.stringify(cartItems);
-        localStorage.setItem(CART_STORAGE_KEY, cartData);
-        console.log('[CART] Saved', cartItems.length, 'items to localStorage');
-        
-        // Verify it was saved
-        const verify = localStorage.getItem(CART_STORAGE_KEY);
-        if (verify) {
-          const verifiedItems = JSON.parse(verify);
-          console.log('[CART] Verified: localStorage contains', verifiedItems.length, 'items');
-          
-          // If verification fails, try to restore
-          if (verifiedItems.length !== cartItems.length) {
-            console.warn('[CART] Verification mismatch! Restoring...');
-            localStorage.setItem(CART_STORAGE_KEY, cartData);
-          }
-        }
-      } catch (error) {
-        console.error('[CART] Error saving to localStorage:', error);
-        // Try to save again
+    if (typeof window !== 'undefined' && hasInitializedRef.current) {
+      if (!session?.user) {
+        // Guest user - save to localStorage
         try {
-          localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartItems));
-        } catch (retryError) {
-          console.error('[CART] Retry save also failed:', retryError);
+          const cartData = JSON.stringify(cartItems);
+          localStorage.setItem(CART_STORAGE_KEY, cartData);
+          console.log('[CART] Saved', cartItems.length, 'items to localStorage (guest)');
+        } catch (error) {
+          console.error('[CART] Error saving to localStorage:', error);
+        }
+      } else {
+        // Logged-in user - clear localStorage (database is source of truth)
+        if (localStorage.getItem(CART_STORAGE_KEY)) {
+          localStorage.removeItem(CART_STORAGE_KEY);
+          console.log('[CART] Cleared localStorage for logged-in user (database is source of truth)');
         }
       }
     }
-  }, [cartItems, session]);
+  }, [cartItems, session?.user]);
 
-  const addToCart = async (product: Product, variant: ProductColorVariant, quantity: number = 1) => {
-    // Update local state first (optimistic update)
-    setCartItems((prevItems) => {
-      const existingItemIndex = prevItems.findIndex(
-        (item) => item.product.id === product.id && item.variant.hex === variant.hex
+  const addToCart = async (product: Product, variant: ProductColorVariant, quantity: number = 1, prescriptionData?: any) => {
+    console.log('[CART] addToCart called:', { 
+      product: product.name, 
+      variant: variant.name, 
+      quantity, 
+      hasPrescriptionData: !!prescriptionData,
+      isLoggedIn: !!session?.user 
+    });
+    
+    // Calculate updated items first (before state update)
+    const updatedItems: CartItem[] = (() => {
+      // Find existing item with same product, variant, AND prescription data
+      const existingItemIndex = cartItems.findIndex(
+        (item) => {
+          const productMatch = item.product.id === product.id && item.variant.hex === variant.hex;
+          if (!productMatch) return false;
+          
+          // Check prescription data match using deep comparison
+          if (prescriptionData) {
+            return item.prescriptionData && isPrescriptionDataEqual(item.prescriptionData, prescriptionData);
+          } else {
+            // No prescription - match items without prescription
+            return !item.prescriptionData;
+          }
+        }
       );
 
       if (existingItemIndex >= 0) {
-        const updatedItems = [...prevItems];
-        updatedItems[existingItemIndex] = {
-          ...updatedItems[existingItemIndex],
-          quantity: updatedItems[existingItemIndex].quantity + quantity,
+        console.log('[CART] Found existing item, updating quantity');
+        const items = [...cartItems];
+        items[existingItemIndex] = {
+          ...items[existingItemIndex],
+          quantity: items[existingItemIndex].quantity + quantity,
         };
-        return updatedItems;
+        return items;
       } else {
-        return [...prevItems, { product, variant, quantity }];
+        console.log('[CART] Adding new item to cart');
+        return [...cartItems, { product, variant, quantity, prescriptionData }];
       }
-    });
+    })();
+
+    console.log('[CART] Updated items count:', updatedItems.length);
+    
+    // Update local state (optimistic update)
+    setCartItems(updatedItems);
+
+    // Track AddToCart event with Meta Pixel and GA4
+    try {
+      const price = parseFloat(product.price.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+      const category = product.gender?.join(', ') || 'Sunglasses';
+      
+      // Meta Pixel
+      trackAddToCart(product.slug || product.id, product.name, category, price * quantity, 'EUR');
+      
+      // GA4
+      trackGA4AddToCart({
+        item_id: product.slug || product.id,
+        item_name: product.name,
+        price: price,
+        quantity: quantity,
+        currency: 'EUR',
+        item_category: category,
+      });
+    } catch (trackError) {
+      console.error('[CART] Analytics tracking error:', trackError);
+    }
 
     if (session?.user) {
       // User is logged in - save to database
+      console.log('[CART] User is logged in, saving to database...');
       try {
-        // Use product.id (which is slug) and variant.sku
-        const result = await addToCartAction(product.id, variant.sku || variant.hex, quantity);
-        if (result.error) {
-          console.error('Error adding to cart:', result.error);
-          // Revert optimistic update on error
-          setCartItems((prevItems) => {
-            const existingItemIndex = prevItems.findIndex(
-              (item) => item.product.id === product.id && item.variant.hex === variant.hex
-            );
-            if (existingItemIndex >= 0) {
-              const updatedItems = [...prevItems];
-              const newQuantity = updatedItems[existingItemIndex].quantity - quantity;
-              if (newQuantity <= 0) {
-                return updatedItems.filter((_, idx) => idx !== existingItemIndex);
-              }
-              updatedItems[existingItemIndex] = {
-                ...updatedItems[existingItemIndex],
-                quantity: newQuantity,
-              };
-              return updatedItems;
-            }
-            return prevItems;
-          });
-        } else {
-          // Reload cart from database to ensure sync
-          try {
-            const cartResult = await getCart();
-            if (cartResult.items && cartResult.items.length > 0) {
-              const mappedItems: CartItem[] = cartResult.items
-                .map((item: any) => mapDbCartItemToCartItem(item))
-                .filter((item: CartItem | null): item is CartItem => item !== null);
-              
-              // Only update if we successfully mapped items
-              if (mappedItems.length > 0) {
-                setCartItems(mappedItems);
-              } else {
-                // If mapping failed, keep the optimistic update to prevent cart from disappearing
-                console.warn('Cart mapping failed, keeping optimistic update');
-              }
-            }
-          } catch (reloadError) {
-            // If reload fails, keep the optimistic update
-            console.error('Error reloading cart:', reloadError);
-          }
+        // Use product.slug (URL slug) for finding the product, and variant.sku
+        // product.id might be the database ID, so use slug for consistency
+        const productIdentifier = product.slug || product.id;
+        console.log('[CART] Using product identifier:', productIdentifier, 'variant:', variant.sku || variant.hex);
+        const result = await addToCartAction(productIdentifier, variant.sku || variant.hex, quantity, prescriptionData);
+        console.log('[CART] Database save result:', result);
+        
+        // Handle undefined or null result - keep optimistic update
+        if (!result) {
+          console.error('[CART] Server action returned undefined/null - keeping optimistic update');
+          return;
         }
+        
+        if (result.error) {
+          console.error('[CART] Error adding to cart:', result.error);
+          console.warn('[CART] Keeping optimistic update despite error');
+          return;
+        }
+        
+        // Success! Reload cart from database to ensure sync
+        console.log('[CART] Database save successful, reloading cart...');
+        await refreshCart();
       } catch (error) {
-        console.error('Error adding to cart:', error);
-        // Revert optimistic update on error
-        setCartItems((prevItems) => {
-          const existingItemIndex = prevItems.findIndex(
-            (item) => item.product.id === product.id && item.variant.hex === variant.hex
-          );
-          if (existingItemIndex >= 0) {
-            const updatedItems = [...prevItems];
-            const newQuantity = updatedItems[existingItemIndex].quantity - quantity;
-            if (newQuantity <= 0) {
-              return updatedItems.filter((_, idx) => idx !== existingItemIndex);
-            }
-            updatedItems[existingItemIndex] = {
-              ...updatedItems[existingItemIndex],
-              quantity: newQuantity,
-            };
-            return updatedItems;
-          }
-          return prevItems;
-        });
+        // Server action threw an exception - keep the optimistic update
+        console.error('[CART] Exception in server action:', error);
+        console.warn('[CART] Keeping optimistic update despite exception');
+      }
+    } else {
+      // Guest user - save to localStorage immediately
+      console.log('[CART] Guest user, saving to localStorage...');
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(updatedItems));
+          console.log('[CART] Saved', updatedItems.length, 'items to localStorage (guest)');
+        } catch (error) {
+          console.error('[CART] Error saving to localStorage:', error);
+        }
       }
     }
+    
+    console.log('[CART] addToCart completed');
   };
 
-  const removeFromCart = async (productId: string, variantHex: string) => {
-    // Find the item to get variant SKU
+  const removeFromCart = async (productId: string, variantHex: string, prescriptionData?: any) => {
+    // Find the item to get variant SKU - consider prescription data for matching
     const item = cartItems.find(
-      (item) => item.product.id === productId && item.variant.hex === variantHex
+      (item) => {
+        const productMatch = item.product.id === productId && item.variant.hex === variantHex;
+        if (!productMatch) return false;
+        
+        // If prescription data is provided, match it using deep comparison
+        if (prescriptionData !== undefined) {
+          if (prescriptionData) {
+            return item.prescriptionData && isPrescriptionDataEqual(item.prescriptionData, prescriptionData);
+          } else {
+            return !item.prescriptionData;
+          }
+        }
+        // If no prescription data argument, match first item (backward compatibility)
+        return true;
+      }
     );
 
     // Update local state first (optimistic update)
-    setCartItems((prevItems) =>
-      prevItems.filter(
-        (item) => !(item.product.id === productId && item.variant.hex === variantHex)
-      )
-    );
+    setCartItems((prevItems) => {
+      const indexToRemove = prevItems.findIndex((prevItem) => {
+        const productMatch = prevItem.product.id === productId && prevItem.variant.hex === variantHex;
+        if (!productMatch) return false;
+        
+        if (prescriptionData !== undefined) {
+          if (prescriptionData) {
+            return prevItem.prescriptionData && isPrescriptionDataEqual(prevItem.prescriptionData, prescriptionData);
+          } else {
+            return !prevItem.prescriptionData;
+          }
+        }
+        return true;
+      });
+      
+      if (indexToRemove === -1) return prevItems;
+      
+      const newItems = [...prevItems];
+      newItems.splice(indexToRemove, 1);
+      return newItems;
+    });
 
     if (session?.user && item) {
       // User is logged in - remove from database
@@ -469,53 +628,66 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const result = await removeFromCartAction(productId, item.variant.sku || variantHex);
         if (result.error) {
           console.error('Error removing from cart:', result.error);
-          // Reload cart from database on error
-          const cartResult = await getCart();
-          if (cartResult.items && cartResult.items.length > 0) {
-            const mappedItems: CartItem[] = cartResult.items
-              .map((item: any) => mapDbCartItemToCartItem(item))
-              .filter((item: CartItem | null): item is CartItem => item !== null);
-            setCartItems(mappedItems);
-          } else {
-            setCartItems([]);
-          }
-        } else {
-          // Reload cart from database to ensure sync
-          const cartResult = await getCart();
-          if (cartResult.items && cartResult.items.length > 0) {
-            const mappedItems: CartItem[] = cartResult.items
-              .map((item: any) => mapDbCartItemToCartItem(item))
-              .filter((item: CartItem | null): item is CartItem => item !== null);
-            setCartItems(mappedItems);
-          } else {
-            setCartItems([]);
-          }
         }
+        // Always reload cart from database to ensure sync
+        await refreshCart();
       } catch (error) {
         console.error('Error removing from cart:', error);
+        await refreshCart();
       }
     }
   };
 
-  const updateQuantity = async (productId: string, variantHex: string, quantity: number) => {
+  const updateQuantity = async (productId: string, variantHex: string, quantity: number, prescriptionData?: any) => {
     if (quantity <= 0) {
-      await removeFromCart(productId, variantHex);
+      await removeFromCart(productId, variantHex, prescriptionData);
       return;
     }
 
-    // Find the item to get variant SKU
+    // Find the item to get variant SKU - consider prescription data for matching
     const item = cartItems.find(
-      (item) => item.product.id === productId && item.variant.hex === variantHex
+      (item) => {
+        const productMatch = item.product.id === productId && item.variant.hex === variantHex;
+        if (!productMatch) return false;
+        
+        if (prescriptionData !== undefined) {
+          if (prescriptionData) {
+            return item.prescriptionData && isPrescriptionDataEqual(item.prescriptionData, prescriptionData);
+          } else {
+            return !item.prescriptionData;
+          }
+        }
+        return true;
+      }
     );
 
     // Update local state first (optimistic update)
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
-        item.product.id === productId && item.variant.hex === variantHex
-          ? { ...item, quantity }
-          : item
-      )
-    );
+    setCartItems((prevItems) => {
+      let updated = false;
+      return prevItems.map((prevItem) => {
+        if (updated) return prevItem;
+        
+        const productMatch = prevItem.product.id === productId && prevItem.variant.hex === variantHex;
+        if (!productMatch) return prevItem;
+        
+        let shouldUpdate = false;
+        if (prescriptionData !== undefined) {
+          if (prescriptionData) {
+            shouldUpdate = prevItem.prescriptionData && isPrescriptionDataEqual(prevItem.prescriptionData, prescriptionData);
+          } else {
+            shouldUpdate = !prevItem.prescriptionData;
+          }
+        } else {
+          shouldUpdate = true;
+        }
+        
+        if (shouldUpdate) {
+          updated = true;
+          return { ...prevItem, quantity };
+        }
+        return prevItem;
+      });
+    });
 
     if (session?.user && item) {
       // User is logged in - update in database
@@ -523,30 +695,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         const result = await updateCartItemQuantityAction(productId, item.variant.sku || variantHex, quantity);
         if (result.error) {
           console.error('Error updating cart quantity:', result.error);
-          // Reload cart from database on error
-          const cartResult = await getCart();
-          if (cartResult.items && cartResult.items.length > 0) {
-            const mappedItems: CartItem[] = cartResult.items
-              .map((item: any) => mapDbCartItemToCartItem(item))
-              .filter((item: CartItem | null): item is CartItem => item !== null);
-            setCartItems(mappedItems);
-          } else {
-            setCartItems([]);
-          }
-        } else {
-          // Reload cart from database to ensure sync
-          const cartResult = await getCart();
-          if (cartResult.items && cartResult.items.length > 0) {
-            const mappedItems: CartItem[] = cartResult.items
-              .map((item: any) => mapDbCartItemToCartItem(item))
-              .filter((item: CartItem | null): item is CartItem => item !== null);
-            setCartItems(mappedItems);
-          } else {
-            setCartItems([]);
-          }
         }
+        // Always reload cart from database to ensure sync
+        await refreshCart();
       } catch (error) {
         console.error('Error updating cart quantity:', error);
+        await refreshCart();
       }
     }
   };
@@ -560,8 +714,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
   const getCartTotal = () => {
     return cartItems.reduce((total, item) => {
-      const price = parseFloat(item.product.price.replace(/[^\d.,]/g, '').replace(',', '.'));
-      return total + price * item.quantity;
+      const framePrice = parseFloat(item.product.price.replace(/[^\d.,]/g, '').replace(',', '.'));
+      
+      // If item has prescription data, use prescription total price (frame + lenses)
+      if (item.prescriptionData?.rxPriceBreakdown?.totalNet) {
+        const prescriptionPrice = item.prescriptionData.rxPriceBreakdown.totalNet;
+        return total + prescriptionPrice * item.quantity;
+      }
+      
+      // Otherwise use frame price only
+      return total + framePrice * item.quantity;
     }, 0);
   };
 
@@ -580,6 +742,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         getCartTotal,
         getCartItemCount,
         isLoading,
+        refreshCart,
       }}
     >
       {children}

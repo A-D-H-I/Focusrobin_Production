@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 export interface AvailableGlassShape {
   shape: string;
   count: number;
+  imageUrl?: string | null;
 }
 
 /**
@@ -40,11 +41,30 @@ export async function getAvailableGlassShapes(): Promise<AvailableGlassShape[]> 
       }
     });
 
+    // Fetch shape images from GlassShape table
+    const glassShapes = await prisma.glassShape.findMany({
+      where: {
+        isActive: true,
+      },
+      select: {
+        name: true,
+        imageUrl: true,
+        order: true,
+      },
+    });
+
+    // Create a map of shape name to imageUrl
+    const shapeImageMap = new Map<string, string | null>();
+    glassShapes.forEach((gs) => {
+      shapeImageMap.set(gs.name, gs.imageUrl);
+    });
+
     // Convert to array and sort by count (most common first), then alphabetically
     const availableShapes: AvailableGlassShape[] = Array.from(shapeMap.entries())
       .map(([shape, count]) => ({
         shape,
         count,
+        imageUrl: shapeImageMap.get(shape) || null,
       }))
       .sort((a, b) => {
         // First sort by count (most common first)

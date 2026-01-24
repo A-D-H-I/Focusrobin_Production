@@ -6,18 +6,46 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   
   // Static pages with their priorities and change frequencies
   const staticPages = [
+    // Homepage - Highest priority
     {
       url: baseUrl,
       lastModified: new Date(),
       changeFrequency: 'daily' as const,
       priority: 1.0,
     },
+    // Main shop page
     {
       url: `${baseUrl}/shop`,
       lastModified: new Date(),
       changeFrequency: 'daily' as const,
       priority: 0.9,
     },
+    // Category pages
+    {
+      url: `${baseUrl}/shop/men`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/shop/women`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/shop/kids`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/shop/unisex`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly' as const,
+      priority: 0.8,
+    },
+    // Informational pages
     {
       url: `${baseUrl}/about`,
       lastModified: new Date(),
@@ -31,6 +59,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     {
+      url: `${baseUrl}/faq`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    },
+    // Policy pages
+    {
       url: `${baseUrl}/shipping`,
       lastModified: new Date(),
       changeFrequency: 'monthly' as const,
@@ -42,9 +77,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.6,
     },
+    {
+      url: `${baseUrl}/warranty`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly' as const,
+      priority: 0.5,
+    },
   ];
 
-  // Fetch product URLs from database
+  // Fetch product URLs from database (sunglasses)
   try {
     const products = await prisma.product.findMany({
       select: {

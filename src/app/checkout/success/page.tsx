@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle, Package, Loader2, XCircle, RefreshCw, AlertTriangle } from "lucide-react";
+import { CheckCircle, Package, Loader2, XCircle, RefreshCw, AlertTriangle, Download } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { getDeliveryTime } from "@/lib/delivery-time";
+import { trackPurchase } from "@/components/analytics/MetaPixel";
+import { trackGA4Purchase } from "@/components/analytics/GoogleAnalytics";
 
 interface OrderDetails {
   id: string;
@@ -23,11 +26,16 @@ interface OrderDetails {
   promoDiscount?: number;
   currency: string;
   items: {
+    id: string;
     productName: string;
     variantName: string;
+    sku: string;
     quantity: number;
     price: number;
     total: number;
+    prescriptionData?: any;
+    hasPrescription?: boolean;
+    productSlug?: string | null;
   }[];
   shippingAddress: {
     name: string;
@@ -43,6 +51,7 @@ interface OrderDetails {
 export default function CheckoutSuccessPage() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
+  const paypalToken = searchParams.get("token"); // PayPal includes token in return URL
   const { clearCart } = useCart();
   
   const [loading, setLoading] = useState(true);
@@ -51,6 +60,35 @@ export default function CheckoutSuccessPage() {
   const [hasFetched, setHasFetched] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [pollCount, setPollCount] = useState(0);
+  const [hasRefundedWallet, setHasRefundedWallet] = useState(false);
+  const [isCapturingPayPal, setIsCapturingPayPal] = useState(false);
+  const hasTrackedPurchase = useRef(false);
+
+  // Helper function to refund wallet for failed order
+  const refundWalletForFailedOrder = useCallback(async (orderId: string) => {
+    if (hasRefundedWallet) {
+      console.log('[CheckoutSuccess] Wallet already refunded, skipping...');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/checkout/refund-wallet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.refunded > 0) {
+          console.log('[CheckoutSuccess] Wallet refunded:', data.refunded);
+          setHasRefundedWallet(true);
+        }
+      }
+    } catch (err) {
+      console.error('[CheckoutSuccess] Error refunding wallet:', err);
+    }
+  }, [hasRefundedWallet]);
 
   const fetchOrderStatus = useCallback(async (): Promise<OrderDetails | null> => {
     if (!orderId) return null;
@@ -95,6 +133,13 @@ export default function CheckoutSuccessPage() {
         if (orderData.paymentStatus === 'FAILED' || orderData.status === 'CANCELLED') {
           setError(`Payment was declined or cancelled. Status: ${orderData.paymentStatus}. Please try again with a different payment method.`);
           setOrder(orderData);
+          
+          // Refund wallet if payment failed and wallet was used
+          if (orderData.walletAmountUsed && orderData.walletAmountUsed > 0 && orderId) {
+            console.log('[CheckoutSuccess] Payment failed, refunding wallet...');
+            refundWalletForFailedOrder(orderId);
+          }
+          
           return null;
         }
         
@@ -119,6 +164,36 @@ export default function CheckoutSuccessPage() {
         // Clear cart on successful payment
         if (orderData.isPaid && orderData.paymentStatus === 'COMPLETED') {
           clearCart();
+          // Track Purchase event with Meta Pixel and GA4 (only once)
+          if (!hasTrackedPurchase.current) {
+            hasTrackedPurchase.current = true;
+            try {
+              const contents = orderData.items.map((item) => ({
+                id: item.sku || item.id,
+                quantity: item.quantity,
+              }));
+              
+              // Meta Pixel
+              trackPurchase(orderData.orderNumber, orderData.total, orderData.currency || 'EUR', contents);
+              
+              // GA4
+              const ga4Items = orderData.items.map((item) => ({
+                item_id: item.sku || item.id,
+                item_name: item.productName,
+                price: item.price,
+                quantity: item.quantity,
+              }));
+              
+              trackGA4Purchase({
+                transaction_id: orderData.orderNumber,
+                value: orderData.total,
+                currency: orderData.currency || 'EUR',
+                items: ga4Items,
+              });
+            } catch (trackError) {
+              console.error('[CheckoutSuccess] Analytics tracking error:', trackError);
+            }
+          }
         } else if (!error) {
           // Payment not completed after polling
           setError("Payment verification timeout. Your payment may still be processing. Click 'Check Again' to refresh status.");
@@ -137,11 +212,155 @@ export default function CheckoutSuccessPage() {
     }
   }, [orderId, clearCart, fetchOrderStatus]);
 
+  // Handle PayPal return - capture the payment
+  const capturePayPalPayment = useCallback(async () => {
+    // Check for pending PayPal order in session storage
+    const pendingOrderJson = sessionStorage.getItem('pendingPayPalOrder');
+    if (!pendingOrderJson) {
+      console.log('[CheckoutSuccess] No pending PayPal order found');
+      return null;
+    }
+
+    const pendingOrder = JSON.parse(pendingOrderJson);
+    console.log('[CheckoutSuccess] Capturing PayPal order:', pendingOrder);
+
+    setIsCapturingPayPal(true);
+
+    try {
+      const response = await fetch('/api/paypal/capture-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          paypalOrderId: pendingOrder.paypalOrderId,
+          orderId: pendingOrder.orderId,
+        }),
+      });
+
+      const result = await response.json();
+
+      // Clear the pending order from session storage
+      sessionStorage.removeItem('pendingPayPalOrder');
+
+      if (response.ok && result.success) {
+        console.log('[CheckoutSuccess] PayPal payment captured successfully');
+        return result.orderId;
+      } else {
+        console.error('[CheckoutSuccess] PayPal capture failed:', result);
+        setError(result.error || 'Failed to capture PayPal payment');
+        
+        // Refund wallet if payment failed and wallet was used
+        if (pendingOrder.orderId) {
+          console.log('[CheckoutSuccess] PayPal capture failed, refunding wallet...');
+          refundWalletForFailedOrder(pendingOrder.orderId);
+        }
+        
+        return null;
+      }
+    } catch (err: any) {
+      console.error('[CheckoutSuccess] Error capturing PayPal payment:', err);
+      setError('An error occurred while processing your PayPal payment');
+      sessionStorage.removeItem('pendingPayPalOrder');
+      return null;
+    } finally {
+      setIsCapturingPayPal(false);
+    }
+  }, []);
+
   useEffect(() => {
     // Prevent multiple fetches
     if (hasFetched) return;
-    verifyPayment();
-  }, [hasFetched, verifyPayment]);
+
+    const handlePayment = async () => {
+      // Check if this is a PayPal return (has token in URL or pending order in session)
+      const pendingPayPalOrder = sessionStorage.getItem('pendingPayPalOrder');
+      
+      if (paypalToken || pendingPayPalOrder) {
+        console.log('[CheckoutSuccess] PayPal return detected, capturing payment...');
+        const capturedOrderId = await capturePayPalPayment();
+        
+        if (capturedOrderId) {
+          // Update URL with orderId for consistency
+          const url = new URL(window.location.href);
+          url.searchParams.set('orderId', capturedOrderId);
+          url.searchParams.delete('token');
+          url.searchParams.delete('PayerID');
+          window.history.replaceState({}, '', url.toString());
+          
+          // Fetch the order details
+          try {
+            const response = await fetch(`/api/orders/${capturedOrderId}`);
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success && data.order) {
+                setOrder(data.order);
+                clearCart();
+                // Track Purchase event with Meta Pixel and GA4 (only once)
+                if (!hasTrackedPurchase.current) {
+                  hasTrackedPurchase.current = true;
+                  try {
+                    const contents = data.order.items.map((item: any) => ({
+                      id: item.sku || item.id,
+                      quantity: item.quantity,
+                    }));
+                    
+                    // Meta Pixel
+                    trackPurchase(data.order.orderNumber, data.order.total, data.order.currency || 'EUR', contents);
+                    
+                    // GA4
+                    const ga4Items = data.order.items.map((item: any) => ({
+                      item_id: item.sku || item.id,
+                      item_name: item.productName,
+                      price: item.price,
+                      quantity: item.quantity,
+                    }));
+                    
+                    trackGA4Purchase({
+                      transaction_id: data.order.orderNumber,
+                      value: data.order.total,
+                      currency: data.order.currency || 'EUR',
+                      items: ga4Items,
+                    });
+                  } catch (trackError) {
+                    console.error('[CheckoutSuccess] Analytics tracking error:', trackError);
+                  }
+                }
+                setLoading(false);
+                setHasFetched(true);
+                return;
+              }
+            }
+          } catch (err) {
+            console.error('[CheckoutSuccess] Error fetching PayPal order:', err);
+          }
+        } else {
+          // Capture failed - check if we need to refund wallet
+          // The refund is already handled in capturePayPalPayment, but we should fetch order to show status
+          if (pendingPayPalOrder) {
+            const pendingOrder = JSON.parse(pendingPayPalOrder);
+            try {
+              const response = await fetch(`/api/orders/${pendingOrder.orderId}`);
+              if (response.ok) {
+                const data = await response.json();
+                if (data.success && data.order) {
+                  setOrder(data.order);
+                }
+              }
+            } catch (err) {
+              console.error('[CheckoutSuccess] Error fetching failed PayPal order:', err);
+            }
+          }
+        }
+        
+        setLoading(false);
+        setHasFetched(true);
+      } else {
+        // Stripe flow - verify payment as before
+        verifyPayment();
+      }
+    };
+
+    handlePayment();
+  }, [hasFetched, verifyPayment, paypalToken, capturePayPalPayment, clearCart]);
 
   const handleRetry = async () => {
     setIsRetrying(true);
@@ -156,6 +375,12 @@ export default function CheckoutSuccessPage() {
           setError(null);
         } else if (orderData.paymentStatus === 'FAILED' || orderData.status === 'CANCELLED') {
           setError(`Payment was declined. Status: ${orderData.paymentStatus}. Please try again.`);
+          
+          // Refund wallet if payment failed and wallet was used
+          if (orderData.walletAmountUsed && orderData.walletAmountUsed > 0 && orderId) {
+            console.log('[CheckoutSuccess] Payment failed on retry, refunding wallet...');
+            refundWalletForFailedOrder(orderId);
+          }
         } else {
           setError("Payment still processing. Please wait a moment and try again.");
         }
@@ -175,10 +400,14 @@ export default function CheckoutSuccessPage() {
           <div className="container mx-auto px-4 py-12">
             <div className="flex flex-col items-center justify-center min-h-[400px]">
               <Loader2 className="h-12 w-12 animate-spin text-brand-teal mb-4" />
-              <p className="text-lg text-muted-foreground">Verifying your payment...</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Checking payment status ({pollCount}/30)...
+              <p className="text-lg text-muted-foreground">
+                {isCapturingPayPal ? 'Processing your PayPal payment...' : 'Verifying your payment...'}
               </p>
+              {!isCapturingPayPal && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Checking payment status ({pollCount}/30)...
+                </p>
+              )}
             </div>
           </div>
         </main>
@@ -304,14 +533,27 @@ export default function CheckoutSuccessPage() {
                     <div className="space-y-3">
                       {order.items.map((item, index) => (
                         <div
-                          key={index}
-                          className="flex justify-between items-center py-2 border-b last:border-0"
+                          key={item.id || index}
+                          className="flex justify-between items-start py-2 border-b last:border-0"
                         >
-                          <div>
+                          <div className="flex-1">
                             <p className="font-medium">{item.productName}</p>
                             <p className="text-sm text-muted-foreground">
-                              {item.variantName} × {item.quantity}
+                              {item.variantName} • SKU: {item.sku}
                             </p>
+                            <p className="text-sm text-muted-foreground">
+                              Quantity: {item.quantity} × €{item.price.toFixed(2)} = €{item.total.toFixed(2)}
+                            </p>
+                            {(item.hasPrescription || item.prescriptionData) && (
+                              <a
+                                href={`/api/orders/${order.id}/prescription/${item.id}`}
+                                download
+                                className="inline-flex items-center gap-2 mt-2 text-sm text-brand-teal hover:text-brand-teal/80 font-medium"
+                              >
+                                <Download className="h-4 w-4" />
+                                Download Prescription PDF
+                              </a>
+                            )}
                           </div>
                           <p className="font-semibold">€{item.total.toFixed(2)}</p>
                         </div>
@@ -374,6 +616,23 @@ export default function CheckoutSuccessPage() {
                       <p className="text-muted-foreground">
                         {order.shippingAddress.country}
                       </p>
+                      {(() => {
+                        const deliveryTime = getDeliveryTime(
+                          order.items.map((item) => ({
+                            prescriptionData: item.prescriptionData,
+                            productSlug: item.productSlug,
+                          })),
+                          order.shippingAddress.country
+                        );
+                        return (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-sm font-semibold text-brand-teal flex items-center gap-1">
+                              <span>📦</span>
+                              <span>Expected Delivery: {deliveryTime}</span>
+                            </p>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -387,6 +646,9 @@ export default function CheckoutSuccessPage() {
                     </div>
                     <p className="text-sm text-green-700">
                       Your payment has been confirmed. Your order is now being processed and will be shipped soon.
+                    </p>
+                    <p className="text-sm text-green-700 mt-2">
+                      We'll send you another email with your tracking ID once your order ships.
                     </p>
                     <div className="mt-3 pt-3 border-t border-green-200">
                       <p className="text-xs text-green-600">

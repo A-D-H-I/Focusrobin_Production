@@ -14,10 +14,57 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export const metadata: Metadata = {
-  title: 'Shop Sunglasses',
-  description: 'Browse our collection of premium polarized sunglasses. Fast shipping to Lithuania and EU/Schengen. Find your perfect style with UV400 protection.',
+  title: 'Shop Sunglasses & Prescription Glasses Online | FocusRobin Lithuania',
+  description: 'Shop FocusRobin sunglasses and prescription glasses online in Lithuania. Premium polarized eyewear with UV400 protection. Fast delivery to Vilnius, Kaunas, Klaipėda & EU. Best prices on designer sunglasses. Saulės akiniai ir korekciniai akiniai internetu Lietuvoje.',
+  keywords: [
+    // Brand + Shop
+    'FocusRobin shop',
+    'FocusRobin sunglasses shop',
+    'FocusRobin prescription glasses shop',
+    'buy FocusRobin sunglasses',
+    'buy FocusRobin glasses',
+    // English Shop Keywords
+    'sunglasses shop Lithuania',
+    'prescription glasses shop Lithuania',
+    'buy sunglasses online Lithuania',
+    'buy prescription glasses online Lithuania',
+    'eyewear shop Lithuania',
+    'optical shop Lithuania',
+    'sunglasses store Lithuania',
+    'glasses store Lithuania',
+    'polarized sunglasses shop',
+    'UV400 sunglasses shop',
+    'designer sunglasses Lithuania',
+    'premium eyewear Lithuania',
+    'affordable sunglasses Lithuania',
+    'best sunglasses Lithuania',
+    // Lithuanian Keywords
+    'saulės akiniai',
+    'saulės akiniai internetu',
+    'korekciniai akiniai',
+    'korekciniai akiniai internetu',
+    'akiniai internetu',
+    'akinių parduotuvė',
+    'optika internetu',
+    'pigūs saulės akiniai',
+    'kokybiški akiniai',
+    // Geo-targeted
+    'sunglasses Vilnius',
+    'sunglasses Kaunas',
+    'prescription glasses Vilnius',
+    'eyewear Vilnius',
+    'saulės akiniai Vilnius',
+  ],
   alternates: {
     canonical: 'https://focusrobin.lt/shop',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IE',
+    url: 'https://focusrobin.lt/shop',
+    siteName: 'FocusRobin',
+    title: 'Shop Sunglasses & Prescription Glasses Online | FocusRobin Lithuania',
+    description: 'Shop FocusRobin premium polarized sunglasses and prescription glasses online. Fast delivery to Vilnius, Kaunas, Klaipėda & EU. Best eyewear prices in Lithuania.',
   },
 };
 
@@ -41,6 +88,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const colorFilters = params.color as string | string[] | undefined; // New multi-color filter
   const minPriceParam = params.minPrice as string | undefined;
   const maxPriceParam = params.maxPrice as string | undefined;
+  const searchQuery = params.search as string | undefined;
   
   // Handle legacy single color filter (for backward compatibility)
   const legacyColorHex = typeof colorFilter === 'string' && !Array.isArray(colorFilter) 
@@ -50,6 +98,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   // Build where clause for filtering
   const whereClause: any = {};
   const andConditions: any[] = [];
+
 
   // Filter by gender if provided
   if (genderFilter) {
@@ -183,6 +232,61 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     }
   }
   
+  // Add search condition if provided
+  if (searchQuery && searchQuery.trim()) {
+    const searchTerm = searchQuery.trim();
+    const searchCondition = {
+      OR: [
+        {
+          name: {
+            contains: searchTerm,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+        {
+          description: {
+            contains: searchTerm,
+            mode: 'insensitive' as Prisma.QueryMode,
+          },
+        },
+        {
+          Category: {
+            name: {
+              contains: searchTerm,
+              mode: 'insensitive' as Prisma.QueryMode,
+            },
+          },
+        },
+        {
+          ProductVariant: {
+            some: {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive' as Prisma.QueryMode,
+              },
+            },
+          },
+        },
+      ],
+    };
+    
+    // If there are other filters, add search to AND conditions
+    // Otherwise, use search OR directly in whereClause
+    const hasOtherFilters = andConditions.length > 0 || 
+      whereClause.gender || 
+      whereClause.glassShape || 
+      whereClause.frameMaterial || 
+      whereClause.ProductVariant ||
+      whereClause.isNewlyAdded !== undefined ||
+      whereClause.isUniqueDesign !== undefined;
+    
+    if (hasOtherFilters) {
+      andConditions.push(searchCondition);
+    } else {
+      whereClause.OR = searchCondition.OR;
+    }
+  }
+
   // Combine all AND conditions with existing whereClause
   // When we have OR conditions (multiple values), we need to wrap everything in AND
   if (andConditions.length > 0) {
@@ -225,6 +329,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   let prismaProducts = (await prisma.product.findMany({
     where: whereClause,
     include: {
+      Category: true, // Include Category for search
       ProductVariant: {
         include: {
           ProductAsset: true,
@@ -286,7 +391,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   // Determine page title based on filter
   let pageTitle = "All Products";
-  if (filterType === 'new-arrivals' && !hasAdditionalFilters) {
+  if (searchQuery && searchQuery.trim()) {
+    pageTitle = `Search Results for "${searchQuery.trim()}"`;
+  } else if (filterType === 'new-arrivals' && !hasAdditionalFilters) {
     pageTitle = "New Arrivals";
   } else if (filterType === 'bestsellers' && !hasAdditionalFilters) {
     pageTitle = "Best Sellers";
@@ -330,7 +437,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     '@type': 'CollectionPage',
     name: pageTitle,
     url: `${baseUrl}/shop`,
-    description: 'Browse our collection of premium polarized sunglasses. Fast shipping to Lithuania and EU/Schengen.',
+    description: 'Browse our collection of premium polarized sunglasses and prescription glasses. Fast shipping to Lithuania and EU/Schengen.',
     mainEntity: {
       '@type': 'ItemList',
       numberOfItems: products.length,
@@ -346,17 +453,18 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       />
       <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
-        <ShopPageClient products={products} title={pageTitle} />
+        <ShopPageClient products={products} title={pageTitle} searchQuery={searchQuery} />
         
         {/* Lithuanian SEO Content Block */}
         <section lang="lt" className="container mx-auto px-4 py-12 max-w-4xl">
           <div className="prose prose-sm max-w-none text-muted-foreground">
             <p>
-              Ieškote kokybiškų saulės akiniai internetu? Mūsų kolekcijoje rasite stilingus akiniai nuo saulės 
-              su UV apsauga, kurie tinka tiek vyrams, tiek moterims. Visi mūsų polarizuoti saulės akiniai 
-              yra suprojektuoti Lietuvoje ir atitinka aukščiausius kokybės standartus. Pristatome greitai 
-              į Vilnių, Kauną, Klaipėdą ir visą EU/Schengen zoną. Raskite savo idealius akiniai su UV apsauga 
-              mūsų internetinėje parduotuvėje.
+              Ieškote kokybiškų saulės akinių ar korekcinių akinių internetu? Mūsų kolekcijoje rasite 
+              stilingus akinius nuo saulės su UV apsauga ir kokybiškus akinius su dioptrijomis, kurie 
+              tinka tiek vyrams, tiek moterims. Visi mūsų polarizuoti saulės akiniai ir receptiniai 
+              akiniai yra suprojektuoti Lietuvoje ir atitinka aukščiausius kokybės standartus. 
+              Pristatome greitai į Vilnių, Kauną, Klaipėdą ir visą EU/Schengen zoną. Raskite savo 
+              idealius akinius mūsų internetinėje parduotuvėje.
             </p>
           </div>
         </section>

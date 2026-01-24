@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as React from "react";
 import Image from "next/image";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -12,6 +12,7 @@ type ProductGalleryDesktopStackProps = {
 };
 
 export default function ProductGalleryDesktopStack({ product, selectedVariant }: ProductGalleryDesktopStackProps) {
+  const galleryRef = useRef<HTMLDivElement>(null);
   // Get images for the selected color variant from database
   const galleryImages = selectedVariant.images || [];
   const thumbnail = selectedVariant.thumbnail || '';
@@ -19,7 +20,6 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
   // Create a deduplicated list of all images from database
   const allImages = React.useMemo(() => {
     if (galleryImages.length > 0) {
-      // Remove duplicates while preserving order
       const uniqueImages: string[] = [];
       const seen = new Set<string>();
       for (const img of galleryImages) {
@@ -30,11 +30,14 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
       }
       return uniqueImages;
     } else if (thumbnail && thumbnail.trim()) {
-      // Fallback to thumbnail if no gallery images
       return [thumbnail];
     }
     return [];
   }, [thumbnail, galleryImages, selectedVariant.hex, selectedVariant.sku, selectedVariant.name]);
+
+  // Fullscreen state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   if (allImages.length === 0) {
     return (
@@ -47,10 +50,6 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
   const firstImage = allImages[0];
   const remainingImages = allImages.slice(1);
 
-  // Fullscreen state
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-
   // Handle opening fullscreen
   const openFullscreen = (imageUrl: string) => {
     const index = allImages.findIndex(img => img === imageUrl);
@@ -58,13 +57,17 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
       setCurrentImageIndex(index);
     }
     setIsFullscreen(true);
-    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    // Prevent background scrolling with scrollbar compensation
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = 'hidden';
+    document.body.style.paddingRight = `${scrollbarWidth}px`;
   };
 
   // Handle closing fullscreen
   const closeFullscreen = () => {
     setIsFullscreen(false);
     document.body.style.overflow = 'unset';
+    document.body.style.paddingRight = '';
   };
 
   // Handle navigation in fullscreen
@@ -84,6 +87,7 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
       if (e.key === 'Escape') {
         setIsFullscreen(false);
         document.body.style.overflow = 'unset';
+        document.body.style.paddingRight = '';
       } else if (e.key === 'ArrowLeft') {
         setCurrentImageIndex((prev) => (prev - 1 + allImages.length) % allImages.length);
       } else if (e.key === 'ArrowRight') {
@@ -95,58 +99,173 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isFullscreen, allImages.length]);
 
+  // Capture scroll events and apply to gallery with smooth scrolling
+  useEffect(() => {
+    const galleryContainer = galleryRef.current;
+    if (!galleryContainer) return;
+
+    let scrollVelocity = 0;
+    let isScrolling = false;
+    let animationFrameId: number | null = null;
+
+    const smoothScroll = () => {
+      if (!galleryContainer) return;
+      
+      const scrollTop = galleryContainer.scrollTop;
+      const scrollHeight = galleryContainer.scrollHeight;
+      const clientHeight = galleryContainer.clientHeight;
+      
+      // Apply velocity with easing
+      if (Math.abs(scrollVelocity) > 0.1) {
+        galleryContainer.scrollTop += scrollVelocity;
+        
+        // Apply friction
+        scrollVelocity *= 0.92;
+        
+        // Check boundaries
+        const newScrollTop = galleryContainer.scrollTop;
+        if (newScrollTop <= 0) {
+          galleryContainer.scrollTop = 0;
+          scrollVelocity = 0;
+        } else if (newScrollTop >= scrollHeight - clientHeight) {
+          galleryContainer.scrollTop = scrollHeight - clientHeight;
+          scrollVelocity = 0;
+        }
+        
+        animationFrameId = requestAnimationFrame(smoothScroll);
+      } else {
+        scrollVelocity = 0;
+        isScrolling = false;
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+      }
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      // Check if the scroll is happening within the product section
+      const target = e.target as HTMLElement;
+      const productSection = target.closest('[data-product-section]');
+      
+      if (productSection) {
+        const scrollTop = galleryContainer.scrollTop;
+        const scrollHeight = galleryContainer.scrollHeight;
+        const clientHeight = galleryContainer.clientHeight;
+        
+        // Calculate boundaries with tolerance
+        const isAtTop = scrollTop <= 1;
+        const isAtBottom = scrollHeight - clientHeight - scrollTop <= 1;
+        
+        const scrollingDown = e.deltaY > 0;
+        const scrollingUp = e.deltaY < 0;
+        
+        // If at top and scrolling up, allow page scroll
+        if (isAtTop && scrollingUp) {
+          scrollVelocity = 0;
+          return;
+        }
+        
+        // If at bottom and scrolling down, allow page scroll
+        if (isAtBottom && scrollingDown) {
+          scrollVelocity = 0;
+          return;
+        }
+        
+        // Check if scrolling would exceed boundaries
+        const wouldExceedBottom = scrollingDown && (scrollTop + e.deltaY >= scrollHeight - clientHeight);
+        const wouldExceedTop = scrollingUp && (scrollTop + e.deltaY <= 0);
+        
+        // If scrolling would exceed boundaries, allow page scroll
+        if (wouldExceedBottom && scrollingDown) {
+          scrollVelocity = 0;
+          return;
+        }
+        if (wouldExceedTop && scrollingUp) {
+          scrollVelocity = 0;
+          return;
+        }
+        
+        // Prevent default and accumulate velocity for smooth scrolling
+        e.preventDefault();
+        
+        // Accumulate scroll velocity with smoothing factor
+        scrollVelocity += e.deltaY * 0.5;
+        
+        // Clamp velocity for smoother feel
+        scrollVelocity = Math.max(-50, Math.min(50, scrollVelocity));
+        
+        // Start smooth scroll animation if not already running
+        if (!isScrolling) {
+          isScrolling = true;
+          animationFrameId = requestAnimationFrame(smoothScroll);
+        }
+      }
+    };
+
+    // Add event listener to window for capturing all scroll events
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, []);
+
   return (
     <>
-      <div className="space-y-3 lg:space-y-4">
+      {/* Gallery - Scrollable without visible scrollbar with smooth scrolling */}
+      <div 
+        ref={galleryRef}
+        className="space-y-4 overflow-y-auto max-h-[calc(100vh-8rem)] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth"
+        style={{ scrollBehavior: 'auto' }}
+      >
         {/* First Image - Full Width */}
         {firstImage && (
           <div
-            key={`desktop-stack-0-${firstImage}`}
-            className="relative w-full rounded-xl lg:rounded-2xl overflow-hidden bg-[#EFFAFA] cursor-pointer"
+            className="aspect-square bg-gray-50 rounded-2xl overflow-hidden cursor-pointer group"
             onClick={() => openFullscreen(firstImage)}
           >
-            <div className="relative w-full aspect-square">
+            <div className="relative w-full h-full">
               <Image
                 src={firstImage}
                 alt={`${product.name} - View 1`}
                 fill
-                className="object-contain"
-                sizes="(min-width: 1024px) 58vw, 100vw"
+                className="object-contain group-hover:scale-105 transition-transform duration-300"
+                sizes="(min-width: 1024px) 50vw, 100vw"
                 quality={90}
-                loading="eager"
+                priority
                 unoptimized
               />
             </div>
           </div>
         )}
 
-        {/* Remaining Images - Two per Row */}
+        {/* Remaining Images - Two Column Grid */}
         {remainingImages.length > 0 && (
-          <div className="grid grid-cols-2 gap-3 lg:gap-4">
-            {remainingImages.map((imageUrl, index) => {
-              // Calculate the actual index in allImages array
-              const actualIndex = index + 1;
-              return (
-                <div
-                  key={`desktop-stack-${actualIndex}-${imageUrl}`}
-                  className="relative w-full rounded-xl lg:rounded-2xl overflow-hidden bg-[#EFFAFA] cursor-pointer"
-                  onClick={() => openFullscreen(imageUrl)}
-                >
-                  <div className="relative w-full aspect-square">
-                    <Image
-                      src={imageUrl}
-                      alt={`${product.name} - View ${actualIndex + 1}`}
-                      fill
-                      className="object-contain"
-                      sizes="(min-width: 1024px) 29vw, 100vw"
-                      quality={90}
-                      loading="lazy"
-                      unoptimized
-                    />
-                  </div>
+          <div className="grid grid-cols-2 gap-4">
+            {remainingImages.map((imageUrl, index) => (
+              <div
+                key={`gallery-${index + 1}-${imageUrl}`}
+                className="aspect-square bg-gray-50 rounded-2xl overflow-hidden cursor-pointer group"
+                onClick={() => openFullscreen(imageUrl)}
+              >
+                <div className="relative w-full h-full">
+                  <Image
+                    src={imageUrl}
+                    alt={`${product.name} - View ${index + 2}`}
+                    fill
+                    className="object-contain group-hover:scale-105 transition-transform duration-300"
+                    sizes="(min-width: 1024px) 25vw, 50vw"
+                    quality={90}
+                    loading="lazy"
+                    unoptimized
+                  />
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -157,7 +276,7 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
           className="fixed inset-0 z-[150] bg-white overflow-hidden flex flex-col"
           onClick={closeFullscreen}
         >
-          {/* Close Button - Positioned below navbar */}
+          {/* Close Button */}
           <button
             onClick={closeFullscreen}
             className="fixed top-24 right-4 md:top-28 z-[151] p-2 text-black hover:text-gray-700 transition-colors"
@@ -192,7 +311,7 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
             </>
           )}
 
-          {/* Fullscreen Image Container - No Scroll */}
+          {/* Fullscreen Image Container */}
           <div 
             className="flex-1 flex items-center justify-center p-4 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
@@ -245,7 +364,7 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
                         unoptimized
                       />
                     </div>
-                    {/* Active Indicator - Black line underneath */}
+                    {/* Active Indicator */}
                     {currentImageIndex === index && (
                       <div className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-black" />
                     )}
@@ -259,4 +378,3 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
     </>
   );
 }
-

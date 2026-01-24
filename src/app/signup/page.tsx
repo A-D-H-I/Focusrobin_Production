@@ -11,6 +11,7 @@ import { Chrome, Facebook, Loader2, ShoppingBag, Eye, EyeOff } from "lucide-reac
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { registerUser } from "@/app/actions/auth";
+import { trackMetaEvent } from "@/components/analytics/MetaPixel";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -43,13 +44,22 @@ export default function SignupPage() {
       const result = await registerUser(formData);
       
       if (result.success) {
-        setSuccess(result.message || "Account created successfully!");
-        // Redirect to login after 2 seconds
+        setSuccess(result.message || "Verification code sent to your email!");
+        // Track CompleteRegistration event with Meta Pixel
+        try {
+          trackMetaEvent('CompleteRegistration', {
+            content_name: 'Email Signup',
+            status: 'pending_verification',
+          });
+        } catch (trackError) {
+          console.error('[Signup] Meta Pixel tracking error:', trackError);
+        }
+        // Redirect to OTP verification page after 1 second
         setTimeout(() => {
-          router.push("/login");
-        }, 2000);
+          router.push(`/verify-email?email=${encodeURIComponent(result.email || "")}`);
+        }, 1000);
       } else {
-        setError(result.error || "Failed to create account");
+        setError(result.error || "Failed to send verification code");
       }
     } catch (error) {
       setError("An unexpected error occurred. Please try again.");

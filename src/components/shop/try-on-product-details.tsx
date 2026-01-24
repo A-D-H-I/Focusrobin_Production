@@ -112,28 +112,28 @@ export default function TryOnProductDetails({
   };
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("space-y-3", className)}>
       {/* Product Name */}
       <div>
         <Link 
           href={`/shop/${encodeURIComponent(product.slug || product.id)}`}
-          className="text-[9px] text-teal-primary font-medium uppercase tracking-wide hover:underline"
+          className="text-xs text-teal-primary font-medium uppercase tracking-wide hover:underline"
         >
           View Details
         </Link>
-        <h1 className="text-sm xl:text-base font-headline font-semibold leading-tight mt-0.5 line-clamp-2">
+        <h1 className="text-base xl:text-lg font-headline font-semibold leading-tight mt-1 line-clamp-2">
           {product.name}
         </h1>
       </div>
 
       {/* Price Section */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        <p className="text-base font-bold text-primary">{formatPrice(priceInEur)}</p>
+      <div className="flex items-center gap-2 flex-wrap">
+        <p className="text-lg font-bold text-primary">{formatPrice(priceInEur)}</p>
         {originalPriceInEur && originalPriceInEur !== priceInEur && (
           <>
-            <p className="text-[10px] text-muted-foreground line-through">{formatPrice(originalPriceInEur)}</p>
+            <p className="text-xs text-muted-foreground line-through">{formatPrice(originalPriceInEur)}</p>
             {product.discountPct && (
-              <Badge variant="destructive" className="text-[8px] px-1 py-0 h-4">
+              <Badge variant="destructive" className="text-xs px-1.5 py-0 h-5">
                 -{product.discountPct}%
               </Badge>
             )}
@@ -143,20 +143,20 @@ export default function TryOnProductDetails({
 
       {/* Cashback */}
       {cashbackInEur && cashbackInEur > 0 && (
-        <Badge variant="outline" className="text-[8px] bg-green-50 text-green-700 border-green-200 px-1 py-0 h-4">
+        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 px-2 py-0.5 h-5">
           🎁 {formatPrice(cashbackInEur)}
         </Badge>
       )}
 
       {/* Rating */}
       {product.averageRating && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <div className="flex items-center">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
                 className={cn(
-                  "h-2.5 w-2.5",
+                  "h-3.5 w-3.5",
                   i < Math.round(product.averageRating || 4)
                     ? "text-yellow-400 fill-current"
                     : "text-gray-300"
@@ -164,7 +164,7 @@ export default function TryOnProductDetails({
               />
             ))}
           </div>
-          <span className="text-[9px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             ({product.reviewCount || 0})
           </span>
         </div>
@@ -172,18 +172,18 @@ export default function TryOnProductDetails({
 
       {/* Color Selector */}
       <div>
-        <h3 className="text-[10px] font-semibold mb-1">
+        <h3 className="text-sm font-semibold mb-2">
           Color: <span className="font-normal text-muted-foreground">{selectedVariant.name}</span>
         </h3>
-        <div className="flex items-center gap-1 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           {product.variants.map((variant, idx) => (
             <button
               key={`color-${idx}-${variant.name}`}
               onClick={() => handleColorSelect(variant)}
               className={cn(
-                "h-5 w-5 rounded-full border-2 transition-all",
+                "h-7 w-7 rounded-full border-2 transition-all",
                 selectedVariant.hex === variant.hex
-                  ? "border-primary ring-1 ring-offset-1 ring-primary"
+                  ? "border-primary ring-2 ring-offset-1 ring-primary"
                   : "border-border hover:border-primary/50"
               )}
               style={{ backgroundColor: variant.hex }}
@@ -193,40 +193,40 @@ export default function TryOnProductDetails({
         </div>
       </div>
 
-      {/* Lens Features - Ultra Compact */}
-      <div className="rounded border bg-muted/50 p-1.5">
-        <div className="grid grid-cols-1 gap-0.5">
+      {/* Lens Features */}
+      <div className="rounded border bg-muted/50 p-2">
+        <div className="grid grid-cols-1 gap-1">
           {lensFeatures.slice(0, 2).map((feature) => (
-            <div key={feature.text} className="flex items-center gap-1">
-              <feature.icon className="h-2.5 w-2.5 text-primary flex-shrink-0" />
-              <span className="text-[8px] text-foreground/80 font-medium">{feature.text}</span>
+            <div key={feature.text} className="flex items-center gap-2">
+              <feature.icon className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+              <span className="text-xs text-foreground/80 font-medium">{feature.text}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Warranty - Ultra Compact */}
-      <div className="rounded border bg-muted/50 p-1.5">
-        <div className="flex items-center justify-center gap-1">
-          <CheckCircle2 className="h-2.5 w-2.5 text-primary" />
-          <span className="text-[9px] font-semibold text-foreground">3 Years Warranty</span>
+      {/* Warranty */}
+      <div className="rounded border bg-muted/50 p-2">
+        <div className="flex items-center justify-center gap-1.5">
+          <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+          <span className="text-xs font-semibold text-foreground">3 Years Warranty</span>
         </div>
       </div>
 
-      {/* Quantity Selector - Ultra Compact */}
-      <div className="flex items-center gap-1.5">
-        <span className="text-[10px] font-semibold">Qty:</span>
+      {/* Quantity Selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-semibold">Qty:</span>
         <div className="flex items-center border rounded">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            className="h-5 w-5 p-0"
+            className="h-7 w-7 p-0"
             disabled={quantity <= 1}
           >
-            <Minus className="h-2 w-2" />
+            <Minus className="h-3 w-3" />
           </Button>
-          <span className="w-5 text-center font-bold text-[10px]">{quantity}</span>
+          <span className="w-8 text-center font-bold text-sm">{quantity}</span>
           <Button
             variant="ghost"
             size="icon"
@@ -234,17 +234,17 @@ export default function TryOnProductDetails({
               const maxQuantity = selectedVariant?.stock !== undefined ? selectedVariant.stock : 999;
               setQuantity((q) => Math.min(maxQuantity, q + 1));
             }}
-            className="h-5 w-5 p-0"
+            className="h-7 w-7 p-0"
             disabled={selectedVariant?.stock !== undefined && quantity >= selectedVariant.stock}
           >
-            <Plus className="h-2 w-2" />
+            <Plus className="h-3 w-3" />
           </Button>
         </div>
         {/* Stock indicator */}
         {selectedVariant?.stock !== undefined && selectedVariant.stock < 10 && (
           <span
             className={cn(
-              "text-[8px] font-medium",
+              "text-xs font-medium",
               selectedVariant.stock === 0
                 ? "text-destructive"
                 : selectedVariant.stock <= 3
@@ -257,37 +257,37 @@ export default function TryOnProductDetails({
         )}
       </div>
 
-      {/* Action Buttons - Ultra Compact */}
-      <div className="space-y-1">
+      {/* Action Buttons */}
+      <div className="space-y-2">
         <Button
           onClick={handleAddToCart}
-          className="w-full h-7 font-semibold text-[10px]"
+          className="w-full h-10 font-semibold text-sm"
           disabled={selectedVariant?.stock === 0}
         >
-          <ShoppingCart className="h-3 w-3 mr-1" />
+          <ShoppingCart className="h-4 w-4 mr-1.5" />
           {selectedVariant?.stock === 0 ? "Out of Stock" : "Add to Cart"}
         </Button>
 
-        <div className="flex gap-1">
+        <div className="flex gap-2">
           <Button
             variant="outline"
             onClick={() => {
               router.push(`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
             }}
-            className="flex-1 h-6 text-[9px] px-1"
+            className="flex-1 h-9 text-xs px-2"
           >
-            <Plus className="h-2.5 w-2.5 mr-0.5" />
-            Rx
+            <Plus className="h-3.5 w-3.5 mr-1" />
+            Prescription
           </Button>
 
           <Button
             variant="outline"
             onClick={handleWishlistToggle}
-            className={cn("h-6 w-6 p-0", isWishlisted && "border-primary")}
+            className={cn("h-9 w-9 p-0", isWishlisted && "border-primary")}
           >
             <Heart
               className={cn(
-                "h-3 w-3",
+                "h-4 w-4",
                 isWishlisted && "fill-red-500 text-red-500"
               )}
             />
@@ -296,7 +296,7 @@ export default function TryOnProductDetails({
       </div>
 
       {/* Shipping Note */}
-      <p className="text-[8px] text-muted-foreground leading-tight">
+      <p className="text-xs text-muted-foreground leading-tight">
         Fast EU delivery
       </p>
     </div>

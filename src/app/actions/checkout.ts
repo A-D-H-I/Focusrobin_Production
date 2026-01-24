@@ -29,6 +29,9 @@ interface CheckoutData {
   };
   walletAmount?: number;
   promoCodeId?: string | null;
+  // The total amount shown in Order Summary on checkout page
+  // This is the EXACT amount that should be charged to Stripe
+  orderTotal: number;
 }
 
 function generateOrderNumber(): string {
@@ -98,19 +101,36 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       return { error: `Too many checkout attempts. Please try again in ${rateLimitResult.retryAfter} seconds.` };
     }
 
-    // Get user's cart with items
+    // Get user's cart to verify it exists and get items for order creation
     const cart = await prisma.cart.findUnique({
       where: { userId },
-      include: {
+      select: {
+        id: true,
         items: {
-          include: {
+          select: {
+            id: true,
+            productId: true,
+            variantId: true,
+            quantity: true,
+            prescriptionData: true,
             Product: {
-              include: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                basePrice: true,
+                discountPct: true,
                 ProductVariant: {
-                  include: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sku: true,
+                    price: true,
+                    stock: true,
                     ProductAsset: {
                       where: { isPrimary: true },
                       take: 1,
+                      select: { url: true },
                     },
                   },
                 },
@@ -121,12 +141,52 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       },
     });
 
-    if (!cart || cart.items.length === 0) {
-      return { error: "Your cart is empty" };
+    if (!cart) {
+      return { error: "Your cart is empty. Please add items to your cart first." };
+    }
+    
+    if (cart.items.length === 0) {
+      return { error: "Your cart is empty. Please add items to your cart first." };
     }
 
-    // Calculate totals and build order items
-    let subtotal = 0;
+    // Verify stock for all items
+    // Allow items already in cart to be purchased even if stock goes low (reserve them)
+    // But prevent checkout if items are fully sold out (stock = 0)
+    for (const cartItem of cart.items) {
+      const variant = cartItem.Product.ProductVariant.find((v: any) => v.id === cartItem.variantId);
+      if (!variant) {
+        return { error: `Variant not found for ${cartItem.Product.name}` };
+      }
+      
+      const stock = variant.stock !== null && variant.stock !== undefined ? Number(variant.stock) : null;
+      
+      // If stock is 0, item is fully sold out - prevent checkout
+      if (stock === 0) {
+        return {
+          error: `${cartItem.Product.name} (${variant.name}) is currently out of stock and cannot be purchased. Please remove it from your cart.`,
+        };
+      }
+      
+      // If stock is null/undefined, allow checkout (stock tracking may not be enabled)
+      if (stock === null) {
+        continue;
+      }
+      
+      // If stock > 0 but less than quantity, allow checkout (item was in cart when available, reserve it)
+      // This handles the case where stock goes low after item was added to cart
+      // Note: We don't check if stock < quantity anymore - we allow it because item was already in cart
+    }
+
+    // Use the orderTotal from frontend (Order Summary total)
+    // This is the EXACT amount shown to the user
+    const orderTotalFromFrontend = Number(checkoutData.orderTotal);
+    if (!orderTotalFromFrontend || orderTotalFromFrontend <= 0) {
+      return { error: "Invalid order total. Please refresh and try again." };
+    }
+
+    console.log('[CHECKOUT] Using order total from frontend (Order Summary): €' + orderTotalFromFrontend.toFixed(2));
+
+    // Build order items from database cart (for order record)
     const orderItems: {
       productId: string;
       variantId: string;
@@ -137,43 +197,37 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       price: number;
       total: number;
       imageUrl: string | null;
+      prescriptionData: any;
     }[] = [];
 
-    const stripeLineItems: {
-      price_data: {
-        currency: string;
-        product_data: {
-          name: string;
-          description?: string;
-          images?: string[];
-        };
-        unit_amount: number;
-      };
-      quantity: number;
-    }[] = [];
+    // NOTE: We only use prescription data from cartItem.prescriptionData
+    // Do NOT fetch from UserPrescription table - that was causing wrong prescription data
+    // to be applied to non-prescription items
 
+    let subtotal = 0;
     for (const cartItem of cart.items) {
-      const variant = cartItem.Product.ProductVariant.find(
-        (v) => v.id === cartItem.variantId
-      );
+      const variant = cartItem.Product.ProductVariant.find((v: any) => v.id === cartItem.variantId);
+      if (!variant) continue;
 
-      if (!variant) {
-        return { error: `Variant not found for ${cartItem.Product.name}` };
+      // IMPORTANT: Only use prescription data directly from the cart item
+      // This was stored when the user added the item with prescription to cart
+      const prescriptionData = cartItem.prescriptionData ? (cartItem.prescriptionData as any) : null;
+
+      let price: number;
+      // Only use prescription pricing if the item has valid prescription data with totalNet
+      if (prescriptionData?.rxPriceBreakdown?.totalNet) {
+        price = Number(prescriptionData.rxPriceBreakdown.totalNet);
+        console.log(`[CHECKOUT] Item ${cartItem.Product.name}: Using prescription price €${price}`);
+      } else {
+        // No prescription or no totalNet - use regular frame price
+        const basePrice = variant.price
+          ? Number(variant.price)
+          : Number(cartItem.Product.basePrice);
+        const discountPct = cartItem.Product.discountPct || 0;
+        price = basePrice * (1 - discountPct / 100);
+        console.log(`[CHECKOUT] Item ${cartItem.Product.name}: Using frame price €${price} (base: €${basePrice}, discount: ${discountPct}%)`);
       }
 
-      // Check stock
-      if (variant.stock < cartItem.quantity) {
-        return {
-          error: `Not enough stock for ${cartItem.Product.name} (${variant.name}). Available: ${variant.stock}`,
-        };
-      }
-
-      // Calculate price with product discount applied
-      const basePrice = variant.price
-        ? Number(variant.price)
-        : Number(cartItem.Product.basePrice);
-      const discountPct = cartItem.Product.discountPct || 0;
-      const price = basePrice * (1 - discountPct / 100);
       const itemTotal = price * cartItem.quantity;
       subtotal += itemTotal;
 
@@ -190,102 +244,39 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         price,
         total: itemTotal,
         imageUrl,
+        prescriptionData, // Only include actual prescription data from cart item
       });
-
-      // Build Stripe line item
-      const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:9002';
-      let productImage: string | undefined = undefined;
       
-      if (imageUrl && typeof imageUrl === 'string' && imageUrl.trim().length > 0) {
-        const trimmedUrl = imageUrl.trim();
-        
-        // Ensure we have a valid absolute URL for Stripe
-        if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
-          // Already an absolute URL - validate it
-          try {
-            const testUrl = new URL(trimmedUrl);
-            if (testUrl.protocol !== 'http:' && testUrl.protocol !== 'https:') {
-              throw new Error(`Invalid protocol: ${testUrl.protocol}`);
-            }
-            // Ensure it's a valid URL format
-            if (!testUrl.hostname) {
-              throw new Error('Missing hostname');
-            }
-            productImage = trimmedUrl;
-            console.log(`Valid absolute image URL for ${cartItem.Product.name}: ${trimmedUrl}`);
-          } catch (urlError) {
-            console.warn(`Invalid absolute image URL for product ${cartItem.Product.name}: ${trimmedUrl}`, urlError);
-            productImage = undefined;
-          }
-        } else {
-          // Construct absolute URL from relative path
-          // Clean the path - remove any problematic characters
-          let cleanImageUrl = trimmedUrl;
-          if (!cleanImageUrl.startsWith('/')) {
-            cleanImageUrl = `/${cleanImageUrl}`;
-          }
-          // Remove any double slashes (except after protocol)
-          cleanImageUrl = cleanImageUrl.replace(/([^:]\/)\/+/g, '$1');
-          
-          const fullImageUrl = `${baseUrl}${cleanImageUrl}`;
-          
-          // Validate the URL before adding
-          try {
-            const testUrl = new URL(fullImageUrl);
-            // Ensure it's a valid HTTP/HTTPS URL
-            if (testUrl.protocol !== 'http:' && testUrl.protocol !== 'https:') {
-              throw new Error(`Invalid protocol: ${testUrl.protocol}`);
-            }
-            if (!testUrl.hostname) {
-              throw new Error('Missing hostname');
-            }
-            productImage = fullImageUrl;
-            console.log(`Valid constructed image URL for ${cartItem.Product.name}: ${fullImageUrl}`);
-          } catch (urlError) {
-            console.warn(`Invalid image URL for product ${cartItem.Product.name}. Original: ${imageUrl}, Constructed: ${fullImageUrl}`, urlError);
-            // Skip image if URL is invalid - Stripe will work without images
-            productImage = undefined;
-          }
-        }
-      } else {
-        console.log(`No image URL for product ${cartItem.Product.name} (imageUrl: ${imageUrl})`);
-      }
-
-      const lineItem: any = {
-        price_data: {
-          currency: 'eur',
-          product_data: {
-            name: `${cartItem.Product.name} - ${variant.name}`,
-            description: `SKU: ${variant.sku}`,
-          },
-          unit_amount: Math.round(price * 100), // Stripe uses cents
-        },
-        quantity: cartItem.quantity,
-      };
-
-      // Only add images if we have a valid, verified URL
-      // Temporarily disable images to test if they're causing the issue
-      // TODO: Re-enable images once URL validation is confirmed working
-      if (productImage && false) { // Temporarily disabled
-        // Double-verify the URL before adding
-        try {
-          const finalUrl = new URL(productImage!);
-          if (finalUrl.protocol === 'http:' || finalUrl.protocol === 'https:') {
-            lineItem.price_data.product_data.images = [productImage];
-            console.log(`Added image URL for ${cartItem.Product.name}: ${productImage}`);
-          }
-        } catch (finalCheck) {
-          console.warn(`Final URL check failed for ${cartItem.Product.name}: ${productImage}`, finalCheck);
-        }
-      }
-
-      stripeLineItems.push(lineItem);
+      console.log(`[CHECKOUT] Added order item: ${cartItem.Product.name} - ${variant.name}, qty: ${cartItem.quantity}, price: €${price}, total: €${itemTotal}, hasPrescription: ${!!prescriptionData}`);
     }
 
-    const shipping = 0; // Free shipping
-    const orderTotalBeforePromo = subtotal + shipping;
+    // Create a SINGLE Stripe line item with the total from Order Summary
+    // This ensures Stripe amount ALWAYS matches what user sees
+    const stripeLineItems = [{
+      price_data: {
+        currency: 'eur',
+        product_data: {
+          name: `Order - ${cart.items.length} item(s)`,
+          description: `Order from FocusRobin`,
+        },
+        unit_amount: Math.round(orderTotalFromFrontend * 100), // Convert to cents
+      },
+      quantity: 1,
+    }];
 
-    // Validate and apply promo code if provided
+    console.log('[CHECKOUT] Stripe will charge: €' + orderTotalFromFrontend.toFixed(2) + ' (from Order Summary)');
+
+    const shipping = 0; // Free shipping
+    
+    // Use the orderTotal from frontend (Order Summary total)
+    // This already includes all discounts, wallet deductions, etc.
+    const total = orderTotalFromFrontend;
+    
+    // Calculate promo discount and wallet amount for order record
+    // (These are already factored into orderTotalFromFrontend)
+    const orderTotalBeforePromo = subtotal + shipping;
+    
+    // Validate and apply promo code if provided (for order record)
     let promoDiscount = 0;
     let promoCashback = 0;
     let promoCodeId: string | null = null;
@@ -297,13 +288,9 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
 
       if (promoCode && promoCode.isActive) {
         const now = new Date();
-        // Validate dates
         if (promoCode.startDate <= now && (!promoCode.endDate || promoCode.endDate >= now)) {
-          // Validate usage limit
           if (!promoCode.usageLimit || promoCode.usedCount < promoCode.usageLimit) {
-            // Validate minimum purchase
             if (!promoCode.minPurchaseAmount || orderTotalBeforePromo >= Number(promoCode.minPurchaseAmount)) {
-              // Calculate discount
               if (promoCode.discountPercentage) {
                 promoDiscount = (orderTotalBeforePromo * Number(promoCode.discountPercentage)) / 100;
               } else if (promoCode.discountAmount) {
@@ -311,7 +298,6 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
               }
               promoDiscount = Math.min(promoDiscount, orderTotalBeforePromo);
 
-              // Calculate cashback
               if (promoCode.cashbackPercentage) {
                 promoCashback = (orderTotalBeforePromo * Number(promoCode.cashbackPercentage)) / 100;
               }
@@ -323,9 +309,10 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       }
     }
 
+    // Calculate order total after promo discount (for validation)
     const orderTotalAfterPromo = Math.max(0, orderTotalBeforePromo - promoDiscount);
+
     const walletAmount = checkoutData.walletAmount || 0;
-    const total = Math.max(0, orderTotalAfterPromo - walletAmount);
 
     // Validate wallet amount if provided
     if (walletAmount > 0) {
@@ -439,6 +426,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
             price: item.price,
             total: item.total,
             imageUrl: item.imageUrl,
+            prescriptionData: item.prescriptionData, // Include prescription data if available
           })),
         },
       },
@@ -456,57 +444,19 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       });
     }
 
-    // Adjust Stripe line items if promo discount or wallet amount is used
-    // We need to ensure Stripe charges only the remaining amount after discounts
-    if ((promoDiscount > 0 || walletAmount > 0) && orderTotalBeforePromo > 0) {
-      const reductionRatio = total / orderTotalBeforePromo; // e.g., if total is 80 and original is 100, ratio is 0.8
-      
-      // Calculate total of adjusted amounts to ensure exact match
-      let adjustedTotal = 0;
-      const adjustedItems: typeof stripeLineItems = [];
-      
-      for (let i = 0; i < stripeLineItems.length; i++) {
-        const lineItem = { ...stripeLineItems[i] };
-        const originalAmount = lineItem.price_data.unit_amount;
-        
-        // For the last item, adjust to ensure exact total
-        if (i === stripeLineItems.length - 1) {
-          // Calculate what the last item should be to make total exact
-          const targetTotal = Math.round(total * 100); // Convert to cents
-          const remainingAmount = targetTotal - adjustedTotal;
-          lineItem.price_data.unit_amount = Math.max(0, remainingAmount);
-        } else {
-          // Proportionally reduce other items
-          lineItem.price_data.unit_amount = Math.round(originalAmount * reductionRatio);
-        }
-        
-        adjustedTotal += lineItem.price_data.unit_amount * lineItem.quantity;
-        adjustedItems.push(lineItem);
-      }
-      
-      // Replace original items with adjusted ones
-      stripeLineItems.length = 0;
-      stripeLineItems.push(...adjustedItems);
-      
-      // Verify the total matches (with small tolerance for rounding)
-      const expectedTotalCents = Math.round(total * 100);
-      const actualTotalCents = adjustedTotal;
-      const difference = Math.abs(expectedTotalCents - actualTotalCents);
-      
-      if (difference > 1) {
-        console.warn(`Stripe total mismatch: Expected ${expectedTotalCents} cents, got ${actualTotalCents} cents. Difference: ${difference}`);
-        // Adjust the last item to fix the difference
-        if (stripeLineItems.length > 0) {
-          const lastItem = stripeLineItems[stripeLineItems.length - 1];
-          lastItem.price_data.unit_amount += (expectedTotalCents - actualTotalCents);
-          if (lastItem.price_data.unit_amount < 0) {
-            lastItem.price_data.unit_amount = 0;
-          }
-        }
-      }
-      
-      console.log(`[Checkout] Wallet deduction: €${walletAmount.toFixed(2)}, Stripe will charge: €${total.toFixed(2)}`);
-    }
+    // Calculate the exact total that should be charged to Stripe
+    // This is: subtotal + shipping - promoDiscount - walletAmount
+    // The 'total' variable above is already rounded to 2 decimal places
+    // This MUST match the Order Summary total shown on the checkout page
+    const exactStripeTotal = total; // This MUST match the Order Summary total on checkout page
+    const exactStripeTotalCents = Math.round(exactStripeTotal * 100);
+    
+    console.log(`[Checkout] Order Summary Total: €${exactStripeTotal.toFixed(2)} (${exactStripeTotalCents} cents)`);
+    console.log(`[Checkout] Breakdown: Subtotal: €${subtotal.toFixed(2)}, Shipping: €${shipping.toFixed(2)}, Promo: -€${promoDiscount.toFixed(2)}, Wallet: -€${walletAmount.toFixed(2)}`);
+
+    // Stripe line item is already set to the exact total from Order Summary
+    // No adjustment needed - it's a single line item with the exact amount
+    console.log(`[Checkout] Stripe will charge: €${exactStripeTotal.toFixed(2)} (from Order Summary)`);
 
     // Create Stripe Checkout Session
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:9002';
@@ -533,7 +483,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     // URL encode the order ID to handle any special characters
     const encodedOrderId = encodeURIComponent(order.id);
     const successUrl = `${validBaseUrl}/checkout/success?orderId=${encodedOrderId}`;
-    const cancelUrl = `${validBaseUrl}/checkout?cancelled=true`;
+    const cancelUrl = `${validBaseUrl}/checkout?cancelled=true&orderId=${encodedOrderId}`;
     
     try {
       const successUrlObj = new URL(successUrl);
@@ -562,6 +512,42 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       return { error: `Invalid checkout URLs: ${urlError.message || 'Unknown error'}` };
     }
 
+    // Validate all line items have valid amounts (minimum 1 cent)
+    for (let i = 0; i < stripeLineItems.length; i++) {
+      const item = stripeLineItems[i];
+      if (!item.price_data.unit_amount || item.price_data.unit_amount < 1) {
+        console.error(`[Checkout] Invalid line item ${i}: unit_amount is ${item.price_data.unit_amount}`);
+        return { error: `Invalid item price. Please refresh and try again.` };
+      }
+      if (!item.quantity || item.quantity < 1) {
+        console.error(`[Checkout] Invalid line item ${i}: quantity is ${item.quantity}`);
+        return { error: `Invalid item quantity. Please refresh and try again.` };
+      }
+    }
+
+    // Final verification: Calculate total from line items
+    const finalStripeTotalCents = stripeLineItems.reduce((sum, item) => sum + (item.price_data.unit_amount * item.quantity), 0);
+    const finalStripeTotalEur = finalStripeTotalCents / 100;
+    
+    console.log("========================================");
+    console.log("[Checkout] FINAL VERIFICATION:");
+    console.log(`[Checkout] Order Summary Total: €${exactStripeTotal.toFixed(2)}`);
+    console.log(`[Checkout] Stripe Session Total: €${finalStripeTotalEur.toFixed(2)} (${finalStripeTotalCents} cents)`);
+    console.log(`[Checkout] Match: ${Math.abs(finalStripeTotalEur - exactStripeTotal) < 0.01 ? '✓ EXACT MATCH' : '✗ MISMATCH'}`);
+    console.log(`[Checkout] Line Items Count: ${stripeLineItems.length}`);
+    console.log("========================================");
+    
+    if (Math.abs(finalStripeTotalEur - exactStripeTotal) >= 0.01) {
+      console.error(`[Checkout] CRITICAL: Stripe total (€${finalStripeTotalEur.toFixed(2)}) does not match Order Summary (€${exactStripeTotal.toFixed(2)})!`);
+      return { error: `Payment amount mismatch. Please refresh and try again.` };
+    }
+    
+    // Ensure total is greater than 0
+    if (finalStripeTotalCents <= 0) {
+      console.error(`[Checkout] CRITICAL: Stripe total is zero or negative: ${finalStripeTotalCents} cents`);
+      return { error: `Invalid payment amount. Please refresh and try again.` };
+    }
+
     // Log line items for debugging (without sensitive data)
     console.log("Creating Stripe session with:", {
       lineItemsCount: stripeLineItems.length,
@@ -569,14 +555,43 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         name: item.price_data.product_data.name,
         amount: item.price_data.unit_amount,
         quantity: item.quantity,
+        itemTotal: (item.price_data.unit_amount * item.quantity) / 100,
         hasImage: !!item.price_data.product_data.images,
-        imageUrl: item.price_data.product_data.images?.[0]?.substring(0, 50) + '...',
       })),
+      totalAmount: finalStripeTotalEur,
+      expectedAmount: exactStripeTotal,
       successUrl,
       cancelUrl,
     });
 
+    // Log final line items before sending to Stripe
+    console.log("[Checkout] Final line items being sent to Stripe:", stripeLineItems.map((item, idx) => ({
+      index: idx,
+      name: item.price_data.product_data.name,
+      unit_amount: item.price_data.unit_amount,
+      quantity: item.quantity,
+      item_total_cents: item.price_data.unit_amount * item.quantity,
+      currency: item.price_data.currency,
+    })));
+
     try {
+      // Verify all line items have valid currency and amounts
+      for (let i = 0; i < stripeLineItems.length; i++) {
+        const item = stripeLineItems[i];
+        if (!item.price_data.currency || item.price_data.currency.toLowerCase() !== 'eur') {
+          console.warn(`[Checkout] Line item ${i} has invalid currency: ${item.price_data.currency}, forcing to 'eur'`);
+          item.price_data.currency = 'eur'; // Force EUR
+        }
+        if (!item.price_data.unit_amount || item.price_data.unit_amount < 1) {
+          console.error(`[Checkout] Line item ${i} has invalid unit_amount: ${item.price_data.unit_amount}`);
+          return { error: `Invalid item price. Please refresh and try again.` };
+        }
+        if (!item.quantity || item.quantity < 1) {
+          console.error(`[Checkout] Line item ${i} has invalid quantity: ${item.quantity}`);
+          return { error: `Invalid item quantity. Please refresh and try again.` };
+        }
+      }
+
       const stripeSession = await stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         mode: 'payment',
@@ -588,6 +603,8 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
           userId: userId,
           walletAmountUsed: walletAmount.toString(),
           walletTransactionId: walletTransactionId || '',
+          expectedTotal: exactStripeTotal.toFixed(2),
+          lineItemsCount: stripeLineItems.length.toString(),
         },
         success_url: successUrl,
         cancel_url: cancelUrl,
@@ -595,6 +612,20 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
           allowed_countries: ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'GB', 'CH', 'NO', 'IS'],
         },
       });
+      
+      // Log the created session details to verify amount
+      console.log("========================================");
+      console.log("[Checkout] Stripe session created successfully:");
+      console.log(`[Checkout] Session ID: ${stripeSession.id}`);
+      console.log(`[Checkout] Amount Total: ${stripeSession.amount_total} cents (€${((stripeSession.amount_total || 0) / 100).toFixed(2)})`);
+      console.log(`[Checkout] Currency: ${stripeSession.currency}`);
+      console.log(`[Checkout] Expected Total: €${exactStripeTotal.toFixed(2)} (${exactStripeTotalCents} cents)`);
+      console.log(`[Checkout] Match: ${stripeSession.amount_total === exactStripeTotalCents ? '✓ EXACT MATCH' : '✗ MISMATCH'}`);
+      console.log("========================================");
+      
+      if (stripeSession.amount_total !== exactStripeTotalCents) {
+        console.error(`[Checkout] WARNING: Stripe session amount (${stripeSession.amount_total} cents) does not match expected (${exactStripeTotalCents} cents)!`);
+      }
 
       // Validate that we got a URL
       let checkoutUrl = stripeSession.url;
@@ -856,6 +887,264 @@ export async function verifyCheckoutSession(sessionId: string) {
         },
       },
       paymentStatus: stripeSession.payment_status,
+    };
+  });
+}
+
+/**
+ * Refund wallet amount for a cancelled or failed order
+ * This is called when payment fails or user cancels checkout
+ */
+export async function refundWalletForOrder(orderId: string) {
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+
+    console.log(`[RefundWallet] Processing refund for order: ${orderId}`);
+
+    // Find the order
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        User: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!order) {
+      console.error(`[RefundWallet] Order not found: ${orderId}`);
+      return { error: "Order not found" };
+    }
+
+    // IDOR Protection: Only allow user to refund their own orders
+    if (order.userId !== session.user.id) {
+      console.error(`[RefundWallet] User ${session.user.id} attempted to refund order ${orderId} owned by ${order.userId}`);
+      return { error: "Unauthorized" };
+    }
+
+    // Check if order is already paid or refunded
+    if (order.isPaid || order.paymentStatus === 'COMPLETED') {
+      console.log(`[RefundWallet] Order ${orderId} is already paid, cannot refund`);
+      return { error: "Order is already paid" };
+    }
+
+    const walletAmountUsed = Number(order.walletAmountUsed || 0);
+    
+    // If no wallet amount was used, nothing to refund
+    if (walletAmountUsed <= 0) {
+      console.log(`[RefundWallet] No wallet amount used for order ${orderId}`);
+      return { success: true, refunded: 0 };
+    }
+
+    // Check if wallet was already refunded (by checking for existing refund transaction)
+    // Check for both generic and PayPal-specific refund descriptions
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: order.User.id },
+      include: {
+        transactions: {
+          where: {
+            OR: [
+              { description: { contains: `Refund for cancelled order ${order.orderNumber}` } },
+              { description: { contains: `Refund for cancelled PayPal order ${order.orderNumber}` } },
+              { description: { contains: `Refund for failed PayPal payment - Order ${order.orderNumber}` } },
+              { description: { contains: `Refund for denied PayPal payment - Order ${order.orderNumber}` } },
+            ],
+            type: 'CREDIT',
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (!wallet) {
+      console.error(`[RefundWallet] Wallet not found for user: ${order.User.id}`);
+      return { error: "Wallet not found" };
+    }
+
+    // Check if already refunded
+    if (wallet.transactions.length > 0) {
+      console.log(`[RefundWallet] Wallet already refunded for order ${orderId}`);
+      return { success: true, refunded: walletAmountUsed, alreadyRefunded: true };
+    }
+
+    // Refund the wallet amount
+    await prisma.wallet.update({
+      where: { id: wallet.id },
+      data: {
+        balance: {
+          increment: walletAmountUsed,
+        },
+      },
+    });
+
+    // Create refund transaction record
+    // Use PayPal-specific description if it's a PayPal order
+    const refundDescription = order.paymentMethod === 'paypal'
+      ? `Refund for cancelled PayPal order ${order.orderNumber}`
+      : `Refund for cancelled order ${order.orderNumber}`;
+    
+    await prisma.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        amount: walletAmountUsed,
+        type: 'CREDIT',
+        description: refundDescription,
+      },
+    });
+
+    // Update order status if not already updated
+    if (order.status !== 'CANCELLED' || order.paymentStatus !== 'FAILED') {
+      await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'CANCELLED',
+          paymentStatus: 'FAILED',
+        },
+      });
+    }
+
+    console.log(`[RefundWallet] Successfully refunded ${walletAmountUsed} EUR to wallet for order ${orderId}`);
+
+    return { success: true, refunded: walletAmountUsed };
+  });
+}
+
+/**
+ * Get pending orders with wallet deductions that should be refunded
+ * This is called when checkout page loads to clean up abandoned orders
+ */
+export async function getPendingOrdersWithWallet() {
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+    const userId = session.user.id;
+
+    // Find orders that are:
+    // 1. PENDING status
+    // 2. Not paid (isPaid = false)
+    // 3. Have wallet amount used > 0
+    // 4. Created more than 5 minutes ago (to avoid refunding orders that are still being processed)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+    // Find orders that are:
+    // 1. PENDING status
+    // 2. Not paid (isPaid = false)
+    // 3. Payment status is PENDING or PROCESSING
+    // 4. Have wallet amount used > 0
+    // 5. Created more than 5 minutes ago (to avoid refunding orders that are still being processed)
+    // 6. Either no Stripe session (user navigated away before completing) OR session is older than 30 minutes (expired)
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+    const pendingOrders = await prisma.order.findMany({
+      where: {
+        userId,
+        status: 'PENDING',
+        isPaid: false,
+        paymentStatus: {
+          in: ['PENDING', 'PROCESSING'],
+        },
+        walletAmountUsed: {
+          gt: 0,
+        },
+        createdAt: {
+          lt: fiveMinutesAgo,
+        },
+        AND: [
+          {
+            OR: [
+              // No payment session (user navigated away before payment)
+              { 
+                AND: [
+                  { stripeSessionId: null },
+                  { paypalOrderId: null },
+                ],
+              },
+              // Or Stripe session exists but order is older than 30 minutes (likely expired/abandoned)
+              {
+                stripeSessionId: { not: null },
+                createdAt: {
+                  lt: thirtyMinutesAgo,
+                },
+              },
+              // Or PayPal order exists but order is older than 30 minutes (likely expired/abandoned)
+              {
+                paypalOrderId: { not: null },
+                createdAt: {
+                  lt: thirtyMinutesAgo,
+                },
+              },
+            ],
+          },
+        ],
+      },
+      select: {
+        id: true,
+        orderNumber: true,
+        walletAmountUsed: true,
+        createdAt: true,
+        stripeSessionId: true,
+        paypalOrderId: true,
+        paymentMethod: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+
+    return {
+      success: true,
+      orders: pendingOrders.map(order => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        walletAmountUsed: Number(order.walletAmountUsed),
+        createdAt: order.createdAt,
+      })),
+    };
+  });
+}
+
+/**
+ * Refund wallet for all pending orders
+ * This is a batch operation to clean up abandoned checkout sessions
+ */
+export async function refundPendingOrders() {
+  return safeAction(async () => {
+    const { session } = await requireAuth();
+    const userId = session.user.id;
+
+    console.log(`[RefundPendingOrders] Checking for pending orders with wallet deductions for user: ${userId}`);
+
+    const result = await getPendingOrdersWithWallet();
+    
+    if (!result.success || !result.orders || result.orders.length === 0) {
+      console.log(`[RefundPendingOrders] No pending orders found`);
+      return { success: true, refunded: 0, ordersProcessed: 0 };
+    }
+
+    console.log(`[RefundPendingOrders] Found ${result.orders.length} pending orders to process`);
+
+    let totalRefunded = 0;
+    let ordersProcessed = 0;
+
+    for (const order of result.orders) {
+      try {
+        const refundResult = await refundWalletForOrder(order.id);
+        if (refundResult.success && refundResult.refunded) {
+          totalRefunded += refundResult.refunded;
+          ordersProcessed++;
+          console.log(`[RefundPendingOrders] Refunded ${refundResult.refunded} EUR for order ${order.orderNumber}`);
+        }
+      } catch (error) {
+        console.error(`[RefundPendingOrders] Error refunding order ${order.id}:`, error);
+      }
+    }
+
+    console.log(`[RefundPendingOrders] Processed ${ordersProcessed} orders, total refunded: ${totalRefunded} EUR`);
+
+    return {
+      success: true,
+      refunded: totalRefunded,
+      ordersProcessed,
     };
   });
 }

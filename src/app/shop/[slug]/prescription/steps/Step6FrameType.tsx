@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Package } from "lucide-react";
 import {
@@ -16,6 +17,7 @@ interface Step6FrameTypeProps {
   product: Product;
   rxConfig: RxConfigData;
   onConfigUpdate: (data: Partial<RxConfigData>) => void;
+  onConfigUpdateDefault?: (data: Partial<RxConfigData>) => void; // For default/mount applications
   onNext: () => void;
   onBack: () => void;
   rxPriceResult: RxPriceResult;
@@ -26,6 +28,7 @@ export default function Step6FrameType({
   product,
   rxConfig,
   onConfigUpdate,
+  onConfigUpdateDefault,
   onNext,
   onBack,
   rxPriceResult,
@@ -34,10 +37,20 @@ export default function Step6FrameType({
   // Auto-detect frame type from product
   const detectedFrameType = detectFrameType(product);
   
-  // Ensure frame type is set to detected value
-  if (rxConfig.frameType !== detectedFrameType) {
-    onConfigUpdate({ frameType: detectedFrameType });
-  }
+  // Use default handler if provided (won't overwrite user selections)
+  const applyDefaultUpdate = onConfigUpdateDefault || onConfigUpdate;
+  
+  // Track if we've already set the frame type to prevent infinite loops
+  const hasSetFrameType = useRef(false);
+  
+  // Ensure frame type is set to detected value - only once on mount
+  // Uses default handler which respects hasUserMadeLensSelection flag
+  useEffect(() => {
+    if (!hasSetFrameType.current && rxConfig.frameType !== detectedFrameType) {
+      hasSetFrameType.current = true;
+      applyDefaultUpdate({ frameType: detectedFrameType });
+    }
+  }, []); // Only run on mount
 
   const frameTypeInfo = {
     value: detectedFrameType,
@@ -85,10 +98,6 @@ export default function Step6FrameType({
               <h3 className="text-lg font-semibold">{frameTypeInfo.label}</h3>
             </div>
             <p className="text-sm text-muted-foreground mb-3">{frameTypeInfo.description}</p>
-            <div className="flex items-center justify-between pt-3 border-t">
-              <span className="text-sm font-medium text-muted-foreground">Edging Fee:</span>
-              <span className="text-lg font-bold text-primary">{formatPrice(frameTypeInfo.price)}</span>
-            </div>
           </div>
         </div>
       </div>

@@ -8,6 +8,12 @@ import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { SupportChat } from "@/components/chat/SupportChat";
 import { OverflowDetector } from "@/components/dev/overflow-detector";
+import { LayoutShiftDebugger } from "@/components/debug/LayoutShiftDebugger";
+import { MicrosoftClarity } from "@/components/analytics/MicrosoftClarity";
+import { MetaPixel } from "@/components/analytics/MetaPixel";
+import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
+import { CookieConsentProvider } from "@/context/CookieConsentContext";
+import { CookieConsentBanner } from "@/components/cookie/CookieConsentBanner";
 import './globals.css';
 
 const chillax = localFont({
@@ -25,43 +31,116 @@ function getOGImageUrl(): string {
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://focusrobin.lt'),
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+    viewportFit: 'cover', // Enables safe-area-inset support for iOS
+  },
   title: {
-    default: 'FocusRobin - Premium Sunglasses & Eyewear | Lithuania',
+    default: 'FocusRobin - Premium Sunglasses & Prescription Glasses | Lithuania',
     template: '%s | FocusRobin Lithuania',
   },
-  description: 'Elevate your style with FocusRobin\'s minimalist eyewear. Premium polarized sunglasses designed in Lithuania. Fast shipping to Vilnius, Kaunas, Klaipėda, and EU/Schengen.',
+  description: 'Elevate your style with FocusRobin\'s minimalist eyewear. Premium polarized sunglasses and prescription glasses designed in Lithuania. Fast shipping to Vilnius, Kaunas, Klaipėda, and EU/Schengen.',
   keywords: [
-    // Brand
+    // Brand - Primary
     'FocusRobin',
+    'Focus Robin',
     'FocusRobin Lithuania',
+    'FocusRobin Lietuva',
     'FocusRobin sunglasses',
-    // English High-Intent
+    'FocusRobin prescription glasses',
+    'FocusRobin eyewear',
+    'FocusRobin glasses',
+    'FocusRobin optical',
+    // Brand + Product Intent
+    'FocusRobin polarized sunglasses',
+    'FocusRobin UV400 sunglasses',
+    'FocusRobin designer eyewear',
+    'FocusRobin premium glasses',
+    'buy FocusRobin sunglasses',
+    'buy FocusRobin glasses online',
+    // English High-Intent - Sunglasses
     'Premium sunglasses Lithuania',
-    'Polarized sunglasses',
+    'Polarized sunglasses Lithuania',
     'Minimalist sunglasses',
-    'Sunglasses online Lithuania',
     'Designer sunglasses Lithuania',
-    'UV400 sunglasses',
+    'Sunglasses online Lithuania',
+    'UV400 sunglasses Lithuania',
     'Buy sunglasses in Lithuania',
-    'Sunglasses in Lithuania',
-    // Lithuanian High-Intent
+    'Buy sunglasses online Lithuania',
+    'Sunglasses shop Lithuania',
+    'Sunglasses store Lithuania',
+    'Best sunglasses Lithuania',
+    'Affordable sunglasses Lithuania',
+    'Luxury sunglasses Lithuania',
+    'Men sunglasses Lithuania',
+    'Women sunglasses Lithuania',
+    'Unisex sunglasses Lithuania',
+    // English High-Intent - Prescription Glasses
+    'Prescription glasses Lithuania',
+    'Prescription eyewear Lithuania',
+    'Buy prescription glasses online Lithuania',
+    'Prescription glasses online Lithuania',
+    'Designer prescription glasses Lithuania',
+    'Premium prescription eyewear Lithuania',
+    'Optical glasses Lithuania',
+    'Eyeglasses Lithuania',
+    'Reading glasses Lithuania',
+    'Prescription sunglasses Lithuania',
+    'Prescription lenses Lithuania',
+    'Eye glasses shop Lithuania',
+    'Optical store Lithuania',
+    // Lithuanian High-Intent - Sunglasses
     'akiniai nuo saulės',
+    'saulės akiniai',
     'saulės akiniai internetu',
     'polarizuoti saulės akiniai',
     'akiniai su UV apsauga',
     'akiniai vyrams',
     'akiniai moterims',
-    // Geo-Targeting
+    'pigūs saulės akiniai',
+    'kokybiški saulės akiniai',
+    'dizaineriniai akiniai',
+    // Lithuanian High-Intent - Prescription Glasses
+    'korekciniai akiniai',
+    'akiniai su dioptrijomis',
+    'receptiniai akiniai',
+    'korekciniai akiniai internetu',
+    'optiniai akiniai Lietuva',
+    'akiniai regėjimui',
+    'akiniai su lęšiais',
+    'optika internetu',
+    'akinių parduotuvė',
+    // Geo-Targeting - Major Cities
     'sunglasses Vilnius',
     'sunglasses Kaunas',
     'sunglasses Klaipėda',
+    'sunglasses Šiauliai',
+    'sunglasses Panevėžys',
+    'prescription glasses Vilnius',
+    'prescription glasses Kaunas',
+    'prescription glasses Klaipėda',
+    'eyewear Vilnius',
+    'eyewear Kaunas',
+    'optical shop Vilnius',
+    // Lithuanian Geo-Targeting
     'saulės akiniai Vilnius',
     'saulės akiniai Kaunas',
     'saulės akiniai Klaipėda',
+    'korekciniai akiniai Vilnius',
+    'korekciniai akiniai Kaunas',
+    'optika Vilnius',
+    'optika Kaunas',
     // EU/Schengen intent
     'EU shipping sunglasses',
-    'Sunglasses shipping to EU',
-    'Schengen shipping sunglasses',
+    'Sunglasses delivery EU',
+    'Europe sunglasses online',
+    'Baltic sunglasses',
+    'EU shipping prescription glasses',
+    'Eyewear shipping Europe',
+    'Fast delivery sunglasses EU',
   ],
   category: 'fashion',
   openGraph: {
@@ -69,21 +148,21 @@ export const metadata: Metadata = {
     locale: 'en_IE',
     url: 'https://focusrobin.lt',
     siteName: 'FocusRobin',
-    title: 'FocusRobin - Premium Sunglasses & Eyewear | Lithuania',
-    description: 'Elevate your style with FocusRobin\'s minimalist eyewear. Premium polarized sunglasses designed in Lithuania. Fast shipping to Vilnius, Kaunas, Klaipėda, and EU/Schengen.',
+    title: 'FocusRobin - Premium Sunglasses & Prescription Glasses | Lithuania',
+    description: 'Elevate your style with FocusRobin\'s minimalist eyewear. Premium polarized sunglasses and prescription glasses designed in Lithuania. Fast shipping to Vilnius, Kaunas, Klaipėda, and EU/Schengen.',
     images: [
       {
         url: 'https://focusrobin.lt/og.png',
         width: 1200,
         height: 630,
-        alt: 'FocusRobin - Premium Sunglasses & Eyewear',
+        alt: 'FocusRobin - Premium Sunglasses & Prescription Glasses',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'FocusRobin - Premium Sunglasses & Eyewear | Lithuania',
-    description: 'Elevate your style with FocusRobin\'s minimalist eyewear. Premium polarized sunglasses designed in Lithuania.',
+    title: 'FocusRobin - Premium Sunglasses & Prescription Glasses | Lithuania',
+    description: 'Elevate your style with FocusRobin\'s minimalist eyewear. Premium polarized sunglasses and prescription glasses designed in Lithuania.',
     images: ['https://focusrobin.lt/og.png'],
   },
   robots: {
@@ -129,20 +208,27 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${chillax.variable} font-body antialiased`}>
-        <SessionProvider>
-          <LanguageProvider>
-            <CurrencyProvider>
-              <CartProvider>
-                <WishlistProvider>
-                  {children}
-                  <Toaster />
-                  <SupportChat />
-                  <OverflowDetector />
-                </WishlistProvider>
-              </CartProvider>
-            </CurrencyProvider>
-          </LanguageProvider>
-        </SessionProvider>
+        <CookieConsentProvider>
+          <GoogleAnalytics />
+          <MicrosoftClarity />
+          <MetaPixel />
+          <SessionProvider>
+            <LanguageProvider>
+              <CurrencyProvider>
+                <CartProvider>
+                  <WishlistProvider>
+                    {children}
+                    <Toaster />
+                    <SupportChat />
+                    <OverflowDetector />
+                    <LayoutShiftDebugger />
+                    <CookieConsentBanner />
+                  </WishlistProvider>
+                </CartProvider>
+              </CurrencyProvider>
+            </LanguageProvider>
+          </SessionProvider>
+        </CookieConsentProvider>
       </body>
     </html>
   );

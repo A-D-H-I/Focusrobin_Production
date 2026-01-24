@@ -21,6 +21,11 @@ export default async function AdminUsersPage() {
     include: {
       accounts: true,
       sessions: true,
+      prescriptions: {
+        orderBy: {
+          updatedAt: 'desc',
+        },
+      },
       cart: {
         include: {
           items: {

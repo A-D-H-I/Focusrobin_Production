@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
@@ -17,6 +18,110 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+
+// Helper to get OG image with fallback
+function getOGImageUrl(productImage?: string): string {
+  if (productImage) {
+    const normalized = normalizeImageUrl(productImage);
+    return normalized.startsWith('http') ? normalized : `https://focusrobin.lt${normalized}`;
+  }
+  return 'https://focusrobin.lt/og.png';
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const decodedSlug = decodeURIComponent(slug);
+  
+  // First check if it's a custom shop page
+  let customPage: any = null;
+  try {
+    // @ts-ignore
+    if (prisma.customShopPage && typeof prisma.customShopPage.findUnique === 'function') {
+      // @ts-ignore
+      customPage = await prisma.customShopPage.findUnique({
+        where: { slug: decodedSlug },
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching custom shop page for metadata:', error);
+  }
+
+  if (customPage && customPage.isVisible) {
+    return {
+      title: customPage.name,
+      description: customPage.description || `Shop ${customPage.name} at FocusRobin. Premium sunglasses and eyewear.`,
+      alternates: {
+        canonical: `https://focusrobin.lt/shop/${slug}`,
+      },
+      openGraph: {
+        type: 'website',
+        title: `${customPage.name} | FocusRobin Lithuania`,
+        description: customPage.description || `Shop ${customPage.name} at FocusRobin. Premium sunglasses and eyewear.`,
+        images: customPage.bannerImage ? [{ url: getOGImageUrl(customPage.bannerImage) }] : undefined,
+      },
+    };
+  }
+
+  // Try to find a product
+  const prismaProduct = (await prisma.product.findUnique({
+    where: { slug: decodedSlug },
+    include: {
+      ProductVariant: {
+        include: {
+          ProductAsset: true,
+        },
+      },
+    },
+  })) as any;
+
+  if (!prismaProduct) {
+    return {
+      title: 'Product Not Found',
+      description: 'The requested product could not be found.',
+    };
+  }
+
+  const product = mapPrismaProductToProduct(prismaProduct);
+  const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
+  const ogImage = getOGImageUrl(productImage);
+  
+  // Build description with polarized/UV info if available
+  let description = `${product.name} - Premium sunglasses by FocusRobin.`;
+  if (product.uvProtection && product.uvProtection.includes('UV')) {
+    description += ` UV protection included.`;
+  }
+  if (product.description) {
+    description += ` ${product.description.substring(0, 120)}...`;
+  }
+  description += ' Fast shipping to Lithuania and EU/Schengen.';
+
+  return {
+    title: product.name,
+    description,
+    alternates: {
+      canonical: `https://focusrobin.lt/shop/${slug}`,
+    },
+    openGraph: {
+      type: 'website',
+      title: `${product.name} | FocusRobin Lithuania`,
+      description,
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: product.name,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.name,
+      description,
+      images: [ogImage],
+    },
+  };
+}
 
 // Dynamically import product page components
 const ProductDetailsTabs = dynamic(() => import("@/components/shop/product-details-tabs"), {
@@ -247,9 +352,88 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
 
   const relatedProductsMapped = relatedProducts.map(mapPrismaProductToProduct);
 
+  // Build structured data for product
+  const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
+  const productImages = product.variants.flatMap(v => v.images || [v.thumbnail]).filter(Boolean);
+  const allImages = productImages.length > 0 
+    ? productImages.map(img => {
+        const normalized = normalizeImageUrl(img);
+        return normalized.startsWith('http') ? normalized : `https://focusrobin.lt${normalized}`;
+      })
+    : ['https://focusrobin.lt/Symbol Wide Primary light (Teal).svg'];
+
+  const basePrice = Number(product.price.replace(/[^\d.]/g, '')) || 0;
+  
+  const productSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description || `${product.name} - Premium sunglasses by FocusRobin`,
+    image: allImages,
+    brand: {
+      '@type': 'Brand',
+      name: 'FocusRobin',
+    },
+    ...(basePrice > 0 && {
+      offers: {
+        '@type': 'Offer',
+        url: `https://focusrobin.lt/shop/${slug}`,
+        priceCurrency: 'EUR',
+        price: basePrice.toFixed(2),
+        availability: product.variants.some(v => (v.stock ?? 0) > 0)
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+        seller: {
+          '@type': 'Organization',
+          name: 'FocusRobin',
+        },
+      },
+    }),
+    ...(product.averageRating && product.reviewCount ? {
+      aggregateRating: {
+        '@type': 'AggregateRating',
+        ratingValue: product.averageRating.toString(),
+        reviewCount: product.reviewCount.toString(),
+      },
+    } : {}),
+  };
+
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: 'https://focusrobin.lt',
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Shop',
+        item: 'https://focusrobin.lt/shop',
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: product.name,
+        item: `https://focusrobin.lt/shop/${slug}`,
+      },
+    ],
+  };
+
   // Render product page
   return (
     <div className="min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
       <Header />
       <main className="pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         <div className="container mx-auto px-4 py-8">

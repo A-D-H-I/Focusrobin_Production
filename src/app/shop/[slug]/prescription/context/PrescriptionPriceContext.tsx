@@ -2,19 +2,21 @@
 
 import { createContext, useContext, useState, ReactNode } from "react";
 import type { RxPriceResult } from "@/lib/pricing/rx167";
-import type { PrescriptionData } from "../PrescriptionFlow";
+import type { PrescriptionData, RxConfigData } from "../PrescriptionFlow";
 
 interface PrescriptionPriceContextType {
   rxPriceResult: RxPriceResult | null;
   framePrice: number;
   formatPrice: ((price: number) => string) | null;
   prescriptionData: PrescriptionData | null;
+  rxConfig: RxConfigData | null;
   currentStep: number;
   setPriceData: (data: {
-    rxPriceResult: RxPriceResult;
+    rxPriceResult: RxPriceResult | null;
     framePrice: number;
     formatPrice: (price: number) => string;
     prescriptionData?: PrescriptionData;
+    rxConfig?: RxConfigData;
     currentStep?: number;
   }) => void;
 }
@@ -26,20 +28,26 @@ export function PrescriptionPriceProvider({ children }: { children: ReactNode })
   const [framePrice, setFramePrice] = useState<number>(0);
   const [formatPrice, setFormatPrice] = useState<((price: number) => string) | null>(null);
   const [prescriptionData, setPrescriptionDataState] = useState<PrescriptionData | null>(null);
+  const [rxConfig, setRxConfigState] = useState<RxConfigData | null>(null);
   const [currentStep, setCurrentStep] = useState<number>(0);
 
   const setPriceData = (data: {
-    rxPriceResult: RxPriceResult;
+    rxPriceResult: RxPriceResult | null;
     framePrice: number;
     formatPrice: (price: number) => string;
     prescriptionData?: PrescriptionData;
+    rxConfig?: RxConfigData;
     currentStep?: number;
   }) => {
     setRxPriceResult(data.rxPriceResult);
     setFramePrice(data.framePrice);
-    setFormatPrice(() => data.formatPrice);
+    // Store formatPrice directly (it's already a function from usePrice hook)
+    setFormatPrice(data.formatPrice);
     if (data.prescriptionData) {
       setPrescriptionDataState(data.prescriptionData);
+    }
+    if (data.rxConfig) {
+      setRxConfigState(data.rxConfig);
     }
     if (data.currentStep !== undefined) {
       setCurrentStep(data.currentStep);
@@ -53,6 +61,7 @@ export function PrescriptionPriceProvider({ children }: { children: ReactNode })
         framePrice,
         formatPrice,
         prescriptionData,
+        rxConfig,
         currentStep,
         setPriceData,
       }}

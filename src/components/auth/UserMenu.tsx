@@ -15,8 +15,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
-export default function UserMenu() {
+interface UserMenuProps {
+  isScrolled?: boolean;
+  iconColorNotScrolled?: string;
+}
+
+export default function UserMenu({ isScrolled = false, iconColorNotScrolled }: UserMenuProps = {}) {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -49,13 +55,34 @@ export default function UserMenu() {
   }
 
   if (!session?.user) {
+    // Determine button styling based on scroll state and navbar settings
+    const isWhite = iconColorNotScrolled === 'white' || (!iconColorNotScrolled && !isScrolled);
+    const isBlack = iconColorNotScrolled === 'black';
+    
     return (
       <Button
         onClick={handleSignIn}
         disabled={isLoading}
-        variant="outline"
+        variant={isScrolled ? "outline" : "default"}
         size="sm"
-        className="gap-2"
+        className={cn(
+          "gap-2 transition-colors duration-300",
+          isScrolled
+            ? "border-brand-blue text-brand-blue hover:bg-accent hover:text-brand-blue"
+            : isWhite
+            ? "bg-white text-brand-blue hover:bg-white/90 border-white"
+            : isBlack
+            ? "bg-black text-white hover:bg-black/90 border-black"
+            : "bg-white text-brand-blue hover:bg-white/90 border-white"
+        )}
+        style={!isScrolled && iconColorNotScrolled && iconColorNotScrolled !== 'white' && iconColorNotScrolled !== 'black'
+          ? {
+              backgroundColor: iconColorNotScrolled,
+              color: '#0d9488', // brand-blue for contrast
+              borderColor: iconColorNotScrolled,
+            }
+          : undefined
+        }
       >
         <User className="h-4 w-4" />
         Sign In

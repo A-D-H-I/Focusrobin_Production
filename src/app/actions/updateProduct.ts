@@ -116,6 +116,25 @@ export async function updateProduct(productId: string, formData: FormData) {
     const uvProtection = formData.get('uvProtection') as string;
     const glassShapeRaw = formData.get('glassShape') as string | null;
     const glassShape = glassShapeRaw?.trim() || null;
+    
+    // Auto-create shape in GlassShape table if it doesn't exist
+    if (glassShape) {
+      try {
+        await prisma.glassShape.upsert({
+          where: { name: glassShape },
+          update: {}, // Don't update if exists
+          create: {
+            name: glassShape,
+            imageUrl: null,
+            order: 0,
+            isActive: true,
+          },
+        });
+      } catch (error) {
+        // Log but don't fail product update if shape creation fails
+        console.error('Error auto-creating glass shape:', error);
+      }
+    }
 
     // Prescription lens images
     const lensBaseImageUrlRaw = formData.get('lensBaseImageUrl') as string | null;

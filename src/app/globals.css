@@ -89,6 +89,8 @@
     -moz-osx-font-smoothing: grayscale;
     /* DO NOT use transform on html - it breaks position:fixed elements! */
     overflow-x: hidden;
+    /* Always reserve scrollbar space to prevent layout shift */
+    overflow-y: scroll;
   }
   body {
     @apply bg-background text-foreground;
@@ -162,6 +164,49 @@
   }
 
   ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  /* CRITICAL FIX: Prevent layout shift from scrollbar disappearing */
+  /* Force html to always have scrollbar space reserved via overflow-y: scroll */
+  /* The scrollbar will only appear when content actually overflows */
+  html {
+    overflow-y: scroll !important;
+  }
+  
+  /* When body gets overflow:hidden from Radix UI, compensate main element width */
+  /* The issue: body overflow:hidden causes main to shrink by 10px (scrollbar width) */
+  /* Solution: Force main to maintain its width by setting explicit width */
+  body[data-scroll-locked] main,
+  body[data-scroll-locked="1"] main,
+  body[data-scroll-locked="true"] main {
+    width: calc(100% + 10px);
+    margin-right: -10px;
+  }
+  
+  /* Allow body to have overflow:hidden (Radix UI requirement) */
+  body[data-scroll-locked],
+  body[data-scroll-locked="1"],
+  body[data-scroll-locked="true"] {
+    overflow: hidden !important;
+  }
+  
+  /* Style html scrollbar to match body scrollbar styling */
+  html::-webkit-scrollbar {
+    width: 10px;
+  }
+  
+  html::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  
+  html::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 5px;
+    transition: background 0.2s ease;
+  }
+  
+  html::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.5);
   }
 

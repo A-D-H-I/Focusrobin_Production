@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { ShoppingCart, Menu, Search, Heart, User } from "lucide-react";
+import { ShoppingCart, Menu, Search, Heart, User, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import UserMenu from "@/components/auth/UserMenu";
 
@@ -22,6 +23,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCart } from "@/context/CartContext";
 import { getNavbarSettings } from "@/app/actions/navbarSettings";
+import { trackMetaEvent } from "@/components/analytics/MetaPixel";
 import {
   Sheet,
   SheetContent,
@@ -48,8 +50,12 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isShopMenuOpen, setIsShopMenuOpen] = useState(false);
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const sidebarSearchInputRef = useRef<HTMLInputElement>(null);
   const shopMenuRef = useRef<HTMLDivElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Close shop menu when sidebar closes
   useEffect(() => {
@@ -216,12 +222,75 @@ export default function Header() {
     return () => clearTimeout(timer);
   }, [isSidebarOpen]);
 
+  // Debounced search suggestions - reduced delay for faster response
+  useEffect(() => {
+    if (!searchQuery.trim() || searchQuery.trim().length < 2) {
+      setSearchSuggestions([]);
+      setShowSuggestions(false);
+      setIsLoadingSuggestions(false);
+      return;
+    }
+
+    // Show loading state immediately
+    setIsLoadingSuggestions(true);
+    setShowSuggestions(true);
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(searchQuery.trim())}`, {
+          cache: 'no-store', // Prevent caching for fresh results
+        });
+        const data = await response.json();
+        setSearchSuggestions(data.suggestions || []);
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+        setSearchSuggestions([]);
+      } finally {
+        setIsLoadingSuggestions(false);
+      }
+    }, 150); // Reduced to 150ms for faster response
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
+    }
+
+    if (showSuggestions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSuggestions]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      setShowSuggestions(false);
+      // Track Search event with Meta Pixel
+      try {
+        trackMetaEvent('Search', {
+          search_string: searchQuery.trim(),
+        });
+      } catch (trackError) {
+        console.error('[Header] Meta Pixel tracking error:', trackError);
+      }
       // Navigate to shop page with search query
       window.location.href = `/shop?search=${encodeURIComponent(searchQuery.trim())}`;
     }
+  };
+
+  const handleSuggestionClick = (slug: string) => {
+    setShowSuggestions(false);
+    setSearchQuery('');
+    window.location.href = `/shop/${slug}`;
   };
 
   const navLinks = [
@@ -363,50 +432,65 @@ export default function Header() {
 
           {/* Right Section - Search, Language, Currency, Icons */}
           <div className="flex justify-end items-center space-x-2 xl:space-x-4 z-10 flex-1">
-            {/* Search Input */}
-            <form onSubmit={handleSearch} className="relative hidden xl:block">
-              <Search 
-                className={cn(
-                  "absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 z-10 pointer-events-none transition-colors duration-300", 
-                  isSidebarOpen
-                    ? 'text-brand-blue'
-                    : isScrolled 
-                    ? 'text-brand-blue' 
-                    : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                      ? 'text-white'
-                      : navbarSettings.iconColorNotScrolled === 'black'
-                      ? 'text-black'
-                      : ''
-                )}
-                style={isSidebarOpen
-                  ? undefined
-                  : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black' 
-                  ? { color: navbarSettings.iconColorNotScrolled }
-                  : undefined)
-                }
-              />
-              <Input
-                type="search"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={cn(
-                  "pl-7 pr-3 h-8 w-32 text-xs font-semibold transition-colors duration-300 backdrop-blur-sm",
-                  isSidebarOpen
-                    ? "bg-white border-gray-200 text-brand-blue placeholder:text-brand-blue/50"
-                    : isScrolled 
-                    ? "bg-gray-100 border-brand-blue/20 text-brand-blue placeholder:text-brand-blue/50" 
-                    : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                      ? "bg-white/15 border-white/30 text-white placeholder:text-white/70"
-                      : navbarSettings.iconColorNotScrolled === 'black'
-                      ? "bg-black/15 border-black/30 text-black placeholder:text-black/70"
-                      : "bg-white/15 border-white/30"
-                )}
-                style={isSidebarOpen
-                  ? undefined
-                  : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
-                  ? { 
-                      color: navbarSettings.iconColorNotScrolled,
+            {/* Search Input with Suggestions */}
+            <div ref={searchContainerRef} className="relative hidden xl:block">
+              <form onSubmit={handleSearch} className="relative">
+                <Search 
+                  className={cn(
+                    "absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 z-10 pointer-events-none transition-colors duration-300", 
+                    isSidebarOpen
+                      ? 'text-brand-blue'
+                      : isScrolled 
+                      ? 'text-brand-blue' 
+                      : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                        ? 'text-white'
+                        : navbarSettings.iconColorNotScrolled === 'black'
+                        ? 'text-black'
+                        : ''
+                  )}
+                  style={isSidebarOpen
+                    ? undefined
+                    : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black' 
+                    ? { color: navbarSettings.iconColorNotScrolled }
+                    : undefined)
+                  }
+                />
+                <Input
+                  type="search"
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchQuery(value);
+                    if (value.trim().length >= 2) {
+                      setShowSuggestions(true);
+                    } else {
+                      setShowSuggestions(false);
+                      setSearchSuggestions([]);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (searchQuery.trim().length >= 2) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  className={cn(
+                    "pl-7 pr-3 h-8 w-32 text-xs font-semibold transition-colors duration-300 backdrop-blur-sm",
+                    isSidebarOpen
+                      ? "bg-white border-gray-200 text-brand-blue placeholder:text-brand-blue/50"
+                      : isScrolled 
+                      ? "bg-gray-100 border-brand-blue/20 text-brand-blue placeholder:text-brand-blue/50" 
+                      : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                        ? "bg-white/15 border-white/30 text-white placeholder:text-white/70"
+                        : navbarSettings.iconColorNotScrolled === 'black'
+                        ? "bg-black/15 border-black/30 text-black placeholder:text-black/70"
+                        : "bg-white/15 border-white/30"
+                  )}
+                  style={isSidebarOpen
+                    ? undefined
+                    : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                    ? { 
+                        color: navbarSettings.iconColorNotScrolled,
                       borderColor: `${navbarSettings.iconColorNotScrolled}30`,
                       backgroundColor: `${navbarSettings.iconColorNotScrolled}15`
                     }
@@ -414,6 +498,61 @@ export default function Header() {
                 }
               />
             </form>
+            
+            {/* Search Suggestions Dropdown */}
+            {showSuggestions && (searchSuggestions.length > 0 || isLoadingSuggestions) && (
+              <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                {isLoadingSuggestions ? (
+                  <div className="p-4 text-center text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                    <p className="text-sm">Searching...</p>
+                  </div>
+                ) : searchSuggestions.length > 0 ? (
+                  <div className="py-2">
+                    {searchSuggestions.map((suggestion) => (
+                      <button
+                        key={suggestion.id}
+                        onClick={() => handleSuggestionClick(suggestion.slug)}
+                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                      >
+                        {suggestion.image && (
+                          <div className="relative w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-muted">
+                            <Image
+                              src={suggestion.image}
+                              alt={suggestion.name}
+                              fill
+                              className="object-cover"
+                              sizes="48px"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{suggestion.name}</p>
+                          {suggestion.category && (
+                            <p className="text-xs text-muted-foreground">{suggestion.category}</p>
+                          )}
+                          <p className="text-sm font-semibold text-brand-blue mt-0.5">
+                            €{suggestion.price.toFixed(2)}
+                          </p>
+                        </div>
+                      </button>
+                    ))}
+                    <div className="border-t border-border pt-2">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleSearch(e as any);
+                        }}
+                        className="w-full px-4 py-2 text-sm font-medium text-brand-teal hover:bg-muted/50 transition-colors text-left"
+                      >
+                        View all results for "{searchQuery}"
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
+            </div>
             
             {/* Search Button for smaller screens */}
               <Button 
@@ -572,20 +711,10 @@ export default function Header() {
               </Button>
             </Link>
 
-            <div className={cn(
-              "transition-colors duration-300",
-              isSidebarOpen
-                ? 'text-brand-blue'
-                : isScrolled 
-                ? 'text-brand-blue' 
-                : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                  ? 'text-white'
-                  : navbarSettings.iconColorNotScrolled === 'black'
-                  ? 'text-black'
-                  : ''
-            )}>
-              <UserMenu />
-            </div>
+            <UserMenu 
+              isScrolled={isScrolled || isSidebarOpen}
+              iconColorNotScrolled={navbarSettings?.iconColorNotScrolled}
+            />
           </div>
           
           {/* Search Input for smaller desktop screens */}
@@ -597,34 +726,102 @@ export default function Header() {
                 : "bg-background/95"
             )}>
               <div className="container mx-auto px-4 sm:px-6">
-                  <form onSubmit={handleSearch} className="relative max-w-md mx-auto">
-                  <Search className={cn(
-                    "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors duration-300",
-                    isSidebarOpen
-                      ? 'text-brand-blue'
-                      : isScrolled 
-                      ? 'text-muted-foreground' 
-                      : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                        ? 'text-white'
-                        : navbarSettings.iconColorNotScrolled === 'black'
-                        ? 'text-black'
-                        : ''
+                <div className="relative max-w-md mx-auto">
+                  <form onSubmit={handleSearch} className="relative">
+                    <Search className={cn(
+                      "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors duration-300",
+                      isSidebarOpen
+                        ? 'text-brand-blue'
+                        : isScrolled 
+                        ? 'text-muted-foreground' 
+                        : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                          ? 'text-white'
+                          : navbarSettings.iconColorNotScrolled === 'black'
+                          ? 'text-black'
+                          : ''
+                    )}
+                    style={isSidebarOpen
+                      ? undefined
+                      : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                      ? { color: navbarSettings.iconColorNotScrolled }
+                      : undefined)
+                    } />
+                    <Input
+                      type="search"
+                      placeholder="Search..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        if (e.target.value.trim().length >= 2) {
+                          setShowSuggestions(true);
+                        } else {
+                          setShowSuggestions(false);
+                        }
+                      }}
+                      onFocus={() => {
+                        if (searchQuery.trim().length >= 2 && searchSuggestions.length > 0) {
+                          setShowSuggestions(true);
+                        }
+                      }}
+                      className="pl-9 pr-4 h-9 w-full"
+                      autoFocus
+                    />
+                  </form>
+                  
+                  {/* Search Suggestions Dropdown */}
+                  {showSuggestions && (searchSuggestions.length > 0 || isLoadingSuggestions) && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                      {isLoadingSuggestions ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                          <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                          <p className="text-sm">Searching...</p>
+                        </div>
+                      ) : searchSuggestions.length > 0 ? (
+                        <div className="py-2">
+                          {searchSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion.id}
+                              onClick={() => handleSuggestionClick(suggestion.slug)}
+                              className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                            >
+                              {suggestion.image && (
+                                <div className="relative w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-muted">
+                                  <Image
+                                    src={suggestion.image}
+                                    alt={suggestion.name}
+                                    fill
+                                    className="object-cover"
+                                    sizes="48px"
+                                  />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">{suggestion.name}</p>
+                                {suggestion.category && (
+                                  <p className="text-xs text-muted-foreground">{suggestion.category}</p>
+                                )}
+                                <p className="text-sm font-semibold text-brand-blue mt-0.5">
+                                  €{suggestion.price.toFixed(2)}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
+                          <div className="border-t border-border pt-2">
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleSearch(e as any);
+                              }}
+                              className="w-full px-4 py-2 text-sm font-medium text-brand-teal hover:bg-muted/50 transition-colors text-left"
+                            >
+                              View all results for "{searchQuery}"
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
                   )}
-                  style={isSidebarOpen
-                    ? undefined
-                    : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
-                    ? { color: navbarSettings.iconColorNotScrolled }
-                    : undefined)
-                  } />
-                  <Input
-                    type="search"
-                    placeholder="Search..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 pr-4 h-9 w-full"
-                    autoFocus
-                  />
-                </form>
+                </div>
               </div>
             </div>
           )}
@@ -796,7 +993,7 @@ export default function Header() {
                     </div>
                     
                     {/* Search Input for Mobile - Pill-shaped */}
-                    <div className="mb-8 flex-shrink-0">
+                    <div className="mb-8 flex-shrink-0 relative">
                       <form onSubmit={handleSearch} className="relative">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                         <Input
@@ -804,13 +1001,79 @@ export default function Header() {
                           type="text"
                           placeholder="Search..."
                           value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            if (e.target.value.trim().length >= 2) {
+                              setShowSuggestions(true);
+                            } else {
+                              setShowSuggestions(false);
+                            }
+                          }}
+                          onFocus={() => {
+                            if (searchQuery.trim().length >= 2 && searchSuggestions.length > 0) {
+                              setShowSuggestions(true);
+                            }
+                          }}
                           className="pl-11 pr-4 h-11 w-full rounded-full bg-white border-0 shadow-sm focus:border-0 focus:ring-1 focus:ring-brand-teal focus:ring-offset-0"
                           autoFocus={false}
                           autoComplete="off"
                           inputMode="text"
                         />
                       </form>
+                      
+                      {/* Search Suggestions Dropdown - Mobile */}
+                      {showSuggestions && (searchSuggestions.length > 0 || isLoadingSuggestions) && (
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                          {isLoadingSuggestions ? (
+                            <div className="p-4 text-center text-muted-foreground">
+                              <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                              <p className="text-sm">Searching...</p>
+                            </div>
+                          ) : searchSuggestions.length > 0 ? (
+                            <div className="py-2">
+                              {searchSuggestions.map((suggestion) => (
+                                <button
+                                  key={suggestion.id}
+                                  onClick={() => handleSuggestionClick(suggestion.slug)}
+                                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                                >
+                                  {suggestion.image && (
+                                    <div className="relative w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-muted">
+                                      <Image
+                                        src={suggestion.image}
+                                        alt={suggestion.name}
+                                        fill
+                                        className="object-cover"
+                                        sizes="48px"
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground truncate">{suggestion.name}</p>
+                                    {suggestion.category && (
+                                      <p className="text-xs text-muted-foreground">{suggestion.category}</p>
+                                    )}
+                                    <p className="text-sm font-semibold text-brand-blue mt-0.5">
+                                      €{suggestion.price.toFixed(2)}
+                                    </p>
+                                  </div>
+                                </button>
+                              ))}
+                              <div className="border-t border-border pt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleSearch(e as any);
+                                  }}
+                                  className="w-full px-4 py-2 text-sm font-medium text-brand-teal hover:bg-muted/50 transition-colors text-left"
+                                >
+                                  View all results for "{searchQuery}"
+                                </button>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
                     </div>
                     
                     {/* Language and Currency - Moved above navigation */}

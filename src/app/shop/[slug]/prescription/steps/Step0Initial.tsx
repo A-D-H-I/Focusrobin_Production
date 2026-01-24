@@ -6,12 +6,7 @@ import type { Product } from "@/lib/productData";
 import type { PrescriptionData, RxConfigData } from "../PrescriptionFlow";
 import {
   type RxPriceResult,
-  FRAME_TYPE_LABELS,
 } from "@/lib/pricing/rx167";
-import {
-  LENS_TYPE_LABELS,
-  COATING_LABELS,
-} from "@/lib/lensPricing";
 
 interface Step0InitialProps {
   product: Product;
@@ -36,92 +31,143 @@ export default function Step0Initial({
   onEditPrescription,
   onChooseLens
 }: Step0InitialProps) {
-  // Check if we have a complete prescription (not just defaults)
+  // Check if we have actual prescription data (not defaults)
+  // Must have PD filled (required field) to be considered a valid prescription
   const hasPrescription = prescriptionData && 
     prescriptionData.od && 
     prescriptionData.os &&
-    (prescriptionData.od.sph !== "0.00" || prescriptionData.od.cyl !== "0.00");
-
-  const hasLensConfig = rxConfig && rxConfig.lensType;
+    // Check if PD is filled (required field)
+    ((prescriptionData.pd && prescriptionData.pd !== "") ||
+     (prescriptionData.hasTwoPDs && prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== ""));
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-headline mb-4">{product.name}</h1>
-        <div className="flex items-center gap-4">
-          <p className="text-3xl font-bold text-primary">{formatPrice(priceInEur)}</p>
-          <span className="text-muted-foreground">Frame only</span>
-        </div>
       </div>
 
       {hasPrescription ? (
         <div className="space-y-4">
-          {/* Prescription Summary */}
-          <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-            <div className="flex items-center justify-between">
+          {/* Prescription Summary Table */}
+          <div className="border rounded-lg bg-muted/30">
+            <div className="p-4 border-b bg-muted">
               <h3 className="font-semibold text-lg flex items-center gap-2">
                 <Glasses className="h-5 w-5" />
                 Prescription Added
               </h3>
             </div>
-            <div className="space-y-2 text-sm">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <p className="font-medium text-muted-foreground mb-1">OD (Right)</p>
-                  <p className="text-foreground">
-                    SPH: {prescriptionData.od.sph} | CYL: {prescriptionData.od.cyl} | AXIS: {prescriptionData.od.axis}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-medium text-muted-foreground mb-1">OS (Left)</p>
-                  <p className="text-foreground">
-                    SPH: {prescriptionData.os.sph} | CYL: {prescriptionData.os.cyl} | AXIS: {prescriptionData.os.axis}
-                  </p>
-                </div>
-              </div>
-              <div>
-                <p className="font-medium text-muted-foreground mb-1">PD</p>
-                {prescriptionData.hasTwoPDs ? (
-                  <p className="text-foreground">OD: {prescriptionData.pdOd || "N/A"} mm | OS: {prescriptionData.pdOs || "N/A"} mm</p>
-                ) : (
-                  <p className="text-foreground">{prescriptionData.pd} mm</p>
-                )}
-              </div>
-            </div>
-          </div>
+            
+            {/* Main Prescription Table */}
+            <table className="w-full">
+              <thead>
+                <tr className="bg-muted/50 border-b">
+                  <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-medium">Eye</th>
+                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">SPH</th>
+                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">CYL</th>
+                  <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">AXIS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">OD (Right)</td>
+                  <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.sph}</td>
+                  <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.cyl}</td>
+                  <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.axis}</td>
+                </tr>
+                <tr>
+                  <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">OS (Left)</td>
+                  <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.sph}</td>
+                  <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.cyl}</td>
+                  <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.axis}</td>
+                </tr>
+              </tbody>
+            </table>
 
-          {/* Lens Config Summary (if exists) */}
-          {hasLensConfig && rxPriceResult && (
-            <div className="border rounded-lg p-4 space-y-3 bg-muted/30">
-              <h3 className="font-semibold">Lens Configuration</h3>
-              <div className="space-y-1 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Lens Type:</span>
-                  <span>{LENS_TYPE_LABELS[rxConfig.lensType]}</span>
-                </div>
-                {rxConfig.lensIndex && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Lens Index:</span>
-                    <span>{rxConfig.lensIndex}</span>
-                  </div>
-                )}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Coating:</span>
-                  <span>{COATING_LABELS[rxConfig.coating]}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Frame Type:</span>
-                  <span>{FRAME_TYPE_LABELS[rxConfig.frameType]}</span>
-                </div>
-              </div>
-              <div className="pt-2 border-t">
-                <div className="flex justify-between font-semibold">
-                  <span>Total with Rx:</span>
-                  <span className="text-primary">{formatPrice(rxPriceResult.totalNet)}</span>
-                </div>
+            {/* PD Section */}
+            <div className="p-3 sm:p-4 border-t">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground">PD (Pupillary Distance)</span>
+                <span className="text-xs sm:text-sm font-medium break-words">
+                  {prescriptionData.hasTwoPDs ? (
+                    <>
+                      OD: {prescriptionData.pdOd && prescriptionData.pdOd !== "" ? `${prescriptionData.pdOd} mm` : "N/A"} | 
+                      OS: {prescriptionData.pdOs && prescriptionData.pdOs !== "" ? `${prescriptionData.pdOs} mm` : "N/A"}
+                    </>
+                  ) : (
+                    <>
+                      {prescriptionData.pd && prescriptionData.pd !== "" ? `${prescriptionData.pd} mm` : "Not set"}
+                    </>
+                  )}
+                </span>
               </div>
             </div>
-          )}
+
+            {/* Prism Section - Show if hasPrism is true */}
+            {prescriptionData.hasPrism && (
+              <div className="p-3 sm:p-4 border-t">
+                <h4 className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3">Prism Correction</h4>
+                <table className="w-full text-xs sm:text-sm">
+                  <thead>
+                    <tr className="bg-muted/50 border-b">
+                      <th className="p-1.5 sm:p-2 text-left text-[10px] sm:text-xs font-medium">Eye</th>
+                      <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">H. Prism</th>
+                      <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">Base</th>
+                      <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">V. Prism</th>
+                      <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">Base</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b">
+                      <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OD (Right)</td>
+                      <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                        {prescriptionData.od.prismHorizontal && prescriptionData.od.prismHorizontal !== "0.00" 
+                          ? prescriptionData.od.prismHorizontal 
+                          : "-"}
+                      </td>
+                      <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                        {prescriptionData.od.prismHorizontalBase && prescriptionData.od.prismHorizontalBase !== "" 
+                          ? prescriptionData.od.prismHorizontalBase 
+                          : "-"}
+                      </td>
+                      <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                        {prescriptionData.od.prismVertical && prescriptionData.od.prismVertical !== "0.00" 
+                          ? prescriptionData.od.prismVertical 
+                          : "-"}
+                      </td>
+                      <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                        {prescriptionData.od.prismVerticalBase && prescriptionData.od.prismVerticalBase !== "" 
+                          ? prescriptionData.od.prismVerticalBase 
+                          : "-"}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OS (Left)</td>
+                      <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                        {prescriptionData.os.prismHorizontal && prescriptionData.os.prismHorizontal !== "0.00" 
+                          ? prescriptionData.os.prismHorizontal 
+                          : "-"}
+                      </td>
+                      <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                        {prescriptionData.os.prismHorizontalBase && prescriptionData.os.prismHorizontalBase !== "" 
+                          ? prescriptionData.os.prismHorizontalBase 
+                          : "-"}
+                      </td>
+                      <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                        {prescriptionData.os.prismVertical && prescriptionData.os.prismVertical !== "0.00" 
+                          ? prescriptionData.os.prismVertical 
+                          : "-"}
+                      </td>
+                      <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                        {prescriptionData.os.prismVerticalBase && prescriptionData.os.prismVerticalBase !== "" 
+                          ? prescriptionData.os.prismVerticalBase 
+                          : "-"}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
           {/* Action Buttons */}
           <div className="space-y-3">
@@ -140,7 +186,7 @@ export default function Step0Initial({
               className="h-12 w-full text-base font-semibold"
               onClick={onChooseLens || (() => {})}
             >
-              {hasLensConfig ? "Change Lens Options" : "Choose Lens Options"}
+              Choose Lens Options
             </Button>
           </div>
         </div>

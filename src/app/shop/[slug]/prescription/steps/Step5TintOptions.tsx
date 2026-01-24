@@ -166,11 +166,6 @@ export default function Step5TintOptions({
                     <h4 className="font-semibold">{option.label}</h4>
                   </div>
                   <p className="text-sm text-muted-foreground">{option.description}</p>
-                  {option.pricePerPair > 0 && (
-                    <p className="text-sm font-medium text-primary mt-1">
-                      +{formatPrice(option.pricePerPair)} per pair
-                    </p>
-                  )}
                 </div>
               </button>
             );
@@ -250,17 +245,6 @@ export default function Step5TintOptions({
       )}
 
       {/* Tint Price Display */}
-      {rxConfig.tintType && (
-        <div className="pt-4 border-t">
-          <div className="flex justify-between items-center p-3 bg-primary/5 rounded-lg">
-            <span className="text-sm font-medium">Tint Add-on:</span>
-            <span className="text-sm font-semibold text-primary">
-              +{formatPrice(tintAddOnPrice)} per pair
-            </span>
-          </div>
-        </div>
-      )}
-
       {/* Action Buttons */}
       <div className="pt-2 border-t">
         <Button

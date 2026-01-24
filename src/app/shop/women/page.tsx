@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { prisma } from "@/lib/prisma";
@@ -5,6 +6,31 @@ import { mapPrismaProductToProduct } from "@/lib/prisma-product-mapper";
 import ShopPageClient from "../ShopPageClient";
 import CategoryBanner from "@/components/shop/category-banner";
 import { Gender } from "@prisma/client";
+
+export const metadata: Metadata = {
+  title: 'Women\'s Sunglasses & Eyewear',
+  description: 'Shop elegant women\'s sunglasses and eyewear at FocusRobin. Polarized lenses, UV400 protection, stylish frames designed in Lithuania. Fast shipping to Vilnius, Kaunas, and EU. Akiniai moterims.',
+  keywords: [
+    'women sunglasses',
+    'womens sunglasses Lithuania',
+    'akiniai moterims',
+    'moteriški saulės akiniai',
+    'polarized sunglasses women',
+    'designer sunglasses women',
+    'UV400 sunglasses women',
+  ],
+  alternates: {
+    canonical: 'https://focusrobin.lt/shop/women',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_IE',
+    url: 'https://focusrobin.lt/shop/women',
+    siteName: 'FocusRobin',
+    title: 'Women\'s Sunglasses & Eyewear | FocusRobin Lithuania',
+    description: 'Shop elegant women\'s sunglasses and eyewear. Polarized lenses, UV400 protection, stylish frames designed in Lithuania.',
+  },
+};
 
 interface WomenShopPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

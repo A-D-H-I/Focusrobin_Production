@@ -35,7 +35,7 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
   const handleProductSelect = (product: Product, variantIndex: number = 0) => {
     setSelectedProduct(product);
     setSelectedVariantIndex(variantIndex);
-    router.push(`/try-on?product=${encodeURIComponent(product.id)}&variant=${variantIndex}`, { scroll: false });
+    router.push(`/try-on?product=${encodeURIComponent(product.slug)}&variant=${variantIndex}`, { scroll: false });
   };
 
   // Handle variant change
@@ -44,37 +44,40 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
     const newIndex = selectedProduct.variants.findIndex((v) => v.hex === variant.hex);
     if (newIndex >= 0) {
       setSelectedVariantIndex(newIndex);
-      router.push(`/try-on?product=${encodeURIComponent(selectedProduct.id)}&variant=${newIndex}`, { scroll: false });
+      router.push(`/try-on?product=${encodeURIComponent(selectedProduct.slug)}&variant=${newIndex}`, { scroll: false });
     }
   };
 
   const handleVariantIndexChange = (index: number) => {
     if (!selectedProduct) return;
     setSelectedVariantIndex(index);
-    router.push(`/try-on?product=${encodeURIComponent(selectedProduct.id)}&variant=${index}`, { scroll: false });
+    router.push(`/try-on?product=${encodeURIComponent(selectedProduct.slug)}&variant=${index}`, { scroll: false });
   };
 
-  // Handle clearing selection (back to product grid)
-  const handleClearSelection = () => {
-    setSelectedProduct(null);
-    setSelectedVariantIndex(0);
-    router.push('/try-on', { scroll: false });
+  // Handle going back to product page
+  const handleBackToProduct = () => {
+    if (selectedProduct) {
+      router.push(`/shop/${encodeURIComponent(selectedProduct.slug)}`);
+    } else {
+      router.push('/shop');
+    }
   };
 
-  // Handle browser back navigation
+  // Handle browser back navigation (when no product selected, go to shop)
   const handleGoBack = () => {
-    router.back();
+    router.push('/shop');
   };
 
   // Check URL params for product and variant selection
   useEffect(() => {
     if (!products || products.length === 0) return;
 
-    const productId = searchParams.get("product");
+    const productSlug = searchParams.get("product");
     const variantIndex = searchParams.get("variant");
     
-    if (productId) {
-      const product = products.find((p) => p.id === productId);
+    if (productSlug) {
+      // Find product by slug first, then fallback to id for backwards compatibility
+      const product = products.find((p) => p.slug === productSlug) || products.find((p) => p.id === productSlug);
       if (product) {
         const variantIdx = variantIndex ? parseInt(variantIndex) : 0;
         setSelectedProduct(product);
@@ -83,14 +86,10 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
       }
     }
     
-    // Auto-select first available product if none selected
-    if (!selectedProduct && availableProducts.length > 0) {
-      const firstProduct = availableProducts[0];
-      const firstVariantWithTryOn = firstProduct.variants.findIndex((v) => v.tryOn);
-      if (firstVariantWithTryOn >= 0) {
-        setSelectedProduct(firstProduct);
-        setSelectedVariantIndex(firstVariantWithTryOn);
-      }
+    // If no product in URL, redirect to shop
+    // Users should access try-on from product pages, not directly
+    if (!productSlug) {
+      router.push('/shop');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, products]);
@@ -130,71 +129,15 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
     );
   }
 
-  // No product selected yet - show product selection grid (scrollable)
+  // No product selected - redirect to shop
   if (!selectedProduct) {
   return (
-      <div className="h-[calc(100vh-124px)] flex flex-col">
-        {/* Header with back button */}
-        <div className="py-4 px-4 flex-shrink-0">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleGoBack}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back
-            </Button>
-          </div>
-          <div className="text-center mt-2">
-            <h1 className="text-2xl md:text-3xl font-headline font-semibold text-foreground mb-1">
-          Virtual Try-On
-        </h1>
-            <p className="text-muted-foreground text-sm max-w-2xl mx-auto">
-              Select a frame to try on virtually
-        </p>
-      </div>
+      <div className="h-[calc(100vh-124px)] flex items-center justify-center">
+        <div className="text-center">
+          <Camera className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-pulse" />
+          <p className="text-muted-foreground">Redirecting to shop...</p>
         </div>
-
-        <ScrollArea className="flex-1 px-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-4">
-          {availableProducts.map((product) => {
-              const tryOnVariant = product.variants.find((v) => v.tryOn) || product.variants[0];
-              const variantIndex = product.variants.findIndex((v) => v.hex === tryOnVariant.hex);
-
-            return (
-                <button
-                key={product.id}
-                  onClick={() => handleProductSelect(product, variantIndex)}
-                  className="group text-left rounded-lg border border-border/50 overflow-hidden hover:shadow-lg transition-all duration-300 bg-card"
-                >
-                  <div className="aspect-square bg-muted/50 overflow-hidden relative">
-                    {tryOnVariant.thumbnail && (
-                      <img
-                        src={tryOnVariant.thumbnail}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    )}
-                    <div className="absolute bottom-1.5 right-1.5 bg-teal-primary text-white rounded-full p-1">
-                      <Camera className="h-3 w-3" />
-                    </div>
-                  </div>
-                  <div className="p-2">
-                    <h3 className="font-semibold text-xs line-clamp-1 group-hover:text-teal-primary transition-colors">
-                      {product.name}
-                    </h3>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {product.variants.filter((v) => v.tryOn).length} colors
-                    </p>
-                  </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-        </ScrollArea>
-                  </div>
+      </div>
     );
   }
 
@@ -207,31 +150,31 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
         <div className="flex w-full gap-3 p-3">
           
           {/* LEFT PANEL - Product Details (Fixed) + Product Image (Scrollable) */}
-          <aside className="w-[200px] xl:w-[220px] flex-shrink-0 flex flex-col min-h-0">
+          <aside className="w-[280px] xl:w-[320px] 2xl:w-[360px] flex-shrink-0 flex flex-col min-h-0">
             {/* Back Navigation - Fixed */}
             <div className="flex-shrink-0 mb-2">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleClearSelection}
+                onClick={handleBackToProduct}
                 className="text-muted-foreground hover:text-foreground -ml-2 h-7 text-xs"
               >
                 <ChevronLeft className="h-3 w-3 mr-0.5" />
-                All Frames
+                Back to Product
               </Button>
             </div>
             
-            {/* Product Image - Scrollable */}
-            <div className="flex-shrink-0 mb-2">
-              <ScrollArea className="h-[120px] xl:h-[140px] rounded-lg border border-border/50 bg-muted/30">
-                <div className="p-2">
+            {/* Product Image - Fixed (no scroll) */}
+            <div className="flex-shrink-0 mb-3">
+              <div className="h-[160px] xl:h-[180px] rounded-lg border border-border/50 bg-muted/30 flex items-center justify-center overflow-hidden">
+                <div className="p-3 w-full h-full flex items-center justify-center">
                   <img
                     src={selectedVariant.thumbnail || selectedVariant.images?.[0]}
                     alt={selectedProduct.name}
-                    className="w-full h-auto object-contain rounded"
+                    className="max-w-full max-h-full object-contain rounded"
                   />
                 </div>
-              </ScrollArea>
+              </div>
             </div>
             
             {/* Product Details - Fixed, takes remaining space */}
@@ -240,17 +183,17 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
                 product={selectedProduct}
                 selectedVariant={selectedVariant}
                 onVariantChange={handleVariantChange}
-                className="h-full overflow-y-auto pr-1"
+                className="h-full overflow-hidden pr-1"
               />
             </div>
           </aside>
 
           {/* CENTER PANEL - Try-On Preview */}
-          <main className="flex-1 min-w-0 flex flex-col min-h-0">
+          <main className="flex-1 min-w-0 flex flex-col min-h-0 max-w-[550px] mx-auto">
             {/* Title */}
-            <div className="text-center py-1.5 flex-shrink-0">
-              <h1 className="text-lg xl:text-xl font-headline font-semibold">Virtual Try-On</h1>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Upload your photo to try on frames</p>
+            <div className="text-center py-3 flex-shrink-0">
+              <h1 className="text-2xl xl:text-3xl font-headline font-semibold">Virtual Try-On</h1>
+              <p className="text-sm text-muted-foreground mt-1.5">Upload your photo to try on frames</p>
             </div>
 
             {/* Preview Area - fills remaining space */}
@@ -265,7 +208,7 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
           </main>
 
           {/* RIGHT PANEL - Related Products */}
-          <aside className="w-[160px] xl:w-[185px] flex-shrink-0 flex flex-col min-h-0">
+          <aside className="w-[200px] xl:w-[240px] flex-shrink-0 flex flex-col min-h-0">
             <TryOnRelatedProducts
               products={products}
               currentProductId={selectedProduct.id}
@@ -279,16 +222,16 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
       {/* MOBILE/TABLET LAYOUT - Scrollable with sticky footer */}
       <div className="lg:hidden flex flex-col h-[calc(100vh-124px-68px)]">
         {/* Header with back button */}
-        <div className="px-4 py-2 flex-shrink-0 border-b border-border/30 flex items-center">
+        <div className="px-4 py-3 flex-shrink-0 border-b border-border/30 flex items-center">
           <Button
             variant="ghost"
-            size="sm"
-            onClick={handleClearSelection}
-            className="text-muted-foreground hover:text-foreground -ml-2 mr-2"
+            size="default"
+            onClick={handleBackToProduct}
+            className="text-muted-foreground hover:text-foreground -ml-2 mr-3"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-base font-headline font-semibold flex-1 text-center pr-8">Virtual Try-On</h1>
+          <h1 className="text-xl font-headline font-semibold flex-1 text-center pr-8">Virtual Try-On</h1>
         </div>
 
         {/* Scrollable Content */}
@@ -304,22 +247,22 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
             {/* Product Name & Price */}
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <h2 className="text-base font-headline font-semibold line-clamp-2">{selectedProduct.name}</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">{selectedVariant.name}</p>
+                <h2 className="text-xl font-headline font-semibold line-clamp-2">{selectedProduct.name}</h2>
+                <p className="text-base text-muted-foreground mt-1">{selectedVariant.name}</p>
               </div>
-              <p className="text-lg font-bold text-primary flex-shrink-0">{selectedProduct.price}</p>
+              <p className="text-2xl font-bold text-primary flex-shrink-0">{selectedProduct.price}</p>
             </div>
 
             {/* Color Swatches - Mobile */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-3 flex-wrap">
               {selectedProduct.variants.map((variant, idx) => (
                 <button
                   key={`mobile-color-${idx}`}
                   onClick={() => handleVariantIndexChange(idx)}
                   className={cn(
-                    "h-7 w-7 rounded-full border-2 transition-all",
+                    "h-10 w-10 rounded-full border-2 transition-all",
                     selectedVariantIndex === idx
-                      ? "border-primary ring-2 ring-offset-1 ring-primary"
+                      ? "border-primary ring-2 ring-offset-2 ring-primary"
                       : "border-border"
                   )}
                   style={{ backgroundColor: variant.hex }}
@@ -340,13 +283,13 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
         </ScrollArea>
 
         {/* Mobile Sticky Add to Cart Button */}
-        <div className="flex-shrink-0 p-3 bg-background border-t border-border/50">
+        <div className="flex-shrink-0 p-4 bg-background border-t border-border/50">
           <Button
             onClick={handleAddToCart}
-            className="w-full h-11 font-bold text-sm"
+            className="w-full h-14 font-bold text-base"
             disabled={selectedVariant?.stock === 0}
           >
-            <ShoppingCart className="h-4 w-4 mr-2" />
+            <ShoppingCart className="h-5 w-5 mr-2" />
             {selectedVariant?.stock === 0 ? "Out of Stock" : `Add to Cart — ${selectedProduct.price}`}
           </Button>
         </div>

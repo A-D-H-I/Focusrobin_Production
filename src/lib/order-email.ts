@@ -2,6 +2,7 @@
 
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
+import { getDeliveryTime } from "@/lib/delivery-time";
 
 // Initialize Resend client - create fresh instance each time to avoid stale state
 function getResendClient(): Resend | null {
@@ -45,11 +46,16 @@ interface OrderEmailData {
   customerEmail: string;
   orderDate: Date;
   items: Array<{
+    id: string;
     name: string;
     variant: string;
+    sku: string;
     quantity: number;
     price: number;
     imageUrl?: string;
+    hasPrescription?: boolean;
+    productSlug?: string | null;
+    prescriptionData?: any;
   }>;
   subtotal: number;
   shipping: number;
@@ -70,6 +76,7 @@ interface OrderEmailData {
   paymentMethod: string;
   paymentStatus: string;
   orderStatus: string;
+  deliveryTime?: string;
 }
 
 /**
@@ -92,7 +99,12 @@ export async function sendOrderConfirmationEmail(orderId: string): Promise<{ suc
       include: {
         items: {
           include: {
-            Product: true,
+            Product: {
+              select: {
+                id: true,
+                slug: true,
+              },
+            },
           },
         },
         User: {
@@ -124,14 +136,35 @@ export async function sendOrderConfirmationEmail(orderId: string): Promise<{ suc
     console.log(`[Order Email]   To: ${recipientEmail}`);
     console.log(`[Order Email]   Subject: Order Confirmation - ${order.orderNumber}`);
 
-    // Format order items
+    // Format order items with unique identifiers for tracking
     const items = order.items.map((item) => ({
+      id: item.id,
       name: item.productName,
       variant: item.variantName,
+      sku: item.sku,
       quantity: item.quantity,
       price: Number(item.price),
       imageUrl: item.imageUrl || undefined,
+      hasPrescription: !!(item.prescriptionData),
+      productSlug: item.Product?.slug || null,
+      prescriptionData: item.prescriptionData || null,
     }));
+    
+    console.log(`[Order Email] Processing ${items.length} items:`, items.map(i => ({
+      id: i.id,
+      name: i.name,
+      sku: i.sku,
+      hasPrescription: i.hasPrescription,
+    })));
+
+    // Calculate delivery time
+    const deliveryTime = getDeliveryTime(
+      items.map((item) => ({
+        prescriptionData: item.prescriptionData,
+        productSlug: item.productSlug,
+      })),
+      order.shippingCountry
+    );
 
     const emailData: OrderEmailData = {
       orderNumber: order.orderNumber,
@@ -158,6 +191,7 @@ export async function sendOrderConfirmationEmail(orderId: string): Promise<{ suc
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus,
       orderStatus: order.status,
+      deliveryTime,
     };
 
     // Generate HTML email
@@ -300,8 +334,9 @@ function generateOrderConfirmationHTML(data: OrderEmailData): string {
                     ` : ''}
                     <div style="flex: 1;">
                       <h3 style="margin: 0 0 5px 0; color: #333333; font-size: 16px; font-weight: bold;">${item.name}</h3>
-                      <p style="margin: 0 0 10px 0; color: #666666; font-size: 14px;">${item.variant}</p>
-                      <p style="margin: 0; color: #666666; font-size: 14px;">Quantity: ${item.quantity} × ${formatCurrency(item.price)}</p>
+                      <p style="margin: 0 0 5px 0; color: #666666; font-size: 14px;">${item.variant} • SKU: ${item.sku}</p>
+                      ${item.hasPrescription ? '<p style="margin: 0 0 5px 0; color: #2A9D9A; font-size: 12px; font-weight: bold;">📋 Includes Prescription Lenses</p>' : ''}
+                      <p style="margin: 0; color: #666666; font-size: 14px;">Quantity: ${item.quantity} × ${formatCurrency(item.price)} = ${formatCurrency(item.price * item.quantity)}</p>
                     </div>
                     <div style="text-align: right;">
                       <p style="margin: 0; color: #333333; font-size: 16px; font-weight: bold;">${formatCurrency(item.price * item.quantity)}</p>
@@ -351,11 +386,18 @@ function generateOrderConfirmationHTML(data: OrderEmailData): string {
                   ${data.shippingAddress.country}<br>
                   Phone: ${data.shippingAddress.phone}
                 </p>
+                ${data.deliveryTime ? `
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                  <p style="margin: 0; color: #333333; font-size: 14px; font-weight: bold;">
+                    📦 Expected Delivery: ${data.deliveryTime}
+                  </p>
+                </div>
+                ` : ''}
               </div>
               
               <!-- Footer -->
               <p style="margin: 30px 0 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
-                We'll send you another email when your order ships. If you have any questions, please don't hesitate to contact us.
+                We'll send you another email when your order ships with your tracking ID. If you have any questions, please don't hesitate to contact us.
               </p>
               <p style="margin: 20px 0 0 0; color: #666666; font-size: 14px; line-height: 1.6;">
                 Thank you for shopping with FocusRobin!

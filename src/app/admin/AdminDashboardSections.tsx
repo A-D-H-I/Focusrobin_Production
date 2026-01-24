@@ -198,6 +198,22 @@ export function AdminDashboardSections() {
                   </CardContent>
                 </Card>
 
+                {/* Glass Shapes Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <Palette className="h-5 w-5 text-primary" />
+                      <CardTitle>Glass Shapes</CardTitle>
+                    </div>
+                    <CardDescription>Manage glass shapes and images for mega menu</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/shapes">
+                      <Button variant="outline" className="w-full">Manage Glass Shapes</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
                 {/* Iconic Images Card */}
                 <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader>
@@ -359,9 +375,9 @@ export function AdminDashboardSections() {
             <CardDescription>View sales and performance metrics</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button variant="outline" className="w-full" disabled>
-              Coming Soon
-            </Button>
+            <Link href="/admin/analytics">
+              <Button variant="outline" className="w-full">View Analytics</Button>
+            </Link>
           </CardContent>
         </Card>
 

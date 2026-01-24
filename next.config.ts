@@ -9,12 +9,12 @@ import type { NextConfig } from 'next';
 // Adjust these based on your actual external services
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://apis.google.com;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://*.google-analytics.com https://apis.google.com https://connect.facebook.net https://www.clarity.ms;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
   font-src 'self' https://fonts.gstatic.com data:;
   img-src 'self' data: blob: https: http:;
-  connect-src 'self' https://api.stripe.com https://www.google-analytics.com https://api.exchangerate-api.com https://*.googleapis.com https://storage.googleapis.com wss: ws:;
-  frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com;
+  connect-src 'self' https://api.stripe.com https://*.google-analytics.com https://www.googletagmanager.com https://api.exchangerate-api.com https://*.googleapis.com https://storage.googleapis.com https://ipapi.co https://connect.facebook.net https://*.facebook.com https://www.clarity.ms https://*.clarity.ms https://*.bing.com wss: ws:;
+  frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://www.facebook.com;
   object-src 'none';
   base-uri 'self';
   form-action 'self';

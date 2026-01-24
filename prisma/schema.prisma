@@ -255,17 +255,19 @@ model Cart {
 }
 
 model CartItem {
-  id        String   @id @default(cuid())
-  cartId    String
-  productId String
-  variantId String
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  Cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  Product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  cartId          String
+  productId       String
+  variantId       String
+  quantity        Int      @default(1)
+  prescriptionData Json?   // Prescription data if item has prescription lenses
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  Cart            Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  Product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([cartId, productId, variantId])
+  // Note: Removed unique constraint to allow same product/variant with different prescriptions
+  // Duplicate prevention is handled in application logic
 }
 
 // Wishlist Model
@@ -327,8 +329,8 @@ model Address {
 // User Prescription Model - Stores prescription data and lens configuration
 model UserPrescription {
   id                String   @id @default(cuid())
-  userId            String
-  productSlug       String // Product slug this prescription is for
+  userId            String   @unique // One prescription per user (shared across all products)
+  productSlug       String? // Optional: last product this prescription was saved from (for reference)
   // Prescription data (OD - Right Eye)
   odSph             String // Sphere
   odCyl             String // Cylinder
@@ -339,9 +341,23 @@ model UserPrescription {
   osAxis            String // Axis
   // PD (Pupillary Distance)
   pd                String
+  pdOd              String? // Right eye PD (when hasTwoPDs is true)
+  pdOs              String? // Left eye PD (when hasTwoPDs is true)
   hasTwoPDs         Boolean  @default(false)
   hasPrism          Boolean  @default(false)
-  // Lens configuration
+  // Prism values (OD - Right Eye)
+  odPrismHorizontal String?
+  odPrismHorizontalBase String?
+  odPrismVertical   String?
+  odPrismVerticalBase String?
+  // Prism values (OS - Left Eye)
+  osPrismHorizontal String?
+  osPrismHorizontalBase String?
+  osPrismVertical   String?
+  osPrismVerticalBase String?
+  // Prescription image
+  prescriptionImageUrl String? // S3 URL for uploaded prescription image
+  // Lens configuration (last used - may vary per product, but stored here for reference)
   lensType          String // CLEAR, TINTED, PHOTOCHROMIC_SOLIS, POLARIZED_NUPOLAR
   lensIndex         String // 1.56, 1.60, 1.67
   coating           String // UC, BLUE_PRO, SERICUM_UV
@@ -362,7 +378,6 @@ model UserPrescription {
   updatedAt         DateTime @updatedAt
   User              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, productSlug])
   @@index([userId])
   @@index([productSlug])
 }
@@ -625,6 +640,10 @@ model Order {
   stripePaymentIntentId String? // Stripe Payment Intent ID
   isPaid                Boolean @default(false) // Payment status flag
 
+  // PayPal Payment Integration
+  paypalOrderId   String? @unique // PayPal Order ID
+  paypalCaptureId String? // PayPal Capture ID (for refunds)
+
   shippingProvider String  @default("DHL") // Omniva for Latvia, Lithuania, Estonia; DHL for others
   trackingNumber   String? // Tracking number for delivery
   trackingMessage  String? @db.Text // Admin message/update about tracking
@@ -677,6 +696,9 @@ model OrderItem {
   price       Decimal @db.Decimal(10, 2) // Price per unit at time of order
   total       Decimal @db.Decimal(10, 2) // Total for this line item
   imageUrl    String? // Snapshot of product image at time of order
+
+  // Prescription data (snapshot at time of order) - stored as JSON for flexibility
+  prescriptionData Json? // Contains full prescription details if applicable
 
   createdAt DateTime @default(now())
 
@@ -750,4 +772,19 @@ model PromoCode {
   @@index([isActive])
   @@index([startDate])
   @@index([endDate])
+}
+
+// Glass Shape with Image Support
+model GlassShape {
+  id        String   @id @default(cuid())
+  name      String   @unique // Shape name (e.g., "Cat Eye", "Rectangle")
+  imageUrl  String?  // Image URL for the shape (uploaded by admin)
+  order     Int      @default(0) // Display order
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([isActive])
+  @@index([order])
 }

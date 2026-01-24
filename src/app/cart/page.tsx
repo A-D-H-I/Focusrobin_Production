@@ -9,21 +9,39 @@ import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
-import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
+import { Trash2, Plus, Minus, ShoppingBag, Loader2, AlertCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { getCart } from "@/app/actions/user";
 import { usePrice } from "@/hooks/usePrice";
 
 export default function CartPage() {
-  const { data: session } = useSession();
-  const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
+  const { data: session, status } = useSession();
+  const { cartItems, removeFromCart, updateQuantity, getCartTotal, isLoading } = useCart();
   const { currency } = useCurrency();
   const { formatPrice, parseEurPrice } = usePrice();
   const [totalCashback, setTotalCashback] = useState<number>(0);
   const [updatingItems, setUpdatingItems] = useState<Set<string>>(new Set());
 
+  // Debug: Log cart items whenever they change
+  useEffect(() => {
+    console.log('[CartPage] Cart items updated:', cartItems.length, 'items');
+    console.log('[CartPage] Items:', cartItems.map(item => ({
+      product: item.product.name,
+      variant: item.variant.name,
+      quantity: item.quantity,
+      hasPrescription: !!item.prescriptionData
+    })));
+  }, [cartItems]);
+
   const subtotal = getCartTotal(); // This returns EUR value
   const shipping = 0; // Free shipping
   const total = subtotal + shipping;
+
+  // Check if any items are out of stock
+  const hasOutOfStockItems = cartItems.some(item => {
+    const stock = item.variant.stock;
+    return stock !== undefined && stock !== null && stock === 0;
+  });
 
   // Calculate cashback from actual product cashback amounts
   useEffect(() => {
@@ -85,7 +103,17 @@ export default function CartPage() {
             Shopping Cart
           </h1>
 
-          {cartItems.length === 0 ? (
+          {(isLoading || status === 'loading') ? (
+            <div className="max-w-2xl mx-auto text-center py-16">
+              <Loader2 className="h-16 w-16 mx-auto text-brand-teal animate-spin mb-6" />
+              <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
+                Loading Your Cart...
+              </h2>
+              <p className="text-muted-foreground">
+                Please wait while we fetch your cart items.
+              </p>
+            </div>
+          ) : cartItems.length === 0 ? (
             <div className="max-w-2xl mx-auto text-center py-16">
               <ShoppingBag className="h-24 w-24 mx-auto text-muted-foreground/30 mb-6" />
               <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
@@ -106,18 +134,36 @@ export default function CartPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items - Left Column (2/3 on desktop) */}
             <div className="lg:col-span-2 space-y-4">
-              {cartItems.map((item) => {
+              {cartItems.map((item, index) => {
                 // Parse EUR price from product (stored as "€XX.XX" string)
-                const priceInEur = parseEurPrice(item.product.price);
-                const itemTotalEur = priceInEur * item.quantity;
+                const framePrice = parseEurPrice(item.product.price);
+                
+                // Check if item has prescription data
+                const hasPrescription = item.prescriptionData?.rxPriceBreakdown;
+                const prescriptionPrice = hasPrescription 
+                  ? item.prescriptionData.rxPriceBreakdown.totalNet 
+                  : 0;
+                
+                // Calculate total price: frame + prescription (if any)
+                const itemPrice = hasPrescription ? prescriptionPrice : framePrice;
+                const itemTotalEur = itemPrice * item.quantity;
+                
+                // Create unique key that includes prescription data hash
+                const prescriptionKey = item.prescriptionData 
+                  ? JSON.stringify(item.prescriptionData).slice(0, 20) 
+                  : 'no-rx';
+                const itemKey = `${item.product.id}-${item.variant.hex}-${prescriptionKey}-${index}`;
 
                 return (
                   <div
-                    key={`${item.product.id}-${item.variant.hex}`}
+                    key={itemKey}
                     className="bg-white border border-border rounded-lg p-4 sm:p-6 flex flex-col sm:flex-row gap-4"
                   >
                     {/* Product Image */}
-                    <div className="relative w-full sm:w-32 h-32 flex-shrink-0 bg-muted rounded-lg overflow-hidden">
+                    <Link 
+                      href={`/shop/${item.product.slug}`}
+                      className="relative w-full sm:w-32 h-32 flex-shrink-0 bg-muted rounded-lg overflow-hidden hover:opacity-90 transition-opacity cursor-pointer"
+                    >
                       <Image
                         src={item.variant.thumbnail || item.variant.images[0] || ''}
                         alt={`${item.product.name} - ${item.variant.name}`}
@@ -125,82 +171,130 @@ export default function CartPage() {
                         className="object-contain p-2"
                         sizes="128px"
                       />
-                    </div>
+                    </Link>
 
                     {/* Product Details */}
                     <div className="flex-grow flex flex-col sm:flex-row sm:justify-between gap-4">
                       <div className="flex-grow">
-                        <h3 className="text-brand-h3 font-headline text-brand-blue mb-1">
-                          {item.product.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          Color: {item.variant.name}
-                        </p>
-                        <p className="text-lg font-bold text-brand-blue">
-                          {formatPrice(itemTotalEur)}
-                        </p>
+                        <Link 
+                          href={`/shop/${item.product.slug}`}
+                          className="block"
+                        >
+                          <h3 className="text-brand-h3 font-headline text-brand-blue mb-1 hover:text-brand-teal transition-colors cursor-pointer">
+                            {item.product.name}
+                          </h3>
+                        </Link>
+                        <div className="flex items-center gap-2 mb-2">
+                          <p className="text-sm text-muted-foreground">
+                            Color: {item.variant.name}
+                          </p>
+                          {item.variant.stock !== undefined && item.variant.stock !== null && item.variant.stock === 0 && (
+                            <Badge variant="destructive" className="text-xs">
+                              <AlertCircle className="h-3 w-3 mr-1" />
+                              Out of Stock
+                            </Badge>
+                          )}
+                        </div>
+                        {hasPrescription && (
+                          <p className="text-xs text-primary font-medium mb-1">
+                            ✓ With Prescription Lenses
+                          </p>
+                        )}
+                        {hasPrescription && item.prescriptionData?.rxConfig && (
+                          <div className="text-xs text-muted-foreground mb-2 space-y-0.5">
+                            {item.prescriptionData.rxConfig.lensType && (
+                              <p>
+                                Lens: {item.prescriptionData.rxConfig.lensType === "CLEAR" ? "Clear" : 
+                                      item.prescriptionData.rxConfig.lensType === "TINTED" ? "Tinted" :
+                                      item.prescriptionData.rxConfig.lensType === "PHOTOCHROMIC_SOLIS" ? "Photochromic" :
+                                      item.prescriptionData.rxConfig.lensType === "POLARIZED_NUPOLAR" ? "Polarized" : ""}
+                              </p>
+                            )}
+                            {item.prescriptionData.rxConfig.lensIndex && (
+                              <p>Index: {item.prescriptionData.rxConfig.lensIndex}</p>
+                            )}
+                          </div>
+                        )}
+                        <div className="space-y-1">
+                          {hasPrescription && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Frame: </span>
+                              <span>{formatPrice(framePrice)}</span>
+                            </div>
+                          )}
+                          {hasPrescription && item.prescriptionData?.rxPriceBreakdown && (
+                            <div className="text-sm">
+                              <span className="text-muted-foreground">Rx Lenses: </span>
+                              <span>+{formatPrice(item.prescriptionData.rxPriceBreakdown.rxRetailNet)}</span>
+                            </div>
+                          )}
+                          <p className="text-lg font-bold text-brand-blue">
+                            {formatPrice(itemTotalEur)}
+                          </p>
+                        </div>
                       </div>
 
-                      {/* Quantity Controls */}
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center border border-border rounded-md">
+                        {/* Quantity Controls */}
+                        <div className="flex items-center gap-4">
+                          <div className="flex items-center border border-border rounded-md">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              disabled={item.quantity <= 1 || updatingItems.has(itemKey)}
+                              onClick={async () => {
+                                setUpdatingItems(prev => new Set(prev).add(itemKey));
+                                try {
+                                  await updateQuantity(item.product.id, item.variant.hex, item.quantity - 1, item.prescriptionData);
+                                } finally {
+                                  setUpdatingItems(prev => {
+                                    const next = new Set(prev);
+                                    next.delete(itemKey);
+                                    return next;
+                                  });
+                                }
+                              }}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <span className="px-4 py-2 min-w-[3rem] text-center font-semibold">
+                              {item.quantity}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              disabled={
+                                updatingItems.has(itemKey) || 
+                                (item.variant.stock !== undefined && item.variant.stock !== null && item.variant.stock === 0)
+                              }
+                              onClick={async () => {
+                                setUpdatingItems(prev => new Set(prev).add(itemKey));
+                                try {
+                                  await updateQuantity(item.product.id, item.variant.hex, item.quantity + 1, item.prescriptionData);
+                                } finally {
+                                  setUpdatingItems(prev => {
+                                    const next = new Set(prev);
+                                    next.delete(itemKey);
+                                    return next;
+                                  });
+                                }
+                              }}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+
+                          {/* Remove Button */}
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
-                            disabled={item.quantity <= 1 || updatingItems.has(`${item.product.id}-${item.variant.hex}`)}
-                            onClick={async () => {
-                              const itemKey = `${item.product.id}-${item.variant.hex}`;
-                              setUpdatingItems(prev => new Set(prev).add(itemKey));
-                              try {
-                                await updateQuantity(item.product.id, item.variant.hex, item.quantity - 1);
-                              } finally {
-                                setUpdatingItems(prev => {
-                                  const next = new Set(prev);
-                                  next.delete(itemKey);
-                                  return next;
-                                });
-                              }
-                            }}
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => removeFromCart(item.product.id, item.variant.hex, item.prescriptionData)}
                           >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <span className="px-4 py-2 min-w-[3rem] text-center font-semibold">
-                            {item.quantity}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            disabled={updatingItems.has(`${item.product.id}-${item.variant.hex}`)}
-                            onClick={async () => {
-                              const itemKey = `${item.product.id}-${item.variant.hex}`;
-                              setUpdatingItems(prev => new Set(prev).add(itemKey));
-                              try {
-                                await updateQuantity(item.product.id, item.variant.hex, item.quantity + 1);
-                              } finally {
-                                setUpdatingItems(prev => {
-                                  const next = new Set(prev);
-                                  next.delete(itemKey);
-                                  return next;
-                                });
-                              }
-                            }}
-                          >
-                            <Plus className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-
-                        {/* Remove Button */}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => removeFromCart(item.product.id, item.variant.hex)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
                     </div>
                   </div>
                 );
@@ -243,12 +337,28 @@ export default function CartPage() {
                   </div>
                 )}
 
+                {hasOutOfStockItems && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-red-900 mb-1">
+                          Some items are out of stock
+                        </p>
+                        <p className="text-xs text-red-700">
+                          Please remove out of stock items from your cart to proceed with checkout.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <Link href="/checkout" prefetch={true} className="block">
                   <Button
                     size="lg"
-                    className="w-full bg-brand-teal text-white hover:bg-brand-teal/90 font-semibold py-6 text-lg"
+                    className="w-full bg-brand-teal text-white hover:bg-brand-teal/90 font-semibold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={hasOutOfStockItems}
                   >
-                    PROCEED TO CHECKOUT
+                    {hasOutOfStockItems ? "CANNOT CHECKOUT - OUT OF STOCK ITEMS" : "PROCEED TO CHECKOUT"}
                   </Button>
                 </Link>
 

@@ -42,7 +42,7 @@ const generatePrescriptionValues = () => {
 };
 
 const prescriptionValues = generatePrescriptionValues();
-const axisValues = Array.from({ length: 180 }, (_, i) => (i + 1).toString());
+const axisValues = ["0", ...Array.from({ length: 180 }, (_, i) => (i + 1).toString())]; // Include 0 as first option
 const pdValues = Array.from({ length: 100 }, (_, i) => ((i + 40) / 2).toFixed(2));
 
 // Generate prism values (0.00 to 10.00 in 0.25 increments)
@@ -70,6 +70,11 @@ export default function Step1PrescriptionForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPdHelpOpen, setIsPdHelpOpen] = useState(false);
   const [isPrismHelpOpen, setIsPrismHelpOpen] = useState(false);
+
+  // Check if PD is filled
+  const isPdFilled = prescriptionData.hasTwoPDs
+    ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
+    : (prescriptionData.pd && prescriptionData.pd !== "");
 
   const handleInputChange = (field: string, value: string, eye?: 'od' | 'os') => {
     if (eye) {
@@ -145,7 +150,9 @@ export default function Step1PrescriptionForm({
       {/* Prescription Table */}
       <div className="space-y-2">
         <h3 className="font-semibold text-sm">prescription</h3>
-        <div className="border rounded-lg overflow-hidden">
+        
+        {/* Desktop Table View - Hidden on mobile */}
+        <div className="border rounded-lg overflow-hidden hidden md:block">
           <table className="w-full">
             <thead>
               <tr className="bg-muted border-b">
@@ -268,22 +275,24 @@ export default function Step1PrescriptionForm({
           </table>
         </div>
 
-        {/* PD Field */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">PD (Pupillary Distance)</label>
-          {prescriptionData.hasTwoPDs ? (
-            <div className="grid grid-cols-2 gap-3">
+        {/* Mobile Card View - Shown on mobile only */}
+        <div className="space-y-4 md:hidden">
+          {/* OD (Right Eye) Card */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <h4 className="font-medium text-sm mb-3">OD (Right Eye)</h4>
+            
+            <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">OD (Right)</label>
+                <label className="text-xs font-medium text-muted-foreground">SPH</label>
                 <Select
-                  value={prescriptionData.pdOd || "31"}
-                  onValueChange={(value) => handleInputChange('pdOd', value)}
+                  value={prescriptionData.od.sph}
+                  onValueChange={(value) => handleInputChange('sph', value, 'od')}
                 >
                   <SelectTrigger className="h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
-                    {pdValues.map((val) => (
+                    {prescriptionValues.map((val) => (
                       <SelectItem key={val} value={val}>
                         {val}
                       </SelectItem>
@@ -291,17 +300,37 @@ export default function Step1PrescriptionForm({
                   </SelectContent>
                 </Select>
               </div>
+              
               <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">OS (Left)</label>
+                <label className="text-xs font-medium text-muted-foreground">CYL</label>
                 <Select
-                  value={prescriptionData.pdOs || "31"}
-                  onValueChange={(value) => handleInputChange('pdOs', value)}
+                  value={prescriptionData.od.cyl}
+                  onValueChange={(value) => handleInputChange('cyl', value, 'od')}
                 >
                   <SelectTrigger className="h-10">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
-                    {pdValues.map((val) => (
+                    {prescriptionValues.map((val) => (
+                      <SelectItem key={val} value={val}>
+                        {val}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">AXIS</label>
+                <Select
+                  value={prescriptionData.od.axis}
+                  onValueChange={(value) => handleInputChange('axis', value, 'od')}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {axisValues.map((val) => (
                       <SelectItem key={val} value={val}>
                         {val}
                       </SelectItem>
@@ -310,18 +339,127 @@ export default function Step1PrescriptionForm({
                 </Select>
               </div>
             </div>
+          </div>
+
+          {/* OS (Left Eye) Card */}
+          <div className="border rounded-lg p-4 space-y-3">
+            <h4 className="font-medium text-sm mb-3">OS (Left Eye)</h4>
+            
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">SPH</label>
+                <Select
+                  value={prescriptionData.os.sph}
+                  onValueChange={(value) => handleInputChange('sph', value, 'os')}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {prescriptionValues.map((val) => (
+                      <SelectItem key={val} value={val}>
+                        {val}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">CYL</label>
+                <Select
+                  value={prescriptionData.os.cyl}
+                  onValueChange={(value) => handleInputChange('cyl', value, 'os')}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {prescriptionValues.map((val) => (
+                      <SelectItem key={val} value={val}>
+                        {val}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">AXIS</label>
+                <Select
+                  value={prescriptionData.os.axis}
+                  onValueChange={(value) => handleInputChange('axis', value, 'os')}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {axisValues.map((val) => (
+                      <SelectItem key={val} value={val}>
+                        {val}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* PD Field */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">PD (Pupillary Distance)</label>
+          {prescriptionData.hasTwoPDs ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">OD (Right)</label>
+                <Select
+                  value={prescriptionData.pdOd || ""}
+                  onValueChange={(value) => handleInputChange('pdOd', value)}
+                >
+                  <SelectTrigger className={`h-10 ${!prescriptionData.pdOd || prescriptionData.pdOd === "" ? "text-muted-foreground" : ""}`}>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {pdValues.map((val) => (
+                      <SelectItem key={val} value={val}>
+                        {val} mm
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">OS (Left)</label>
+                <Select
+                  value={prescriptionData.pdOs || ""}
+                  onValueChange={(value) => handleInputChange('pdOs', value)}
+                >
+                  <SelectTrigger className={`h-10 ${!prescriptionData.pdOs || prescriptionData.pdOs === "" ? "text-muted-foreground" : ""}`}>
+                    <SelectValue placeholder="Select" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {pdValues.map((val) => (
+                      <SelectItem key={val} value={val}>
+                        {val} mm
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           ) : (
             <Select
-              value={prescriptionData.pd}
+              value={prescriptionData.pd || ""}
               onValueChange={(value) => handleInputChange('pd', value)}
             >
-              <SelectTrigger className="h-10">
-                <SelectValue />
+              <SelectTrigger className={`h-10 ${!prescriptionData.pd || prescriptionData.pd === "" ? "text-muted-foreground" : ""}`}>
+                <SelectValue placeholder="Select PD" />
               </SelectTrigger>
               <SelectContent className="max-h-[200px]">
                 {pdValues.map((val) => (
                   <SelectItem key={val} value={val}>
-                    {val}
+                    {val} mm
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -339,14 +477,14 @@ export default function Step1PrescriptionForm({
             onCheckedChange={(checked) => {
               handleCheckboxChange('hasTwoPDs', checked as boolean);
               // If enabling two PDs, split the single PD value if it exists
-              if (checked && prescriptionData.pd) {
+              if (checked && prescriptionData.pd && prescriptionData.pd !== "") {
                 const pdValue = parseFloat(prescriptionData.pd);
                 const halfPd = (pdValue / 2).toFixed(2);
                 onDataUpdate({
                   pdOd: halfPd,
                   pdOs: halfPd,
                 });
-              } else if (!checked && prescriptionData.pdOd && prescriptionData.pdOs) {
+              } else if (!checked && prescriptionData.pdOd && prescriptionData.pdOs && prescriptionData.pdOd !== "" && prescriptionData.pdOs !== "") {
                 // If disabling two PDs, combine the values
                 const combinedPd = (parseFloat(prescriptionData.pdOd) + parseFloat(prescriptionData.pdOs)).toFixed(2);
                 onDataUpdate({
@@ -413,7 +551,9 @@ export default function Step1PrescriptionForm({
       {prescriptionData.hasPrism && (
         <div className="space-y-2">
           <label className="text-sm font-medium">Prism Correction</label>
-          <div className="border rounded-lg overflow-hidden">
+          
+          {/* Desktop Table View - Hidden on mobile */}
+          <div className="border rounded-lg overflow-hidden hidden md:block">
             <table className="w-full">
               <thead>
                 <tr className="bg-muted border-b">
@@ -572,32 +712,201 @@ export default function Step1PrescriptionForm({
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card View - Shown on mobile only */}
+          <div className="space-y-4 md:hidden">
+            {/* OD (Right Eye) Card */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <h4 className="font-medium text-sm mb-3">OD (Right Eye)</h4>
+              
+              {/* Horizontal Prism */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Horizontal Prism</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Select
+                      value={prescriptionData.od.prismHorizontal || "0.00"}
+                      onValueChange={(value) => handleInputChange('prismHorizontal', value, 'od')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {prismValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Select
+                      value={prescriptionData.od.prismHorizontalBase || ""}
+                      onValueChange={(value) => handleInputChange('prismHorizontalBase', value, 'od')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Direction" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {horizontalBaseDirections.map((dir) => (
+                          <SelectItem key={dir} value={dir}>
+                            {dir}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vertical Prism */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Vertical Prism</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Select
+                      value={prescriptionData.od.prismVertical || "0.00"}
+                      onValueChange={(value) => handleInputChange('prismVertical', value, 'od')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {prismValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Select
+                      value={prescriptionData.od.prismVerticalBase || ""}
+                      onValueChange={(value) => handleInputChange('prismVerticalBase', value, 'od')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Direction" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {verticalBaseDirections.map((dir) => (
+                          <SelectItem key={dir} value={dir}>
+                            {dir}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* OS (Left Eye) Card */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <h4 className="font-medium text-sm mb-3">OS (Left Eye)</h4>
+              
+              {/* Horizontal Prism */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Horizontal Prism</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Select
+                      value={prescriptionData.os.prismHorizontal || "0.00"}
+                      onValueChange={(value) => handleInputChange('prismHorizontal', value, 'os')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {prismValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Select
+                      value={prescriptionData.os.prismHorizontalBase || ""}
+                      onValueChange={(value) => handleInputChange('prismHorizontalBase', value, 'os')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Direction" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {horizontalBaseDirections.map((dir) => (
+                          <SelectItem key={dir} value={dir}>
+                            {dir}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vertical Prism */}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Vertical Prism</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Select
+                      value={prescriptionData.os.prismVertical || "0.00"}
+                      onValueChange={(value) => handleInputChange('prismVertical', value, 'os')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {prismValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Select
+                      value={prescriptionData.os.prismVerticalBase || ""}
+                      onValueChange={(value) => handleInputChange('prismVerticalBase', value, 'os')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Direction" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {verticalBaseDirections.map((dir) => (
+                          <SelectItem key={dir} value={dir}>
+                            {dir}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Frame Price Only */}
-      <div className="border-t pt-4">
-        <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg">
-          <div>
-            <p className="text-sm text-muted-foreground">Frame Price</p>
-            <p className="text-xs text-muted-foreground/70 mt-0.5">
-              Prescription lens pricing will be shown after selection
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-primary">{formatPrice(framePrice)}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">Including VAT</p>
-          </div>
-        </div>
-      </div>
 
       {/* Submit Button */}
       <Button
         onClick={onNext}
-        className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm"
+        disabled={!isPdFilled}
+        className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Submit
       </Button>
+      
+      {/* Warning message if PD not filled */}
+      {!isPdFilled && (
+        <p className="text-xs text-destructive text-center -mt-2">
+          Please select your Pupillary Distance (PD) to continue
+        </p>
+      )}
 
       {/* PD Help Dialog */}
       <Dialog open={isPdHelpOpen} onOpenChange={setIsPdHelpOpen}>

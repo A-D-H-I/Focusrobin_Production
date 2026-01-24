@@ -20,6 +20,7 @@ import { Mail, Phone, MessageCircle, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import ContactChat from "@/components/ContactChat";
 import { sendContactEmail } from "@/app/actions/contact";
+import { trackMetaEvent } from "@/components/analytics/MetaPixel";
 
 // Note: Metadata for client components should be in a parent server component
 // This is handled by the page wrapper if needed
@@ -108,6 +109,16 @@ export default function ContactPage() {
       if (result.success) {
         setIsSubmitted(true);
         setSubmitError("");
+        
+        // Track Lead event with Meta Pixel
+        try {
+          trackMetaEvent('Lead', {
+            content_name: formData.subject,
+            content_category: 'Contact Form',
+          });
+        } catch (trackError) {
+          console.error('[Contact] Meta Pixel tracking error:', trackError);
+        }
         
         // Reset form after 3 seconds
         setTimeout(() => {

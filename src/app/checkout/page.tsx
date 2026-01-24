@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
@@ -19,15 +20,22 @@ import {
   Wallet,
   Info,
   Lock,
+  AlertCircle,
+  CreditCard,
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import Link from "next/link";
-import { createCheckoutSession } from "@/app/actions/checkout";
+import { createCheckoutSession, refundWalletForOrder, refundPendingOrders } from "@/app/actions/checkout";
 import { getAddresses, addAddress, getWalletBalance, getCart } from "@/app/actions/user";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getShippingProvider, getShippingProviderDisplayName } from "@/lib/shipping-provider";
 import { usePrice } from "@/hooks/usePrice";
+import { useToast } from "@/hooks/use-toast";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { getDeliveryTime } from "@/lib/delivery-time";
+import { trackInitiateCheckout } from "@/components/analytics/MetaPixel";
+import { trackGA4BeginCheckout } from "@/components/analytics/GoogleAnalytics";
 
 const SCHENGEN_COUNTRIES = [
   'Austria',
@@ -62,9 +70,12 @@ const SCHENGEN_COUNTRIES = [
 
 export default function CheckoutPage() {
   const { data: session } = useSession();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const { cartItems, getCartTotal } = useCart();
   const { currency } = useCurrency();
   const { formatPrice, rate, parseEurPrice } = usePrice();
+  const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
@@ -91,6 +102,8 @@ export default function CheckoutPage() {
     postalCode: "",
     country: "Ireland",
   });
+  const [paymentMethod, setPaymentMethod] = useState<"stripe" | "paypal">("stripe");
+  const hasTrackedCheckout = useRef(false);
 
   const subtotal = getCartTotal();
   const shipping = 0; // Free shipping
@@ -101,6 +114,92 @@ export default function CheckoutPage() {
   
   // Determine shipping provider based on country (non-editable, auto-set)
   const shippingProvider = getShippingProvider(shippingForm.country);
+
+  // Calculate delivery time based on cart items and selected country
+  const deliveryTime = cartItems && cartItems.length > 0 && shippingForm.country
+    ? getDeliveryTime(
+        cartItems.map((item) => ({
+          prescriptionData: item.prescriptionData,
+          productSlug: item.product.slug,
+        })),
+        shippingForm.country
+      )
+    : null;
+
+  // Handle cancelled payment - refund wallet if needed (for both Stripe and PayPal)
+  useEffect(() => {
+    const cancelled = searchParams.get('cancelled');
+    const orderId = searchParams.get('orderId');
+    const paymentMethod = searchParams.get('paymentMethod'); // 'paypal' or null (Stripe)
+    
+    if (cancelled === 'true' && orderId && session?.user) {
+      console.log('[Checkout] Payment cancelled, attempting to refund wallet for order:', orderId, 'paymentMethod:', paymentMethod || 'stripe');
+      
+      // Clear PayPal pending order from session storage if it exists
+      if (paymentMethod === 'paypal') {
+        sessionStorage.removeItem('pendingPayPalOrder');
+      }
+      
+      // Refund wallet for the cancelled order
+      refundWalletForOrder(orderId)
+        .then((result) => {
+          if (result.success && result.refunded && result.refunded > 0) {
+            toast({
+              title: "Wallet Refunded",
+              description: `€${result.refunded.toFixed(2)} has been returned to your wallet.`,
+            });
+            // Reload wallet balance
+            loadWalletBalance();
+            // Remove query params to clean URL
+            router.replace('/checkout', { scroll: false });
+          } else if (result.alreadyRefunded) {
+            // Already refunded, just reload wallet
+            loadWalletBalance();
+            router.replace('/checkout', { scroll: false });
+          } else if (result.error) {
+            console.error('[Checkout] Error refunding wallet:', result.error);
+            toast({
+              title: "Refund Error",
+              description: result.error || "Could not refund wallet. Please contact support.",
+              variant: "destructive",
+            });
+          }
+        })
+        .catch((error) => {
+          console.error('[Checkout] Exception refunding wallet:', error);
+          toast({
+            title: "Refund Error",
+            description: "An error occurred while refunding your wallet. Please contact support.",
+            variant: "destructive",
+          });
+        });
+    }
+  }, [searchParams, session?.user, router, toast]);
+
+  // Check for and refund pending orders with wallet deductions when page loads
+  // This handles cases where user navigated back from payment page
+  useEffect(() => {
+    if (session?.user) {
+      // Check for pending orders that need wallet refund
+      refundPendingOrders()
+        .then((result) => {
+          if (result.success && result.ordersProcessed && result.ordersProcessed > 0) {
+            console.log(`[Checkout] Refunded wallet for ${result.ordersProcessed} pending order(s), total: €${result.refunded?.toFixed(2) || '0.00'}`);
+            if (result.refunded && result.refunded > 0) {
+              toast({
+                title: "Wallet Refunded",
+                description: `€${result.refunded.toFixed(2)} has been returned to your wallet from previous checkout attempts.`,
+              });
+            }
+            // Reload wallet balance after refund
+            loadWalletBalance();
+          }
+        })
+        .catch((error) => {
+          console.error('[Checkout] Error checking pending orders:', error);
+        });
+    }
+  }, [session?.user, toast]);
 
   // Load saved addresses and wallet balance
   useEffect(() => {
@@ -328,13 +427,53 @@ export default function CheckoutPage() {
   };
 
   const handleProceedToPayment = async () => {
+    // Validate cart is not empty
+    if (!cartItems || cartItems.length === 0) {
+      alert("Your cart is empty. Please add items to your cart first.");
+      return;
+    }
+
     const validationError = validateShippingForm();
     if (validationError) {
       alert(validationError);
       return;
     }
 
+    console.log('[CHECKOUT PAGE] Proceeding to payment with', cartItems.length, 'items', 'via', paymentMethod);
     setIsProcessing(true);
+
+    // Track InitiateCheckout event with Meta Pixel and GA4 (only once per checkout attempt)
+    if (!hasTrackedCheckout.current) {
+      hasTrackedCheckout.current = true;
+      try {
+        const contents = cartItems.map((item) => ({
+          id: item.product.slug || item.product.id,
+          quantity: item.quantity,
+        }));
+        
+        // Meta Pixel
+        trackInitiateCheckout(total, 'EUR', contents);
+        
+        // GA4
+        const ga4Items = cartItems.map((item) => {
+          const price = parseFloat(item.product.price.replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+          return {
+            item_id: item.product.slug || item.product.id,
+            item_name: item.product.name,
+            price: price,
+            quantity: item.quantity,
+          };
+        });
+        
+        trackGA4BeginCheckout({
+          value: total,
+          currency: 'EUR',
+          items: ga4Items,
+        });
+      } catch (trackError) {
+        console.error('[CHECKOUT PAGE] Analytics tracking error:', trackError);
+      }
+    }
 
     try {
       // If it's a new address and user wants to save it, save it first
@@ -361,10 +500,109 @@ export default function CheckoutPage() {
         await loadAddresses();
       }
 
-      // Create Stripe Checkout Session
-      let result;
+      console.log('[CHECKOUT PAGE] Order Summary Total:', total);
+
+      if (paymentMethod === "paypal") {
+        // PayPal Payment Flow
+        await handlePayPalPayment();
+      } else {
+        // Stripe Payment Flow (default)
+        await handleStripePayment();
+      }
+    } catch (error) {
+      console.error("Error creating checkout session:", error);
+      alert("An error occurred. Please try again.");
+      setIsProcessing(false);
+    }
+  };
+
+  const handleStripePayment = async () => {
+    let result;
+    try {
+      result = await createCheckoutSession({
+        shippingAddress: {
+          name: shippingForm.name,
+          phone: shippingForm.phone,
+          addressLine1: shippingForm.addressLine1,
+          addressLine2: shippingForm.addressLine2 || undefined,
+          city: shippingForm.city,
+          state: shippingForm.state || undefined,
+          postalCode: shippingForm.postalCode,
+          country: shippingForm.country,
+        },
+        walletAmount: useWallet ? walletDiscount : 0,
+        promoCodeId: appliedPromoCode?.id || null,
+        orderTotal: total,
+      });
+    } catch (apiError: any) {
+      console.error("Error calling createCheckoutSession:", apiError);
+      alert("Failed to create checkout session. Please try again.");
+      setIsProcessing(false);
+      return;
+    }
+
+    console.log("Checkout session result:", result);
+
+    // Check for error first
+    if (result && 'error' in result) {
+      console.error("Checkout session error:", result.error);
+      alert(result.error || "Failed to create checkout session. Please try again.");
+      setIsProcessing(false);
+      return;
+    }
+
+    // Check if result has success and url
+    if (result && 'success' in result && result.success && 'url' in result && result.url) {
+      let checkoutUrl: string;
+      
+      if (typeof result.url === 'string') {
+        checkoutUrl = result.url.trim();
+      } else {
+        console.error("URL is not a string:", result.url, typeof result.url);
+        alert("Invalid checkout URL format. Please try again.");
+        setIsProcessing(false);
+        return;
+      }
+      
+      if (!checkoutUrl || checkoutUrl.length === 0 || checkoutUrl === 'null' || checkoutUrl === 'undefined') {
+        console.error("Invalid URL from Stripe (empty/null):", result.url);
+        alert("Invalid checkout URL received. Please try again or contact support.");
+        setIsProcessing(false);
+        return;
+      }
+
       try {
-        result = await createCheckoutSession({
+        const url = new URL(checkoutUrl);
+        if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+          throw new Error('Invalid URL protocol: ' + url.protocol);
+        }
+        
+        console.log("Redirecting to Stripe Checkout:", checkoutUrl);
+        try {
+          window.location.assign(checkoutUrl);
+        } catch (redirectError: any) {
+          console.error("Failed to redirect:", redirectError);
+          window.location.href = checkoutUrl;
+        }
+      } catch (urlError: any) {
+        console.error("Invalid URL from Stripe:", checkoutUrl, urlError);
+        alert(`Invalid checkout URL: ${urlError.message || 'Invalid format'}. Please try again or contact support.`);
+        setIsProcessing(false);
+      }
+    } else {
+      console.error("Missing URL in response:", result);
+      alert("Failed to create checkout session. No valid URL received. Please try again.");
+      setIsProcessing(false);
+    }
+  };
+
+  const handlePayPalPayment = async () => {
+    try {
+      // Step 1: Create PayPal order
+      const createResponse = await fetch('/api/paypal/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           shippingAddress: {
             name: shippingForm.name,
             phone: shippingForm.phone,
@@ -377,89 +615,42 @@ export default function CheckoutPage() {
           },
           walletAmount: useWallet ? walletDiscount : 0,
           promoCodeId: appliedPromoCode?.id || null,
-        });
-      } catch (apiError: any) {
-        console.error("Error calling createCheckoutSession:", apiError);
-        alert("Failed to create checkout session. Please try again.");
+          orderTotal: total,
+        }),
+      });
+
+      const createResult = await createResponse.json();
+
+      if (!createResponse.ok || !createResult.success) {
+        console.error("PayPal order creation failed:", createResult);
+        alert(createResult.error || "Failed to create PayPal order. Please try again.");
         setIsProcessing(false);
         return;
       }
 
-      console.log("Checkout session result:", result);
-      console.log("Result type:", typeof result);
-      console.log("Result is null?", result === null);
-      console.log("Result is undefined?", result === undefined);
-      if (result) {
-        console.log("Result keys:", Object.keys(result));
-        console.log("Result.success:", (result as any).success);
-        console.log("Result.url:", (result as any).url);
-        console.log("Result.error:", (result as any).error);
-      }
+      console.log("PayPal order created:", createResult);
 
-      // Check for error first
-      if (result && 'error' in result) {
-        console.error("Checkout session error:", result.error);
-        alert(result.error || "Failed to create checkout session. Please try again.");
-        setIsProcessing(false);
-        return;
-      }
+      // Store orderId for capture after approval
+      // Also store wallet transaction ID for potential refund
+      sessionStorage.setItem('pendingPayPalOrder', JSON.stringify({
+        paypalOrderId: createResult.paypalOrderId,
+        orderId: createResult.orderId,
+        orderNumber: createResult.orderNumber,
+        walletTransactionId: createResult.walletTransactionId || null,
+      }));
 
-      // Check if result has success and url
-      if (result && 'success' in result && result.success && 'url' in result && result.url) {
-        // Validate URL before redirecting
-        let checkoutUrl: string;
-        
-        if (typeof result.url === 'string') {
-          checkoutUrl = result.url.trim();
-        } else {
-          console.error("URL is not a string:", result.url, typeof result.url);
-          alert("Invalid checkout URL format. Please try again.");
-          setIsProcessing(false);
-          return;
-        }
-        
-        if (!checkoutUrl || checkoutUrl.length === 0 || checkoutUrl === 'null' || checkoutUrl === 'undefined') {
-          console.error("Invalid URL from Stripe (empty/null):", result.url);
-          alert("Invalid checkout URL received. Please try again or contact support.");
-          setIsProcessing(false);
-          return;
-        }
-
-        // Validate URL format
-        try {
-          const url = new URL(checkoutUrl);
-          if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-            throw new Error('Invalid URL protocol: ' + url.protocol);
-          }
-          
-          // Ensure it's a Stripe checkout URL
-          if (!checkoutUrl.includes('checkout.stripe.com')) {
-            console.warn("URL doesn't appear to be a Stripe checkout URL:", checkoutUrl);
-          }
-          
-          // Redirect to Stripe Checkout using assign for better error handling
-          console.log("Redirecting to Stripe Checkout:", checkoutUrl);
-          try {
-            window.location.assign(checkoutUrl);
-          } catch (redirectError: any) {
-            console.error("Failed to redirect:", redirectError);
-            // Fallback to href
-            window.location.href = checkoutUrl;
-          }
-        } catch (urlError: any) {
-          console.error("Invalid URL from Stripe:", checkoutUrl, urlError);
-          alert(`Invalid checkout URL: ${urlError.message || 'Invalid format'}. Please try again or contact support.`);
-          setIsProcessing(false);
-        }
+      // Redirect to PayPal for approval
+      if (createResult.approvalUrl) {
+        console.log("Redirecting to PayPal:", createResult.approvalUrl);
+        window.location.assign(createResult.approvalUrl);
       } else {
-        console.error("Missing URL in response:", result);
-        console.error("Response structure:", JSON.stringify(result, null, 2));
-        alert("Failed to create checkout session. No valid URL received. Please try again.");
+        console.error("No approval URL in PayPal response");
+        alert("Failed to get PayPal checkout URL. Please try again.");
         setIsProcessing(false);
       }
-    } catch (error) {
-      console.error("Error creating checkout session:", error);
-      alert("An error occurred. Please try again.");
+    } catch (error: any) {
+      console.error("PayPal payment error:", error);
+      alert("An error occurred with PayPal. Please try again.");
       setIsProcessing(false);
     }
   };
@@ -661,6 +852,12 @@ export default function CheckoutPage() {
                           {shippingProvider === 'Omniva' && ' (Latvia, Lithuania, Estonia)'}
                           {shippingProvider === 'DHL' && ' (Other countries)'}
                         </p>
+                        {deliveryTime && (
+                          <p className="text-sm text-brand-teal font-semibold mt-2 flex items-center gap-1">
+                            <span>📦</span>
+                            <span>Expected Delivery: {deliveryTime}</span>
+                          </p>
+                        )}
                       </div>
 
                       {/* Option to save address if it's a new address */}
@@ -687,27 +884,95 @@ export default function CheckoutPage() {
                 {/* Payment Section */}
                 <div>
                   <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
-                    Payment
+                    Payment Method
                   </h2>
                   <Card className="border border-gray-200">
                     <CardContent className="p-6">
-                      <div className="flex items-center gap-3 mb-4">
+                      <div className="flex items-center gap-3 mb-6">
                         <Lock className="h-6 w-6 text-brand-teal" />
                         <div>
                           <h3 className="text-brand-h3 font-headline text-brand-blue">
                             Secure Payment
                           </h3>
                           <p className="text-sm text-muted-foreground">
-                            Your payment will be processed securely by Stripe
+                            Choose your preferred payment method
                           </p>
                         </div>
                       </div>
-                      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <p className="text-xs text-muted-foreground mb-2">
-                          🔒 Secured by Stripe
-                        </p>
+
+                      <RadioGroup
+                        value={paymentMethod}
+                        onValueChange={(value) => setPaymentMethod(value as "stripe" | "paypal")}
+                        className="space-y-4"
+                      >
+                        {/* Stripe Option */}
+                        <div className={`relative flex items-center border rounded-lg p-4 cursor-pointer transition-all ${
+                          paymentMethod === "stripe" 
+                            ? "border-brand-teal bg-brand-teal/5 ring-2 ring-brand-teal/20" 
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}>
+                          <RadioGroupItem value="stripe" id="stripe" className="sr-only" />
+                          <Label htmlFor="stripe" className="flex items-center gap-4 cursor-pointer flex-1">
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                              paymentMethod === "stripe" ? "border-brand-teal" : "border-gray-300"
+                            }`}>
+                              {paymentMethod === "stripe" && (
+                                <div className="w-3 h-3 rounded-full bg-brand-teal" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <CreditCard className="h-6 w-6 text-gray-600" />
+                              <div>
+                                <span className="font-semibold text-brand-blue">Credit/Debit Card</span>
+                                <p className="text-xs text-muted-foreground">Visa, Mastercard, Amex, and more</p>
+                              </div>
+                            </div>
+                            <div className="ml-auto flex items-center gap-2">
+                              <img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/flags/4x3/eu.svg" alt="EU" className="h-4 w-6 object-cover rounded-sm opacity-60" />
+                              <span className="text-xs text-muted-foreground">Powered by Stripe</span>
+                            </div>
+                          </Label>
+                        </div>
+
+                        {/* PayPal Option */}
+                        <div className={`relative flex items-center border rounded-lg p-4 cursor-pointer transition-all ${
+                          paymentMethod === "paypal" 
+                            ? "border-[#0070ba] bg-[#0070ba]/5 ring-2 ring-[#0070ba]/20" 
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}>
+                          <RadioGroupItem value="paypal" id="paypal" className="sr-only" />
+                          <Label htmlFor="paypal" className="flex items-center gap-4 cursor-pointer flex-1">
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                              paymentMethod === "paypal" ? "border-[#0070ba]" : "border-gray-300"
+                            }`}>
+                              {paymentMethod === "paypal" && (
+                                <div className="w-3 h-3 rounded-full bg-[#0070ba]" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M7.076 21.337H2.47a.641.641 0 01-.633-.74L4.944 3.384a.77.77 0 01.76-.647h6.583c2.178 0 3.908.536 5.012 1.551 1.053.969 1.478 2.359 1.228 4.013-.342 2.256-1.465 3.922-3.239 4.811-1.41.706-3.139 1.056-5.134 1.056H7.57l-1.24 6.441a.75.75 0 01-.746.633l-.509.095z" fill="#009cde"/>
+                                <path d="M23.053 8.033c-.384 2.525-1.688 4.382-3.803 5.395-1.583.758-3.588 1.123-5.969 1.123h-1.92l-1.287 6.687a.75.75 0 01-.746.633h-3.45a.47.47 0 01-.464-.543l.176-.915.05-.257L7.067 11.5l.027-.155a.77.77 0 01.76-.647h1.705c2.623 0 4.697-.566 6.166-1.684 1.437-1.092 2.35-2.705 2.715-4.8.185-1.068.113-1.97-.185-2.713 1.234.79 1.985 2.059 1.985 3.74-.001.931-.066 1.852-.187 2.792z" fill="#012169"/>
+                              </svg>
+                              <div>
+                                <span className="font-semibold text-brand-blue">PayPal</span>
+                                <p className="text-xs text-muted-foreground">Pay with your PayPal account</p>
+                              </div>
+                            </div>
+                            <div className="ml-auto">
+                              <span className="text-xs text-muted-foreground">Fast & Secure</span>
+                            </div>
+                          </Label>
+                        </div>
+                      </RadioGroup>
+
+                      <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
                         <p className="text-xs text-muted-foreground">
-                          We accept all major credit and debit cards. Your payment information is encrypted and secure.
+                          {paymentMethod === "stripe" ? (
+                            <>🔒 Your payment is secured with Stripe's industry-leading encryption and fraud prevention.</>
+                          ) : (
+                            <>🔒 PayPal Purchase Protection covers eligible purchases. You can also pay with your linked cards.</>
+                          )}
                         </p>
                       </div>
                     </CardContent>
@@ -945,7 +1210,11 @@ export default function CheckoutPage() {
                   <Button
                     size="lg"
                     onClick={handleProceedToPayment}
-                    className="w-full bg-brand-teal text-white hover:bg-brand-teal/90 font-semibold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className={`w-full font-semibold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                      paymentMethod === "paypal" 
+                        ? "bg-[#0070ba] hover:bg-[#003087] text-white" 
+                        : "bg-brand-teal hover:bg-brand-teal/90 text-white"
+                    }`}
                     disabled={isProcessing}
                   >
                     {isProcessing ? (
@@ -953,10 +1222,17 @@ export default function CheckoutPage() {
                         <span className="animate-spin">⏳</span>
                         <span>Processing...</span>
                       </>
+                    ) : paymentMethod === "paypal" ? (
+                      <>
+                        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M7.076 21.337H2.47a.641.641 0 01-.633-.74L4.944 3.384a.77.77 0 01.76-.647h6.583c2.178 0 3.908.536 5.012 1.551 1.053.969 1.478 2.359 1.228 4.013-.342 2.256-1.465 3.922-3.239 4.811-1.41.706-3.139 1.056-5.134 1.056H7.57l-1.24 6.441a.75.75 0 01-.746.633l-.509.095z"/>
+                        </svg>
+                        <span>Pay with PayPal</span>
+                      </>
                     ) : (
                       <>
                         <Lock className="h-5 w-5" />
-                        <span>Proceed to Secure Payment</span>
+                        <span>Pay with Card</span>
                       </>
                     )}
                   </Button>

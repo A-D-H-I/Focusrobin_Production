@@ -10,13 +10,16 @@ export interface InvoiceData {
   customerEmail: string;
   orderDate: Date;
   items: Array<{
+    id: string; // Unique item ID for tracking
     name: string;
     variant: string;
+    sku: string; // SKU for item identification
     quantity: number;
     price: number; // Final price after product discount
     originalPrice?: number; // Original price before product discount
     discountPct?: number; // Product discount percentage
     total: number;
+    hasPrescription?: boolean; // Whether this item has prescription
   }>;
   subtotal: number;
   shipping: number;
@@ -402,6 +405,7 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
 
 /**
  * Get invoice data from order
+ * Includes unique item IDs and SKUs for proper item tracking
  */
 export async function getInvoiceDataFromOrder(orderId: string): Promise<InvoiceData | null> {
   try {
@@ -428,6 +432,7 @@ export async function getInvoiceDataFromOrder(orderId: string): Promise<InvoiceD
     });
 
     if (!order) {
+      console.error(`[Invoice] Order not found: ${orderId}`);
       return null;
     }
 
@@ -435,25 +440,33 @@ export async function getInvoiceDataFromOrder(orderId: string): Promise<InvoiceD
     const discount = Number(order.promoDiscount || 0);
     const walletAmount = Number(order.walletAmountUsed || 0);
     
+    console.log(`[Invoice] Processing order ${order.orderNumber} with ${order.items.length} items:`);
+    
     return {
       orderId: order.id,
       orderNumber: order.orderNumber,
       customerName: order.User?.name || order.shippingName || 'Customer',
       customerEmail: order.User?.email || 'customer@example.com',
       orderDate: order.createdAt,
-      items: order.items.map((item) => {
+      items: order.items.map((item, index) => {
         const finalPrice = Number(item.price);
         const discountPct = item.Product?.discountPct || 0;
         const originalPrice = discountPct > 0 ? finalPrice / (1 - discountPct / 100) : finalPrice;
+        const hasPrescription = !!(item.prescriptionData);
+        
+        console.log(`[Invoice]   Item ${index + 1}: ${item.productName} (${item.variantName}) - SKU: ${item.sku}, ID: ${item.id}, HasPrescription: ${hasPrescription}, Price: €${finalPrice}, Qty: ${item.quantity}, Total: €${Number(item.total)}`);
         
         return {
+          id: item.id,
           name: item.productName,
           variant: item.variantName,
+          sku: item.sku,
           quantity: item.quantity,
           price: finalPrice,
           originalPrice: discountPct > 0 ? originalPrice : undefined,
           discountPct: discountPct > 0 ? discountPct : undefined,
           total: Number(item.total),
+          hasPrescription,
         };
       }),
       subtotal: Number(order.subtotal),
@@ -480,7 +493,7 @@ export async function getInvoiceDataFromOrder(orderId: string): Promise<InvoiceD
       dueDate: new Date(order.createdAt.getTime() + 9 * 24 * 60 * 60 * 1000), // 9 days from order date
     };
   } catch (error) {
-    console.error('Error getting invoice data:', error);
+    console.error('[Invoice] Error getting invoice data:', error);
     return null;
   }
 }

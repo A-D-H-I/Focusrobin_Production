@@ -2,9 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { getAvailableFrameColors, type AvailableColor } from "@/app/actions/getAvailableColors";
 import { getAvailableGlassShapes, type AvailableGlassShape } from "@/app/actions/getAvailableGlassShapes";
+import { normalizeImageUrl } from "@/lib/normalize-image-url";
 
 interface ShopMegaMenuProps {
   isOpen: boolean;
@@ -120,15 +122,20 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
     };
   }, []);
 
-  // Prevent body scroll when menu is open
+  // Prevent body scroll when menu is open with scrollbar compensation
   useEffect(function preventScroll() {
     if (isOpen) {
+      // Calculate and store scrollbar width before hiding overflow
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = "hidden";
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
     } else {
       document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
     }
     return function() {
       document.body.style.overflow = "";
+      document.body.style.paddingRight = "";
     };
   }, [isOpen]);
 
@@ -160,9 +167,6 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
           <div className="space-y-2 sm:space-y-3">
             <Link href="/shop" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
               All Sunglasses
-            </Link>
-            <Link href="/shop/prescription-glasses" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm font-semibold" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-              Prescription Glasses
             </Link>
             <Link href="/shop/women" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
               Women&apos;s Sunglasses
@@ -233,6 +237,8 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
               {availableShapes.map(function(shapeData, index) {
                 const shapeIcon = getShapeIcon(shapeData.shape);
+                const hasImage = shapeData.imageUrl && shapeData.imageUrl.trim() !== '';
+                
                 return (
                   <Link
                     key={shapeData.shape + "-" + index}
@@ -240,56 +246,71 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
                     className="group flex flex-col items-center p-2 sm:p-3 bg-[#F5F5DC] rounded-lg hover:bg-[#E8E8D0] transition-colors"
                     onClick={(e) => { e.stopPropagation(); onClose(); }}
                   >
-                    <div className="w-10 h-6 sm:w-12 sm:h-8 mb-1 sm:mb-2 flex items-center justify-center">
-                      {shapeIcon === "cat-eye" && (
-                        <svg viewBox="0 0 24 16" className="w-full h-full">
-                          <path d="M2 8 Q6 2, 12 8 Q18 14, 22 8" stroke="black" strokeWidth="1.5" fill="none" />
-                          <path d="M6 8 L12 4 L18 8" stroke="black" strokeWidth="1.5" fill="none" />
-                        </svg>
-                      )}
-                      {shapeIcon === "rectangle" && (
-                        <svg viewBox="0 0 24 16" className="w-full h-full">
-                          <rect x="4" y="4" width="16" height="8" stroke="black" strokeWidth="1.5" fill="none" />
-                        </svg>
-                      )}
-                      {shapeIcon === "square" && (
-                        <svg viewBox="0 0 24 16" className="w-full h-full">
-                          <rect x="6" y="2" width="12" height="12" stroke="black" strokeWidth="1.5" fill="none" />
-                        </svg>
-                      )}
-                      {shapeIcon === "butterfly" && (
-                        <svg viewBox="0 0 24 16" className="w-full h-full">
-                          <path d="M2 8 Q8 2, 12 8 Q16 14, 22 8" stroke="black" strokeWidth="1.5" fill="none" />
-                          <path d="M8 6 Q12 8, 16 6" stroke="black" strokeWidth="1.5" fill="none" />
-                        </svg>
-                      )}
-                      {shapeIcon === "round" && (
-                        <svg viewBox="0 0 24 16" className="w-full h-full">
-                          <circle cx="12" cy="8" r="6" stroke="black" strokeWidth="1.5" fill="none" />
-                        </svg>
-                      )}
-                      {shapeIcon === "geometric" && (
-                        <svg viewBox="0 0 24 16" className="w-full h-full">
-                          <polygon points="12,2 20,6 20,14 12,18 4,14 4,6" stroke="black" strokeWidth="1.5" fill="none" />
-                        </svg>
-                      )}
-                      {shapeIcon === "aviator" && (
-                        <svg viewBox="0 0 24 16" className="w-full h-full">
-                          <ellipse cx="8" cy="8" rx="6" ry="4" stroke="black" strokeWidth="1.5" fill="none" />
-                          <ellipse cx="16" cy="8" rx="6" ry="4" stroke="black" strokeWidth="1.5" fill="none" />
-                          <line x1="14" y1="8" x2="10" y2="8" stroke="black" strokeWidth="1.5" />
-                        </svg>
-                      )}
-                      {shapeIcon === "browline" && (
-                        <svg viewBox="0 0 24 16" className="w-full h-full">
-                          <path d="M4 6 L8 4 L12 6 L16 4 L20 6" stroke="black" strokeWidth="2" fill="none" />
-                          <path d="M4 10 L8 12 L12 10 L16 12 L20 10" stroke="black" strokeWidth="1.5" fill="none" />
-                        </svg>
-                      )}
-                      {shapeIcon === "oval" && (
-                        <svg viewBox="0 0 24 16" className="w-full h-full">
-                          <ellipse cx="12" cy="8" rx="8" ry="5" stroke="black" strokeWidth="1.5" fill="none" />
-                        </svg>
+                    <div className="w-10 h-6 sm:w-12 sm:h-8 mb-1 sm:mb-2 flex items-center justify-center relative">
+                      {hasImage ? (
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={normalizeImageUrl(shapeData.imageUrl!)}
+                            alt={shapeData.shape}
+                            fill
+                            className="object-contain"
+                            sizes="(max-width: 640px) 40px, 48px"
+                          />
+                        </div>
+                      ) : (
+                        // Fallback to SVG icons if no image
+                        <>
+                          {shapeIcon === "cat-eye" && (
+                            <svg viewBox="0 0 24 16" className="w-full h-full">
+                              <path d="M2 8 Q6 2, 12 8 Q18 14, 22 8" stroke="black" strokeWidth="1.5" fill="none" />
+                              <path d="M6 8 L12 4 L18 8" stroke="black" strokeWidth="1.5" fill="none" />
+                            </svg>
+                          )}
+                          {shapeIcon === "rectangle" && (
+                            <svg viewBox="0 0 24 16" className="w-full h-full">
+                              <rect x="4" y="4" width="16" height="8" stroke="black" strokeWidth="1.5" fill="none" />
+                            </svg>
+                          )}
+                          {shapeIcon === "square" && (
+                            <svg viewBox="0 0 24 16" className="w-full h-full">
+                              <rect x="6" y="2" width="12" height="12" stroke="black" strokeWidth="1.5" fill="none" />
+                            </svg>
+                          )}
+                          {shapeIcon === "butterfly" && (
+                            <svg viewBox="0 0 24 16" className="w-full h-full">
+                              <path d="M2 8 Q8 2, 12 8 Q16 14, 22 8" stroke="black" strokeWidth="1.5" fill="none" />
+                              <path d="M8 6 Q12 8, 16 6" stroke="black" strokeWidth="1.5" fill="none" />
+                            </svg>
+                          )}
+                          {shapeIcon === "round" && (
+                            <svg viewBox="0 0 24 16" className="w-full h-full">
+                              <circle cx="12" cy="8" r="6" stroke="black" strokeWidth="1.5" fill="none" />
+                            </svg>
+                          )}
+                          {shapeIcon === "geometric" && (
+                            <svg viewBox="0 0 24 16" className="w-full h-full">
+                              <polygon points="12,2 20,6 20,14 12,18 4,14 4,6" stroke="black" strokeWidth="1.5" fill="none" />
+                            </svg>
+                          )}
+                          {shapeIcon === "aviator" && (
+                            <svg viewBox="0 0 24 16" className="w-full h-full">
+                              <ellipse cx="8" cy="8" rx="6" ry="4" stroke="black" strokeWidth="1.5" fill="none" />
+                              <ellipse cx="16" cy="8" rx="6" ry="4" stroke="black" strokeWidth="1.5" fill="none" />
+                              <line x1="14" y1="8" x2="10" y2="8" stroke="black" strokeWidth="1.5" />
+                            </svg>
+                          )}
+                          {shapeIcon === "browline" && (
+                            <svg viewBox="0 0 24 16" className="w-full h-full">
+                              <path d="M4 6 L8 4 L12 6 L16 4 L20 6" stroke="black" strokeWidth="2" fill="none" />
+                              <path d="M4 10 L8 12 L12 10 L16 12 L20 10" stroke="black" strokeWidth="1.5" fill="none" />
+                            </svg>
+                          )}
+                          {shapeIcon === "oval" && (
+                            <svg viewBox="0 0 24 16" className="w-full h-full">
+                              <ellipse cx="12" cy="8" rx="8" ry="5" stroke="black" strokeWidth="1.5" fill="none" />
+                            </svg>
+                          )}
+                        </>
                       )}
                     </div>
                     <span className="text-[10px] sm:text-xs text-black text-center leading-tight">{shapeData.shape}</span>

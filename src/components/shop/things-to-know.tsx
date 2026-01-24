@@ -39,12 +39,13 @@ export default function ThingsToKnow() {
                 {features.map(feature => {
                     return (
                         <div key={feature.id} className="text-center">
-                            <div className="relative w-full aspect-[4/3] min-h-[200px] rounded-lg overflow-hidden mb-4 shadow-lg bg-muted">
+                            <div className="relative w-full rounded-lg overflow-hidden mb-4 shadow-lg bg-muted flex items-center justify-center">
                                 <Image 
                                     src={feature.image} 
                                     alt={feature.title} 
-                                    fill
-                                    className="object-cover"
+                                    width={400}
+                                    height={300}
+                                    className="object-contain w-full h-auto"
                                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
                                     priority
                                 />
@@ -55,12 +56,13 @@ export default function ThingsToKnow() {
                     )
                 })}
                  <div className="text-center">
-                    <div className="relative w-full aspect-[4/3] min-h-[200px] rounded-lg overflow-hidden mb-4 shadow-lg bg-muted">
+                    <div className="relative w-full rounded-lg overflow-hidden mb-4 shadow-lg bg-muted flex items-center justify-center">
                         <Image 
                             src="/produc_ spec/bio-based.webp" 
                             alt="Bio-based & Earth-friendly" 
-                            fill
-                            className="object-cover"
+                            width={400}
+                            height={300}
+                            className="object-contain w-full h-auto"
                             sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 25vw"
                             priority
                         />

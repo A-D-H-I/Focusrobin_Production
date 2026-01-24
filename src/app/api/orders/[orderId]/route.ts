@@ -24,12 +24,12 @@ export async function GET(
       where: { id: orderId },
       include: {
         items: {
-          select: {
-            productName: true,
-            variantName: true,
-            quantity: true,
-            price: true,
-            total: true,
+          include: {
+            Product: {
+              select: {
+                slug: true,
+              },
+            },
           },
         },
       },
@@ -59,11 +59,16 @@ export async function GET(
         promoDiscount: order.promoDiscount ? Number(order.promoDiscount) : 0,
         currency: order.currency,
         items: order.items.map((item) => ({
+          id: item.id,
           productName: item.productName,
           variantName: item.variantName,
+          sku: item.sku,
           quantity: item.quantity,
           price: Number(item.price),
           total: Number(item.total),
+          prescriptionData: item.prescriptionData,
+          hasPrescription: !!(item.prescriptionData),
+          productSlug: item.Product?.slug || null,
         })),
         shippingAddress: {
           name: order.shippingName,

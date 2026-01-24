@@ -47,10 +47,10 @@ function StarRating({ rating, count }: { rating: number; count?: number }) {
     <div className="flex items-center gap-1">
       <div className="flex">
         {[...Array(5)].map((_, i) => (
-          <Star
+            <Star
             key={i}
             className={cn(
-              "h-3.5 w-3.5",
+              "h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5",
               i < fullStars
                 ? "fill-amber-400 text-amber-400"
                 : i === fullStars && hasHalfStar
@@ -61,7 +61,7 @@ function StarRating({ rating, count }: { rating: number; count?: number }) {
         ))}
       </div>
       {count !== undefined && (
-        <span className="text-xs text-muted-foreground">({count})</span>
+        <span className="text-sm sm:text-base text-muted-foreground">({count})</span>
       )}
     </div>
   );
@@ -103,12 +103,28 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Check stock before adding to cart
+    if (selectedVariant.stock !== undefined && selectedVariant.stock !== null) {
+      if (selectedVariant.stock === 0) {
+        toast({
+          title: "Out of Stock",
+          description: "This product is currently out of stock.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    
     addToCart(product, selectedVariant, 1);
     toast({
       title: "Added to cart",
       description: `${product.name} (${selectedVariant.name}) has been added to your cart.`,
     });
   };
+  
+  // Check if selected variant is out of stock
+  const isOutOfStock = selectedVariant?.stock !== undefined && selectedVariant?.stock !== null && selectedVariant.stock === 0;
 
   const handleWishlistToggle = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -134,8 +150,8 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
     // Check if selected variant has try-on image
     const variantWithTryOn = product.variants.find(v => v.tryOn) || selectedVariant;
     const variantIndex = product.variants.findIndex(v => v.hex === variantWithTryOn.hex);
-    // Navigate to try-on page with product and variant info
-    router.push(`/try-on?product=${encodeURIComponent(product.id)}&variant=${variantIndex}`);
+    // Navigate to try-on page with product and variant info (using slug)
+    router.push(`/try-on?product=${encodeURIComponent(product.slug)}&variant=${variantIndex}`);
   };
 
   // Extract brand name from product name or categories
@@ -185,10 +201,10 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
             {/* Content Section */}
             <div className="flex-1 p-2 sm:p-3 md:p-4 flex flex-col justify-between">
               <div>
-                <p className="text-xs sm:text-sm font-medium text-teal-primary uppercase tracking-wide mb-1">
+                <p className="text-sm sm:text-base md:text-lg font-medium text-teal-primary uppercase tracking-wide mb-1">
                   {brandName}
                 </p>
-                <h3 className="text-base sm:text-lg md:text-xl lg:text-brand-h3 font-headline text-foreground mb-1 sm:mb-2 line-clamp-1 break-words overflow-hidden text-ellipsis">
+                <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-headline text-foreground mb-1 sm:mb-2 line-clamp-1 break-words overflow-hidden text-ellipsis">
                   {product.name}
                 </h3>
                 
@@ -197,16 +213,16 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                 )}
                 
                 <div className="flex items-center gap-2 mt-2">
-                  <p className="text-lg font-bold text-foreground">
+                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
                     {formatPrice(priceInEur)}
                   </p>
                   {originalPriceInEur && originalPriceInEur !== priceInEur && (
                     <>
-                      <p className="text-sm text-muted-foreground line-through">
+                      <p className="text-base sm:text-lg md:text-xl text-muted-foreground line-through">
                         {formatPrice(originalPriceInEur)}
                       </p>
                       {discountPct && (
-                        <span className="text-xs font-semibold text-rose-500">
+                        <span className="text-sm sm:text-base font-semibold text-rose-500">
                           -{discountPct}%
                         </span>
                       )}
@@ -243,7 +259,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                 {/* Cashback Badge */}
                 {cashbackInEur && cashbackInEur > 0 && (
                   <div className="mt-3">
-                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                    <Badge variant="outline" className="text-sm sm:text-base md:text-lg bg-green-50 text-green-700 border-green-200">
                       🎁 {formatPrice(cashbackInEur)} cashback
                     </Badge>
                   </div>
@@ -253,19 +269,20 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
               <div className="flex flex-col gap-1.5 sm:gap-2 mt-4">
                 <Button 
                   onClick={handleAddToCart}
-                  className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white border-0 text-[11px] sm:text-xs md:text-sm px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px]"
+                  disabled={isOutOfStock}
+                  className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white border-0 text-sm sm:text-base md:text-lg px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 h-auto min-h-[36px] sm:min-h-[40px] md:min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <ShoppingCart className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 mr-1 sm:mr-1.5 md:mr-2 flex-shrink-0" />
-                  <span className="whitespace-nowrap truncate">Add to Cart</span>
+                  <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5 mr-1.5 sm:mr-2 md:mr-2.5 flex-shrink-0" />
+                  <span className="whitespace-normal break-words">{isOutOfStock ? "Out of Stock" : "Add to Cart"}</span>
                 </Button>
                 <div className="flex gap-1.5 sm:gap-2">
                   <Button
                     variant="outline"
                     onClick={handleTryOnClick}
-                    className="flex-1 border-teal-primary text-teal-primary hover:bg-teal-primary/10 text-[11px] sm:text-xs md:text-sm px-1.5 sm:px-2 md:px-3 py-1.5 sm:py-2 md:py-2.5 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px]"
+                    className="flex-1 border-teal-primary text-teal-primary hover:bg-teal-primary/10 text-sm sm:text-base md:text-lg px-1.5 sm:px-2 md:px-3 py-2 sm:py-2.5 md:py-3 h-auto min-h-[36px] sm:min-h-[40px] md:min-h-[44px]"
                   >
-                    <Glasses className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 mr-1 sm:mr-1.5 md:mr-2 flex-shrink-0" />
-                    <span className="whitespace-nowrap truncate">Try-On</span>
+                    <Glasses className="h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5 mr-1.5 sm:mr-2 md:mr-2.5 flex-shrink-0" />
+                    <span className="whitespace-normal break-words">Try-On</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -294,7 +311,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
         <CardContent className="p-0 flex flex-col h-full">
           {/* Image Container */}
           <div 
-            className="aspect-square relative bg-muted/30 overflow-hidden rounded-t-xl"
+            className="aspect-[4/3] relative bg-muted/30 overflow-hidden rounded-t-xl"
             onMouseEnter={() => !hoveredVariant && setIsImageHovered(true)}
             onMouseLeave={() => setIsImageHovered(false)}
           >
@@ -335,36 +352,36 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
           </div>
           
           {/* Content Section */}
-          <div className="p-2 sm:p-3 md:p-4 flex flex-col flex-grow">
+          <div className="p-1.5 sm:p-2 md:p-3 flex flex-col flex-grow">
             {/* Brand Name */}
-            <p className="text-[10px] sm:text-xs font-semibold text-teal-primary uppercase tracking-wider mb-0.5 sm:mb-1">
+            <p className="text-xs sm:text-sm md:text-base font-semibold text-teal-primary uppercase tracking-wider mb-0.5">
               {brandName}
             </p>
             
             {/* Product Name */}
-            <h3 className="text-sm sm:text-base md:text-lg lg:text-brand-h3 font-headline text-foreground mb-1 sm:mb-2 line-clamp-1 break-words overflow-hidden text-ellipsis leading-tight sm:leading-normal">
+            <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-headline text-foreground mb-1 line-clamp-1 break-words overflow-hidden text-ellipsis leading-tight">
               {product.name}
             </h3>
             
             {/* Star Rating */}
             {product.averageRating && (
-              <div className="mb-2">
+              <div className="mb-1">
                 <StarRating rating={product.averageRating} count={product.reviewCount} />
               </div>
             )}
             
             {/* Price Section */}
-            <div className="flex items-center gap-2 mb-3 flex-wrap">
-              <p className="text-lg font-bold text-foreground">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <p className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">
                 {formatPrice(priceInEur)}
               </p>
               {originalPriceInEur && originalPriceInEur !== priceInEur && (
                 <>
-                  <p className="text-sm text-muted-foreground line-through">
+                  <p className="text-sm sm:text-base md:text-lg text-muted-foreground line-through">
                     {formatPrice(originalPriceInEur)}
                   </p>
                   {discountPct && (
-                    <span className="text-xs font-semibold text-rose-500">
+                    <span className="text-sm sm:text-base font-semibold text-rose-500">
                       -{discountPct}%
                     </span>
                   )}
@@ -373,7 +390,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
             </div>
             
             {/* Color Swatches */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-1.5 mb-1.5">
               {product.variants.slice(0, 5).map((variant) => (
                 <button
                   key={variant.hex}
@@ -387,9 +404,9 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                   onMouseEnter={() => setHoveredVariant(variant)}
                   onMouseLeave={() => setHoveredVariant(null)}
                   className={cn(
-                    "h-5 w-5 rounded-full border-2 transition-all cursor-pointer",
+                    "h-4 w-4 rounded-full border-2 transition-all cursor-pointer",
                     selectedVariant?.hex === variant.hex 
-                      ? "border-teal-primary ring-2 ring-offset-1 ring-teal-primary/50 scale-110" 
+                      ? "border-teal-primary ring-1 ring-offset-1 ring-teal-primary/50 scale-110" 
                       : "border-border hover:scale-110"
                   )}
                   style={{ backgroundColor: variant.hex }}
@@ -400,29 +417,30 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
 
             {/* Cashback Badge */}
             {cashbackInEur && cashbackInEur > 0 && (
-              <div className="mb-3">
-                <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+              <div className="mb-1.5">
+                <Badge variant="outline" className="text-xs sm:text-sm md:text-base bg-green-50 text-green-700 border-green-200 py-0.5 px-1.5">
                   🎁 {formatPrice(cashbackInEur)} cashback
                 </Badge>
               </div>
             )}
             
             {/* Buttons */}
-            <div className="flex flex-col gap-1.5 sm:gap-2 mt-auto">
+            <div className="flex flex-col gap-1 mt-auto">
               <Button 
                 onClick={handleAddToCart}
-                className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white border-0 font-semibold shadow-md hover:shadow-lg transition-all duration-300 text-[11px] sm:text-xs md:text-sm lg:text-base px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px] lg:min-h-[44px]"
+                disabled={isOutOfStock}
+                className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white border-0 font-semibold shadow-md hover:shadow-lg transition-all duration-300 text-sm sm:text-base md:text-lg px-2 sm:px-3 py-1.5 sm:py-2 md:py-2.5 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px] disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <ShoppingCart className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-1.5 md:mr-2 flex-shrink-0" />
-                <span className="whitespace-nowrap truncate">Add to Cart</span>
+                <ShoppingCart className="h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5 mr-1.5 sm:mr-2 flex-shrink-0" />
+                <span className="whitespace-normal break-words">{isOutOfStock ? "Out of Stock" : "Add to Cart"}</span>
               </Button>
               <Button 
                 variant="outline"
                 onClick={handleTryOnClick}
-                className="w-full border-teal-primary text-teal-primary hover:bg-teal-primary/10 font-semibold text-[11px] sm:text-xs md:text-sm lg:text-base px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 md:py-2.5 lg:py-3 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px] lg:min-h-[44px]"
+                className="w-full border-teal-primary text-teal-primary hover:bg-teal-primary/10 font-semibold text-sm sm:text-base md:text-lg px-2 sm:px-3 py-1.5 sm:py-2 md:py-2.5 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px]"
               >
-                <Glasses className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 lg:h-5 lg:w-5 mr-1 sm:mr-1.5 md:mr-2 flex-shrink-0" />
-                <span className="whitespace-nowrap truncate">
+                <Glasses className="h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5 mr-1.5 sm:mr-2 flex-shrink-0" />
+                <span className="whitespace-normal break-words">
                   <span className="hidden sm:inline">Virtual </span>Try-On
                 </span>
               </Button>

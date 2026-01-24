@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { createProduct, type VariantData } from '@/app/actions/createProduct';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -413,7 +414,8 @@ export function AddProductForm() {
                 placeholder="e.g., Cat Eye, Rectangle, Round"
               />
               <p className="text-xs text-muted-foreground">
-                Optional. Enter the glass shape (e.g., Cat Eye, Rectangle, Round, Aviator)
+                Optional. Enter the glass shape (e.g., Cat Eye, Rectangle, Round, Aviator). 
+                The shape will be automatically created in <Link href="/admin/shapes" className="text-primary hover:underline" target="_blank">Shape Management</Link> where you can add an image for the mega menu.
               </p>
             </div>
           </div>

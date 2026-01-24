@@ -90,9 +90,8 @@ export default function LoginPage() {
     try {
       setIsGoogleLoading(true);
       setError(null);
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const redirectUrl = `${origin}${callbackUrl}`;
-      await signIn("google", { callbackUrl: redirectUrl, redirect: true });
+      // NextAuth handles callbackUrl internally - just pass the relative path
+      await signIn("google", { callbackUrl, redirect: true });
     } catch (error) {
       console.error("Google sign in error:", error);
       setError("Failed to sign in with Google. Please try again.");
@@ -104,9 +103,8 @@ export default function LoginPage() {
     try {
       setIsFacebookLoading(true);
       setError(null);
-      const origin = typeof window !== 'undefined' ? window.location.origin : '';
-      const redirectUrl = `${origin}${callbackUrl}`;
-      await signIn("facebook", { callbackUrl: redirectUrl, redirect: true });
+      // NextAuth handles callbackUrl internally - just pass the relative path
+      await signIn("facebook", { callbackUrl, redirect: true });
     } catch (error) {
       console.error("Facebook sign in error:", error);
       setError("Failed to sign in with Facebook. Please try again.");

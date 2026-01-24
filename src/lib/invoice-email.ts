@@ -3,6 +3,7 @@
 import { Resend } from "resend";
 import { InvoiceData } from "./invoice";
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { generatePrescriptionPDF, PrescriptionPDFData } from './prescription-pdf';
 
 // Initialize Resend client
 let resend: Resend | null = null;
@@ -577,11 +578,12 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
 }
 
 /**
- * Send order confirmation email with Payment Receipt and Invoice
- * This sends a single email with both documents combined in one PDF
+ * Send order confirmation email with Payment Receipt, Invoice, and Prescription PDFs
+ * This sends a single email with all documents combined in one PDF
  */
 export async function sendOrderConfirmationWithDocuments(
-  invoiceData: InvoiceData
+  invoiceData: InvoiceData,
+  prescriptionDataList?: PrescriptionPDFData[]
 ): Promise<{ success: boolean; error?: string }> {
   const resendClient = getResendClient();
   if (!resendClient) {
@@ -596,8 +598,30 @@ export async function sendOrderConfirmationWithDocuments(
   
   try {
     // Generate the combined PDF (Payment Receipt + Invoice)
-    const pdfBuffer = await generateCombinedPDF(invoiceData);
+    let pdfBuffer = await generateCombinedPDF(invoiceData);
     console.log(`[Invoice Email] Combined PDF generated successfully (${pdfBuffer.length} bytes)`);
+    
+    // If there are prescription items, generate and append prescription PDFs
+    if (prescriptionDataList && prescriptionDataList.length > 0) {
+      console.log(`[Invoice Email] Found ${prescriptionDataList.length} prescription items, generating prescription PDFs...`);
+      
+      // Load the combined PDF
+      const mergedPdf = await PDFDocument.load(pdfBuffer);
+      
+      // Generate and append prescription PDFs
+      for (const prescriptionData of prescriptionDataList) {
+        console.log(`[Invoice Email] Generating prescription PDF for: ${prescriptionData.productName}`);
+        const prescriptionPdfBuffer = await generatePrescriptionPDF(prescriptionData);
+        const prescriptionPdf = await PDFDocument.load(prescriptionPdfBuffer);
+        const pages = await mergedPdf.copyPages(prescriptionPdf, prescriptionPdf.getPageIndices());
+        pages.forEach(page => mergedPdf.addPage(page));
+      }
+      
+      // Save the merged PDF
+      const mergedPdfBytes = await mergedPdf.save();
+      pdfBuffer = Buffer.from(mergedPdfBytes);
+      console.log(`[Invoice Email] Merged PDF with prescriptions generated (${pdfBuffer.length} bytes)`);
+    }
     
     // Convert buffer to base64 for email attachment
     const pdfBase64 = pdfBuffer.toString('base64');
@@ -747,7 +771,8 @@ export async function sendOrderConfirmationWithDocuments(
                 ${invoiceData.items.map(item => `
                   <div class="item">
                     <div style="font-weight: bold;">${item.name}</div>
-                    <div style="font-size: 14px; color: #666;">${item.variant}</div>
+                    <div style="font-size: 14px; color: #666;">${item.variant} • SKU: ${item.sku}</div>
+                    ${item.hasPrescription ? '<div style="font-size: 12px; color: #2A9D9A; font-weight: bold;">📋 Includes Prescription Lenses</div>' : ''}
                     <div style="font-size: 14px; margin-top: 5px;">
                       Quantity: ${item.quantity} × ${invoiceData.currency} ${item.price.toFixed(2)} = 
                       <strong>${invoiceData.currency} ${item.total.toFixed(2)}</strong>
