@@ -207,7 +207,7 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
+      <main className="flex-grow bg-background">
         {/* Banner */}
         <CategoryBanner
           title={bannerTitle}
@@ -425,7 +425,7 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
 
   // Render product page
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-x-hidden">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
@@ -435,8 +435,8 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
       <Header />
-      <main className="pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
-        <div className="container mx-auto px-4 py-8">
+      <main className="pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background overflow-x-hidden">
+        <div className="container mx-auto px-4 py-8 overflow-x-hidden">
           <Breadcrumb className="mb-8">
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -452,14 +452,14 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          
-          {/* Main Product Content */}
-          <ProductPageContent 
-            product={product} 
-            reviews={productReviews} 
-            relatedProducts={relatedProductsMapped}
-          />
         </div>
+        
+        {/* Main Product Content - outside container for full-width sections */}
+        <ProductPageContent 
+          product={product} 
+          reviews={productReviews} 
+          relatedProducts={relatedProductsMapped}
+        />
       </main>
       <Footer />
     </div>

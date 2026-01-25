@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { useEffect, useState, useMemo } from "react";
 import type { RxConfigData } from "./PrescriptionFlow";
+import { usePrescriptionLensImage } from "@/hooks/usePrescriptionLensImage";
+import { normalizeImageUrl } from "@/lib/normalize-image-url";
 // Note: Using local constants for lens rendering to decouple from pricing logic
 import { Sun, Moon } from "lucide-react";
 
@@ -14,6 +16,7 @@ interface PrescriptionProductImageProps {
   lensBaseImageUrl?: string | null;
   lensMaskImageUrl?: string | null;
   lensBackgroundImageUrl?: string | null;
+  currentStep?: number; // Add currentStep prop
 }
 
 // Color definitions for lens tints
@@ -183,10 +186,18 @@ export default function PrescriptionProductImage({
   lensBaseImageUrl,
   lensMaskImageUrl,
   lensBackgroundImageUrl,
+  currentStep, // Add currentStep prop
 }: PrescriptionProductImageProps) {
   // Use prop as primary source, with event listener as secondary for real-time updates
   const [currentRxConfig, setCurrentRxConfig] = useState<RxConfigData | undefined>(rxConfig);
   const [photochromicOutdoor, setPhotochromicOutdoor] = useState(false);
+
+  // Fetch lens image from global prescription lens images based on current configuration
+  const { lensImage: fetchedLensImage, isLoading: isLoadingLensImage } = usePrescriptionLensImage(
+    currentRxConfig,
+    photochromicOutdoor,
+    currentStep // Pass currentStep to the hook
+  );
 
   // Sync with prop when it changes (e.g., when product changes or prescription loads)
   useEffect(() => {
@@ -270,9 +281,15 @@ export default function PrescriptionProductImage({
   }, [isClear, isFullTint, isGradient, isPhotochromic, isPolarized, photochromicOutdoor, tintShadePercent]);
 
   // Image URLs
-  const baseImageUrl = lensBaseImageUrl || imageUrl;
-  const hasMask = !!lensMaskImageUrl;
-  const hasBackgroundImage = !!lensBackgroundImageUrl;
+  // ONLY show image from admin panel (fetchedLensImage) or the plain frame image (imageUrl)
+  // Do NOT fallback to product-specific lens images (lensBaseImageUrl)
+  // Normalize the fetched lens image URL to handle Google Drive links
+  const normalizedFetchedImage = fetchedLensImage ? normalizeImageUrl(fetchedLensImage) : null;
+  const baseImageUrl = normalizedFetchedImage || imageUrl;
+  // Only use mask/overlays if we have a fetched lens image from admin
+  const hasFetchedImage = !!normalizedFetchedImage;
+  const hasMask = hasFetchedImage && !!lensMaskImageUrl;
+  const hasBackgroundImage = hasFetchedImage && !!lensBackgroundImageUrl;
 
   // Common mask styles
   const maskStyles: React.CSSProperties = {
@@ -289,8 +306,15 @@ export default function PrescriptionProductImage({
 
   return (
     <div className="relative w-full aspect-square lg:h-[400px] bg-muted rounded-lg overflow-hidden">
-      {/* Photochromic Indoor/Outdoor Toggle */}
-      {isPhotochromic && hasMask && lensType === "PHOTOCHROMIC_SOLIS" && (
+      {/* Loading indicator when fetching lens image */}
+      {isLoadingLensImage && (
+        <div className="absolute top-4 left-4 z-20 bg-background/90 backdrop-blur-sm rounded-full px-3 py-1 shadow-md border text-xs text-muted-foreground">
+          Loading lens preview...
+        </div>
+      )}
+      
+      {/* Photochromic Indoor/Outdoor Toggle - only show if we have admin image */}
+      {isPhotochromic && hasFetchedImage && hasMask && lensType === "PHOTOCHROMIC_SOLIS" && (
         <div className="absolute top-4 right-4 z-20 flex items-center gap-2 bg-background/90 backdrop-blur-sm rounded-full px-3 py-2 shadow-md border">
           <button
             onClick={() => setPhotochromicOutdoor(false)}

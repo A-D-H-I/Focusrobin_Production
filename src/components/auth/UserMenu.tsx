@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { signIn, signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 import { User, LogOut, ShoppingBag, Heart, Settings, Shield } from "lucide-react";
@@ -25,6 +25,7 @@ interface UserMenuProps {
 export default function UserMenu({ isScrolled = false, iconColorNotScrolled }: UserMenuProps = {}) {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const handleSignIn = () => {
     // Redirect to login page instead of directly signing in
@@ -100,10 +101,39 @@ export default function UserMenu({ isScrolled = false, iconColorNotScrolled }: U
     .toUpperCase()
     .slice(0, 2) || user.email?.[0].toUpperCase() || "U";
 
+  const handleOpenChange = (open: boolean) => {
+    // Blur the trigger button when dropdown closes to remove focus highlight
+    if (!open && triggerRef.current) {
+      // Use setTimeout to ensure blur happens after React state updates
+      setTimeout(() => {
+        if (triggerRef.current) {
+          triggerRef.current.blur();
+          // Also remove focus programmatically
+          if (document.activeElement === triggerRef.current) {
+            (document.activeElement as HTMLElement).blur();
+          }
+        }
+      }, 10);
+    }
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Prevent focus on pointer down to avoid focus ring
+    if (e.pointerType === 'mouse') {
+      e.currentTarget.setAttribute('data-no-focus', 'true');
+    }
+  };
+
   return (
-    <DropdownMenu>
+    <DropdownMenu onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative h-9 w-9 rounded-full">
+        <Button 
+          ref={triggerRef}
+          onPointerDown={handlePointerDown}
+          variant="ghost" 
+          size="sm" 
+          className="relative h-9 w-9 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none [&[data-no-focus]]:focus:ring-0 [&[data-no-focus]]:focus:outline-none"
+        >
           <Avatar className="h-9 w-9">
             <AvatarImage src={user.image || undefined} alt={user.name || "User"} />
             <AvatarFallback>{initials}</AvatarFallback>

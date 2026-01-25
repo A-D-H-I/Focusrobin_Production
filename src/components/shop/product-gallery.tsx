@@ -136,7 +136,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
     <>
       <div className="flex flex-col-reverse md:flex-row gap-4">
         {/* Side Image Gallery - All images visible */}
-        <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-y-auto md:overflow-x-visible pb-2 md:pb-0 md:max-h-[600px] md:w-32 lg:w-40">
+        <div className="flex md:flex-col gap-3 overflow-x-auto md:overflow-y-auto md:overflow-x-visible pb-2 md:pb-0 md:max-h-[600px] md:w-32 lg:w-40 [&::-webkit-scrollbar]:hidden md:[&::-webkit-scrollbar]:block [-ms-overflow-style]:none md:[-ms-overflow-style]:scrollbar [scrollbar-width]:none md:[scrollbar-width]:thin">
           {allImages.map((imageUrl, index) => (
             <div
               key={`thumb-${index}-${imageUrl}`}
@@ -193,7 +193,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
       {/* Fullscreen Modal */}
       {isFullscreen && (
         <div 
-          className="fixed inset-0 z-[150] bg-black/95 overflow-y-auto"
+          className="fixed inset-0 z-[150] bg-black/95 overflow-y-auto hide-scrollbar"
           onClick={closeFullscreen}
         >
           {/* Close Button - Positioned below navbar */}
@@ -205,37 +205,36 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
             <X className="h-6 w-6" />
           </button>
 
-          {/* Navigation Buttons */}
-          {allImages.length > 1 && (
-            <>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  goToPrevious();
-                }}
-                className="fixed left-4 top-1/2 -translate-y-1/2 z-[151] p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors backdrop-blur-sm"
-                aria-label="Previous image"
-              >
-                <ChevronLeft className="h-6 w-6" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  goToNext();
-                }}
-                className="fixed right-4 top-1/2 -translate-y-1/2 z-[151] p-3 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors backdrop-blur-sm"
-                aria-label="Next image"
-              >
-                <ChevronRight className="h-6 w-6" />
-              </button>
-            </>
-          )}
-
           {/* Fullscreen Image Container - Scrollable */}
           <div 
-            className="min-h-screen flex items-center justify-center py-24 px-4"
+            className="min-h-screen flex items-center justify-center py-24 px-4 relative"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Navigation Buttons - Positioned relative to image container */}
+            {allImages.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToPrevious();
+                  }}
+                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-[151] p-2.5 sm:p-3 rounded-full bg-black hover:bg-black/90 text-white transition-colors shadow-lg"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToNext();
+                  }}
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-[151] p-2.5 sm:p-3 rounded-full bg-black hover:bg-black/90 text-white transition-colors shadow-lg"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
+                </button>
+              </>
+            )}
             <div className="relative w-full max-w-7xl">
               <Image
                 src={allImages[currentImageIndex] || ''}

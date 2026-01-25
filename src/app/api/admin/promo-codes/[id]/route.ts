@@ -28,6 +28,9 @@ export async function PUT(
       endDate,
       usageLimit,
       minPurchaseAmount,
+      minFrameQuantity,
+      bulkFrameDiscountPercentage,
+      applyToFramesOnly,
     } = body;
 
     // Check if code already exists (excluding current promo code)
@@ -67,6 +70,13 @@ export async function PUT(
         ...(minPurchaseAmount !== undefined && {
           minPurchaseAmount: minPurchaseAmount ? parseFloat(minPurchaseAmount) : null,
         }),
+        ...(minFrameQuantity !== undefined && {
+          minFrameQuantity: minFrameQuantity ? parseInt(minFrameQuantity) : null,
+        }),
+        ...(bulkFrameDiscountPercentage !== undefined && {
+          bulkFrameDiscountPercentage: bulkFrameDiscountPercentage ? parseFloat(bulkFrameDiscountPercentage) : null,
+        }),
+        ...(applyToFramesOnly !== undefined && { applyToFramesOnly }),
       },
     });
 

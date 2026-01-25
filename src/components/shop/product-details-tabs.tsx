@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductDimensions from "@/components/product/ProductDimensions";
 import type { Product, ProductColorVariant } from "@/lib/productData";
 import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from "@/components/ui/table";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface ProductDetailsTabsProps {
   product: Product;
@@ -17,9 +18,9 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
   return (
     <Tabs defaultValue="details" className="w-full">
       <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 h-auto">
-        <TabsTrigger value="details">Product Details</TabsTrigger>
-        <TabsTrigger value="shipping">Shipping & Returns</TabsTrigger>
-        <TabsTrigger value="story">Design Story</TabsTrigger>
+        <TabsTrigger value="details"><TranslatableText text="Product Details" /></TabsTrigger>
+        <TabsTrigger value="shipping"><TranslatableText text="Shipping & Returns" /></TabsTrigger>
+        <TabsTrigger value="story"><TranslatableText text="Design Story" /></TabsTrigger>
       </TabsList>
       
       <TabsContent value="details" className="py-4 sm:py-8 px-2">
@@ -34,36 +35,36 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
               }}
             />
             <div>
-                <h3 className="text-brand-h3 font-headline text-foreground mb-4 text-center">Specifications</h3>
+                <h3 className="text-brand-h3 font-headline text-foreground mb-4 text-center"><TranslatableText text="Specifications" /></h3>
                 <div className="overflow-x-auto">
                     <Table>
                         <TableBody>
                             <TableRow>
-                                <TableCell className="font-medium text-center border text-sm sm:text-base">Color</TableCell>
+                                <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Color" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">
                                   {currentVariant?.name || 'N/A'}
                                 </TableCell>
                             </TableRow>
                             <TableRow>
-                                <TableCell className="font-medium text-center border text-sm sm:text-base">Frame Material</TableCell>
+                                <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Frame Material" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">
                                   {product.frameMaterial || 'N/A'}
                                 </TableCell>
                             </TableRow>
                             <TableRow>
-                                <TableCell className="font-medium text-center border text-sm sm:text-base">Lens Material</TableCell>
+                                <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Lens Material" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">
                                   {product.lensMaterial || 'N/A'}
                                 </TableCell>
                             </TableRow>
                             <TableRow>
-                                <TableCell className="font-medium text-center border text-sm sm:text-base">UV Protection Level</TableCell>
+                                <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="UV Protection Level" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">
                                   {product.uvProtection || 'N/A'}
                                 </TableCell>
                             </TableRow>
                             <TableRow>
-                                <TableCell className="font-medium text-center border text-sm sm:text-base">Frame Weight</TableCell>
+                                <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Frame Weight" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">
                                   {product.weight ? `${product.weight}g` : 'N/A'}
                                 </TableCell>
@@ -78,13 +79,13 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
       <TabsContent value="shipping" className="py-4 sm:py-8 px-2">
         <div className="prose max-w-none text-foreground/80 space-y-6">
             <div>
-              <h3 className="text-brand-h3 font-headline text-foreground mb-4">Shipping Policy</h3>
-              <p className="text-sm sm:text-base mb-4">We offer free standard shipping on all orders. Expedited shipping options are available at checkout.</p>
+              <h3 className="text-brand-h3 font-headline text-foreground mb-4"><TranslatableText text="Shipping Policy" /></h3>
+              <p className="text-sm sm:text-base mb-4"><TranslatableText text="We offer free standard shipping on all orders. Expedited shipping options are available at checkout." /></p>
               
-              <h4 className="text-lg font-semibold text-foreground mt-6 mb-3">Estimated Delivery Times</h4>
+              <h4 className="text-lg font-semibold text-foreground mt-6 mb-3"><TranslatableText text="Estimated Delivery Times" /></h4>
               
               <div className="mb-4">
-                <h5 className="text-base font-semibold text-foreground mb-2">Prescription Glasses</h5>
+                <h5 className="text-base font-semibold text-foreground mb-2"><TranslatableText text="Prescription Glasses" /></h5>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -108,7 +109,7 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
               </div>
 
               <div className="mb-4">
-                <h5 className="text-base font-semibold text-foreground mb-2">Sunglasses (Non-Prescription)</h5>
+                <h5 className="text-base font-semibold text-foreground mb-2"><TranslatableText text="Sunglasses (Non-Prescription)" /></h5>
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>

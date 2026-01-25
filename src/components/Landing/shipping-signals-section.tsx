@@ -3,6 +3,7 @@
 import { useInView } from "react-intersection-observer";
 import { Glasses, Truck, Clock, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 const shippingSignals = [
   {
@@ -66,13 +67,13 @@ function ShippingSignalCard({ signal, index }: { signal: typeof shippingSignals[
         </div>
       )}
       {signal.title && (
-        <h3 className="text-xs sm:text-sm md:text-brand-h3 font-headline mb-1 sm:mb-2 text-gray-800">{signal.title}</h3>
+        <h3 className="text-xs sm:text-sm md:text-brand-h3 font-headline mb-1 sm:mb-2 text-gray-800"><TranslatableText text={signal.title} /></h3>
       )}
       <p className={cn(
         "text-gray-600 break-words",
         index < 2 ? "text-[10px] sm:text-xs md:text-sm" : "text-[10px] sm:text-xs md:text-sm"
       )}>
-        {signal.text}
+        <TranslatableText text={signal.text} />
       </p>
     </div>
   );

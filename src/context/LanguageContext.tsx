@@ -44,6 +44,10 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
       setLanguageState(newLanguage);
       if (typeof window !== 'undefined') {
         localStorage.setItem(LANGUAGE_STORAGE_KEY, newLanguage);
+        // Dispatch custom event to notify components of language change
+        window.dispatchEvent(new CustomEvent('languageChanged', { 
+          detail: { language: newLanguage } 
+        }));
       }
     }
   }, []);

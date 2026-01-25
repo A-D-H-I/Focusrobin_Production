@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { getPrescriptionLensImagesForProduct, upsertPrescriptionLensImage, deletePrescriptionLensImage } from '@/app/actions/prescriptionLensImages';
 import Image from 'next/image';
 import { normalizeImageUrl } from '@/lib/normalize-image-url';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 import { Checkbox } from '@/components/ui/checkbox';
 
 interface PrescriptionLensImage {
@@ -47,6 +48,7 @@ export function PrescriptionLensImageManager({ productId, productSlug }: Prescri
   const [images, setImages] = useState<PrescriptionLensImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>('');
 
   useEffect(() => {
     loadImages();
@@ -89,6 +91,11 @@ export function PrescriptionLensImageManager({ productId, productSlug }: Prescri
     // Add product info
     formData.append('productId', productId);
     formData.append('productSlug', productSlug);
+    
+    // Use state imageUrl if set (from ImageUploader)
+    if (imageUrl) {
+      formData.set('imageUrl', imageUrl);
+    }
     
     // If editing, add the ID
     if (editingId && editingId !== 'new') {
@@ -352,28 +359,20 @@ export function PrescriptionLensImageManager({ productId, productSlug }: Prescri
               </div>
 
               <div className="space-y-2 border-t pt-4">
-                <Label htmlFor="imageUrl">Image URL *</Label>
-                <Input
-                  name="imageUrl"
-                  type="url"
-                  defaultValue={editingImage?.imageUrl || ''}
-                  placeholder="https://example.com/image.png"
-                  required
+                <Label>Lens Preview Image *</Label>
+                <ImageUploader
+                  value={imageUrl || editingImage?.imageUrl || ''}
+                  onChange={(url) => setImageUrl(url)}
+                  folder="lens-images"
+                  label="Prescription Lens Preview Image"
+                  description="The image should have the same dimensions as the product image"
+                  maxSizeMB={10}
                 />
-                <p className="text-xs text-muted-foreground">
-                  The image should have the same dimensions as the product image
-                </p>
-                {editingImage?.imageUrl && (
-                  <div className="mt-2 aspect-square w-32 relative bg-muted rounded overflow-hidden">
-                    <Image
-                      src={normalizeImageUrl(editingImage.imageUrl)}
-                      alt="Preview"
-                      fill
-                      className="object-contain"
-                      sizes="128px"
-                    />
-                  </div>
-                )}
+                <input
+                  type="hidden"
+                  name="imageUrl"
+                  value={imageUrl || editingImage?.imageUrl || ''}
+                />
               </div>
 
               <div className="flex gap-2">

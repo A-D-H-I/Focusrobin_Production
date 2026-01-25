@@ -23,6 +23,7 @@ import {
   type FrameType,
   calculateRxTotal,
   FIXED_PROFIT,
+  PRICES,
 } from "@/lib/pricing/rx167";
 import { detectFrameType } from "@/lib/pricing/detectFrameType";
 
@@ -85,7 +86,7 @@ export type RxConfigData = {
 
 // Combined data for storage
 export type FullPrescriptionData = PrescriptionData & {
-  rxConfig: RxConfigData;
+  rxConfig?: RxConfigData; // Optional - lens config is product-specific, not loaded from DB
   rxPriceBreakdown?: {
     lensesPair: number;
     edgingFee: number;
@@ -207,8 +208,14 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         const stored = localStorage.getItem(storageKey);
         if (stored) {
           try {
-            loadedData = JSON.parse(stored) as FullPrescriptionData;
-            console.log('[PrescriptionFlow] Loaded prescription from localStorage (shared across products)');
+            const parsed = JSON.parse(stored) as FullPrescriptionData;
+            // NOTE: Don't load rxConfig from shared localStorage - it's product-specific
+            // Only load prescription data (OD, OS, PD)
+            loadedData = {
+              ...parsed,
+              rxConfig: undefined, // Don't load lens config from shared storage
+            };
+            console.log('[PrescriptionFlow] Loaded prescription from localStorage (shared across products) - lens config NOT loaded');
           } catch (error) {
             console.error('Error parsing prescription data from localStorage:', error);
             // Remove invalid data
@@ -224,7 +231,8 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
           : (loadedData.pd && loadedData.pd !== "");
         
         if (hasPdValue) {
-          const loadedRxConfig = loadedData.rxConfig || DEFAULT_RX_CONFIG;
+          // NOTE: rxConfig is NOT loaded from database - it's product-specific
+          // Only load prescription data (OD, OS, PD), not lens configuration
           setExistingData({
             prescription: {
               od: {
@@ -247,17 +255,13 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
               hasTwoPDs: loadedData.hasTwoPDs,
               hasPrism: loadedData.hasPrism,
             },
+            // Don't set rxConfig from DB - it's product-specific and should come from localStorage
             rxConfig: {
-              ...loadedRxConfig,
-              frameType: detectedFrameType,
+              ...DEFAULT_RX_CONFIG,
+              frameType: detectedFrameType, // Only use frameType from product detection
             },
           });
-          // If loaded data has lens selections, mark that user has made selections
-          // This prevents Step3/Step6 useEffect from overwriting with defaults
-          if (loadedRxConfig.lensType || loadedRxConfig.coating) {
-            setHasUserMadeLensSelection(true);
-          }
-          console.log('[PrescriptionFlow] Loaded shared prescription data into state (applies to all products)');
+          console.log('[PrescriptionFlow] Loaded shared prescription data into state (applies to all products) - lens config NOT loaded from DB');
         }
       }
       
@@ -321,14 +325,24 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
           pd: existingData.prescription.pd,
         });
         setPrescriptionData(existingData.prescription);
-        // Only update rxConfig from loaded data if we haven't made any changes yet
-        // This preserves user's lens selections while still loading saved prescription values
-        if (!hasLoadedInitialData) {
-          setRxConfig(existingData.rxConfig);
-          // If loaded data has lens selections, mark that user has made selections
-          // This prevents Step3/Step6 useEffect from overwriting with defaults
-          if (existingData.rxConfig.lensType || existingData.rxConfig.coating) {
-            setHasUserMadeLensSelection(true);
+        // NOTE: rxConfig is NOT loaded from database or shared localStorage - it's product-specific
+        // Only load rxConfig from product-specific localStorage if available
+        if (!hasLoadedInitialData && typeof window !== 'undefined') {
+          const productRxConfigKey = `rxConfig_${productSlug}`;
+          const storedRxConfig = localStorage.getItem(productRxConfigKey);
+          if (storedRxConfig) {
+            try {
+              const parsedRxConfig = JSON.parse(storedRxConfig) as RxConfigData;
+              // Merge with detected frameType
+              setRxConfig({
+                ...parsedRxConfig,
+                frameType: detectedFrameType,
+              });
+              setHasUserMadeLensSelection(true);
+              console.log('[PrescriptionFlow] Loaded product-specific lens config from localStorage');
+            } catch (error) {
+              console.error('Error parsing rxConfig from localStorage:', error);
+            }
           }
         }
         setLastLoadedDataId(dataId);
@@ -414,12 +428,15 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   }, [rxConfig]);
 
   // Calculate lens pair price using new pricing module
-  // NOTE: Profit is incorporated into lens prices (hidden from customer)
+  // NOTE: Profit and edging fee are incorporated into lens prices (hidden from customer)
   const lensPairPrice = useMemo(() => {
     const basePrice = calculateLensPairTotal(lensSelection);
-    // Incorporate profit into lens price (profit is hidden, not shown separately)
-    return basePrice + FIXED_PROFIT;
-  }, [lensSelection]);
+    // Get edging fee based on frame type
+    const { PRICES } = require('@/lib/pricing/rx167');
+    const edgingFee = PRICES.edging[rxConfig.frameType] || 0;
+    // Incorporate profit and edging fee into lens price (both hidden from customer)
+    return basePrice + FIXED_PROFIT + edgingFee;
+  }, [lensSelection, rxConfig.frameType]);
 
   // Calculate Rx price based on current configuration (using old rx167 for edging)
   const rxPriceResult = useMemo(() => {
@@ -448,10 +465,9 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       fixedProfit: 0, // Profit is already incorporated into lensPairPrice
     });
 
-    // Calculate totals with profit already in lens price
-    const edgingFee = result.breakdown.edgingFee;
-    // lensPairPrice already includes profit, so we just add edging
-    const rxRetailNet = lensPairPrice + edgingFee;
+    // Calculate totals with profit and edging fee already in lens price
+    // lensPairPrice already includes profit + edging fee, so rxRetailNet = lensPairPrice
+    const rxRetailNet = lensPairPrice;
     const rxRetailGross = rxRetailNet * 1.21; // VAT
     const totalGross = framePrice + rxRetailGross;
     const totalNet = framePrice + rxRetailNet;
@@ -459,11 +475,12 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     return {
       breakdown: {
         ...result.breakdown,
-        lensesPair: lensPairPrice, // This already includes profit
+        lensesPair: lensPairPrice, // This already includes profit + edging fee
         rxAddOnNet: rxRetailNet, // Same as rxRetailNet since profit is in lens price
         rxRetailNet,
         rxRetailGross,
         profit: FIXED_PROFIT, // Keep for internal tracking, but not shown to customer
+        edgingFee: 0, // Not shown to customer (included in lensesPair)
       },
       totalNet,
       totalGross,
@@ -681,19 +698,36 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       
       // If updating only frameType, just update it directly without normalization
       if (data.frameType !== undefined && Object.keys(data).length === 1) {
-        return { ...prev, frameType: data.frameType };
+        const updated = { ...prev, frameType: data.frameType };
+        // Save to product-specific localStorage
+        if (typeof window !== 'undefined' && !isDefaultApplication) {
+          const productRxConfigKey = `rxConfig_${productSlug}`;
+          localStorage.setItem(productRxConfigKey, JSON.stringify(updated));
+        }
+        return updated;
       }
       
       // If updating only coating and no lensType exists, don't proceed
       // This prevents errors when trying to normalize without a lensType
       if (!lensTypeToUse && data.coating !== undefined && data.lensType === undefined) {
-        // Just update the coating directly without normalization
-        return { ...prev, coating: data.coating, frameType: frameTypeToUse };
+        const updated = { ...prev, coating: data.coating, frameType: frameTypeToUse };
+        // Save to product-specific localStorage
+        if (typeof window !== 'undefined' && !isDefaultApplication) {
+          const productRxConfigKey = `rxConfig_${productSlug}`;
+          localStorage.setItem(productRxConfigKey, JSON.stringify(updated));
+        }
+        return updated;
       }
       
       // If no lensType exists at all, just apply the update directly (let Step3 handle defaults)
       if (!lensTypeToUse) {
-        return { ...prev, ...data, frameType: frameTypeToUse };
+        const updated = { ...prev, ...data, frameType: frameTypeToUse };
+        // Save to product-specific localStorage
+        if (typeof window !== 'undefined' && !isDefaultApplication) {
+          const productRxConfigKey = `rxConfig_${productSlug}`;
+          localStorage.setItem(productRxConfigKey, JSON.stringify(updated));
+        }
+        return updated;
       }
       
       const updated = { ...prev, ...data, lensType: lensTypeToUse, frameType: frameTypeToUse };
@@ -734,7 +768,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       
       // Apply normalized values, but ALWAYS preserve lensType and frameType if not explicitly changed
       // This is critical to prevent values from being reset when only one field is updated
-      return {
+      const finalConfig = {
         ...updated,
         lensType: data.lensType !== undefined ? normalized.lensType : prev.lensType, // Preserve if not explicitly changed
         lensIndex: normalized.lensIndex,
@@ -747,6 +781,15 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         polarizedColor: normalized.polarizedColor,
         frameType: frameTypeToUse, // Always preserve frameType
       };
+      
+      // Save to product-specific localStorage (only if user made a selection, not defaults)
+      if (typeof window !== 'undefined' && !isDefaultApplication) {
+        const productRxConfigKey = `rxConfig_${productSlug}`;
+        localStorage.setItem(productRxConfigKey, JSON.stringify(finalConfig));
+        console.log('[PrescriptionFlow] Saved product-specific lens config to localStorage');
+      }
+      
+      return finalConfig;
     });
   };
   
@@ -808,7 +851,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     if (rxConfig.lensType === "TINTED") {
       return 5; // Go to tint options
     }
-    return 6; // Skip to frame type
+    return 7; // Skip frame type step, go directly to summary
   };
 
   // Step navigation helpers
@@ -824,13 +867,23 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     handleStepChange(4); // Back to coating
   };
 
-  const goBackFromFrameType = () => {
+  const goBackFromSummary = () => {
     if (rxConfig.lensType === "TINTED") {
       handleStepChange(5); // Back to tint options
     } else {
       handleStepChange(4); // Back to coating
     }
   };
+
+  // Ensure frame type is always set to detected value for current product
+  // This happens automatically even though users don't see the frame type step
+  // Frame type is product-specific, so it should update when product changes
+  useEffect(() => {
+    if (rxConfig.frameType !== detectedFrameType) {
+      handleRxConfigUpdateWithDefault({ frameType: detectedFrameType });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detectedFrameType, product.id]); // Update when product changes
 
   // Expose rxConfig for image processing (via context or props)
   // For now, we'll use a custom event to sync with image component
@@ -908,7 +961,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         <Step5TintOptions
           rxConfig={rxConfig}
           onConfigUpdate={handleRxConfigUpdate}
-          onNext={() => handleStepChange(6)}
+          onNext={() => handleStepChange(7)}
           onBack={goBackFromTintOptions}
           formatPrice={formatPrice}
           rxPriceResult={rxPriceResult}
@@ -916,15 +969,16 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         />
       )}
 
-      {/* Step 6: Frame Type (auto-detected) */}
-      {currentStep === 6 && (
+      {/* Step 6: Frame Type (auto-detected) - HIDDEN FROM USER */}
+      {/* Frame type is automatically detected and set, edging fee is included in pricing */}
+      {false && currentStep === 6 && (
         <Step6FrameType
           product={product}
           rxConfig={rxConfig}
           onConfigUpdate={handleRxConfigUpdate}
           onConfigUpdateDefault={handleRxConfigUpdateWithDefault}
           onNext={() => handleStepChange(7)}
-          onBack={goBackFromFrameType}
+          onBack={goBackFromSummary}
           rxPriceResult={rxPriceResult}
           formatPrice={formatPrice}
         />
@@ -940,7 +994,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
           framePrice={framePrice}
           formatPrice={formatPrice}
           onConfirm={handleFinalSubmit}
-          onBack={() => handleStepChange(6)}
+          onBack={goBackFromSummary}
           onEditPrescription={() => handleStepChange(1)}
           onEditLens={() => handleStepChange(3)}
         />

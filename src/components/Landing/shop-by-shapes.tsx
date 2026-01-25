@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface ShapeProduct {
   shape: string;
@@ -65,11 +66,11 @@ export default function ShopByShapes({ shapes }: ShopByShapesProps) {
           className="text-center mb-8 md:mb-10"
         >
           <h2 className="text-brand-h2 font-headline mb-4 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent">
-            Shop By Shapes
+            <TranslatableText text="Shop By Shapes" />
           </h2>
 
           <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto">
-            Discover eyewear that complements your face shape and personal style
+            <TranslatableText text="Discover eyewear that complements your face shape and personal style" />
           </p>
         </motion.div>
 
@@ -118,7 +119,7 @@ export default function ShopByShapes({ shapes }: ShopByShapesProps) {
                     {/* Popular Badge */}
                     {isPopular && (
                       <div className="absolute top-4 right-4 z-10 bg-gradient-to-r from-teal-primary to-[#4DCECA] text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">
-                        Popular
+                        <TranslatableText text="Popular" />
                       </div>
                     )}
 

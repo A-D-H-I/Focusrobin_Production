@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface IconicImageData {
   id: string;
@@ -101,18 +102,18 @@ export default function IconicSection({ iconicImage }: IconicSectionProps) {
           {/* Text and Buttons */}
           <div className="flex flex-col text-center lg:text-left">
             <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-brand-h2 font-headline text-white mb-2 sm:mb-3 md:mb-4 leading-[1.1] tracking-tight drop-shadow-lg">
-              GIVE SOMETHING ICONIC
+              <TranslatableText text="GIVE SOMETHING ICONIC" />
             </h2>
             
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4 justify-center lg:justify-start">
               <Link href="/shop" prefetch={true}>
                 <Button size="lg" className="rounded-full px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 lg:px-7 lg:py-4.5 text-xs sm:text-sm md:text-base lg:text-lg bg-[#4DCECA] text-[#1C3142] hover:bg-[#4DCECA]/90 shadow-xl">
-                  SHOP SUNGLASSES
+                  <TranslatableText text="SHOP SUNGLASSES" />
                 </Button>
               </Link>
               <Link href="/try-on" prefetch={true}>
                 <Button size="lg" className="rounded-full px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 lg:px-7 lg:py-4.5 text-xs sm:text-sm md:text-base lg:text-lg bg-[#4DCECA] text-[#1C3142] hover:bg-[#4DCECA]/90 shadow-xl">
-                  Virtual Try-On
+                  <TranslatableText text="Virtual Try-On" />
                 </Button>
               </Link>
             </div>

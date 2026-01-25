@@ -352,17 +352,7 @@ export default function ReturnsPage() {
             </ol>
 
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              9. Right of Withdrawal (EU Consumers)
-            </h2>
-            <p className="text-brand-blue/80 leading-relaxed mb-6">
-              Under EU consumer protection law, you have the right to withdraw from your purchase within 14 days 
-              of receiving your order, without giving any reason. This is in addition to your rights regarding 
-              defective goods. To exercise this right, you must inform us of your decision by a clear statement 
-              (email or postal mail) before the withdrawal period expires.
-            </p>
-
-            <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              10. Contact Us
+              9. Contact Us
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-4">
               For any questions about returns or refunds, please contact our customer service team:

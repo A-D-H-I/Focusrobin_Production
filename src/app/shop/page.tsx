@@ -446,13 +446,13 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen overflow-x-hidden">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageSchema) }}
       />
       <Header />
-      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background overflow-x-hidden">
         <ShopPageClient products={products} title={pageTitle} searchQuery={searchQuery} />
         
         {/* Lithuanian SEO Content Block */}

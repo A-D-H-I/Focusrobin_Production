@@ -35,35 +35,195 @@ SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 const SelectScrollUpButton = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.ScrollUpButton>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollUpButton>
->(({ className, ...props }, ref) => (
-  <SelectPrimitive.ScrollUpButton
-    ref={ref}
-    className={cn(
-      "flex cursor-default items-center justify-center py-1",
-      className
-    )}
-    {...props}
-  >
-    <ChevronUp className="h-4 w-4" />
-  </SelectPrimitive.ScrollUpButton>
-))
+>(({ className, ...props }, ref) => {
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const viewportRef = React.useRef<HTMLElement | null>(null);
+  const scrollIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    // Find the viewport element - look in parent structure
+    const findViewport = () => {
+      // The wrapper is inside SelectContent, so we need to traverse up
+      let parent = wrapper.parentElement;
+      while (parent) {
+        const viewport = parent.querySelector('[data-radix-select-viewport]') as HTMLElement;
+        if (viewport) {
+          viewportRef.current = viewport;
+          return;
+        }
+        parent = parent.parentElement;
+      }
+    };
+
+    // Delay to ensure DOM is ready
+    const timer = setTimeout(findViewport, 10);
+
+    // Handle mousedown to scroll
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (!viewportRef.current) {
+        findViewport();
+      }
+      
+      if (viewportRef.current) {
+        // Immediate scroll
+        viewportRef.current.scrollTop -= 30;
+        
+        // Continue scrolling while holding
+        scrollIntervalRef.current = setInterval(() => {
+          if (viewportRef.current) {
+            viewportRef.current.scrollTop -= 30;
+          }
+        }, 100);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    };
+
+    wrapper.addEventListener('mousedown', handleMouseDown);
+    wrapper.addEventListener('mouseup', handleMouseUp);
+    wrapper.addEventListener('mouseleave', handleMouseUp);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      clearTimeout(timer);
+      wrapper.removeEventListener('mousedown', handleMouseDown);
+      wrapper.removeEventListener('mouseup', handleMouseUp);
+      wrapper.removeEventListener('mouseleave', handleMouseUp);
+      document.removeEventListener('mouseup', handleMouseUp);
+      
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div 
+      ref={wrapperRef}
+      className="flex cursor-pointer items-center justify-center py-1 select-none hover:bg-accent/50 transition-colors"
+      style={{ userSelect: 'none' }}
+      role="button"
+      aria-label="Scroll up"
+    >
+      <SelectPrimitive.ScrollUpButton
+        ref={ref}
+        tabIndex={-1}
+        className="hidden"
+        style={{ display: 'none' }}
+        {...props}
+      />
+      <ChevronUp className="h-4 w-4" />
+    </div>
+  );
+})
 SelectScrollUpButton.displayName = SelectPrimitive.ScrollUpButton.displayName
 
 const SelectScrollDownButton = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.ScrollDownButton>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.ScrollDownButton>
->(({ className, ...props }, ref) => (
-  <SelectPrimitive.ScrollDownButton
-    ref={ref}
-    className={cn(
-      "flex cursor-default items-center justify-center py-1",
-      className
-    )}
-    {...props}
-  >
-    <ChevronDown className="h-4 w-4" />
-  </SelectPrimitive.ScrollDownButton>
-))
+>(({ className, ...props }, ref) => {
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const viewportRef = React.useRef<HTMLElement | null>(null);
+  const scrollIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    // Find the viewport element - look in parent structure
+    const findViewport = () => {
+      // The wrapper is inside SelectContent, so we need to traverse up
+      let parent = wrapper.parentElement;
+      while (parent) {
+        const viewport = parent.querySelector('[data-radix-select-viewport]') as HTMLElement;
+        if (viewport) {
+          viewportRef.current = viewport;
+          return;
+        }
+        parent = parent.parentElement;
+      }
+    };
+
+    // Delay to ensure DOM is ready
+    const timer = setTimeout(findViewport, 10);
+
+    // Handle mousedown to scroll
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (!viewportRef.current) {
+        findViewport();
+      }
+      
+      if (viewportRef.current) {
+        // Immediate scroll
+        viewportRef.current.scrollTop += 30;
+        
+        // Continue scrolling while holding
+        scrollIntervalRef.current = setInterval(() => {
+          if (viewportRef.current) {
+            viewportRef.current.scrollTop += 30;
+          }
+        }, 100);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    };
+
+    wrapper.addEventListener('mousedown', handleMouseDown);
+    wrapper.addEventListener('mouseup', handleMouseUp);
+    wrapper.addEventListener('mouseleave', handleMouseUp);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      clearTimeout(timer);
+      wrapper.removeEventListener('mousedown', handleMouseDown);
+      wrapper.removeEventListener('mouseup', handleMouseUp);
+      wrapper.removeEventListener('mouseleave', handleMouseUp);
+      document.removeEventListener('mouseup', handleMouseUp);
+      
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div 
+      ref={wrapperRef}
+      className="flex cursor-pointer items-center justify-center py-1 select-none hover:bg-accent/50 transition-colors"
+      style={{ userSelect: 'none' }}
+      role="button"
+      aria-label="Scroll down"
+    >
+      <SelectPrimitive.ScrollDownButton
+        ref={ref}
+        tabIndex={-1}
+        className="hidden"
+        style={{ display: 'none' }}
+        {...props}
+      />
+      <ChevronDown className="h-4 w-4" />
+    </div>
+  );
+})
 SelectScrollDownButton.displayName =
   SelectPrimitive.ScrollDownButton.displayName
 

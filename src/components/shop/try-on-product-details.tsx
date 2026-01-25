@@ -12,6 +12,7 @@ import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 import { usePrice } from "@/hooks/usePrice";
 import Link from "next/link";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface TryOnProductDetailsProps {
   product: Product;
@@ -265,7 +266,7 @@ export default function TryOnProductDetails({
           disabled={selectedVariant?.stock === 0}
         >
           <ShoppingCart className="h-4 w-4 mr-1.5" />
-          {selectedVariant?.stock === 0 ? "Out of Stock" : "Add to Cart"}
+          {selectedVariant?.stock === 0 ? <TranslatableText text="Out of Stock" /> : <TranslatableText text="Add to Cart" />}
         </Button>
 
         <div className="flex gap-2">
@@ -277,7 +278,7 @@ export default function TryOnProductDetails({
             className="flex-1 h-9 text-xs px-2"
           >
             <Plus className="h-3.5 w-3.5 mr-1" />
-            Prescription
+            <TranslatableText text="Prescription" />
           </Button>
 
           <Button
@@ -297,7 +298,7 @@ export default function TryOnProductDetails({
 
       {/* Shipping Note */}
       <p className="text-xs text-muted-foreground leading-tight">
-        Fast EU delivery
+        <TranslatableText text="Fast EU delivery" />
       </p>
     </div>
   );

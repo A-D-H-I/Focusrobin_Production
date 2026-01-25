@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { subscribeNewsletter } from "@/app/actions/newsletter";
 import { useToast } from "@/hooks/use-toast";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 export function NewsletterForm() {
   const [email, setEmail] = useState("");
@@ -67,7 +68,7 @@ export function NewsletterForm() {
         required
       />
       <Button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Subscribing..." : "Subscribe"}
+        {isSubmitting ? <TranslatableText text="Subscribing..." /> : <TranslatableText text="Subscribe" />}
       </Button>
     </form>
   );

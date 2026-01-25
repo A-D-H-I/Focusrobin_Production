@@ -20,6 +20,7 @@ import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { Gender } from '@prisma/client';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 
 interface EditProductFormProps {
   product: any; // Prisma product with variants and assets
@@ -461,54 +462,6 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
             </div>
           </div>
           
-          {/* Prescription Lens Images */}
-          <div className="mt-6 pt-6 border-t">
-            <h3 className="text-sm font-semibold mb-4">Prescription Lens Images (Optional)</h3>
-            <p className="text-xs text-muted-foreground mb-4">
-              Upload images for prescription lens color preview. Base image should have transparent lenses (no temple legs). Mask image should be black/white where white areas define lens regions.
-            </p>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="lensBaseImageUrl">Lens Base Image URL</Label>
-                <Input
-                  id="lensBaseImageUrl"
-                  name="lensBaseImageUrl"
-                  type="url"
-                  defaultValue={product.lensBaseImageUrl || ''}
-                  placeholder="https://example.com/lens-base.png"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Base image with transparent lenses (no temple legs)
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lensMaskImageUrl">Lens Mask Image URL</Label>
-                <Input
-                  id="lensMaskImageUrl"
-                  name="lensMaskImageUrl"
-                  type="url"
-                  defaultValue={product.lensMaskImageUrl || ''}
-                  placeholder="https://example.com/lens-mask.png"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Black/white mask image (white = lens areas)
-                </p>
-              </div>
-            </div>
-            <div className="space-y-2 mt-4">
-              <Label htmlFor="lensBackgroundImageUrl">Lens Background Image URL (Optional)</Label>
-              <Input
-                id="lensBackgroundImageUrl"
-                name="lensBackgroundImageUrl"
-                type="url"
-                defaultValue={product.lensBackgroundImageUrl || ''}
-                placeholder="https://example.com/background-scene.png"
-              />
-              <p className="text-xs text-muted-foreground">
-                Image visible through transparent lenses (scene/pattern behind glasses)
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
 

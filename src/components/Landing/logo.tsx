@@ -17,13 +17,13 @@ export function Logo({ className, logoColor }: { className?: string; logoColor?:
   };
 
   return (
-    <Link href="/" className="inline-block relative z-[101]">
+    <Link href="/" className="inline-block relative z-[101] isolate">
       <Image
         src="/logo/Horizontal Primary dark (Color).svg"
         alt="FocusRobin Logo"
         width={120}
         height={36}
-        className={cn("h-auto w-auto max-h-8 md:max-h-10 transition-all duration-300", className)}
+        className={cn("h-auto w-auto max-h-8 md:max-h-10 transition-all duration-300 relative z-[101]", className)}
         style={logoColor ? getFilterStyle() : undefined}
         priority
       />

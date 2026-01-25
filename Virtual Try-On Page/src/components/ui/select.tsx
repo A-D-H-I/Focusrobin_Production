@@ -143,17 +143,89 @@ function SelectScrollUpButton({
   className,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.ScrollUpButton>) {
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const viewportRef = React.useRef<HTMLElement | null>(null);
+  const scrollIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    // Find the viewport element - look in parent structure
+    const findViewport = () => {
+      let parent = wrapper.parentElement;
+      while (parent) {
+        const viewport = parent.querySelector('[data-radix-select-viewport]') as HTMLElement;
+        if (viewport) {
+          viewportRef.current = viewport;
+          return;
+        }
+        parent = parent.parentElement;
+      }
+    };
+
+    const timer = setTimeout(findViewport, 10);
+
+    // Handle mousedown to scroll
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (!viewportRef.current) {
+        findViewport();
+      }
+      
+      if (viewportRef.current) {
+        viewportRef.current.scrollTop -= 30;
+        
+        scrollIntervalRef.current = setInterval(() => {
+          if (viewportRef.current) {
+            viewportRef.current.scrollTop -= 30;
+          }
+        }, 100);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    };
+
+    wrapper.addEventListener('mousedown', handleMouseDown);
+    wrapper.addEventListener('mouseup', handleMouseUp);
+    wrapper.addEventListener('mouseleave', handleMouseUp);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      clearTimeout(timer);
+      wrapper.removeEventListener('mousedown', handleMouseDown);
+      wrapper.removeEventListener('mouseup', handleMouseUp);
+      wrapper.removeEventListener('mouseleave', handleMouseUp);
+      document.removeEventListener('mouseup', handleMouseUp);
+      
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <SelectPrimitive.ScrollUpButton
-      data-slot="select-scroll-up-button"
-      className={cn(
-        "flex cursor-default items-center justify-center py-1",
-        className,
-      )}
-      {...props}
+    <div 
+      ref={wrapperRef}
+      className="flex cursor-pointer items-center justify-center py-1 select-none hover:bg-accent/50 transition-colors"
+      style={{ userSelect: 'none' }}
     >
+      <SelectPrimitive.ScrollUpButton
+        data-slot="select-scroll-up-button"
+        tabIndex={-1}
+        className="hidden"
+        style={{ display: 'none' }}
+        {...props}
+      />
       <ChevronUpIcon className="size-4" />
-    </SelectPrimitive.ScrollUpButton>
+    </div>
   );
 }
 
@@ -161,17 +233,89 @@ function SelectScrollDownButton({
   className,
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.ScrollDownButton>) {
+  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const viewportRef = React.useRef<HTMLElement | null>(null);
+  const scrollIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+
+    // Find the viewport element - look in parent structure
+    const findViewport = () => {
+      let parent = wrapper.parentElement;
+      while (parent) {
+        const viewport = parent.querySelector('[data-radix-select-viewport]') as HTMLElement;
+        if (viewport) {
+          viewportRef.current = viewport;
+          return;
+        }
+        parent = parent.parentElement;
+      }
+    };
+
+    const timer = setTimeout(findViewport, 10);
+
+    // Handle mousedown to scroll
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      if (!viewportRef.current) {
+        findViewport();
+      }
+      
+      if (viewportRef.current) {
+        viewportRef.current.scrollTop += 30;
+        
+        scrollIntervalRef.current = setInterval(() => {
+          if (viewportRef.current) {
+            viewportRef.current.scrollTop += 30;
+          }
+        }, 100);
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+        scrollIntervalRef.current = null;
+      }
+    };
+
+    wrapper.addEventListener('mousedown', handleMouseDown);
+    wrapper.addEventListener('mouseup', handleMouseUp);
+    wrapper.addEventListener('mouseleave', handleMouseUp);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      clearTimeout(timer);
+      wrapper.removeEventListener('mousedown', handleMouseDown);
+      wrapper.removeEventListener('mouseup', handleMouseUp);
+      wrapper.removeEventListener('mouseleave', handleMouseUp);
+      document.removeEventListener('mouseup', handleMouseUp);
+      
+      if (scrollIntervalRef.current) {
+        clearInterval(scrollIntervalRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <SelectPrimitive.ScrollDownButton
-      data-slot="select-scroll-down-button"
-      className={cn(
-        "flex cursor-default items-center justify-center py-1",
-        className,
-      )}
-      {...props}
+    <div 
+      ref={wrapperRef}
+      className="flex cursor-pointer items-center justify-center py-1 select-none hover:bg-accent/50 transition-colors"
+      style={{ userSelect: 'none' }}
     >
+      <SelectPrimitive.ScrollDownButton
+        data-slot="select-scroll-down-button"
+        tabIndex={-1}
+        className="hidden"
+        style={{ display: 'none' }}
+        {...props}
+      />
       <ChevronDownIcon className="size-4" />
-    </SelectPrimitive.ScrollDownButton>
+    </div>
   );
 }
 

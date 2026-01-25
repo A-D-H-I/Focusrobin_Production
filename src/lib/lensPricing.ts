@@ -107,9 +107,10 @@ export function getAllowedCoatings(lensType: LensType): Coating[] {
     case "CLEAR":
       return ["UC", "BLUE_PRO"]; // IMPORTANT: hide SERICUM_UV for CLEAR
     case "TINTED":
-    case "PHOTOCHROMIC_SOLIS":
     case "POLARIZED_NUPOLAR":
-      return ["SERICUM_UV", "BLUE_PRO"];
+      return ["SERICUM_UV"]; // No BLUE_PRO for tinted and polarized
+    case "PHOTOCHROMIC_SOLIS":
+      return ["SERICUM_UV", "BLUE_PRO"]; // BLUE_PRO still available for photochromic
     default:
       return ["SERICUM_UV", "BLUE_PRO"];
   }

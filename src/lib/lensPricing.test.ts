@@ -42,9 +42,9 @@ describe('lensPricing', () => {
       expect(coatings).toEqual(['UC', 'BLUE_PRO']);
     });
 
-    it('should return SERICUM_UV and BLUE_PRO for TINTED', () => {
+    it('should return only SERICUM_UV for TINTED (no BLUE_PRO)', () => {
       const coatings = getAllowedCoatings('TINTED');
-      expect(coatings).toEqual(['SERICUM_UV', 'BLUE_PRO']);
+      expect(coatings).toEqual(['SERICUM_UV']);
     });
 
     it('should return SERICUM_UV and BLUE_PRO for PHOTOCHROMIC_SOLIS', () => {
@@ -52,9 +52,9 @@ describe('lensPricing', () => {
       expect(coatings).toEqual(['SERICUM_UV', 'BLUE_PRO']);
     });
 
-    it('should return SERICUM_UV and BLUE_PRO for POLARIZED_NUPOLAR', () => {
+    it('should return only SERICUM_UV for POLARIZED_NUPOLAR (no BLUE_PRO)', () => {
       const coatings = getAllowedCoatings('POLARIZED_NUPOLAR');
-      expect(coatings).toEqual(['SERICUM_UV', 'BLUE_PRO']);
+      expect(coatings).toEqual(['SERICUM_UV']);
     });
   });
 
@@ -146,11 +146,11 @@ describe('lensPricing', () => {
       expect(calculateLensPairTotal(selection)).toBe(77.80);
     });
 
-    it('should calculate correctly for POLARIZED_NUPOLAR 1.67 BLUE_PRO', () => {
+    it('should calculate correctly for POLARIZED_NUPOLAR 1.67 SERICUM_UV', () => {
       const selection: LensSelection = {
         lensType: 'POLARIZED_NUPOLAR',
         lensIndex: '1.67',
-        coating: 'BLUE_PRO',
+        coating: 'SERICUM_UV',
         polarizedColor: 'Green',
       };
       expect(calculateLensPairTotal(selection)).toBe(129.24);

@@ -5,6 +5,7 @@ import { Star } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow } from "date-fns";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 type Review = {
   id: string;
@@ -75,14 +76,14 @@ export default function CustomerReviews({ reviews }: CustomerReviewsProps) {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row gap-8 md:gap-16">
           <div className="md:w-1/3">
-            <h2 className="text-brand-h2 font-headline mb-4">Customer Reviews</h2>
+            <h2 className="text-brand-h2 font-headline mb-4"><TranslatableText text="Customer Reviews" /></h2>
             <div className="flex items-center gap-2 mb-2">
                 <div className="flex items-center">
                     {[...Array(5)].map((_, i) => (
                         <Star key={i} className={i < Math.round(averageRating) ? "text-yellow-400 fill-current" : "text-gray-300"} />
                     ))}
                 </div>
-                <p className="font-bold text-lg">{averageRating.toFixed(1)} out of 5</p>
+                <p className="font-bold text-lg">{averageRating.toFixed(1)} <TranslatableText text="out of 5" /></p>
             </div>
             <p className="text-muted-foreground text-sm mb-6">Based on {displayReviews.length} review{displayReviews.length !== 1 ? 's' : ''}</p>
 

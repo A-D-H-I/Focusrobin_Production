@@ -610,17 +610,32 @@ export default function AccountPage() {
     setIsSubmittingReview(true);
 
     try {
-      // Upload images first (for now, we'll store as base64 URLs - in production, upload to cloud storage)
-      const imageUrls: string[] = [];
-      for (const file of reviewUploadedImages) {
-        // Convert to base64 for now (in production, upload to S3/Cloudinary/etc)
-        const base64 = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
+      // Upload images to S3
+      let imageUrls: string[] = [];
+      
+      if (reviewUploadedImages.length > 0) {
+        const formData = new FormData();
+        reviewUploadedImages.forEach((file) => {
+          formData.append("files", file);
         });
-        imageUrls.push(base64);
+
+        const uploadResponse = await fetch("/api/upload/review", {
+          method: "POST",
+          body: formData,
+        });
+
+        const uploadResult = await uploadResponse.json();
+
+        if (!uploadResponse.ok) {
+          throw new Error(uploadResult.error || "Failed to upload images");
+        }
+
+        imageUrls = uploadResult.urls || [];
+        
+        // Log any partial upload errors
+        if (uploadResult.errors && uploadResult.errors.length > 0) {
+          console.warn("Some images failed to upload:", uploadResult.errors);
+        }
       }
 
       const result = await createReview(
@@ -656,11 +671,11 @@ export default function AccountPage() {
           setUserReviews(reviewsResult.reviews);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting review:", error);
       toast({
         title: "Error",
-        description: "Failed to submit review. Please try again.",
+        description: error.message || "Failed to submit review. Please try again.",
         variant: "destructive",
       });
     } finally {

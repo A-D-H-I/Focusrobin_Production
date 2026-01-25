@@ -77,16 +77,18 @@ export async function saveUserPrescription(
         osPrismVertical: os.prismVertical || null,
         osPrismVerticalBase: os.prismVerticalBase || null,
         prescriptionImageUrl: prescriptionImageUrl || null,
-        lensType: rxConfig.lensType,
-        lensIndex: rxConfig.lensIndex,
-        coating: rxConfig.coating,
-        tintType: rxConfig.tintType || null,
-        tintColor: rxConfig.tintColor || null,
-        tintShadePercent: rxConfig.tintShadePercent || null,
-        tintRecipe: rxConfig.tintRecipe || null,
-        photochromicColor: rxConfig.photochromicColor || null,
-        polarizedColor: rxConfig.polarizedColor || null,
-        frameType: rxConfig.frameType,
+        // NOTE: Lens configuration fields are required by schema but NOT used when loading
+        // We save defaults here - actual lens config is stored in product-specific localStorage
+        lensType: "CLEAR", // Default - not loaded back
+        lensIndex: "1.56", // Default - not loaded back
+        coating: "UC", // Default - not loaded back
+        tintType: null,
+        tintColor: null,
+        tintShadePercent: null,
+        tintRecipe: null,
+        photochromicColor: null,
+        polarizedColor: null,
+        frameType: rxConfig?.frameType || "FULL_FRAME", // Only frameType is used (for edging fee, auto-detected per product)
         lensesPair: rxPriceBreakdown?.lensesPair ? rxPriceBreakdown.lensesPair : null,
         edgingFee: rxPriceBreakdown?.edgingFee ? rxPriceBreakdown.edgingFee : null,
         profit: rxPriceBreakdown?.profit ? rxPriceBreakdown.profit : null,
@@ -115,16 +117,18 @@ export async function saveUserPrescription(
         osPrismVertical: os.prismVertical || null,
         osPrismVerticalBase: os.prismVerticalBase || null,
         prescriptionImageUrl: prescriptionImageUrl || null,
-        lensType: rxConfig.lensType,
-        lensIndex: rxConfig.lensIndex,
-        coating: rxConfig.coating,
-        tintType: rxConfig.tintType || null,
-        tintColor: rxConfig.tintColor || null,
-        tintShadePercent: rxConfig.tintShadePercent || null,
-        tintRecipe: rxConfig.tintRecipe || null,
-        photochromicColor: rxConfig.photochromicColor || null,
-        polarizedColor: rxConfig.polarizedColor || null,
-        frameType: rxConfig.frameType,
+        // NOTE: Lens configuration fields are required by schema but NOT used when loading
+        // We save defaults here - actual lens config is stored in product-specific localStorage
+        lensType: "CLEAR", // Default - not loaded back
+        lensIndex: "1.56", // Default - not loaded back
+        coating: "UC", // Default - not loaded back
+        tintType: null,
+        tintColor: null,
+        tintShadePercent: null,
+        tintRecipe: null,
+        photochromicColor: null,
+        polarizedColor: null,
+        frameType: rxConfig?.frameType || "FULL_FRAME", // Only frameType is used (for edging fee, auto-detected per product)
         lensesPair: rxPriceBreakdown?.lensesPair ? rxPriceBreakdown.lensesPair : null,
         edgingFee: rxPriceBreakdown?.edgingFee ? rxPriceBreakdown.edgingFee : null,
         profit: rxPriceBreakdown?.profit ? rxPriceBreakdown.profit : null,
@@ -188,27 +192,11 @@ export async function getUserPrescription(productSlug: string) {
       hasTwoPDs: prescription.hasTwoPDs,
       hasPrism: prescription.hasPrism,
       prescriptionImageUrl: prescription.prescriptionImageUrl || undefined,
-      rxConfig: {
-        lensType: prescription.lensType as any,
-        lensIndex: prescription.lensIndex as any,
-        coating: prescription.coating as any,
-        tintType: prescription.tintType as any,
-        tintColor: prescription.tintColor as any,
-        tintShadePercent: prescription.tintShadePercent || undefined,
-        tintRecipe: prescription.tintRecipe || undefined,
-        photochromicColor: prescription.photochromicColor as any,
-        polarizedColor: prescription.polarizedColor as any,
-        frameType: prescription.frameType as any,
-      },
-      rxPriceBreakdown: prescription.lensesPair
-        ? {
-            lensesPair: Number(prescription.lensesPair),
-            edgingFee: Number(prescription.edgingFee || 0),
-            profit: Number(prescription.profit || 0),
-            rxRetailNet: Number(prescription.rxRetailNet || 0),
-            totalNet: Number(prescription.totalNet || 0),
-          }
-        : undefined,
+      // NOTE: Lens configuration is NOT loaded from database - it's product-specific
+      // Lens config should be loaded from localStorage/sessionStorage per product
+      // Only frameType is loaded (for edging fee calculation, but will be auto-detected per product)
+      rxConfig: undefined, // Don't load lens config from DB - it's product-specific
+      rxPriceBreakdown: undefined, // Price breakdown is calculated dynamically, not stored
     };
 
     console.log('[getUserPrescription] Loaded prescription from DB:', {

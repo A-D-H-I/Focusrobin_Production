@@ -109,7 +109,7 @@ export default async function WomenShopPage({ searchParams }: WomenShopPageProps
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
+      <main className="flex-grow bg-background">
         <CategoryBanner
           title={bannerTitle}
           imageSrc={bannerImage}

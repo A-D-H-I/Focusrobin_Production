@@ -94,8 +94,8 @@ export default function ShopPageClient({ products, title = "All Products", searc
   }, [products, sortBy, originalOrder]);
 
   return (
-    <div className="container mx-auto px-4">
-      <div className="flex flex-col md:flex-row gap-8 py-8">
+    <div className="container mx-auto px-4 overflow-x-hidden">
+      <div className="flex flex-col md:flex-row gap-8 py-8 overflow-x-hidden">
         {/* Desktop Filter Sidebar */}
         <div className="hidden md:block md:w-72 lg:w-80 flex-shrink-0">
           <div className="sticky top-32">
@@ -108,7 +108,7 @@ export default function ShopPageClient({ products, title = "All Products", searc
         </div>
         
         {/* Main Content */}
-        <div className="w-full md:flex-1 min-w-0">
+        <div className="w-full md:flex-1 min-w-0 overflow-x-hidden">
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>

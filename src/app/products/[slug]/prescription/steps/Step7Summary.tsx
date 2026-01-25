@@ -179,10 +179,6 @@ export default function Step7Summary({
                 </span>
               </div>
             )}
-            <div className="flex justify-between text-sm pl-4">
-              <span>Edging/Mounting</span>
-              <span>{formatPrice(breakdown.edgingFee)}</span>
-            </div>
           </div>
           <div className="border-t pt-3 flex justify-between text-sm">
             <span>Rx Add-on Subtotal</span>
@@ -202,7 +198,7 @@ export default function Step7Summary({
           className="w-full h-14 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-lg"
         >
           <Check className="mr-2 h-5 w-5" />
-          Confirm Order - {formatPrice(totalNet)}
+          Confirm Selections - {formatPrice(totalNet)}
         </Button>
         <p className="text-center text-sm text-muted-foreground">
           Your prescription lenses will be custom-made for you

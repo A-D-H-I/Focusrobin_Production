@@ -1,4 +1,4 @@
-import type {Metadata} from 'next';
+import type {Metadata, Viewport} from 'next';
 import localFont from 'next/font/local';
 import { Toaster } from "@/components/ui/toaster";
 import SessionProvider from "@/components/providers/SessionProvider";
@@ -9,11 +9,14 @@ import { WishlistProvider } from "@/context/WishlistContext";
 import { SupportChat } from "@/components/chat/SupportChat";
 import { OverflowDetector } from "@/components/dev/overflow-detector";
 import { LayoutShiftDebugger } from "@/components/debug/LayoutShiftDebugger";
+import { ScrollbarWidthSetter } from "@/components/utils/ScrollbarWidthSetter";
+import { PreventSelectScrollLock } from "@/components/utils/PreventSelectScrollLock";
 import { MicrosoftClarity } from "@/components/analytics/MicrosoftClarity";
 import { MetaPixel } from "@/components/analytics/MetaPixel";
 import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { CookieConsentProvider } from "@/context/CookieConsentContext";
 import { CookieConsentBanner } from "@/components/cookie/CookieConsentBanner";
+import { PageTranslationProvider } from "@/components/providers/PageTranslationProvider";
 import './globals.css';
 
 const chillax = localFont({
@@ -29,15 +32,17 @@ function getOGImageUrl(): string {
   return '/og.png';
 }
 
-export const metadata: Metadata = {
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover', // Enables safe-area-inset support for iOS
+};
+
+// Explicitly type metadata to exclude viewport (which is exported separately above)
+export const metadata: Omit<Metadata, 'viewport'> = {
   metadataBase: new URL('https://focusrobin.lt'),
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-    userScalable: true,
-    viewportFit: 'cover', // Enables safe-area-inset support for iOS
-  },
   title: {
     default: 'FocusRobin - Premium Sunglasses & Prescription Glasses | Lithuania',
     template: '%s | FocusRobin Lithuania',
@@ -214,18 +219,22 @@ export default function RootLayout({
           <MetaPixel />
           <SessionProvider>
             <LanguageProvider>
-              <CurrencyProvider>
-                <CartProvider>
-                  <WishlistProvider>
-                    {children}
+              <PageTranslationProvider>
+                <CurrencyProvider>
+                  <CartProvider>
+                    <WishlistProvider>
+                      {children}
                     <Toaster />
                     <SupportChat />
+                    <ScrollbarWidthSetter />
+                    <PreventSelectScrollLock />
                     <OverflowDetector />
                     <LayoutShiftDebugger />
                     <CookieConsentBanner />
-                  </WishlistProvider>
-                </CartProvider>
-              </CurrencyProvider>
+                    </WishlistProvider>
+                  </CartProvider>
+                </CurrencyProvider>
+              </PageTranslationProvider>
             </LanguageProvider>
           </SessionProvider>
         </CookieConsentProvider>

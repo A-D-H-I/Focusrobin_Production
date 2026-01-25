@@ -10,6 +10,7 @@ import type { Product } from "@/lib/productData";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePrice } from "@/hooks/usePrice";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface BestsellersCarouselProps {
   products: Product[];
@@ -26,8 +27,8 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
     return (
       <section className="py-20 bg-background">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-brand-h2 font-headline mb-4">Unique Designs</h2>
-          <p className="text-muted-foreground">No products available at the moment.</p>
+          <h2 className="text-brand-h2 font-headline mb-4"><TranslatableText text="Unique Designs" /></h2>
+          <p className="text-muted-foreground"><TranslatableText text="No products available at the moment." /></p>
         </div>
       </section>
     );
@@ -179,7 +180,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
     <section className="bg-brand-white py-8 sm:py-12 relative w-full overflow-hidden">
       <div className="text-center mb-6 sm:mb-8 px-4">
         <h2 className="text-brand-blue font-headline text-brand-h2 mb-2">
-          Unique Designs
+          <TranslatableText text="Unique Designs" />
         </h2>
         <p className="text-muted-foreground text-sm sm:text-base mb-2">
           Discover our exclusive collection of distinctive and one-of-a-kind eyewear designs.
@@ -439,7 +440,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                                     e.stopPropagation();
                                   }}
                                 >
-                                  Shop Now
+                                  <TranslatableText text="Shop Now" />
                                 </Button>
                               </Link>
                             </motion.div>

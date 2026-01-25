@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Package, Plus, Image as ImageIcon, ShoppingBag, BarChart3, Users, Settings, Trash2, MessageCircle, Mail, ChevronDown, ChevronRight, Layout, Box, Star, Palette, Ticket } from 'lucide-react';
+import { Package, Plus, Image as ImageIcon, ShoppingBag, BarChart3, Users, Settings, Trash2, MessageCircle, Mail, ChevronDown, ChevronRight, Layout, Box, Star, Palette, Ticket, Shapes } from 'lucide-react';
 import { useState } from 'react';
 
 export function AdminDashboardSections() {
@@ -210,6 +210,22 @@ export function AdminDashboardSections() {
                   <CardContent>
                     <Link href="/admin/shapes">
                       <Button variant="outline" className="w-full">Manage Glass Shapes</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Prescription Lens Images Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Prescription Lens Images</CardTitle>
+                    </div>
+                    <CardDescription>Manage global prescription lens preview images</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/prescription-lens-images">
+                      <Button variant="outline" className="w-full">Manage Lens Images</Button>
                     </Link>
                   </CardContent>
                 </Card>
@@ -505,6 +521,22 @@ export function AdminDashboardSections() {
           <CardContent>
             <Link href="/admin/navbar-settings">
               <Button variant="outline" className="w-full">Manage Navbar</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        {/* Shapes Card */}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Shapes className="h-5 w-5 text-primary" />
+              <CardTitle>Glass Shapes</CardTitle>
+            </div>
+            <CardDescription>Manage glass frame shapes and categories</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/admin/shapes">
+              <Button variant="outline" className="w-full">Manage Shapes</Button>
             </Link>
           </CardContent>
         </Card>

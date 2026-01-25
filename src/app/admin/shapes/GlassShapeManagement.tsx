@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { normalizeImageUrl } from '@/lib/normalize-image-url';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 
 interface GlassShape {
   id: string;
@@ -245,19 +246,15 @@ export function GlassShapeManagement({ initialShapes }: GlassShapeManagementProp
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="imageUrl">Shape Image URL</Label>
-                <Input
-                  id="imageUrl"
+                <Label>Shape Image</Label>
+                <ImageUploader
                   value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="https://example.com/shape-image.jpg or /public/shapes/cat-eye.png"
-                  type="text"
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  folder="shapes"
+                  label="Glass Shape Image"
+                  description="This image will be displayed in the mega menu 'Shop by Shape' section. Recommended size: 200x150px or similar aspect ratio."
+                  maxSizeMB={5}
                 />
-                <p className="text-xs text-muted-foreground">
-                  <strong>Upload your image:</strong> Upload the shape image to your storage/CDN (e.g., Dropbox, S3, or public folder) 
-                  and paste the full URL here. This image will be displayed in the mega menu "Shop by Shape" section. 
-                  Recommended size: 200x150px or similar aspect ratio.
-                </p>
                 <p className="text-xs text-blue-600 font-medium">
                   💡 <strong>Tip:</strong> Shapes are automatically created when you add products with a glass shape. 
                   You can then come here to add images for each shape.

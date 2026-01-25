@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { normalizeImageUrl } from '@/lib/normalize-image-url';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 
 interface InstagramImage {
   id: string;
@@ -194,19 +195,17 @@ export function InstagramImageManagement({ initialImages }: InstagramImageManage
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="imageUrl">Image URL</Label>
+                  <Label>Image</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 3:4 (Portrait)</span>
                 </div>
-                <Input
-                  id="imageUrl"
+                <ImageUploader
                   value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="/instagramimages/image.jpg"
-                  required
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  folder="instagram"
+                  label="Instagram Image"
+                  description="Recommended: 1080x1440px (3:4). Portrait format, displayed in a 2x4 grid (2 rows, 4 columns) in the Community Lookbook section."
+                  maxSizeMB={10}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1080x1440px (3:4). Portrait format, displayed in a 2x4 grid (2 rows, 4 columns) in the Community Lookbook section.
-                </p>
               </div>
 
               <div className="space-y-2">

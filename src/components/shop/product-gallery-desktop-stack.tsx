@@ -219,7 +219,7 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
       {/* Gallery - Scrollable without visible scrollbar with smooth scrolling */}
       <div 
         ref={galleryRef}
-        className="space-y-4 overflow-y-auto max-h-[calc(100vh-8rem)] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] scroll-smooth"
+        className="space-y-4 overflow-y-auto max-h-[calc(100vh-8rem)] hide-scrollbar scroll-smooth"
         style={{ scrollBehavior: 'auto' }}
       >
         {/* First Image - Full Width */}

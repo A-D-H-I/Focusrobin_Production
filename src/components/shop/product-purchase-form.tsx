@@ -11,6 +11,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 import { usePrice } from "@/hooks/usePrice";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 type ProductPurchaseFormProps = {
   product: Product;
@@ -134,7 +135,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
     }
     const variantWithTryOn = product.variants.find(v => v.tryOn) || selectedVariant;
     const variantIndex = product.variants.findIndex(v => v.hex === variantWithTryOn.hex);
-    router.push(`/try-on?product=${encodeURIComponent(product.slug)}&variant=${variantIndex}`);
+    router.push(`/try-on?product=${encodeURIComponent(product.slug || product.id)}&variant=${variantIndex}`);
   };
 
   const handleAddToCart = () => {
@@ -207,14 +208,14 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   const isLowStock = selectedVariant?.stock !== undefined && selectedVariant.stock > 0 && selectedVariant.stock < 10;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 overflow-hidden w-full">
       {/* Product Name */}
-      <div>
-        <h1 className="text-3xl lg:text-4xl font-headline tracking-tight">{product.name}</h1>
+      <div className="overflow-hidden">
+        <h1 className="text-3xl lg:text-4xl font-headline tracking-tight truncate">{product.name}</h1>
       </div>
 
       {/* Price Section */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap overflow-hidden">
         <span className="text-2xl font-semibold text-primary">{formatPrice(priceInEur)}</span>
         {originalPriceInEur && originalPriceInEur !== priceInEur && (
           <>
@@ -249,14 +250,16 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
           ))}
         </div>
         <span className="text-sm text-muted-foreground">
-          ({product.reviewCount || 0} customer review{product.reviewCount !== 1 ? 's' : ''})
+          ({product.reviewCount || 0} <TranslatableText text={(product.reviewCount || 0) !== 1 ? "customer reviews" : "customer review"} />)
         </span>
       </div>
 
       {/* Color Selection */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-base font-medium">Color: {selectedVariant?.name || 'Default'}</span>
+          <span className="text-base font-medium">
+            <TranslatableText text="Color" />: {selectedVariant?.name || 'Default'}
+          </span>
         </div>
         <div className="flex gap-2">
           {product.variants.map((variant, idx) => (
@@ -277,23 +280,23 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       </div>
 
       {/* Features Grid - Combined with Warranty and Fast Delivery */}
-      <div className="rounded-lg border bg-muted/30 p-2.5">
-        <div className="grid grid-cols-3 gap-2">
+      <div className="rounded-lg border bg-muted/30 p-2.5 sm:p-3 overflow-hidden">
+        <div className="grid grid-cols-2 gap-2">
           {lensFeatures.map((feature, index) => (
-            <div key={index} className={`flex items-center gap-1.5 ${(index + 1) % 3 !== 0 ? 'border-r border-border pr-2' : ''}`}>
-              <feature.icon className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-              <span className="text-sm text-foreground/80">{feature.text}</span>
+            <div key={index} className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+              <feature.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-foreground/80 truncate">{feature.text}</span>
             </div>
           ))}
           {/* Warranty */}
-          <div className="flex items-center gap-1.5 border-r border-border pr-2">
-            <CheckCircle2 className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-            <span className="text-sm text-foreground/80">Three Years Warranty</span>
+          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+            <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-foreground/80 truncate">3 Years Warranty</span>
           </div>
           {/* Fast Delivery */}
-          <div className="flex items-center gap-1.5">
-            <Truck className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-            <span className="text-sm text-foreground/80">Fast Delivery</span>
+          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
+            <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
+            <span className="text-xs sm:text-sm text-foreground/80 truncate">Fast Delivery</span>
           </div>
         </div>
       </div>
@@ -330,38 +333,40 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
         
         {/* Stock Status */}
         {isOutOfStock && (
-          <span className="text-sm font-medium text-destructive">Out of Stock</span>
+          <span className="text-sm font-medium text-destructive"><TranslatableText text="Out of Stock" /></span>
         )}
         {isLowStock && (
           <span className={cn(
             "text-sm font-medium",
-            selectedVariant!.stock <= 3 ? "text-orange-600" : "text-amber-600"
+            (selectedVariant?.stock || 0) <= 3 ? "text-orange-600" : "text-amber-600"
           )}>
-            Only {selectedVariant!.stock} left in stock
+            <TranslatableText text="Only" /> {selectedVariant?.stock || 0} <TranslatableText text="left in stock" />
           </span>
         )}
       </div>
 
       {/* Action Buttons */}
-      <div className="space-y-2">
+      <div className="space-y-2 overflow-hidden">
         {/* Virtual Try-On and Add to Cart - Two buttons in a row */}
         <div className="grid grid-cols-2 gap-2">
           <Button 
             variant="outline" 
-            className="w-full h-10 text-base border"
+            className="h-10 text-sm border overflow-hidden"
             onClick={handleTryOn}
           >
-            <Camera className="w-5 h-5 mr-2" />
-            Virtual Try-On
+            <Camera className="w-4 h-4 mr-1.5 flex-shrink-0" />
+            <span className="truncate"><TranslatableText text="Virtual Try-On" /></span>
           </Button>
 
           <Button 
-            className="w-full h-10 text-base font-semibold"
+            className="h-10 text-sm font-semibold overflow-hidden"
             disabled={isOutOfStock}
             onClick={handleAddToCart}
           >
-            <ShoppingCart className="w-5 h-5 mr-2" />
-            {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+            <ShoppingCart className="w-4 h-4 mr-1.5 flex-shrink-0" />
+            <span className="truncate">
+              {isOutOfStock ? <TranslatableText text="Out of Stock" /> : <TranslatableText text="Add to Cart" />}
+            </span>
           </Button>
         </div>
         
@@ -385,8 +390,8 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
                 </Button>
               </div>
               
-              <div className="space-y-2 text-sm">
-                <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2 text-sm overflow-x-hidden">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <p className="font-medium text-muted-foreground mb-0.5 text-sm">OD (Right)</p>
                     <p className="text-foreground text-sm">
@@ -500,23 +505,23 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
         ) : (
           <div className="grid grid-cols-2 gap-2">
             <Button
-              className="w-full h-10 text-base font-semibold"
+              className="h-10 text-sm font-semibold overflow-hidden"
               onClick={() => {
                 router.push(`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
               }}
               disabled={isOutOfStock}
             >
-              <Plus className="w-5 h-5 mr-2" />
-              Add Prescription
+              <Plus className="w-4 h-4 mr-1.5 flex-shrink-0" />
+              <span className="truncate">Add Prescription</span>
             </Button>
             
             <Button 
               variant="outline" 
-              className={cn("w-full h-10 text-base", isWishlisted && "border-primary")}
+              className={cn("h-10 text-sm overflow-hidden", isWishlisted && "border-primary")}
               onClick={handleWishlist}
             >
-              <Heart className={cn("w-5 h-5 mr-2", isWishlisted && "fill-red-500 text-red-500")} />
-              {isWishlisted ? "Added to Wishlist" : "Add to Wishlist"}
+              <Heart className={cn("w-4 h-4 mr-1.5 flex-shrink-0", isWishlisted && "fill-red-500 text-red-500")} />
+              <span className="truncate">{isWishlisted ? "In Wishlist" : "Wishlist"}</span>
             </Button>
           </div>
         )}
@@ -524,18 +529,18 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
         {prescriptionData && (
           <Button 
             variant="outline" 
-            className={cn("w-full h-10 text-base", isWishlisted && "border-primary")}
+            className={cn("w-full h-10 text-sm overflow-hidden", isWishlisted && "border-primary")}
             onClick={handleWishlist}
           >
-            <Heart className={cn("w-5 h-5 mr-2", isWishlisted && "fill-red-500 text-red-500")} />
-            {isWishlisted ? "Added to Wishlist" : "Add to Wishlist"}
+            <Heart className={cn("w-4 h-4 mr-1.5 flex-shrink-0", isWishlisted && "fill-red-500 text-red-500")} />
+            <span className="truncate">{isWishlisted ? "In Wishlist" : "Add to Wishlist"}</span>
           </Button>
         )}
       </div>
       
       {/* Shipping Info */}
-      <p className="text-sm text-muted-foreground">
-        Designed in Lithuania. Fast delivery of sunglasses across Lithuania and the EU/Schengen.
+      <p className="text-xs sm:text-sm text-muted-foreground">
+        Designed in Lithuania. Fast delivery across EU/Schengen.
       </p>
     </div>
   );

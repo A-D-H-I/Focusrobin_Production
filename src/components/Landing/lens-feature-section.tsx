@@ -1,3 +1,7 @@
+"use client";
+
+import TranslatableText from "@/components/ui/TranslatableText";
+
 export default function LensFeatureSection() {
   return (
     <section className="py-8 sm:py-12 md:py-20 lg:py-32 bg-gradient-to-b from-background to-muted/20">
@@ -31,10 +35,10 @@ export default function LensFeatureSection() {
             
             {/* Floating badges */}
             <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 md:-top-4 md:-right-4 bg-teal-primary text-white px-2 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 rounded-full shadow-lg text-[10px] sm:text-xs md:text-sm font-semibold whitespace-nowrap">
-              100% Safe
+              <TranslatableText text="100% Safe" />
             </div>
             <div className="absolute -bottom-1 -left-1 sm:-bottom-2 sm:-left-2 md:-bottom-4 md:-left-4 bg-white text-teal-primary px-2 py-1 sm:px-3 sm:py-1.5 md:px-4 md:py-2 rounded-full shadow-lg text-[10px] sm:text-xs md:text-sm font-semibold border-2 border-teal-primary whitespace-nowrap">
-              Triple Layer
+              <TranslatableText text="Triple Layer" />
             </div>
           </div>
         </div>
@@ -45,7 +49,7 @@ export default function LensFeatureSection() {
           <div className="space-y-1.5 sm:space-y-2 md:space-y-3">
             <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-brand-h2 font-headline text-teal-primary leading-tight break-words">UV 400 PROTECTION</h2>
             <p className="text-slate-700 text-sm sm:text-base md:text-lg">
-              Premium lens technology with three protective layers designed for your eye safety.
+              <TranslatableText text="Premium lens technology with three protective layers designed for your eye safety." />
             </p>
           </div>
 
@@ -58,9 +62,9 @@ export default function LensFeatureSection() {
                 </div>
               </div>
               <div className="flex-1 pt-0.5 sm:pt-1 md:pt-2 min-w-0">
-                <h3 className="text-base sm:text-lg md:text-xl lg:text-brand-h3 font-headline text-gray-800 mb-0.5 sm:mb-1 md:mb-2 leading-tight break-words">Scratch Resistant</h3>
+                <h3 className="text-base sm:text-lg md:text-xl lg:text-brand-h3 font-headline text-gray-800 mb-0.5 sm:mb-1 md:mb-2 leading-tight break-words"><TranslatableText text="Scratch Resistant" /></h3>
                 <p className="text-gray-700 text-xs sm:text-sm md:text-base leading-relaxed">
-                  Durable hardened coating for long-lasting protection
+                  <TranslatableText text="Durable hardened coating for long-lasting protection" />
                 </p>
                 <div className="mt-1.5 sm:mt-2 md:mt-3 h-1 sm:h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <div className="h-full w-3/4 bg-gradient-to-r from-teal-primary to-[#4DCECA] rounded-full" />
@@ -75,9 +79,9 @@ export default function LensFeatureSection() {
                 </div>
               </div>
               <div className="flex-1 pt-0.5 sm:pt-1 md:pt-2 min-w-0">
-                <h3 className="text-base sm:text-lg md:text-xl lg:text-brand-h3 font-headline text-gray-800 mb-0.5 sm:mb-1 md:mb-2 leading-tight break-words">Anti-Reflective</h3>
+                <h3 className="text-base sm:text-lg md:text-xl lg:text-brand-h3 font-headline text-gray-800 mb-0.5 sm:mb-1 md:mb-2 leading-tight break-words"><TranslatableText text="Anti-Reflective" /></h3>
                 <p className="text-gray-700 text-xs sm:text-sm md:text-base leading-relaxed">
-                  Reduces glare and enhances visual clarity
+                  <TranslatableText text="Reduces glare and enhances visual clarity" />
                 </p>
                 <div className="mt-1.5 sm:mt-2 md:mt-3 h-1 sm:h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <div className="h-full w-5/6 bg-gradient-to-r from-teal-primary to-[#4DCECA] rounded-full" />
@@ -92,9 +96,9 @@ export default function LensFeatureSection() {
                 </div>
               </div>
               <div className="flex-1 pt-0.5 sm:pt-1 md:pt-2 min-w-0">
-                <h3 className="text-base sm:text-lg md:text-xl lg:text-brand-h3 font-headline text-gray-800 mb-0.5 sm:mb-1 md:mb-2 leading-tight break-words">UV 400 Core</h3>
+                <h3 className="text-base sm:text-lg md:text-xl lg:text-brand-h3 font-headline text-gray-800 mb-0.5 sm:mb-1 md:mb-2 leading-tight break-words"><TranslatableText text="UV 400 Core" /></h3>
                 <p className="text-gray-700 text-xs sm:text-sm md:text-base leading-relaxed">
-                  Blocks 100% of harmful UVA and UVB rays
+                  <TranslatableText text="Blocks 100% of harmful UVA and UVB rays" />
                 </p>
                 <div className="mt-1.5 sm:mt-2 md:mt-3 h-1 sm:h-1.5 bg-gray-200 rounded-full overflow-hidden">
                   <div className="h-full w-full bg-gradient-to-r from-teal-primary to-[#3db8b4] rounded-full" />

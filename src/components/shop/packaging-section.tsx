@@ -7,7 +7,7 @@ const packagingImage = PlaceHolderImages.find(p => p.id === "packaging")!;
 
 export default function PackagingSection() {
   return (
-    <section className="relative bg-black text-white py-0 lg:py-16 overflow-hidden min-h-[350px] md:min-h-[400px] lg:min-h-[450px] flex flex-col justify-end bg-gradient-to-br from-brand-teal/10 to-brand-blue/10">
+    <section className="relative bg-black text-white py-0 lg:py-16 overflow-hidden min-h-[350px] md:min-h-[400px] lg:min-h-[450px] flex flex-col justify-end bg-gradient-to-br from-brand-teal/10 to-brand-blue/10 w-full">
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image

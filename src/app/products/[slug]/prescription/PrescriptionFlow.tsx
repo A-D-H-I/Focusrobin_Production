@@ -20,6 +20,7 @@ import {
   type FrameType,
   calculateRxTotal,
   FIXED_PROFIT,
+  PRICES,
 } from "@/lib/pricing/rx167";
 import { detectFrameType } from "@/lib/pricing/detectFrameType";
 
@@ -190,9 +191,14 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   }, [rxConfig]);
 
   // Calculate lens pair price using new pricing module
+  // NOTE: Edging fee is incorporated into lens price (hidden from customer)
   const lensPairPrice = useMemo(() => {
-    return calculateLensPairTotal(lensSelection);
-  }, [lensSelection]);
+    const basePrice = calculateLensPairTotal(lensSelection);
+    // Get edging fee based on frame type
+    const edgingFee = PRICES.edging[rxConfig.frameType] || 0;
+    // Incorporate edging fee into lens price (hidden from customer)
+    return basePrice + edgingFee;
+  }, [lensSelection, rxConfig.frameType]);
 
   // Calculate Rx price based on current configuration (using old rx167 for edging/profit)
   const rxPriceResult = useMemo(() => {
@@ -223,8 +229,8 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     });
 
     // Override with new pricing
-    const edgingFee = result.breakdown.edgingFee;
-    const rxAddOnNet = lensPairPrice + edgingFee;
+    // lensPairPrice already includes edging fee, so we just add profit
+    const rxAddOnNet = lensPairPrice;
     const rxRetailNet = rxAddOnNet + FIXED_PROFIT;
     const rxRetailGross = rxRetailNet * 1.21; // VAT
     const totalGross = framePrice + rxRetailGross;
@@ -233,11 +239,12 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     return {
       breakdown: {
         ...result.breakdown,
-        lensesPair: lensPairPrice,
+        lensesPair: lensPairPrice, // This already includes edging fee
         rxAddOnNet,
         rxRetailNet,
         rxRetailGross,
         profit: FIXED_PROFIT,
+        edgingFee: 0, // Not shown to customer (included in lensesPair)
       },
       totalNet,
       totalGross,
@@ -328,7 +335,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     if (rxConfig.lensType === "TINTED") {
       return 5; // Go to tint options
     }
-    return 6; // Skip to frame type
+    return 7; // Skip frame type step, go directly to summary
   };
 
   // Step navigation helpers
@@ -344,13 +351,23 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     handleStepChange(4); // Back to coating
   };
 
-  const goBackFromFrameType = () => {
+  const goBackFromSummary = () => {
     if (rxConfig.lensType === "TINTED") {
       handleStepChange(5); // Back to tint options
     } else {
       handleStepChange(4); // Back to coating
     }
   };
+
+  // Ensure frame type is always set to detected value for current product
+  // This happens automatically even though users don't see the frame type step
+  // Frame type is product-specific, so it should update when product changes
+  useEffect(() => {
+    if (rxConfig.frameType !== detectedFrameType) {
+      handleRxConfigUpdate({ frameType: detectedFrameType });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detectedFrameType, product.id]); // Update when product changes
 
   // Expose rxConfig for image processing (via context or props)
   // For now, we'll use a custom event to sync with image component
@@ -427,20 +444,21 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         <Step5TintOptions
           rxConfig={rxConfig}
           onConfigUpdate={handleRxConfigUpdate}
-          onNext={() => handleStepChange(6)}
+          onNext={() => handleStepChange(7)}
           onBack={goBackFromTintOptions}
           formatPrice={formatPrice}
         />
       )}
 
-      {/* Step 6: Frame Type (auto-detected) */}
-      {currentStep === 6 && (
+      {/* Step 6: Frame Type (auto-detected) - HIDDEN FROM USER */}
+      {/* Frame type is automatically detected and set, edging fee is included in pricing */}
+      {false && currentStep === 6 && (
         <Step6FrameType
           product={product}
           rxConfig={rxConfig}
           onConfigUpdate={handleRxConfigUpdate}
           onNext={() => handleStepChange(7)}
-          onBack={goBackFromFrameType}
+          onBack={goBackFromSummary}
           rxPriceResult={rxPriceResult}
           formatPrice={formatPrice}
         />
@@ -456,7 +474,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
           framePrice={framePrice}
           formatPrice={formatPrice}
           onConfirm={handleFinalSubmit}
-          onBack={() => handleStepChange(6)}
+          onBack={goBackFromSummary}
           onEditPrescription={() => handleStepChange(1)}
           onEditLens={() => handleStepChange(3)}
         />

@@ -376,9 +376,8 @@ export default function WarrantyPage() {
                     Upon verification of a valid warranty claim, FocusRobin will, at our discretion:
                   </p>
                   
-                  <div className="grid md:grid-cols-3 gap-4">
+                  <div className="grid md:grid-cols-2 gap-4">
                     {[
-                      { title: 'Repair', desc: 'Repair the defective product at no charge', icon: Wrench },
                       { title: 'Replace', desc: 'Provide a replacement product of equal value', icon: Package },
                       { title: 'Credit', desc: 'Issue a store credit for the original purchase price', icon: CheckCircle2 },
                     ].map((item, idx) => {

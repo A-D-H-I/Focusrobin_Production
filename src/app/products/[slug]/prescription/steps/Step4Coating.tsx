@@ -10,6 +10,7 @@ import {
   getCoatingDeltaPair,
   getBasePairPrice,
 } from "@/lib/lensPricing";
+import { PRICES } from "@/lib/pricing/rx167";
 import type { RxConfigData } from "../PrescriptionFlow";
 
 interface Step4CoatingProps {
@@ -57,9 +58,13 @@ export default function Step4Coating({
   };
 
   // Calculate price delta (difference from cheapest allowed coating)
+  // NOTE: Edging fee is included in coating price, so we add it to the delta
   const getPriceDelta = (coating: Coating): number => {
-    if (!rxConfig.lensType || !rxConfig.lensIndex) return 0;
-    return getCoatingDeltaPair(rxConfig.lensType, rxConfig.lensIndex, coating);
+    if (!rxConfig.lensType || !rxConfig.lensIndex || !rxConfig.frameType) return 0;
+    const coatingDelta = getCoatingDeltaPair(rxConfig.lensType, rxConfig.lensIndex, coating);
+    // Add edging fee to coating price (edging fee is included in coating cost)
+    const edgingFee = PRICES.edging[rxConfig.frameType] || 0;
+    return coatingDelta + edgingFee;
   };
 
   // Get base pair price for a coating
@@ -137,7 +142,7 @@ export default function Step4Coating({
           onClick={onNext}
           className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
         >
-          {rxConfig.lensType === "TINTED" ? "Continue to Tint Options" : "Continue to Frame Type"}
+          {rxConfig.lensType === "TINTED" ? "Continue to Tint Options" : "Continue to Summary"}
         </Button>
       </div>
     </div>

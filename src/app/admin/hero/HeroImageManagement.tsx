@@ -21,6 +21,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { normalizeImageUrl } from '@/lib/normalize-image-url';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 
 interface HeroImage {
   id: string;
@@ -213,36 +214,32 @@ export function HeroImageManagement({ initialHeroImages }: HeroImageManagementPr
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="desktopImageUrl">Desktop Image URL</Label>
+                  <Label>Desktop Image</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 16:9 or 21:9 (Landscape)</span>
                 </div>
-                <Input
-                  id="desktopImageUrl"
+                <ImageUploader
                   value={formData.desktopImageUrl}
-                  onChange={(e) => setFormData({ ...formData, desktopImageUrl: e.target.value })}
-                  placeholder="/heroimage/quality.jpg"
-                  required
+                  onChange={(url) => setFormData({ ...formData, desktopImageUrl: url })}
+                  folder="hero"
+                  label="Desktop Hero Image"
+                  description="Recommended: 1920x1080px (16:9) or 2560x1080px (21:9). Full viewport width x height."
+                  maxSizeMB={10}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1920x1080px (16:9) or 2560x1080px (21:9). Full viewport width x height.
-                </p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="mobileImageUrl">Mobile Image URL</Label>
+                  <Label>Mobile Image</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 9:16 or 3:4 (Portrait)</span>
                 </div>
-                <Input
-                  id="mobileImageUrl"
+                <ImageUploader
                   value={formData.mobileImageUrl}
-                  onChange={(e) => setFormData({ ...formData, mobileImageUrl: e.target.value })}
-                  placeholder="/heroimage/quality.jpg"
-                  required
+                  onChange={(url) => setFormData({ ...formData, mobileImageUrl: url })}
+                  folder="hero"
+                  label="Mobile Hero Image"
+                  description="Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation."
+                  maxSizeMB={10}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation.
-                </p>
               </div>
 
               <div className="space-y-2">

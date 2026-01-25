@@ -128,6 +128,37 @@ function MetaPixelWithConsent() {
 }
 
 /**
+ * Helper function to wait for fbq to be available
+ * Returns a promise that resolves when fbq is ready
+ */
+function waitForFbq(maxAttempts: number = 10, delay: number = 100): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve(false);
+      return;
+    }
+
+    let attempts = 0;
+    const checkFbq = () => {
+      if ((window as any).fbq) {
+        resolve(true);
+        return;
+      }
+      
+      attempts++;
+      if (attempts >= maxAttempts) {
+        resolve(false);
+        return;
+      }
+      
+      setTimeout(checkFbq, delay);
+    };
+    
+    checkFbq();
+  });
+}
+
+/**
  * Helper function to track custom events in Meta Pixel
  * 
  * Usage:
@@ -160,34 +191,54 @@ export function trackMetaEvent(eventName: string, parameters?: Record<string, an
     }
   }
 
+  // If fbq is already available, track immediately
   if (typeof window !== 'undefined' && (window as any).fbq) {
-    if (parameters) {
-      // Ensure value is a number (not string) if present
-      const sanitizedParams = { ...parameters };
-      if ('value' in sanitizedParams && typeof sanitizedParams.value === 'string') {
-        sanitizedParams.value = parseFloat(sanitizedParams.value) || 0;
-      }
-      // Ensure value is a positive number
-      if ('value' in sanitizedParams && (isNaN(sanitizedParams.value) || sanitizedParams.value <= 0)) {
-        // Remove value if invalid
-        delete sanitizedParams.value;
-        delete sanitizedParams.currency;
-      }
-      
-      (window as any).fbq('track', eventName, sanitizedParams);
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Meta Pixel: Event tracked', eventName, sanitizedParams);
-      }
-    } else {
-      (window as any).fbq('track', eventName);
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Meta Pixel: Event tracked', eventName, '(no parameters)');
-      }
+    trackEventNow(eventName, parameters);
+    return;
+  }
+
+  // Otherwise, wait for fbq to be available (async, non-blocking)
+  waitForFbq().then((fbqAvailable) => {
+    if (fbqAvailable) {
+      trackEventNow(eventName, parameters);
+    } else if (process.env.NODE_ENV === 'development') {
+      console.warn('❌ Meta Pixel: fbq not available after waiting, event not tracked:', eventName);
     }
-  } else if (process.env.NODE_ENV === 'development') {
-    console.warn('❌ Meta Pixel: fbq not available, event not tracked:', eventName);
+  });
+}
+
+/**
+ * Internal helper to actually track the event (assumes fbq is available)
+ */
+function trackEventNow(eventName: string, parameters?: Record<string, any>) {
+  if (typeof window === 'undefined' || !(window as any).fbq) {
+    return;
+  }
+
+  if (parameters) {
+    // Ensure value is a number (not string) if present
+    const sanitizedParams = { ...parameters };
+    if ('value' in sanitizedParams && typeof sanitizedParams.value === 'string') {
+      sanitizedParams.value = parseFloat(sanitizedParams.value) || 0;
+    }
+    // Ensure value is a positive number
+    if ('value' in sanitizedParams && (isNaN(sanitizedParams.value) || sanitizedParams.value <= 0)) {
+      // Remove value if invalid
+      delete sanitizedParams.value;
+      delete sanitizedParams.currency;
+    }
+    
+    (window as any).fbq('track', eventName, sanitizedParams);
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Meta Pixel: Event tracked', eventName, sanitizedParams);
+    }
+  } else {
+    (window as any).fbq('track', eventName);
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Meta Pixel: Event tracked', eventName, '(no parameters)');
+    }
   }
 }
 

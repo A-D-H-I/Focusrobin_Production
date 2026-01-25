@@ -42,7 +42,8 @@ export default function ProductGrid({ products, viewMode = "grid" }: ProductGrid
     <div className={cn(
       viewMode === "grid" 
         ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6"
-        : "flex flex-col gap-4"
+        : "flex flex-col gap-4",
+      "overflow-x-hidden"
     )}>
       {sortedProducts.map((product, index) => (
         <ProductCard 

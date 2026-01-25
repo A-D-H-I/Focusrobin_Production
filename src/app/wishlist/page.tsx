@@ -7,6 +7,7 @@ import ProductCard from "@/components/shop/product-card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Heart } from "lucide-react";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 export default function WishlistPage() {
   const { wishlistItems } = useWishlist();
@@ -17,21 +18,21 @@ export default function WishlistPage() {
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="container mx-auto px-4 sm:px-6">
           <h1 className="text-brand-h1 font-headline text-brand-blue mb-8 text-center">
-            Your Wishlist
+            <TranslatableText text="Your Wishlist" />
           </h1>
 
           {wishlistItems.length === 0 ? (
             <div className="max-w-2xl mx-auto text-center py-16">
               <Heart className="h-24 w-24 mx-auto text-muted-foreground/30 mb-6" />
               <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
-                Your Wishlist is Empty
+                <TranslatableText text="Your Wishlist is Empty" />
               </h2>
               <p className="text-muted-foreground mb-8">
-                Start adding products you love to your wishlist.
+                <TranslatableText text="Start adding products you love to your wishlist." />
               </p>
               <Link href="/shop" prefetch={true}>
                 <Button size="lg" className="bg-brand-teal text-white hover:bg-brand-teal/90">
-                  Browse Shop
+                  <TranslatableText text="Browse Shop" />
                 </Button>
               </Link>
             </div>

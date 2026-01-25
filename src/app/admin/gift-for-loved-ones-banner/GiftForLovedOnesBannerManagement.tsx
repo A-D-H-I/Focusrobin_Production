@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { normalizeImageUrl } from '@/lib/normalize-image-url';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 
 interface GiftForLovedOnesBanner {
   id: string;
@@ -250,50 +251,47 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="imageUrl">Desktop Image URL</Label>
+                      <Label>Desktop Image</Label>
                       <span className="text-xs text-muted-foreground">Aspect Ratio: 16:9 (Wide Banner)</span>
                     </div>
-                    <Input
-                      id="imageUrl"
+                    <ImageUploader
                       value={formData.imageUrl}
-                      onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                      placeholder="/heroimage/HeroImage1.png or /shopcategory/kids.jpg"
-                      required
+                      onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                      folder="gift-banners"
+                      label="Desktop Gift For Loved Ones Banner"
+                      description="Recommended: 1920x1080px (16:9). Full width banner displayed below best sellers."
+                      maxSizeMB={10}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Recommended: 1920x1080px (16:9). Full width banner displayed below best sellers.
-                    </p>
                   </div>
 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="mobileTabletImageUrl">Mobile & Tablet Image URL</Label>
+                      <Label>Mobile & Tablet Image</Label>
                       <span className="text-xs text-muted-foreground">Aspect Ratio: 9:16 or 3:4 (Portrait)</span>
                     </div>
-                    <Input
-                      id="mobileTabletImageUrl"
-                      value={formData.mobileTabletImageUrl}
-                      onChange={(e) => setFormData({ ...formData, mobileTabletImageUrl: e.target.value })}
-                      placeholder="/heroimage/HeroImage1-mobile.png"
+                    <ImageUploader
+                      value={formData.mobileTabletImageUrl || ""}
+                      onChange={(url) => setFormData({ ...formData, mobileTabletImageUrl: url })}
+                      folder="gift-banners"
+                      label="Mobile & Tablet Gift For Loved Ones Banner (Optional)"
+                      description="Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used."
+                      maxSizeMB={10}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used.
-                    </p>
-                    {formData.imageUrl && (
-                      <div className="relative w-full h-48 rounded-lg overflow-hidden border mt-2">
-                        <Image
-                          src={normalizeImageUrl(formData.imageUrl)}
-                          alt="Banner preview"
-                          fill
-                          className="object-cover"
-                          unoptimized
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    )}
                   </div>
+                  {formData.imageUrl && (
+                    <div className="relative w-full h-48 rounded-lg overflow-hidden border mt-2">
+                      <Image
+                        src={normalizeImageUrl(formData.imageUrl)}
+                        alt="Banner preview"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
 
                   <div className="flex items-center space-x-2">
                     <Checkbox
@@ -333,50 +331,47 @@ export function GiftForLovedOnesBannerManagement({ initialBanner }: GiftForLoved
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="edit-imageUrl">Desktop Image URL</Label>
+                <Label>Desktop Image</Label>
                 <span className="text-xs text-muted-foreground">Aspect Ratio: 16:9 (Wide Banner)</span>
               </div>
-              <Input
-                id="edit-imageUrl"
+              <ImageUploader
                 value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                placeholder="/heroimage/HeroImage1.png or /shopcategory/kids.jpg"
-                required
+                onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                folder="gift-banners"
+                label="Desktop Gift For Loved Ones Banner"
+                description="Recommended: 1920x1080px (16:9). Full width banner displayed below best sellers."
+                maxSizeMB={10}
               />
-              <p className="text-xs text-muted-foreground">
-                Recommended: 1920x1080px (16:9). Full width banner displayed below best sellers.
-              </p>
             </div>
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="edit-mobileTabletImageUrl">Mobile & Tablet Image URL</Label>
+                <Label>Mobile & Tablet Image</Label>
                 <span className="text-xs text-muted-foreground">Aspect Ratio: 9:16 or 3:4 (Portrait)</span>
               </div>
-              <Input
-                id="edit-mobileTabletImageUrl"
-                value={formData.mobileTabletImageUrl}
-                onChange={(e) => setFormData({ ...formData, mobileTabletImageUrl: e.target.value })}
-                placeholder="/heroimage/HeroImage1-mobile.png"
+              <ImageUploader
+                value={formData.mobileTabletImageUrl || ""}
+                onChange={(url) => setFormData({ ...formData, mobileTabletImageUrl: url })}
+                folder="gift-banners"
+                label="Mobile & Tablet Gift For Loved Ones Banner (Optional)"
+                description="Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used."
+                maxSizeMB={10}
               />
-              <p className="text-xs text-muted-foreground">
-                Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used.
-              </p>
-              {formData.imageUrl && (
-                <div className="relative w-full h-48 rounded-lg overflow-hidden border mt-2">
-                  <Image
-                    src={normalizeImageUrl(formData.imageUrl)}
-                    alt="Banner preview"
-                    fill
-                    className="object-cover"
-                    unoptimized
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                </div>
-              )}
             </div>
+            {formData.imageUrl && (
+              <div className="relative w-full h-48 rounded-lg overflow-hidden border mt-2">
+                <Image
+                  src={normalizeImageUrl(formData.imageUrl)}
+                  alt="Banner preview"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
 
             <div className="flex items-center space-x-2">
               <Checkbox

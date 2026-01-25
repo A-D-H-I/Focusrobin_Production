@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { normalizeImageUrl } from '@/lib/normalize-image-url';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 
 interface GiftBanner {
   id: string;
@@ -213,35 +214,32 @@ export function GiftBannerManagement({ initialBanner }: GiftBannerManagementProp
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="imageUrl">Desktop Image URL</Label>
+                  <Label>Desktop Image</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 16:9 (Wide Banner)</span>
                 </div>
-                <Input
-                  id="imageUrl"
+                <ImageUploader
                   value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="/images/gift-banner.jpg"
-                  required
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  folder="gift-banners"
+                  label="Desktop Gift Banner Image"
+                  description="Recommended: 1920x1080px (16:9). Full width banner displayed on homepage."
+                  maxSizeMB={10}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1920x1080px (16:9). Full width banner displayed on homepage.
-                </p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="mobileTabletImageUrl">Mobile & Tablet Image URL</Label>
+                  <Label>Mobile & Tablet Image</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 9:16 or 3:4 (Portrait)</span>
                 </div>
-                <Input
-                  id="mobileTabletImageUrl"
-                  value={formData.mobileTabletImageUrl}
-                  onChange={(e) => setFormData({ ...formData, mobileTabletImageUrl: e.target.value })}
-                  placeholder="/images/gift-banner-mobile.jpg"
+                <ImageUploader
+                  value={formData.mobileTabletImageUrl || ""}
+                  onChange={(url) => setFormData({ ...formData, mobileTabletImageUrl: url })}
+                  folder="gift-banners"
+                  label="Mobile & Tablet Gift Banner Image (Optional)"
+                  description="Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used."
+                  maxSizeMB={10}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used.
-                </p>
               </div>
 
               <div className="space-y-2">

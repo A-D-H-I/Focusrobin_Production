@@ -19,6 +19,7 @@ import { getPrescriptionGlassesGenderCounts } from "@/app/actions/getPrescriptio
 import { getPrescriptionGlassesPriceRange } from "@/app/actions/getPrescriptionGlassesPriceRange";
 import { getPrescriptionGlassesMaterials } from "@/app/actions/getPrescriptionGlassesMaterials";
 import { getPrescriptionGlassesColors } from "@/app/actions/getPrescriptionGlassesColors";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -36,7 +37,7 @@ function CollapsibleSection({ title, defaultOpen = true, children }: Collapsible
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center justify-between w-full py-3 text-left font-semibold text-foreground hover:text-primary transition-colors"
       >
-        <span>{title}</span>
+        <span><TranslatableText text={title} /></span>
         {isOpen ? (
           <ChevronUp className="h-4 w-4 text-muted-foreground" />
         ) : (
@@ -357,7 +358,7 @@ export default function FilterSidebar() {
       {/* Gradient Header */}
       <div className="bg-teal-primary rounded-lg p-4 mb-6 flex items-center gap-2">
         <SlidersHorizontal className="h-5 w-5 text-white" />
-        <span className="text-white font-semibold text-lg">Filters</span>
+        <span className="text-white font-semibold text-lg"><TranslatableText text="Filters" /></span>
       </div>
 
       {/* Apply and Clear Buttons */}
@@ -367,7 +368,7 @@ export default function FilterSidebar() {
           disabled={!hasPendingChanges}
           className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white font-semibold h-11 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Apply Filters
+          <TranslatableText text="Apply Filters" />
         </Button>
         {(hasPendingChanges || pendingGenders.length > 0 || pendingGlassShapes.length > 0 || pendingMaterials.length > 0 || pendingColors.length > 0 || (pendingPriceRange[0] !== priceRangeData.min || pendingPriceRange[1] !== priceRangeData.max)) && (
           <Button
@@ -376,7 +377,7 @@ export default function FilterSidebar() {
             className="w-full h-11 border-border hover:bg-muted"
           >
             <X className="h-4 w-4 mr-2" />
-            Clear All Filters
+            <TranslatableText text="Clear All Filters" />
           </Button>
         )}
       </div>

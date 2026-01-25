@@ -245,6 +245,35 @@ export async function POST(request: Request) {
     const total = orderTotalFromFrontend;
     const orderTotalBeforePromo = subtotal + shipping;
 
+    // Calculate frame quantity and frame subtotal (for frame-only discounts)
+    // IMPORTANT: Count ALL frames (both regular frames AND frames from prescription glasses)
+    // Discount applies to frame prices only, not prescription lens prices
+    let frameQuantity = 0;
+    let frameSubtotal = 0;
+    for (const orderItem of orderItems) {
+      // Count ALL frames (every item has a frame, whether it's regular or prescription)
+      frameQuantity += orderItem.quantity;
+      
+      // Extract frame price (base product price, before prescription lenses)
+      // For ALL items (both regular and prescription), use the base product price
+      const cartItem = cart.items.find((ci: any) => 
+        ci.productId === orderItem.productId && ci.variantId === orderItem.variantId
+      );
+      
+      if (cartItem) {
+        const variant = cartItem.Product.ProductVariant.find((v: any) => v.id === orderItem.variantId);
+        if (variant) {
+          // Get base frame price (before any prescription lenses)
+          const basePrice = variant.price 
+            ? Number(variant.price) 
+            : Number(cartItem.Product.basePrice);
+          const discountPct = cartItem.Product.discountPct || 0;
+          const framePrice = basePrice * (1 - discountPct / 100);
+          frameSubtotal += framePrice * orderItem.quantity;
+        }
+      }
+    }
+
     // Validate and apply promo code if provided
     let promoDiscount = 0;
     let promoCashback = 0;
@@ -260,18 +289,30 @@ export async function POST(request: Request) {
         if (promoCode.startDate <= now && (!promoCode.endDate || promoCode.endDate >= now)) {
           if (!promoCode.usageLimit || promoCode.usedCount < promoCode.usageLimit) {
             if (!promoCode.minPurchaseAmount || orderTotalBeforePromo >= Number(promoCode.minPurchaseAmount)) {
-              if (promoCode.discountPercentage) {
-                promoDiscount = (orderTotalBeforePromo * Number(promoCode.discountPercentage)) / 100;
-              } else if (promoCode.discountAmount) {
-                promoDiscount = Number(promoCode.discountAmount);
-              }
-              promoDiscount = Math.min(promoDiscount, orderTotalBeforePromo);
+              // Check if this is a frame-only discount
+              if (promoCode.applyToFramesOnly && promoCode.bulkFrameDiscountPercentage && promoCode.minFrameQuantity) {
+                // Frame-only discount: check minimum frame quantity
+                if (frameQuantity >= Number(promoCode.minFrameQuantity)) {
+                  // Apply discount only to frames
+                  promoDiscount = (frameSubtotal * Number(promoCode.bulkFrameDiscountPercentage)) / 100;
+                  promoDiscount = Math.min(promoDiscount, frameSubtotal);
+                  promoCodeId = promoCode.id;
+                }
+              } else {
+                // Regular discount: applies to entire order
+                if (promoCode.discountPercentage) {
+                  promoDiscount = (orderTotalBeforePromo * Number(promoCode.discountPercentage)) / 100;
+                } else if (promoCode.discountAmount) {
+                  promoDiscount = Number(promoCode.discountAmount);
+                }
+                promoDiscount = Math.min(promoDiscount, orderTotalBeforePromo);
 
-              if (promoCode.cashbackPercentage) {
-                promoCashback = (orderTotalBeforePromo * Number(promoCode.cashbackPercentage)) / 100;
-              }
+                if (promoCode.cashbackPercentage) {
+                  promoCashback = (orderTotalBeforePromo * Number(promoCode.cashbackPercentage)) / 100;
+                }
 
-              promoCodeId = promoCode.id;
+                promoCodeId = promoCode.id;
+              }
             }
           }
         }

@@ -89,6 +89,7 @@ export default function CheckoutPage() {
   const [promoCode, setPromoCode] = useState<string>("");
   const [promoCodeError, setPromoCodeError] = useState<string>("");
   const [promoDiscount, setPromoDiscount] = useState<number>(0);
+  const [promoDiscountPercentage, setPromoDiscountPercentage] = useState<number | null>(null);
   const [promoCashback, setPromoCashback] = useState<number>(0);
   const [appliedPromoCode, setAppliedPromoCode] = useState<{ id: string; code: string } | null>(null);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
@@ -227,6 +228,32 @@ export default function CheckoutPage() {
     }
   }, [useWallet, walletBalance, subtotal, shipping, promoDiscount]);
 
+  // Calculate frame quantity and frame subtotal
+  // IMPORTANT: Count ALL frames (both regular frames AND frames from prescription glasses)
+  // Discount applies to frame prices only, not prescription lens prices
+  const calculateFrameStats = () => {
+    if (!cartItems || cartItems.length === 0) {
+      return { frameQuantity: 0, frameSubtotal: 0 };
+    }
+
+    let frameQuantity = 0;
+    let frameSubtotal = 0;
+
+    for (const item of cartItems) {
+      // Count ALL frames (every item has a frame, whether it's regular or prescription)
+      frameQuantity += item.quantity;
+      
+      // Extract frame price (base product price, before prescription lenses)
+      const framePrice = parseEurPrice(item.product.price);
+      
+      // For ALL items (both regular and prescription), count only the frame price
+      // The frame price is the base product price, which is the same for both types
+      frameSubtotal += framePrice * item.quantity;
+    }
+
+    return { frameQuantity, frameSubtotal };
+  };
+
   // Validate and apply promo code
   const handleApplyPromoCode = async () => {
     if (!promoCode.trim()) {
@@ -238,12 +265,16 @@ export default function CheckoutPage() {
     setPromoCodeError("");
 
     try {
+      const { frameQuantity, frameSubtotal } = calculateFrameStats();
+
       const response = await fetch("/api/promo-codes/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code: promoCode.trim(),
           subtotal: subtotal,
+          frameQuantity: frameQuantity,
+          frameSubtotal: frameSubtotal,
         }),
       });
 
@@ -251,6 +282,7 @@ export default function CheckoutPage() {
 
       if (response.ok && data.success) {
         setPromoDiscount(data.promoCode.discountAmount || 0);
+        setPromoDiscountPercentage(data.promoCode.discountPercentage || null);
         setPromoCashback(data.promoCode.cashbackAmount || 0);
         setAppliedPromoCode({
           id: data.promoCode.id,
@@ -260,6 +292,7 @@ export default function CheckoutPage() {
       } else {
         setPromoCodeError(data.error || "Invalid promo code");
         setPromoDiscount(0);
+        setPromoDiscountPercentage(null);
         setPromoCashback(0);
         setAppliedPromoCode(null);
       }
@@ -267,6 +300,7 @@ export default function CheckoutPage() {
       console.error("Error validating promo code:", error);
       setPromoCodeError("Failed to validate promo code. Please try again.");
       setPromoDiscount(0);
+      setPromoDiscountPercentage(null);
       setPromoCashback(0);
       setAppliedPromoCode(null);
     } finally {
@@ -278,6 +312,7 @@ export default function CheckoutPage() {
     setPromoCode("");
     setPromoCodeError("");
     setPromoDiscount(0);
+    setPromoDiscountPercentage(null);
     setPromoCashback(0);
     setAppliedPromoCode(null);
   };
@@ -1079,7 +1114,14 @@ export default function CheckoutPage() {
                               )}
                               {promoDiscount > 0 && (
                                 <div className="flex justify-between text-sm text-green-600">
-                                  <span>Promo Discount</span>
+                                  <span>
+                                    Promo Discount
+                                    {promoDiscountPercentage !== null && (
+                                      <span className="text-xs text-muted-foreground ml-1">
+                                        ({promoDiscountPercentage % 1 === 0 ? promoDiscountPercentage : promoDiscountPercentage.toFixed(2)}% off)
+                                      </span>
+                                    )}
+                                  </span>
                                   <div className="text-right">
                                     <span className="font-semibold">-{formatPrice(promoDiscount)}</span>
                                     {isNonEurCurrency && (

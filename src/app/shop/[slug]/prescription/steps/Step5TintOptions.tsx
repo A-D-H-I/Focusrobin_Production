@@ -252,7 +252,7 @@ export default function Step5TintOptions({
           disabled={!rxConfig.tintType || !rxConfig.tintColor}
           className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm disabled:opacity-50"
         >
-          Continue to Frame Type
+          Continue to Summary
         </Button>
       </div>
     </div>

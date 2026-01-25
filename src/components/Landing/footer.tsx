@@ -1,8 +1,11 @@
+"use client";
+
 import { Logo } from "@/components/Landing/logo";
 import { Instagram, RotateCcw, ShieldCheck, Lock, Truck } from "lucide-react";
 import Link from 'next/link';
 import { FaCcVisa, FaCcMastercard, FaCcAmex, FaPaypal, FaApplePay, FaGooglePay, FaFacebook } from 'react-icons/fa';
 import { NewsletterForm } from "./newsletter-form";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 export default function Footer() {
   const paymentMethods = [
@@ -16,7 +19,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-secondary text-secondary-foreground">
+    <footer className="bg-secondary text-secondary-foreground relative z-10">
       {/* Features Banner */}
       <div className="bg-secondary border-b border-border py-4 sm:py-5 md:py-6">
         <div className="container mx-auto px-4 sm:px-6">
@@ -28,10 +31,10 @@ export default function Footer() {
               </div>
               <div className="min-w-0 flex-1 sm:flex-none">
                 <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight break-words">
-                  Return in 14 Days
+                  <TranslatableText text="Return in 14 Days" />
                 </p>
                 <Link href="/returns" className="text-[10px] sm:text-[11px] text-muted-foreground hover:text-brand-blue transition-colors block mt-0.5 sm:mt-1">
-                  (Terms & Refunds)
+                  <TranslatableText text="(Terms & Refunds)" />
                 </Link>
               </div>
             </div>
@@ -43,7 +46,7 @@ export default function Footer() {
               </div>
               <div className="min-w-0 flex-1 sm:flex-none">
                 <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight break-words">
-                  100% Secure Payment
+                  <TranslatableText text="100% Secure Payment" />
                 </p>
               </div>
             </div>
@@ -55,7 +58,7 @@ export default function Footer() {
               </div>
               <div className="min-w-0 flex-1 sm:flex-none">
                 <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight break-words">
-                  3 Year Warranty
+                  <TranslatableText text="3 Year Warranty" />
                 </p>
               </div>
             </div>
@@ -67,10 +70,10 @@ export default function Footer() {
               </div>
               <div className="min-w-0 flex-1 sm:flex-none">
                 <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight break-words">
-                  Free Delivery
+                  <TranslatableText text="Free Delivery" />
                 </p>
                 <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-tight break-words mt-0.5">
-                  Within 2 days in Lithuania
+                  <TranslatableText text="Within 2 days in Lithuania" />
                 </p>
               </div>
             </div>
@@ -78,13 +81,15 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="py-12">
+      <div className="py-12 relative z-10">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div className="md:col-span-1">
-            <Logo />
+          <div className="md:col-span-1 relative z-10">
+            <div className="relative z-[101]">
+              <Logo />
+            </div>
             <p className="mt-4 text-sm">
-              Elevate Your Style, Enhance Your Vision.
+              <TranslatableText text="Elevate Your Style, Enhance Your Vision." />
             </p>
             <div className="flex space-x-4 mt-4">
               <Link 
@@ -107,30 +112,30 @@ export default function Footer() {
           </div>
 
           <div>
-            <h4 className="font-bold font-headline mb-4">Shop</h4>
+            <h4 className="font-bold font-headline mb-4"><TranslatableText text="Shop" /></h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/shop" className="hover:text-primary transition-colors">Sunglasses</Link></li>
-              <li><Link href="/shop?filter=new-arrivals" className="hover:text-primary transition-colors">New Arrivals</Link></li>
-              <li><Link href="/shop?filter=bestsellers" className="hover:text-primary transition-colors">Bestsellers</Link></li>
+              <li><Link href="/shop" className="hover:text-primary transition-colors"><TranslatableText text="Sunglasses" /></Link></li>
+              <li><Link href="/shop?filter=new-arrivals" className="hover:text-primary transition-colors"><TranslatableText text="New Arrivals" /></Link></li>
+              <li><Link href="/shop?filter=bestsellers" className="hover:text-primary transition-colors"><TranslatableText text="Bestsellers" /></Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-bold font-headline mb-4">Help & Support</h4>
+            <h4 className="font-bold font-headline mb-4"><TranslatableText text="Help & Support" /></h4>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/faq" prefetch={true} className="hover:text-primary transition-colors">FAQs</Link></li>
-              <li><Link href="/terms" prefetch={true} className="hover:text-primary transition-colors">Terms of Service</Link></li>
-              <li><Link href="/warranty" prefetch={true} className="hover:text-primary transition-colors">Terms of Warranty</Link></li>
-              <li><Link href="/returns" prefetch={true} className="hover:text-primary transition-colors">Returns and Refunds</Link></li>
-              <li><Link href="/privacy" prefetch={true} className="hover:text-primary transition-colors">Privacy Policy</Link></li>
-              <li><Link href="/cookie-preferences" prefetch={true} className="hover:text-primary transition-colors">Cookie Preferences</Link></li>
+              <li><Link href="/faq" prefetch={true} className="hover:text-primary transition-colors"><TranslatableText text="FAQs" /></Link></li>
+              <li><Link href="/terms" prefetch={true} className="hover:text-primary transition-colors"><TranslatableText text="Terms of Service" /></Link></li>
+              <li><Link href="/warranty" prefetch={true} className="hover:text-primary transition-colors"><TranslatableText text="Terms of Warranty" /></Link></li>
+              <li><Link href="/returns" prefetch={true} className="hover:text-primary transition-colors"><TranslatableText text="Returns and Refunds" /></Link></li>
+              <li><Link href="/privacy" prefetch={true} className="hover:text-primary transition-colors"><TranslatableText text="Privacy Policy" /></Link></li>
+              <li><Link href="/cookie-preferences" prefetch={true} className="hover:text-primary transition-colors"><TranslatableText text="Cookie Preferences" /></Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-bold font-headline mb-4">Newsletter</h4>
+            <h4 className="font-bold font-headline mb-4"><TranslatableText text="Newsletter" /></h4>
             <p className="text-sm mb-4">
-              Join our list for exclusive offers and new product alerts.
+              <TranslatableText text="Join our list for exclusive offers and new product alerts." />
             </p>
             <NewsletterForm />
           </div>
@@ -139,7 +144,7 @@ export default function Footer() {
         {/* Payment Methods Section */}
         <div className="border-t border-border mt-8 pt-6">
           <h4 className="text-brand-h4 font-headline mb-4 text-center">
-            We Accept
+            <TranslatableText text="We Accept" />
           </h4>
           <div className="flex flex-wrap items-center justify-center gap-2">
             {paymentMethods.map((method) => {

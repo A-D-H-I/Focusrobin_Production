@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
 import { Camera } from "lucide-react";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface HeroData {
   id: string;
@@ -197,13 +198,13 @@ export default function HeroSection({ heroData }: HeroSectionProps) {
           <div className="flex flex-row gap-3 sm:gap-4 justify-center items-center">
             <Link href={currentRoute || "/shop"}>
               <Button size="lg" className="rounded-full px-5 sm:px-8 py-4.5 sm:py-5.5 lg:px-6 lg:py-4 text-base sm:text-lg md:text-lg lg:text-sm xl:text-base bg-brand-teal hover:bg-brand-teal/90 text-white shadow-lg">
-                {sharedText?.ctaText || "Shop Now"}
+                {sharedText?.ctaText || <TranslatableText text="Shop Now" />}
               </Button>
             </Link>
             <Link href="/try-on">
               <Button size="lg" variant="outline" className="rounded-full px-5 sm:px-8 py-4.5 sm:py-5.5 lg:px-6 lg:py-4 text-base sm:text-lg md:text-lg lg:text-sm xl:text-base border-2 border-white text-white bg-white/5 backdrop-blur-sm shadow-lg flex items-center gap-2">
                 <Camera className="w-4 h-4 sm:w-5 sm:h-5" />
-                Try On
+                <TranslatableText text="Try On" />
               </Button>
             </Link>
           </div>

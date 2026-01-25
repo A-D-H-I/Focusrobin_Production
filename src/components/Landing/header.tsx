@@ -16,6 +16,7 @@ import PromotionalBanner from "@/components/Landing/promotional-banner";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import CurrencySwitcher from "@/components/ui/CurrencySwitcher";
 import ShopMegaMenu from "@/components/Landing/shop-mega-menu";
+import TranslatableText from "@/components/ui/TranslatableText";
 import { supportedLanguages } from "@/lib/languageData";
 import { supportedCurrencies } from "@/lib/currencyData";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -374,7 +375,7 @@ export default function Header() {
                   : undefined
                 }
               >
-                Shop
+                <TranslatableText text="Shop" />
               </Link>
               <ShopMegaMenu
                 isOpen={isShopMenuOpen}
@@ -403,7 +404,7 @@ export default function Header() {
                 : undefined
               }
             >
-              About
+              <TranslatableText text="About" />
             </Link>
 
             {/* Contact Link */}
@@ -426,7 +427,7 @@ export default function Header() {
                 : undefined
               }
             >
-              Contact
+              <TranslatableText text="Contact" />
             </Link>
           </nav>
 
@@ -1145,7 +1146,7 @@ export default function Header() {
                                     className="font-body text-2xl font-bold hover:text-primary active:text-primary transition-colors text-foreground py-2 flex-shrink-0 w-full text-left flex items-center justify-between cursor-pointer relative z-10 touch-manipulation select-none"
                                     style={{ WebkitTapHighlightColor: 'transparent' }}
                                   >
-                                    <span>{link.label}</span>
+                                    <span><TranslatableText text={link.label} /></span>
                                     <span className="text-lg select-none ml-2 pointer-events-none">
                                       {isShopMenuOpen ? '−' : '+'}
                                     </span>
@@ -1156,37 +1157,37 @@ export default function Header() {
                                         e.stopPropagation();
                                         setIsSidebarOpen(false);
                                       }}>
-                                        All Sunglasses
+                                        <TranslatableText text="All Sunglasses" />
                                       </Link>
                                       <Link href="/shop/women" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
                                         e.stopPropagation();
                                         setIsSidebarOpen(false);
                                       }}>
-                                        Women&apos;s
+                                        <TranslatableText text="Women's" />
                                       </Link>
                                       <Link href="/shop/men" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
                                         e.stopPropagation();
                                         setIsSidebarOpen(false);
                                       }}>
-                                        Men&apos;s
+                                        <TranslatableText text="Men's" />
                                       </Link>
                                       <Link href="/shop/kids" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
                                         e.stopPropagation();
                                         setIsSidebarOpen(false);
                                       }}>
-                                        Kids
+                                        <TranslatableText text="Kids" />
                                       </Link>
                                       <Link href="/shop?filter=bestsellers" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
                                         e.stopPropagation();
                                         setIsSidebarOpen(false);
                                       }}>
-                                        Best Sellers
+                                        <TranslatableText text="Best Sellers" />
                                       </Link>
                                       <Link href="/shop?filter=new-arrivals" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
                                         e.stopPropagation();
                                         setIsSidebarOpen(false);
                                       }}>
-                                        New Arrivals
+                                        <TranslatableText text="New Arrivals" />
                                       </Link>
                                     </div>
                                   )}
@@ -1204,7 +1205,7 @@ export default function Header() {
                                 className="font-body text-2xl font-bold hover:text-primary transition-colors text-foreground py-2 flex-shrink-0"
                                 onClick={() => setIsSidebarOpen(false)}
                               >
-                                {link.label}
+                                <TranslatableText text={link.label} />
                               </Link>
                             </div>
                           );

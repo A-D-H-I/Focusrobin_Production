@@ -21,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import ContactChat from "@/components/ContactChat";
 import { sendContactEmail } from "@/app/actions/contact";
 import { trackMetaEvent } from "@/components/analytics/MetaPixel";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 // Note: Metadata for client components should be in a parent server component
 // This is handled by the page wrapper if needed
@@ -150,10 +151,10 @@ export default function ContactPage() {
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
             <h1 className="text-brand-h1 font-headline text-brand-blue mb-4 text-center">
-              Contact Us
+              <TranslatableText text="Contact Us" />
             </h1>
             <p className="text-center text-brand-blue/80 mb-12 max-w-2xl mx-auto">
-              Have a question? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+              <TranslatableText text="Have a question? We'd love to hear from you. Send us a message and we'll respond as soon as possible." />
             </p>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -161,10 +162,10 @@ export default function ContactPage() {
               <div className="space-y-6">
                 <div>
                   <h2 className="text-brand-h2 font-headline text-brand-blue mb-2">
-                    Get in Touch
+                    <TranslatableText text="Get in Touch" />
                   </h2>
                   <p className="text-brand-blue/80">
-                    We are here to help you elevate your style.
+                    <TranslatableText text="We are here to help you elevate your style." />
                   </p>
                 </div>
 
@@ -179,7 +180,7 @@ export default function ContactPage() {
                         </div>
                         <div className="flex-grow">
                           <h3 className="text-brand-h3 font-headline text-brand-blue mb-1">
-                            Email
+                            <TranslatableText text="Email" />
                           </h3>
                           <a
                             href="mailto:support@focusrobin.com"
@@ -201,7 +202,7 @@ export default function ContactPage() {
                         </div>
                         <div className="flex-grow">
                           <h3 className="text-brand-h3 font-headline text-brand-blue mb-1">
-                            Phone
+                            <TranslatableText text="Phone" />
                           </h3>
                           <a
                             href="tel:+37060966069"
@@ -223,17 +224,17 @@ export default function ContactPage() {
                         </div>
                         <div className="flex-grow">
                           <h3 className="text-brand-h3 font-headline text-brand-blue mb-1">
-                            Live Chat
+                            <TranslatableText text="Live Chat" />
                           </h3>
                           <p className="text-brand-blue/80 text-sm mb-3">
-                          Need assistance? Contact support or chat with a stylist for instant advice.
+                          <TranslatableText text="Need assistance? Contact support or chat with a stylist for instant advice." />
                           </p>
                           <Link href="/chat" prefetch={true}>
                             <Button
                               variant="outline"
                               className="border-brand-teal text-brand-teal hover:bg-brand-teal hover:text-white"
                             >
-                              Start Chat
+                              <TranslatableText text="Start Chat" />
                             </Button>
                           </Link>
                         </div>
@@ -247,7 +248,7 @@ export default function ContactPage() {
                   <MapPin className="h-5 w-5 text-brand-blue/60 mt-0.5" />
                   <div>
                     <p className="text-sm text-brand-blue/80 font-semibold mb-1">
-                      Office Address
+                      <TranslatableText text="Office Address" />
                     </p>
                     <p className="text-sm text-brand-blue/80">
                       Kaunas, Lithuania
@@ -264,10 +265,10 @@ export default function ContactPage() {
                       <div className="text-center py-8">
                         <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                           <h3 className="text-brand-h3 font-headline text-brand-blue mb-2">
-                            Message Sent!
+                            <TranslatableText text="Message Sent!" />
                           </h3>
                           <p className="text-brand-blue/80">
-                            Thank you for contacting us. We'll get back to you soon.
+                            <TranslatableText text="Thank you for contacting us. We'll get back to you soon." />
                           </p>
                         </div>
                       </div>
@@ -451,7 +452,7 @@ export default function ContactPage() {
                           disabled={isSubmitting}
                           className="w-full bg-brand-teal text-white hover:bg-brand-teal/90 font-semibold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          {isSubmitting ? "Sending..." : "Send Message"}
+                          {isSubmitting ? <TranslatableText text="Sending..." /> : <TranslatableText text="Send Message" />}
                         </Button>
                       </form>
                     )}

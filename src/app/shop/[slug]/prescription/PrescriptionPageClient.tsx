@@ -59,6 +59,7 @@ function PrescriptionPageContent({
             lensBaseImageUrl={normalizedLensBase}
             lensMaskImageUrl={normalizedLensMask}
             lensBackgroundImageUrl={normalizedLensBackground}
+            currentStep={currentStep}
           />
         </div>
         
@@ -77,12 +78,6 @@ function PrescriptionPageContent({
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Lenses (pair)</span>
                   <span className="font-medium">{safeFormatPrice(rxPriceResult.breakdown.lensesPair)}</span>
-                </div>
-              )}
-              {rxPriceResult.breakdown.edgingFee > 0 && (
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Edging/Mounting</span>
-                  <span className="font-medium">{safeFormatPrice(rxPriceResult.breakdown.edgingFee)}</span>
                 </div>
               )}
               <div className="pt-2 border-t flex items-center justify-between">

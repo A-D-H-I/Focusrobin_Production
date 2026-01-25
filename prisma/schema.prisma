@@ -751,20 +751,24 @@ model NewsletterSubscription {
 }
 
 model PromoCode {
-  id                 String    @id @default(cuid())
-  code               String    @unique // Promo code (e.g., "SUMMER2024")
-  description        String? // Optional description
-  discountPercentage Decimal?  @db.Decimal(5, 2) // Discount percentage (e.g., 10.00 for 10%)
-  discountAmount     Decimal?  @db.Decimal(10, 2) // Fixed discount amount in EUR
-  cashbackPercentage Decimal?  @db.Decimal(5, 2) // Cashback percentage (e.g., 5.00 for 5%)
-  isActive           Boolean   @default(true)
-  startDate          DateTime  @default(now())
-  endDate            DateTime? // Optional end date
-  usageLimit         Int? // Maximum number of times this code can be used (null = unlimited)
-  usedCount          Int       @default(0) // Number of times this code has been used
-  minPurchaseAmount  Decimal?  @db.Decimal(10, 2) // Minimum purchase amount to use this code
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                        String    @id @default(cuid())
+  code                      String    @unique // Promo code (e.g., "SUMMER2024")
+  description               String? // Optional description
+  discountPercentage        Decimal?  @db.Decimal(5, 2) // Discount percentage (e.g., 10.00 for 10%)
+  discountAmount            Decimal?  @db.Decimal(10, 2) // Fixed discount amount in EUR
+  cashbackPercentage        Decimal?  @db.Decimal(5, 2) // Cashback percentage (e.g., 5.00 for 5%)
+  isActive                  Boolean   @default(true)
+  startDate                 DateTime  @default(now())
+  endDate                   DateTime? // Optional end date
+  usageLimit                Int? // Maximum number of times this code can be used (null = unlimited)
+  usedCount                 Int       @default(0) // Number of times this code has been used
+  minPurchaseAmount         Decimal?  @db.Decimal(10, 2) // Minimum purchase amount to use this code
+  // Bulk frame discount fields
+  minFrameQuantity          Int? // Minimum number of frames required (e.g., 2, 3)
+  bulkFrameDiscountPercentage Decimal? @db.Decimal(5, 2) // Discount percentage for frames only (e.g., 50.00 for 50%)
+  applyToFramesOnly         Boolean   @default(false) // If true, discount only applies to frames, not prescription glasses
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 
   Order Order[] // Orders that used this promo code
 
@@ -787,4 +791,26 @@ model GlassShape {
   @@index([name])
   @@index([isActive])
   @@index([order])
+}
+
+model PrescriptionLensImage {
+  id                String   @id @default(cuid())
+  lensType          String?  // CLEAR, TINTED, PHOTOCHROMIC_SOLIS, POLARIZED_NUPOLAR (optional - can be null for lensIndex/coating images)
+  lensIndex         String?  // 1.56, 1.60, 1.67 (optional - not used in combinations)
+  coating           String?  // UC, BLUE_PRO, SERICUM_UV
+  tintType          String?  // FULL_TINT_CATALOG, GRADIENT (only for TINTED)
+  tintColor         String?  // Brown, Grey, Green (only for TINTED)
+  tintShadePercent  Int?     // 15, 30, 50, 70, 85 (only for FULL_TINT_CATALOG)
+  tintRecipe        String?  // 30->0, 50->0, 90->15 (only for GRADIENT)
+  photochromicColor String?  // Brown, Grey (only for PHOTOCHROMIC_SOLIS)
+  polarizedColor    String?  // Brown, Grey, Green (only for POLARIZED_NUPOLAR)
+  frameType         String?  // FULL_FRAME, NYLON_FRAME, RIMLESS_PRESSING, etc.
+  imageUrl          String   // S3 URL for the preview image
+  isOutdoor         Boolean  @default(false) // Outdoor (darkened) variant
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([lensType])
+  @@index([lensType, isOutdoor])
+  @@index([lensType, coating, isOutdoor])
 }

@@ -44,6 +44,9 @@ export async function POST(request: NextRequest) {
       endDate,
       usageLimit,
       minPurchaseAmount,
+      minFrameQuantity,
+      bulkFrameDiscountPercentage,
+      applyToFramesOnly,
     } = body;
 
     if (!code || typeof code !== "string" || code.trim().length === 0) {
@@ -66,9 +69,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate that at least one discount or cashback is provided
-    if (!discountPercentage && !discountAmount && !cashbackPercentage) {
+    const hasRegularDiscount = discountPercentage || discountAmount || cashbackPercentage;
+    const hasBulkFrameDiscount = bulkFrameDiscountPercentage && minFrameQuantity;
+    
+    if (!hasRegularDiscount && !hasBulkFrameDiscount) {
       return NextResponse.json(
-        { error: "At least one discount or cashback must be provided" },
+        { error: "At least one discount type must be provided (regular discount/cashback OR bulk frame discount)" },
+        { status: 400 }
+      );
+    }
+
+    // Validate bulk frame discount requirements
+    if (applyToFramesOnly && (!minFrameQuantity || !bulkFrameDiscountPercentage)) {
+      return NextResponse.json(
+        { error: "Minimum frame quantity and bulk frame discount percentage are required when applying to frames only" },
         { status: 400 }
       );
     }
@@ -85,6 +99,9 @@ export async function POST(request: NextRequest) {
         endDate: endDate ? new Date(endDate) : null,
         usageLimit: usageLimit ? parseInt(usageLimit) : null,
         minPurchaseAmount: minPurchaseAmount ? parseFloat(minPurchaseAmount) : null,
+        minFrameQuantity: minFrameQuantity ? parseInt(minFrameQuantity) : null,
+        bulkFrameDiscountPercentage: bulkFrameDiscountPercentage ? parseFloat(bulkFrameDiscountPercentage) : null,
+        applyToFramesOnly: applyToFramesOnly || false,
       },
     });
 

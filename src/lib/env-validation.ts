@@ -28,6 +28,14 @@ const envSchema = z.object({
   
   // AI (optional)
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
+  
+  // Google Translation API (optional)
+  // Option 1: Service account JSON file path
+  GOOGLE_APPLICATION_CREDENTIALS: z.string().optional(),
+  // Option 2: Individual credentials
+  GOOGLE_TRANSLATE_PROJECT_ID: z.string().optional(),
+  GOOGLE_TRANSLATE_CLIENT_EMAIL: z.string().optional(),
+  GOOGLE_TRANSLATE_PRIVATE_KEY: z.string().optional(),
 });
 
 // Derived environment type

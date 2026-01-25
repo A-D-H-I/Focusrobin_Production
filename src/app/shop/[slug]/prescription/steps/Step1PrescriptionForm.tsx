@@ -17,9 +17,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, Upload, ArrowRight, HelpCircle } from "lucide-react";
+import { ArrowLeft, Upload, ArrowRight, HelpCircle, Loader2, CheckCircle, X } from "lucide-react";
 import type { PrescriptionData } from "../PrescriptionFlow";
 import { type RxPriceResult } from "@/lib/pricing/rx167";
+import { useToast } from "@/hooks/use-toast";
 
 interface Step1PrescriptionFormProps {
   prescriptionData: PrescriptionData;
@@ -70,6 +71,60 @@ export default function Step1PrescriptionForm({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPdHelpOpen, setIsPdHelpOpen] = useState(false);
   const [isPrismHelpOpen, setIsPrismHelpOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  // Handle prescription file upload to S3
+  const handlePrescriptionUpload = async (file: File) => {
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload/prescription", {
+        method: "POST",
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to upload prescription");
+      }
+
+      // Update prescription data with S3 URL
+      onDataUpdate({ prescriptionImageUrl: result.url });
+      
+      toast({
+        title: "Prescription uploaded",
+        description: "Your prescription image has been uploaded successfully.",
+      });
+
+      console.log("Prescription uploaded to S3:", result.url);
+    } catch (error: any) {
+      console.error("Error uploading prescription:", error);
+      setUploadError(error.message || "Failed to upload prescription");
+      
+      toast({
+        title: "Upload failed",
+        description: error.message || "Failed to upload prescription. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  // Remove uploaded prescription
+  const handleRemovePrescription = () => {
+    onDataUpdate({ prescriptionImageUrl: undefined });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   // Check if PD is filled
   const isPdFilled = prescriptionData.hasTwoPDs
@@ -104,16 +159,62 @@ export default function Step1PrescriptionForm({
       </div>
 
       {/* Upload Button */}
-      <div>
-        <Button
-          variant="outline"
-          onClick={() => fileInputRef.current?.click()}
-          className="h-12 w-full flex items-center justify-center gap-2"
-        >
-          <Upload className="h-5 w-5" />
-          <span>Choose my prescription</span>
-          <ArrowRight className="h-4 w-4 ml-auto" />
-        </Button>
+      <div className="space-y-2">
+        {prescriptionData.prescriptionImageUrl ? (
+          // Show uploaded state
+          <div className="border rounded-lg p-4 bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-green-700 dark:text-green-400">
+                <CheckCircle className="h-5 w-5" />
+                <span className="text-sm font-medium">Prescription uploaded</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleRemovePrescription}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            {/* Preview if it's an image */}
+            {prescriptionData.prescriptionImageUrl.match(/\.(jpg|jpeg|png|webp|gif)$/i) && (
+              <div className="mt-3">
+                <img
+                  src={prescriptionData.prescriptionImageUrl}
+                  alt="Prescription preview"
+                  className="max-h-32 rounded-md object-contain"
+                />
+              </div>
+            )}
+          </div>
+        ) : (
+          // Show upload button
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="h-12 w-full flex items-center justify-center gap-2"
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                <span>Uploading...</span>
+              </>
+            ) : (
+              <>
+                <Upload className="h-5 w-5" />
+                <span>Choose my prescription</span>
+                <ArrowRight className="h-4 w-4 ml-auto" />
+              </>
+            )}
+          </Button>
+        )}
+        
+        {/* Upload error message */}
+        {uploadError && (
+          <p className="text-sm text-destructive">{uploadError}</p>
+        )}
       </div>
       <input
         ref={fileInputRef}
@@ -123,26 +224,8 @@ export default function Step1PrescriptionForm({
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) {
-            // TODO: Upload to S3 and get URL
-            // For now, create a temporary URL or placeholder
-            // When S3 is connected, replace this with actual upload logic
-            const tempUrl = URL.createObjectURL(file);
-            
-            // You can implement S3 upload here later:
-            // const s3Url = await uploadToS3(file);
-            // onDataUpdate({ prescriptionImageUrl: s3Url });
-            
-            // For now, store the file name or temporary URL
-            // In production, replace with actual S3 upload
-            onDataUpdate({ 
-              prescriptionImageUrl: tempUrl // Temporary - replace with S3 URL when implemented
-            });
-            
-            console.log('Prescription file selected:', file.name);
-            // Note: When S3 is connected, you should:
-            // 1. Upload file to S3
-            // 2. Get the S3 URL
-            // 3. Call onDataUpdate({ prescriptionImageUrl: s3Url })
+            // Upload to S3
+            handlePrescriptionUpload(file);
           }
         }}
       />

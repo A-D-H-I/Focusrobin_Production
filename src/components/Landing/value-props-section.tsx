@@ -3,6 +3,7 @@
 import { useInView } from "react-intersection-observer";
 import { Sparkles, Gem, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 const valueProps = [
   {
@@ -45,8 +46,8 @@ function ValuePropItem({ prop, index }: { prop: typeof valueProps[0]; index: num
       <div className="bg-[rgba(77,206,202,0.15)] p-5 rounded-full mb-6">
         <prop.icon className="h-10 w-10 text-teal-primary" />
       </div>
-      <h3 className="text-brand-h3 font-headline mb-2 text-gray-800">{prop.title}</h3>
-      <p className="text-gray-600">{prop.description}</p>
+      <h3 className="text-brand-h3 font-headline mb-2 text-gray-800"><TranslatableText text={prop.title} /></h3>
+      <p className="text-gray-600"><TranslatableText text={prop.description} /></p>
     </div>
   );
 }

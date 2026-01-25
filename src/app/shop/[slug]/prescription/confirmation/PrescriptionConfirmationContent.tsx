@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,18 @@ import { useToast } from "@/hooks/use-toast";
 import {
   LENS_TYPE_LABELS,
   COATING_LABELS,
+  type LensSelection,
+  normalizeSelection,
+  calculateLensPairTotal,
 } from "@/lib/lensPricing";
 import {
   FRAME_TYPE_LABELS,
+  calculateRxTotal,
+  FIXED_PROFIT,
+  PRICES,
 } from "@/lib/pricing/rx167";
-import type { FullPrescriptionData } from "../PrescriptionFlow";
+import { detectFrameType } from "@/lib/pricing/detectFrameType";
+import type { FullPrescriptionData, RxConfigData } from "../PrescriptionFlow";
 
 interface PrescriptionConfirmationContentProps {
   product: Product;
@@ -37,20 +44,64 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const framePrice = parseEurPrice(product.price);
+  
+  // Calculate price breakdown - must be before early returns (Rules of Hooks)
+  const priceBreakdown = useMemo(() => {
+    // Can't calculate if prescriptionData is not loaded yet
+    if (!prescriptionData?.rxConfig) return null;
+    
+    const rxConfig = prescriptionData.rxConfig;
+    
+    // If we have price breakdown from loaded data, use it
+    if (prescriptionData.rxPriceBreakdown) {
+      return prescriptionData.rxPriceBreakdown;
+    }
+    
+    // Otherwise, calculate it from rxConfig
+    // Convert RxConfigData to LensSelection for pricing
+    const lensSelection: LensSelection = normalizeSelection({
+      lensType: rxConfig.lensType,
+      lensIndex: rxConfig.lensIndex,
+      coating: rxConfig.coating,
+      tintType: rxConfig.tintType,
+      tintColor: rxConfig.tintColor,
+      tintShade: rxConfig.tintShadePercent,
+      tintRecipe: rxConfig.tintRecipe,
+      photochromicColor: rxConfig.photochromicColor,
+      polarizedColor: rxConfig.polarizedColor,
+    });
+    
+    // Calculate lens pair price (includes profit and edging fee)
+    const basePrice = calculateLensPairTotal(lensSelection);
+    // Get edging fee based on frame type
+    const edgingFee = PRICES.edging[rxConfig.frameType] || 0;
+    // Incorporate profit and edging fee into lens price (both hidden from customer)
+    const lensPairPrice = basePrice + FIXED_PROFIT + edgingFee;
+    
+    // Calculate totals with profit and edging fee already in lens price
+    const rxRetailNet = lensPairPrice;
+    const totalNet = framePrice + rxRetailNet;
+
+    return {
+      lensesPair: lensPairPrice, // Includes profit + edging fee
+      edgingFee: 0, // Not shown to customer (included in lensesPair)
+      profit: FIXED_PROFIT,
+      rxRetailNet,
+      totalNet,
+    };
+  }, [prescriptionData, framePrice]);
 
   useEffect(() => {
     const loadPrescriptionData = async () => {
       setIsLoading(true);
       try {
+        let loadedData: FullPrescriptionData | null = null;
+        
         if (session?.user) {
           // Load from database (shared prescription per user)
           const result = await getUserPrescription(productSlug);
           if (result && 'prescription' in result && result.prescription) {
-            setPrescriptionData(result.prescription);
-          } else {
-            // No prescription found, redirect to product page
-            router.push(`/shop/${productSlug}`);
-            return;
+            loadedData = result.prescription;
           }
         } else {
           // Guest user - load from localStorage
@@ -59,19 +110,56 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
             if (stored) {
               try {
                 const parsed = JSON.parse(stored) as FullPrescriptionData;
-                setPrescriptionData(parsed);
+                // Don't load rxConfig from shared storage - it's product-specific
+                loadedData = {
+                  ...parsed,
+                  rxConfig: undefined,
+                };
               } catch (error) {
                 console.error('Error parsing prescription data:', error);
-                router.push(`/shop/${productSlug}`);
-                return;
               }
-            } else {
-              // No prescription data, redirect to product page
-              router.push(`/shop/${productSlug}`);
-              return;
             }
           }
         }
+        
+        // Load product-specific rxConfig from localStorage
+        if (loadedData && typeof window !== 'undefined') {
+          const productRxConfigKey = `rxConfig_${productSlug}`;
+          const storedRxConfig = localStorage.getItem(productRxConfigKey);
+          if (storedRxConfig) {
+            try {
+              const parsedRxConfig = JSON.parse(storedRxConfig) as RxConfigData;
+              // Auto-detect frame type from product
+              const detectedFrameType = detectFrameType(product);
+              loadedData = {
+                ...loadedData,
+                rxConfig: {
+                  ...parsedRxConfig,
+                  frameType: detectedFrameType,
+                },
+              };
+            } catch (error) {
+              console.error('Error parsing rxConfig from localStorage:', error);
+            }
+          } else if (!loadedData.rxConfig) {
+            // No rxConfig found - redirect to prescription flow
+            router.push(`/shop/${productSlug}/prescription?step=3`);
+            return;
+          }
+        }
+        
+        if (!loadedData) {
+          // No prescription data, redirect to product page
+          router.push(`/shop/${productSlug}`);
+          return;
+        }
+        
+        // Calculate price breakdown if missing
+        if (!loadedData.rxPriceBreakdown && loadedData.rxConfig) {
+          // Price breakdown will be calculated in useMemo
+        }
+        
+        setPrescriptionData(loadedData);
       } catch (error) {
         console.error('Error loading prescription data:', error);
         router.push(`/shop/${productSlug}`);
@@ -81,7 +169,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
     };
 
     loadPrescriptionData();
-  }, [productSlug, router, session]);
+  }, [productSlug, router, session, product]);
 
   const handleEdit = () => {
     router.push(`/shop/${productSlug}/prescription?step=1`);
@@ -105,7 +193,6 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
   const productImage = selectedVariant?.thumbnail || selectedVariant?.images[0] || '';
   const normalizedImage = productImage ? normalizeImageUrl(productImage) : '';
   const rxConfig = prescriptionData.rxConfig;
-  const priceBreakdown = prescriptionData.rxPriceBreakdown;
 
   // Check if prescription has prism values
   const hasPrism = prescriptionData.hasPrism || 
@@ -122,6 +209,11 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
         description: "Missing prescription or product data. Please try again.",
         variant: "destructive",
       });
+      return;
+    }
+    
+    // Prevent multiple clicks
+    if (isAddingToCart) {
       return;
     }
     
@@ -158,6 +250,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           prescriptionImageUrl: prescriptionData.prescriptionImageUrl,
         },
         rxConfig: rxConfig,
+        // IMPORTANT: Always include price breakdown - this ensures cart has correct price
         rxPriceBreakdown: priceBreakdown,
       };
       
@@ -173,29 +266,32 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
       });
       
       // Await the addToCart function to ensure it completes
+      // Don't await refreshCart - it will happen in the background
       await addToCart(product, selectedVariant, 1, cartPrescriptionData);
       
       console.log('[CONFIRMATION] addToCart completed');
       
+      // Show toast
       toast({
         title: "Added to cart",
         description: `${product.name} with prescription has been added to your cart.`,
       });
       
-      // Small delay to allow state to propagate, then redirect
-      await new Promise(resolve => setTimeout(resolve, 300));
-      console.log('[CONFIRMATION] Redirecting to cart...');
-      router.push('/cart');
+      // Navigate immediately - use window.location for reliable navigation
+      // This prevents React state updates from interfering with navigation
+      if (typeof window !== 'undefined') {
+        window.location.href = '/cart';
+      }
     } catch (error) {
       console.error('[CONFIRMATION] Error adding to cart:', error);
+      setIsAddingToCart(false); // Reset on error so user can try again
       toast({
         title: "Error",
-        description: "Failed to add item to cart. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to add item to cart. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsAddingToCart(false);
     }
+    // Note: Don't reset isAddingToCart in finally - we're navigating away
   };
 
   return (
@@ -463,10 +559,6 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
                   <div className="flex justify-between text-sm pl-4">
                     <span>Lenses (pair)</span>
                     <span>{formatPrice(priceBreakdown.lensesPair)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm pl-4">
-                    <span>Edging/Mounting</span>
-                    <span>{formatPrice(priceBreakdown.edgingFee)}</span>
                   </div>
                 </div>
                 <div className="border-t pt-3 flex justify-between text-sm">

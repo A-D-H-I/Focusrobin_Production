@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { getAvailableFrameColors, type AvailableColor } from "@/app/actions/getAvailableColors";
 import { getAvailableGlassShapes, type AvailableGlassShape } from "@/app/actions/getAvailableGlassShapes";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface ShopMegaMenuProps {
   isOpen: boolean;
@@ -122,22 +123,8 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
     };
   }, []);
 
-  // Prevent body scroll when menu is open with scrollbar compensation
-  useEffect(function preventScroll() {
-    if (isOpen) {
-      // Calculate and store scrollbar width before hiding overflow
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      document.body.style.overflow = "hidden";
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-    } else {
-      document.body.style.overflow = "";
-      document.body.style.paddingRight = "";
-    }
-    return function() {
-      document.body.style.overflow = "";
-      document.body.style.paddingRight = "";
-    };
-  }, [isOpen]);
+  // Note: We don't prevent body scroll for hover menus as they don't need it
+  // and it causes layout shift issues with the scrollbar compensation
 
   if (!isOpen) {
     return null;
@@ -163,31 +150,31 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
         onMouseEnter={handleMouseEnter}
       >
         <div className="space-y-4">
-          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4">Shop</h3>
+          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text="Shop" /></h3>
           <div className="space-y-2 sm:space-y-3">
             <Link href="/shop" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-              All Sunglasses
+              <TranslatableText text="All Sunglasses" />
             </Link>
             <Link href="/shop/women" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-              Women&apos;s Sunglasses
+              <TranslatableText text="Women's Sunglasses" />
             </Link>
             <Link href="/shop/men" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-              Men&apos;s Sunglasses
+              <TranslatableText text="Men's Sunglasses" />
             </Link>
             <Link href="/shop/kids" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-              Kids Sunglasses
+              <TranslatableText text="Kids Sunglasses" />
             </Link>
             <Link href="/shop?filter=bestsellers" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-              Best Sellers
+              <TranslatableText text="Best Sellers" />
             </Link>
             <Link href="/shop?filter=new-arrivals" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-              New Arrivals
+              <TranslatableText text="New Arrivals" />
             </Link>
           </div>
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4">Shop by Frame Color</h3>
+          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text="Shop by Frame Color" /></h3>
           {isLoadingColors ? (
             <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-3 gap-2 sm:gap-3">
               {[1, 2, 3, 4, 5, 6].map(function(i) {
@@ -195,7 +182,7 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
               })}
             </div>
           ) : availableColors.length === 0 ? (
-            <p className="text-xs sm:text-sm text-gray-500">No colors available</p>
+            <p className="text-xs sm:text-sm text-gray-500"><TranslatableText text="No colors available" /></p>
           ) : (
             <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-3 gap-2 sm:gap-3">
               {availableColors.map(function(color, index) {
@@ -224,7 +211,7 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4">Shop by Shape</h3>
+          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text="Shop by Shape" /></h3>
           {isLoadingShapes ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
               {[1, 2, 3, 4, 5, 6].map(function(i) {
@@ -232,7 +219,7 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
               })}
             </div>
           ) : availableShapes.length === 0 ? (
-            <p className="text-xs sm:text-sm text-gray-500">No shapes available</p>
+            <p className="text-xs sm:text-sm text-gray-500"><TranslatableText text="No shapes available" /></p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
               {availableShapes.map(function(shapeData, index) {

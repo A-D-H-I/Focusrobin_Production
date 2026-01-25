@@ -27,6 +27,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { normalizeImageUrl } from '@/lib/normalize-image-url';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 
 interface ShopBanner {
   id: string;
@@ -227,19 +228,17 @@ export function ShopBannerManagement({ initialBanners }: ShopBannerManagementPro
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="imageUrl">Banner Image URL</Label>
+                  <Label>Banner Image</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 16:9 or 21:9 (Wide Banner)</span>
                 </div>
-                <Input
-                  id="imageUrl"
+                <ImageUploader
                   value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="/shopcategory/Men.jpg"
-                  required
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  folder="other"
+                  label="Shop Banner Image"
+                  description="Recommended: 1920x1080px (16:9) or 1920x820px (21:9). This banner appears at the top of the shop category page. Full width on all devices."
+                  maxSizeMB={10}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1920x1080px (16:9) or 1920x820px (21:9). This banner appears at the top of the shop category page. Full width on all devices.
-                </p>
               </div>
 
               <div className="space-y-2">

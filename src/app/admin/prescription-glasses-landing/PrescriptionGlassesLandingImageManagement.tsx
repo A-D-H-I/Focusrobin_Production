@@ -225,35 +225,32 @@ export function PrescriptionGlassesLandingImageManagement({ initialImages }: Pre
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="imageUrl">Desktop Image URL</Label>
+                  <Label>Desktop Image</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 16:9 or 21:9 (Landscape)</span>
                 </div>
-                <Input
-                  id="imageUrl"
+                <ImageUploader
                   value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="/shopcategory/prescription-glasses.jpg"
-                  required
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  folder="prescription-glasses"
+                  label="Desktop Prescription Glasses Landing Image"
+                  description="Recommended: 1920x1080px (16:9) or 2560x1080px (21:9). Wide banner format."
+                  maxSizeMB={10}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1920x1080px (16:9) or 2560x1080px (21:9). Wide banner format.
-                </p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="mobileTabletImageUrl">Mobile & Tablet Image URL</Label>
+                  <Label>Mobile & Tablet Image</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 9:16 or 3:4 (Portrait)</span>
                 </div>
-                <Input
-                  id="mobileTabletImageUrl"
-                  value={formData.mobileTabletImageUrl}
-                  onChange={(e) => setFormData({ ...formData, mobileTabletImageUrl: e.target.value })}
-                  placeholder="/shopcategory/prescription-glasses-mobile.jpg"
+                <ImageUploader
+                  value={formData.mobileTabletImageUrl || ""}
+                  onChange={(url) => setFormData({ ...formData, mobileTabletImageUrl: url })}
+                  folder="prescription-glasses"
+                  label="Mobile & Tablet Prescription Glasses Landing Image (Optional)"
+                  description="Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Optional - if not provided, desktop image will be used."
+                  maxSizeMB={10}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Optional - if not provided, desktop image will be used.
-                </p>
               </div>
 
               <div className="space-y-2">

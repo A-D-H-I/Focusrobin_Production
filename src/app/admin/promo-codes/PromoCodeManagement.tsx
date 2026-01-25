@@ -38,6 +38,9 @@ interface PromoCode {
   usageLimit: number | null;
   usedCount: number;
   minPurchaseAmount: number | null;
+  minFrameQuantity: number | null;
+  bulkFrameDiscountPercentage: number | null;
+  applyToFramesOnly: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -59,6 +62,9 @@ export default function PromoCodeManagement() {
     endDate: "",
     usageLimit: "",
     minPurchaseAmount: "",
+    minFrameQuantity: "",
+    bulkFrameDiscountPercentage: "",
+    applyToFramesOnly: false,
   });
 
   useEffect(() => {
@@ -91,13 +97,29 @@ export default function PromoCodeManagement() {
       return;
     }
 
-    if (!formData.discountPercentage && !formData.discountAmount && !formData.cashbackPercentage) {
+    // Validate: Either regular discount/cashback OR bulk frame discount must be provided
+    const hasRegularDiscount = formData.discountPercentage || formData.discountAmount || formData.cashbackPercentage;
+    const hasBulkFrameDiscount = formData.bulkFrameDiscountPercentage && formData.minFrameQuantity;
+    
+    if (!hasRegularDiscount && !hasBulkFrameDiscount) {
       toast({
         title: "Error",
-        description: "At least one discount or cashback must be provided",
+        description: "At least one discount type must be provided (regular discount/cashback OR bulk frame discount)",
         variant: "destructive",
       });
       return;
+    }
+
+    // Validate bulk frame discount requirements
+    if (formData.applyToFramesOnly) {
+      if (!formData.minFrameQuantity || !formData.bulkFrameDiscountPercentage) {
+        toast({
+          title: "Error",
+          description: "Minimum frame quantity and bulk frame discount percentage are required when applying to frames only",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     try {
@@ -184,6 +206,9 @@ export default function PromoCodeManagement() {
       endDate: promoCode.endDate ? promoCode.endDate.split("T")[0] : "",
       usageLimit: promoCode.usageLimit?.toString() || "",
       minPurchaseAmount: promoCode.minPurchaseAmount?.toString() || "",
+      minFrameQuantity: promoCode.minFrameQuantity?.toString() || "",
+      bulkFrameDiscountPercentage: promoCode.bulkFrameDiscountPercentage?.toString() || "",
+      applyToFramesOnly: promoCode.applyToFramesOnly || false,
     });
     setIsDialogOpen(true);
   };
@@ -201,6 +226,9 @@ export default function PromoCodeManagement() {
       endDate: "",
       usageLimit: "",
       minPurchaseAmount: "",
+      minFrameQuantity: "",
+      bulkFrameDiscountPercentage: "",
+      applyToFramesOnly: false,
     });
   };
 
@@ -390,6 +418,65 @@ export default function PromoCodeManagement() {
               </div>
             </div>
 
+            {/* Bulk Frame Discount Section */}
+            <div className="border-t pt-4 space-y-4">
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="applyToFramesOnly"
+                  checked={formData.applyToFramesOnly}
+                  onChange={(e) =>
+                    setFormData({ ...formData, applyToFramesOnly: e.target.checked })
+                  }
+                  className="h-4 w-4 rounded border-gray-300"
+                />
+                <Label htmlFor="applyToFramesOnly" className="font-semibold">
+                  Apply Discount to Frames Only (Not Prescription Glasses)
+                </Label>
+              </div>
+
+              {formData.applyToFramesOnly && (
+                <div className="grid grid-cols-2 gap-4 pl-6 border-l-2 border-primary/20">
+                  <div>
+                    <Label htmlFor="minFrameQuantity">Minimum Frame Quantity *</Label>
+                    <Input
+                      id="minFrameQuantity"
+                      type="number"
+                      min="2"
+                      value={formData.minFrameQuantity}
+                      onChange={(e) =>
+                        setFormData({ ...formData, minFrameQuantity: e.target.value })
+                      }
+                      placeholder="2"
+                      required={formData.applyToFramesOnly}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Minimum number of frames required (e.g., 2, 3)
+                    </p>
+                  </div>
+                  <div>
+                    <Label htmlFor="bulkFrameDiscountPercentage">Frame Discount Percentage (%) *</Label>
+                    <Input
+                      id="bulkFrameDiscountPercentage"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={formData.bulkFrameDiscountPercentage}
+                      onChange={(e) =>
+                        setFormData({ ...formData, bulkFrameDiscountPercentage: e.target.value })
+                      }
+                      placeholder="50.00"
+                      required={formData.applyToFramesOnly}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Discount percentage applied only to frames
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex justify-end space-x-2">
               <Button
                 type="button"
@@ -428,6 +515,7 @@ export default function PromoCodeManagement() {
                   <TableHead>Code</TableHead>
                   <TableHead>Discount</TableHead>
                   <TableHead>Cashback</TableHead>
+                  <TableHead>Frame Discount</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Used</TableHead>
                   <TableHead>Valid Until</TableHead>
@@ -450,6 +538,11 @@ export default function PromoCodeManagement() {
                     <TableCell>
                       {promoCode.cashbackPercentage
                         ? `${promoCode.cashbackPercentage}%`
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      {promoCode.applyToFramesOnly && promoCode.bulkFrameDiscountPercentage && promoCode.minFrameQuantity
+                        ? `${promoCode.bulkFrameDiscountPercentage}% off (${promoCode.minFrameQuantity}+ frames)`
                         : "-"}
                     </TableCell>
                     <TableCell>

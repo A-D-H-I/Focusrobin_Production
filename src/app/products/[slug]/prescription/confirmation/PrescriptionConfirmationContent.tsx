@@ -269,10 +269,6 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
                     <span>Lenses (pair)</span>
                     <span>{formatPrice(priceBreakdown.lensesPair)}</span>
                   </div>
-                  <div className="flex justify-between text-sm pl-4">
-                    <span>Edging/Mounting</span>
-                    <span>{formatPrice(priceBreakdown.edgingFee)}</span>
-                  </div>
                 </div>
                 <div className="border-t pt-3 flex justify-between text-sm">
                   <span>Rx Add-on</span>

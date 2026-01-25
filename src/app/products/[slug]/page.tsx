@@ -7,6 +7,8 @@ import Footer from "@/components/Landing/footer";
 import { prisma } from "@/lib/prisma";
 import { mapPrismaProductToProduct } from "@/lib/prisma-product-mapper";
 import type { ProductColorVariant } from "@/lib/productData";
+import { getRelatedProducts } from "@/app/actions/getRelatedProducts";
+import { Gender } from "@prisma/client";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -158,6 +160,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // Map Prisma product to frontend Product type
   const product = mapPrismaProductToProduct(prismaProduct);
 
+  // Fetch related products based on gender tags
+  const relatedProducts = await getRelatedProducts(
+    prismaProduct.id,
+    (prismaProduct.gender as Gender[]) || []
+  );
+
   // Fetch reviews explicitly by productId to ensure we get all reviews
   // This is more reliable than relying on the relation
   const productReviews = await prisma.review.findMany({
@@ -206,60 +214,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
       slug: review.Product.slug,
     } : null,
   }));
-
-  // Fetch related products based on gender
-  const currentProductGenders = prismaProduct.gender || [];
-  const relatedPrismaProducts = (await prisma.product.findMany({
-    where: {
-      id: {
-        not: prismaProduct.id,
-      },
-      gender: {
-        hasSome: currentProductGenders, // Products that have at least one matching gender
-      },
-    },
-    include: {
-      ProductVariant: {
-        include: {
-          ProductAsset: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-    take: 8, // Show up to 8 related products
-  })) as any;
-
-  // If we don't have enough products with matching gender, fetch additional products
-  let additionalProducts: any[] = [];
-  if (relatedPrismaProducts.length < 8) {
-    const remaining = 8 - relatedPrismaProducts.length;
-    const existingIds = [prismaProduct.id, ...relatedPrismaProducts.map((p: any) => p.id)];
-    
-    additionalProducts = (await prisma.product.findMany({
-      where: {
-        id: {
-          notIn: existingIds,
-        },
-      },
-      include: {
-        ProductVariant: {
-          include: {
-            ProductAsset: true,
-          },
-        },
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-      take: remaining,
-    })) as any;
-  }
-
-  // Combine and map related products
-  const allRelatedProducts = [...relatedPrismaProducts, ...additionalProducts];
-  const relatedProducts = allRelatedProducts.map(mapPrismaProductToProduct);
 
   // Build structured data
   const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
@@ -370,7 +324,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           {/* Main Product Content */}
           <ProductPageContent 
             product={product} 
-            reviews={reviews} 
+            reviews={reviews}
             relatedProducts={relatedProducts}
           />
         </div>

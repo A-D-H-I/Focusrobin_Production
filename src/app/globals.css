@@ -174,22 +174,18 @@
     overflow-y: scroll !important;
   }
   
-  /* When body gets overflow:hidden from Radix UI, compensate main element width */
-  /* The issue: body overflow:hidden causes main to shrink by 10px (scrollbar width) */
-  /* Solution: Force main to maintain its width by setting explicit width */
-  body[data-scroll-locked] main,
-  body[data-scroll-locked="1"] main,
-  body[data-scroll-locked="true"] main {
-    width: calc(100% + 10px);
-    margin-right: -10px;
-  }
-  
-  /* Allow body to have overflow:hidden (Radix UI requirement) */
+  /* When body gets overflow:hidden from Radix UI, compensate for scrollbar */
+  /* NOTE: We don't add padding-right for Select dropdowns as they don't need scroll lock */
+  /* Only Dialog/Modal components should lock scroll, not Select dropdowns */
   body[data-scroll-locked],
   body[data-scroll-locked="1"],
   body[data-scroll-locked="true"] {
-    overflow: hidden !important;
+    /* Don't lock scroll for Select components - they use position:popper and don't need it */
+    /* This prevents the black bar from appearing */
   }
+  
+  /* Only lock scroll for actual modals/dialogs, not Select dropdowns */
+  /* We'll handle this via JavaScript to distinguish between Select and Dialog */
   
   /* Style html scrollbar to match body scrollbar styling */
   html::-webkit-scrollbar {
@@ -245,6 +241,26 @@
   .custom-scrollbar {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+  }
+
+  /* Remove focus ring from Select and DropdownMenu triggers when closed */
+  /* This prevents the blue highlight from persisting after dropdown closes */
+  button[data-state="closed"]:focus,
+  button[data-state="closed"]:focus-visible {
+    outline: none !important;
+    ring: 0 !important;
+    box-shadow: none !important;
+  }
+  
+  /* Also remove focus ring after blur */
+  button:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Prevent automatic scrolling on hover for Select scroll buttons */
+  /* The actual Radix buttons are hidden, so we just ensure smooth scroll */
+  [data-radix-select-viewport] {
+    scroll-behavior: auto;
   }
 
   /* Smooth scroll animations for sections */

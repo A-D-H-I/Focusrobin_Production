@@ -20,6 +20,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { normalizeImageUrl } from '@/lib/normalize-image-url';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 
 interface IconicImage {
   id: string;
@@ -220,35 +221,32 @@ export function IconicImageManagement({ initialImages }: IconicImageManagementPr
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="imageUrl">Desktop Image URL</Label>
+                  <Label>Desktop Image</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 16:9 or 21:9 (Landscape)</span>
                 </div>
-                <Input
-                  id="imageUrl"
+                <ImageUploader
                   value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="/Iconic/iconicimage2.png"
-                  required
+                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                  folder="iconic"
+                  label="Desktop Iconic Image"
+                  description="Recommended: 1920x1080px (16:9) or 2560x1080px (21:9). Wide banner format, minimum height 600px."
+                  maxSizeMB={10}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1920x1080px (16:9) or 2560x1080px (21:9). Wide banner format, minimum height 600px.
-                </p>
               </div>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="mobileTabletImageUrl">Mobile & Tablet Image URL</Label>
+                  <Label>Mobile & Tablet Image</Label>
                   <span className="text-xs text-muted-foreground">Aspect Ratio: 9:16 or 3:4 (Portrait)</span>
                 </div>
-                <Input
-                  id="mobileTabletImageUrl"
-                  value={formData.mobileTabletImageUrl}
-                  onChange={(e) => setFormData({ ...formData, mobileTabletImageUrl: e.target.value })}
-                  placeholder="/Iconic/iconicimage2-mobile.png"
+                <ImageUploader
+                  value={formData.mobileTabletImageUrl || ""}
+                  onChange={(url) => setFormData({ ...formData, mobileTabletImageUrl: url })}
+                  folder="iconic"
+                  label="Mobile & Tablet Iconic Image (Optional)"
+                  description="Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used."
+                  maxSizeMB={10}
                 />
-                <p className="text-xs text-muted-foreground">
-                  Recommended: 1080x1920px (9:16) or 1080x1440px (3:4). Full screen portrait orientation. Optional - if not provided, desktop image will be used.
-                </p>
               </div>
 
               <div className="space-y-2">

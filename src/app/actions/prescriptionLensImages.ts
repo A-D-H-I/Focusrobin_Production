@@ -24,12 +24,15 @@ const prescriptionLensImageSchema = z.object({
 });
 
 /**
- * Get prescription lens image for a specific product and lens configuration
- * Finds the best matching image based on the provided configuration
- * Null fields in the database mean "any value is acceptable"
+ * Get prescription lens image for a specific lens configuration (Global - no productId)
+ * 
+ * NEW LOGIC: Show the most specific/relevant image based on what was just selected
+ * Priority order (first match wins):
+ * 1. Coating image (if coating is provided) - coating images are universal
+ * 2. Lens Type specific images (Clear, Photochromic, Polarized, Tinted)
+ * 3. Lens Index image (if lensIndex is provided) - index images are universal
  */
 export async function getPrescriptionLensImage(
-  productId: string,
   lensType: string,
   lensIndex?: string | null,
   coating?: string | null,
@@ -43,97 +46,105 @@ export async function getPrescriptionLensImage(
   isOutdoor?: boolean
 ) {
   return safeAction(async () => {
-    // Get all images for this product and lens type
-    const allImages = await prisma.prescriptionLensImage.findMany({
-      where: {
-        productId,
-        lensType,
-        isOutdoor: isOutdoor || false,
-      },
-    });
-
-    if (allImages.length === 0) {
-      return { image: null };
+    // Priority 1: Coating image (universal - works with any lens type)
+    if (coating) {
+      const coatingImage = await prisma.prescriptionLensImage.findFirst({
+        where: {
+          coating: coating,
+          lensType: null,
+          lensIndex: null,
+          isOutdoor: isOutdoor || false,
+        },
+      });
+      if (coatingImage) {
+        console.log(`[Lens Image] Found coating image: ${coating}`);
+        return { image: coatingImage };
+      }
     }
 
-    // Score each image based on how well it matches
-    const scoredImages = allImages.map(img => {
-      let score = 0;
-      let maxScore = 0;
-
-      // Lens index matching
-      maxScore += 1;
-      if (img.lensIndex === null || img.lensIndex === lensIndex) {
-        score += 1;
+    // Priority 2: Lens Type specific images
+    if (lensType) {
+      // TINTED - try to match tint details
+      if (lensType === "TINTED" && tintType && tintColor) {
+        const tintedImage = await prisma.prescriptionLensImage.findFirst({
+          where: {
+            lensType: "TINTED",
+            tintType: tintType,
+            tintColor: tintColor,
+            tintShadePercent: tintShadePercent,
+            tintRecipe: tintRecipe,
+            isOutdoor: isOutdoor || false,
+          },
+        });
+        if (tintedImage) {
+          console.log(`[Lens Image] Found tinted image: ${tintColor} ${tintType}`);
+          return { image: tintedImage };
+        }
       }
 
-      // Coating matching
-      maxScore += 1;
-      if (img.coating === null || img.coating === coating) {
-        score += 1;
+      // PHOTOCHROMIC - try to match color
+      if (lensType === "PHOTOCHROMIC_SOLIS") {
+        const photochromicImage = await prisma.prescriptionLensImage.findFirst({
+          where: {
+            lensType: "PHOTOCHROMIC_SOLIS",
+            photochromicColor: photochromicColor || null,
+            isOutdoor: isOutdoor || false,
+          },
+        });
+        if (photochromicImage) {
+          console.log(`[Lens Image] Found photochromic image: ${photochromicColor}`);
+          return { image: photochromicImage };
+        }
       }
 
-      // Frame type matching
-      maxScore += 1;
-      if (img.frameType === null || img.frameType === frameType) {
-        score += 1;
+      // POLARIZED - try to match color
+      if (lensType === "POLARIZED_NUPOLAR") {
+        const polarizedImage = await prisma.prescriptionLensImage.findFirst({
+          where: {
+            lensType: "POLARIZED_NUPOLAR",
+            polarizedColor: polarizedColor || null,
+            isOutdoor: isOutdoor || false,
+          },
+        });
+        if (polarizedImage) {
+          console.log(`[Lens Image] Found polarized image: ${polarizedColor}`);
+          return { image: polarizedImage };
+        }
       }
 
-      // Lens-type specific matching
-      if (lensType === "TINTED") {
-        maxScore += 4;
-        if (img.tintType === null || img.tintType === tintType) score += 1;
-        if (img.tintColor === null || img.tintColor === tintColor) score += 1;
-        if (img.tintShadePercent === null || img.tintShadePercent === tintShadePercent) score += 1;
-        if (img.tintRecipe === null || img.tintRecipe === tintRecipe) score += 1;
-      } else if (lensType === "PHOTOCHROMIC_SOLIS") {
-        maxScore += 1;
-        if (img.photochromicColor === null || img.photochromicColor === photochromicColor) score += 1;
-      } else if (lensType === "POLARIZED_NUPOLAR") {
-        maxScore += 1;
-        if (img.polarizedColor === null || img.polarizedColor === polarizedColor) score += 1;
+      // CLEAR lens type
+      if (lensType === "CLEAR") {
+        const clearImage = await prisma.prescriptionLensImage.findFirst({
+          where: {
+            lensType: "CLEAR",
+            isOutdoor: isOutdoor || false,
+          },
+        });
+        if (clearImage) {
+          console.log(`[Lens Image] Found clear lens image`);
+          return { image: clearImage };
+        }
       }
-
-      return { image: img, score, maxScore, ratio: score / maxScore };
-    });
-
-    // Sort by match ratio (best match first), then by specificity (more non-null fields)
-    scoredImages.sort((a, b) => {
-      if (Math.abs(a.ratio - b.ratio) > 0.001) {
-        return b.ratio - a.ratio;
-      }
-      // If ratios are close, prefer more specific images (fewer nulls)
-      const aNulls = [
-        a.image.lensIndex,
-        a.image.coating,
-        a.image.tintType,
-        a.image.tintColor,
-        a.image.tintShadePercent,
-        a.image.tintRecipe,
-        a.image.photochromicColor,
-        a.image.polarizedColor,
-        a.image.frameType,
-      ].filter(v => v === null).length;
-      const bNulls = [
-        b.image.lensIndex,
-        b.image.coating,
-        b.image.tintType,
-        b.image.tintColor,
-        b.image.tintShadePercent,
-        b.image.tintRecipe,
-        b.image.photochromicColor,
-        b.image.polarizedColor,
-        b.image.frameType,
-      ].filter(v => v === null).length;
-      return aNulls - bNulls;
-    });
-
-    // Return the best match (if score is acceptable, otherwise null)
-    const bestMatch = scoredImages[0];
-    if (bestMatch && bestMatch.ratio > 0) {
-      return { image: bestMatch.image };
     }
 
+    // Priority 3: Lens Index image (universal - works with any lens type)
+    if (lensIndex) {
+      const lensIndexImage = await prisma.prescriptionLensImage.findFirst({
+        where: {
+          lensIndex: lensIndex,
+          lensType: null,
+          coating: null,
+          isOutdoor: isOutdoor || false,
+        },
+      });
+      if (lensIndexImage) {
+        console.log(`[Lens Image] Found lens index image: ${lensIndex}`);
+        return { image: lensIndexImage };
+      }
+    }
+
+    // No matching image found
+    console.log(`[Lens Image] No image found for: lensType=${lensType}, lensIndex=${lensIndex}, coating=${coating}`);
     return { image: null };
   });
 }
@@ -304,6 +315,177 @@ export async function deletePrescriptionLensImage(imageId: string) {
 
     revalidatePath(`/shop/${image.Product.slug}/prescription`);
     revalidatePath(`/admin/products/${image.Product.slug}/edit`);
+
+    return { success: true };
+  });
+}
+
+// Global prescription lens image schema (without productId)
+// lensType is optional because we can have images for just lensIndex or coating
+const globalPrescriptionLensImageSchema = z.object({
+  lensType: z.enum(["CLEAR", "TINTED", "PHOTOCHROMIC_SOLIS", "POLARIZED_NUPOLAR"]).optional().nullable(),
+  lensIndex: z.string().optional().nullable(),
+  coating: z.string().optional().nullable(),
+  tintType: z.string().optional().nullable(),
+  tintColor: z.string().optional().nullable(),
+  tintShadePercent: z.number().int().optional().nullable(),
+  tintRecipe: z.string().optional().nullable(),
+  photochromicColor: z.string().optional().nullable(),
+  polarizedColor: z.string().optional().nullable(),
+  frameType: z.string().optional().nullable(),
+  imageUrl: z.string().url().min(1),
+  isOutdoor: z.boolean().optional().default(false),
+});
+
+/**
+ * Get all global prescription lens images (Admin only)
+ */
+export async function getAllPrescriptionLensImages() {
+  return safeAction(async () => {
+    await requireAdmin();
+    
+    const images = await prisma.prescriptionLensImage.findMany({
+      orderBy: [
+        { lensType: 'asc' },
+        { lensIndex: 'asc' },
+        { coating: 'asc' },
+      ],
+    });
+
+    return { images };
+  });
+}
+
+/**
+ * Create or update a global prescription lens image (Admin only)
+ */
+export async function upsertGlobalPrescriptionLensImage(formData: FormData) {
+  return safeAction(async () => {
+    await requireAdmin();
+
+    const id = formData.get('id') as string | null;
+    
+    // Convert empty strings to null for optional fields
+    const getOptionalField = (field: string): string | null => {
+      const value = formData.get(field) as string;
+      return value && value.trim() ? value.trim() : null;
+    };
+    
+    const lensType = getOptionalField('lensType');
+    
+    const lensIndex = getOptionalField('lensIndex');
+    const coating = getOptionalField('coating');
+    const tintType = getOptionalField('tintType');
+    const tintColor = getOptionalField('tintColor');
+    const tintShadePercentRaw = formData.get('tintShadePercent') as string;
+    const tintShadePercent = tintShadePercentRaw && tintShadePercentRaw.trim() ? parseInt(tintShadePercentRaw) : null;
+    const tintRecipe = getOptionalField('tintRecipe');
+    const photochromicColor = getOptionalField('photochromicColor');
+    const polarizedColor = getOptionalField('polarizedColor');
+    const frameType = getOptionalField('frameType');
+    const imageUrl = formData.get('imageUrl') as string;
+    const isOutdoor = formData.get('isOutdoor') === 'true';
+
+    // Validate the data
+    const validated = globalPrescriptionLensImageSchema.parse({
+      lensType,
+      lensIndex,
+      coating,
+      tintType,
+      tintColor,
+      tintShadePercent,
+      tintRecipe,
+      photochromicColor,
+      polarizedColor,
+      frameType,
+      imageUrl,
+      isOutdoor,
+    });
+
+    if (id) {
+      // Update existing image
+      const existing = await prisma.prescriptionLensImage.findUnique({
+        where: { id },
+      });
+
+      if (!existing) {
+        return { error: 'Image not found' };
+      }
+
+      const image = await prisma.prescriptionLensImage.update({
+        where: { id },
+        data: validated,
+      });
+
+      revalidatePath('/admin/prescription-lens-images');
+      revalidatePath('/shop', 'layout');
+      
+      return { success: true, image };
+    } else {
+      // Check for duplicate before creating
+      const existing = await prisma.prescriptionLensImage.findFirst({
+        where: {
+          lensType: validated.lensType,
+          lensIndex: validated.lensIndex,
+          coating: validated.coating,
+          tintType: validated.tintType,
+          tintColor: validated.tintColor,
+          tintShadePercent: validated.tintShadePercent,
+          tintRecipe: validated.tintRecipe,
+          photochromicColor: validated.photochromicColor,
+          polarizedColor: validated.polarizedColor,
+          frameType: validated.frameType,
+          isOutdoor: validated.isOutdoor,
+        },
+      });
+
+      if (existing) {
+        // Update existing instead of creating duplicate
+        const image = await prisma.prescriptionLensImage.update({
+          where: { id: existing.id },
+          data: { imageUrl: validated.imageUrl },
+        });
+
+        revalidatePath('/admin/prescription-lens-images');
+        revalidatePath('/shop', 'layout');
+        
+        return { success: true, image };
+      }
+
+      // Create new image
+      const image = await prisma.prescriptionLensImage.create({
+        data: validated,
+      });
+
+      revalidatePath('/admin/prescription-lens-images');
+      revalidatePath('/shop', 'layout');
+      
+      return { success: true, image };
+    }
+  });
+}
+
+/**
+ * Delete a global prescription lens image (Admin only)
+ */
+export async function deleteGlobalPrescriptionLensImage(imageId: string) {
+  return safeAction(async () => {
+    await requireAdmin();
+
+    const image = await prisma.prescriptionLensImage.findUnique({
+      where: { id: imageId },
+    });
+
+    if (!image) {
+      return { error: 'Image not found' };
+    }
+
+    await prisma.prescriptionLensImage.delete({
+      where: { id: imageId },
+    });
+
+    revalidatePath('/admin/prescription-lens-images');
+    revalidatePath('/shop', 'layout');
 
     return { success: true };
   });
