@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface GiftBannerData {
   id: string;
@@ -67,14 +68,14 @@ export default function GiftBannerSection({ giftBanner }: GiftBannerSectionProps
               </p>
             ) : (
               <p className="text-white/90 text-xs sm:text-sm md:text-base lg:text-lg mb-3 sm:mb-4 md:mb-5 lg:mb-6 drop-shadow-md">
-                Discover our elegant unisex collection, perfect for gifting to your loved ones. Timeless designs that suit everyone.
+                <TranslatableText text="Discover our elegant unisex collection, perfect for gifting to your loved ones. Timeless designs that suit everyone." />
               </p>
             )}
             
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 lg:gap-4 justify-start">
               <Link href={giftBanner.link} prefetch={true}>
                 <Button size="lg" className="rounded-full px-4 py-3 sm:px-5 sm:py-3.5 md:px-6 md:py-4 lg:px-7 lg:py-4.5 text-xs sm:text-sm md:text-base lg:text-lg bg-[#4DCECA] text-[#1C3142] hover:bg-[#4DCECA]/90 shadow-xl">
-                  SHOP UNISEX COLLECTION
+                  <TranslatableText text="SHOP UNISEX COLLECTION" />
                 </Button>
               </Link>
             </div>

@@ -6,6 +6,7 @@ import { useInView } from "react-intersection-observer";
 import { cn } from "@/lib/utils";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
 import { Instagram } from "lucide-react";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface InstagramImageData {
   id: string;
@@ -166,14 +167,13 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
           
           {/* Title */}
           <h2 className="text-brand-h2 font-headline text-gray-800 mb-2 text-center">
-            Follow Us on Instagram
+            <TranslatableText text="Follow Us on Instagram" />
           </h2>
           
           {/* Tagline */}
           <p className="text-base md:text-lg text-gray-600 text-center">
-            @focusrobin • Join our community and share your style
+            @focusrobin • <TranslatableText text="Join our community and share your style" />
           </p>
-        </div>
         </div>
 
       {/* Image Grid Section - Full Width Edge-to-Edge */}
@@ -230,9 +230,10 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
             className="flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white px-8 py-4 rounded-full hover:from-purple-600 hover:to-pink-600 transition-all duration-300 font-semibold text-base md:text-lg shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             <Instagram className="w-5 h-5 md:w-6 md:h-6" />
-            <span>Follow @focusrobin</span>
+            <span><TranslatableText text="Follow" /> @focusrobin</span>
           </a>
         </div>
+      </div>
       </div>
     </section>
   );

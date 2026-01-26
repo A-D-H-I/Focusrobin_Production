@@ -25,8 +25,8 @@ export default function LensFeatureSection() {
                 <div className="w-[60%] aspect-square rounded-full bg-gradient-to-br from-teal-primary to-[#4DCECA] flex items-center justify-center shadow-xl">
                   <div className="w-[66%] aspect-square rounded-full bg-white flex items-center justify-center">
                     <div className="text-center px-1 sm:px-2">
-                      <div className="text-teal-primary mb-0.5 sm:mb-1 font-headline font-bold text-[10px] sm:text-xs md:text-sm lg:text-base">UV 400</div>
-                      <div className="text-teal-primary text-[8px] sm:text-[10px] md:text-xs font-headline font-bold">PROTECTION</div>
+                      <div className="text-teal-primary mb-0.5 sm:mb-1 font-headline font-bold text-[10px] sm:text-xs md:text-sm lg:text-base"><TranslatableText text="UV 400" /></div>
+                      <div className="text-teal-primary text-[8px] sm:text-[10px] md:text-xs font-headline font-bold"><TranslatableText text="PROTECTION" /></div>
                     </div>
                   </div>
               </div>
@@ -47,7 +47,9 @@ export default function LensFeatureSection() {
         <div className="space-y-4 sm:space-y-6 md:space-y-8">
           {/* Header */}
           <div className="space-y-1.5 sm:space-y-2 md:space-y-3">
-            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-brand-h2 font-headline text-teal-primary leading-tight break-words">UV 400 PROTECTION</h2>
+            <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-brand-h2 font-headline text-teal-primary leading-tight break-words">
+              <TranslatableText text="UV 400 PROTECTION" />
+            </h2>
             <p className="text-slate-700 text-sm sm:text-base md:text-lg">
               <TranslatableText text="Premium lens technology with three protective layers designed for your eye safety." />
             </p>

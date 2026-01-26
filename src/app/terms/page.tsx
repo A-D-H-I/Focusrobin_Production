@@ -4,6 +4,7 @@ import Footer from "@/components/Landing/footer";
 import Link from "next/link";
 import { FileText, User, ShoppingBag, Truck, Shield, Scale, Mail, AlertCircle, CheckCircle2, Package, CreditCard, Users } from 'lucide-react';
 import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from "@/components/ui/table";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 export const metadata: Metadata = {
   title: 'Terms of Service | FocusRobin',
@@ -37,16 +38,15 @@ export default function TermsPage() {
               </div>
               <div>
                 <h1 className="text-4xl md:text-5xl font-headline text-brand-blue mb-2">
-                  Terms of Service
+                  <TranslatableText text="Terms of Service" />
                 </h1>
                 <p className="text-brand-blue/60 text-sm">
-                  Effective as of January 2026
+                  <TranslatableText text="Effective as of January 2026" />
                 </p>
               </div>
             </div>
             <p className="text-lg text-brand-blue/80 max-w-3xl leading-relaxed">
-              These Terms of Service (&quot;Terms&quot;) govern your use of FocusRobin&apos;s website, products, and services. 
-              By accessing our website or making a purchase, you agree to these Terms. Please read them carefully.
+              <TranslatableText text="These Terms of Service (&quot;Terms&quot;) govern your use of FocusRobin&apos;s website, products, and services. By accessing our website or making a purchase, you agree to these Terms. Please read them carefully." />
             </p>
           </div>
         </div>
@@ -58,7 +58,7 @@ export default function TermsPage() {
               <div className="sticky top-24 bg-white border border-brand-blue/10 rounded-xl p-6 shadow-sm">
                 <h3 className="font-headline text-brand-blue mb-4 flex items-center gap-2">
                   <FileText className="h-5 w-5 text-brand-teal" />
-                  Quick Navigation
+                  <TranslatableText text="Quick Navigation" />
                 </h3>
                 <nav className="space-y-2">
                   {sections.map((section) => {
@@ -70,7 +70,7 @@ export default function TermsPage() {
                         className="flex items-center gap-2 text-sm text-brand-blue/70 hover:text-brand-teal transition-colors py-2 px-3 rounded-lg hover:bg-brand-teal/5"
                       >
                         <Icon className="h-4 w-4" />
-                        <span>{section.title}</span>
+                        <span><TranslatableText text={section.title} /></span>
                       </a>
                     );
                   })}
@@ -88,25 +88,25 @@ export default function TermsPage() {
                       <User className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      1. Account and Eligibility
+                      <TranslatableText text="1. Account and Eligibility" />
                     </h2>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-start gap-3 p-4 bg-brand-blue/5 rounded-lg border border-brand-blue/10">
                       <CheckCircle2 className="h-5 w-5 text-brand-teal flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-brand-blue font-medium mb-1">Age Requirement</p>
+                        <p className="text-brand-blue font-medium mb-1"><TranslatableText text="Age Requirement" /></p>
                         <p className="text-brand-blue/70 text-sm">
-                          You must be at least 18 years old or have a guardian&apos;s permission to make purchases.
+                          <TranslatableText text="You must be at least 18 years old or have a guardian&apos;s permission to make purchases." />
                         </p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3 p-4 bg-brand-blue/5 rounded-lg border border-brand-blue/10">
                       <AlertCircle className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-brand-blue font-medium mb-1">Service Rights</p>
+                        <p className="text-brand-blue font-medium mb-1"><TranslatableText text="Service Rights" /></p>
                         <p className="text-brand-blue/70 text-sm">
-                          FocusRobin reserves the right to refuse service, terminate accounts, or cancel orders at our discretion.
+                          <TranslatableText text="FocusRobin reserves the right to refuse service, terminate accounts, or cancel orders at our discretion." />
                         </p>
                       </div>
                     </div>
@@ -122,7 +122,7 @@ export default function TermsPage() {
                       <ShoppingBag className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      2. Products and Pricing
+                      <TranslatableText text="2. Products and Pricing" />
                     </h2>
                   </div>
                   
@@ -130,13 +130,11 @@ export default function TermsPage() {
                     <div>
                       <h3 className="text-xl font-headline text-brand-blue mb-4 flex items-center gap-2">
                         <Package className="h-5 w-5 text-brand-teal" />
-                        2.1 Product Information
+                        <TranslatableText text="2.1 Product Information" />
                       </h3>
                       <div className="bg-brand-blue/5 rounded-lg p-4 border border-brand-blue/10">
                         <p className="text-brand-blue/80 leading-relaxed">
-                          All product descriptions, specifications, and prices are subject to change without notice. 
-                          While we strive to display accurate product information, slight variations in color, 
-                          material, or measurements may occur.
+                          <TranslatableText text="All product descriptions, specifications, and prices are subject to change without notice. While we strive to display accurate product information, slight variations in color, material, or measurements may occur." />
                         </p>
                       </div>
                     </div>
@@ -144,24 +142,24 @@ export default function TermsPage() {
                     <div>
                       <h3 className="text-xl font-headline text-brand-blue mb-4 flex items-center gap-2">
                         <CreditCard className="h-5 w-5 text-brand-teal" />
-                        2.2 Pricing
+                        <TranslatableText text="2.2 Pricing" />
                       </h3>
                       <div className="grid md:grid-cols-2 gap-4">
                         <div className="bg-gradient-to-br from-brand-teal/5 to-brand-blue/5 rounded-lg p-4 border border-brand-teal/20">
-                          <p className="text-brand-blue font-semibold mb-1">Currency</p>
-                          <p className="text-brand-blue/70 text-sm">All prices in euros (€)</p>
+                          <p className="text-brand-blue font-semibold mb-1"><TranslatableText text="Currency" /></p>
+                          <p className="text-brand-blue/70 text-sm"><TranslatableText text="All prices in euros (€)" /></p>
                         </div>
                         <div className="bg-gradient-to-br from-brand-teal/5 to-brand-blue/5 rounded-lg p-4 border border-brand-teal/20">
-                          <p className="text-brand-blue font-semibold mb-1">VAT Included</p>
-                          <p className="text-brand-blue/70 text-sm">All applicable taxes included</p>
+                          <p className="text-brand-blue font-semibold mb-1"><TranslatableText text="VAT Included" /></p>
+                          <p className="text-brand-blue/70 text-sm"><TranslatableText text="All applicable taxes included" /></p>
                         </div>
                         <div className="bg-gradient-to-br from-brand-teal/5 to-brand-blue/5 rounded-lg p-4 border border-brand-teal/20">
-                          <p className="text-brand-blue font-semibold mb-1">Payment Gateway</p>
-                          <p className="text-brand-blue/70 text-sm">Secure processing via Stripe</p>
+                          <p className="text-brand-blue font-semibold mb-1"><TranslatableText text="Payment Gateway" /></p>
+                          <p className="text-brand-blue/70 text-sm"><TranslatableText text="Secure processing via Stripe" /></p>
                         </div>
                         <div className="bg-gradient-to-br from-brand-teal/5 to-brand-blue/5 rounded-lg p-4 border border-brand-teal/20">
-                          <p className="text-brand-blue font-semibold mb-1">Price Changes</p>
-                          <p className="text-brand-blue/70 text-sm">Prices subject to change</p>
+                          <p className="text-brand-blue font-semibold mb-1"><TranslatableText text="Price Changes" /></p>
+                          <p className="text-brand-blue/70 text-sm"><TranslatableText text="Prices subject to change" /></p>
                         </div>
                       </div>
                     </div>
@@ -169,18 +167,18 @@ export default function TermsPage() {
                     <div>
                       <h3 className="text-xl font-headline text-brand-blue mb-4 flex items-center gap-2">
                         <Users className="h-5 w-5 text-brand-teal" />
-                        2.3 Bulk Orders
+                        <TranslatableText text="2.3 Bulk Orders" />
                       </h3>
                       <div className="bg-brand-teal/10 border border-brand-teal/20 rounded-lg p-4">
                         <p className="text-brand-blue/80 leading-relaxed mb-3">
-                          For bulk orders, please contact{' '}
+                          <TranslatableText text="For bulk orders, please contact" />{' '}
                           <Link href="mailto:support@focusrobin.com" className="text-brand-teal hover:underline font-medium">
                             support@focusrobin.com
                           </Link>{' '}
-                          with the subject &quot;Enquiry for Bulk Order&quot;.
+                          <TranslatableText text="with the subject &quot;Enquiry for Bulk Order&quot;." />
                         </p>
                         <p className="text-brand-blue/70 text-sm">
-                          Special pricing and terms may apply to bulk orders, which will be communicated separately.
+                          <TranslatableText text="Special pricing and terms may apply to bulk orders, which will be communicated separately." />
                         </p>
                       </div>
                     </div>
@@ -196,15 +194,15 @@ export default function TermsPage() {
                       <Truck className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      3. Shipping and Delivery
+                      <TranslatableText text="3. Shipping and Delivery" />
                     </h2>
                   </div>
                   
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-xl font-headline text-brand-blue mb-4">3.1 Shipping Carriers</h3>
+                      <h3 className="text-xl font-headline text-brand-blue mb-4"><TranslatableText text="3.1 Shipping Carriers" /></h3>
                       <p className="text-brand-blue/80 leading-relaxed mb-4">
-                        We use the following carriers for delivery:
+                        <TranslatableText text="We use the following carriers for delivery:" />
                       </p>
                       <div className="grid md:grid-cols-2 gap-3">
                         {[
@@ -215,7 +213,7 @@ export default function TermsPage() {
                             <Truck className="h-5 w-5 text-brand-teal flex-shrink-0 mt-0.5" />
                             <div>
                               <p className="text-brand-blue font-semibold">{carrier.name}</p>
-                              <p className="text-brand-blue/70 text-sm">{carrier.desc}</p>
+                              <p className="text-brand-blue/70 text-sm"><TranslatableText text={carrier.desc} /></p>
                             </div>
                           </div>
                         ))}
@@ -223,30 +221,30 @@ export default function TermsPage() {
                     </div>
 
                     <div>
-                      <h3 className="text-xl font-headline text-brand-blue mb-4">3.2 Estimated Delivery Times</h3>
+                      <h3 className="text-xl font-headline text-brand-blue mb-4"><TranslatableText text="3.2 Estimated Delivery Times" /></h3>
                       <p className="text-brand-blue/80 leading-relaxed mb-4">
-                        Delivery times vary based on product type and shipping location:
+                        <TranslatableText text="Delivery times vary based on product type and shipping location:" />
                       </p>
                       
                       <div className="mb-6">
-                        <h4 className="text-lg font-semibold text-brand-blue mb-3">Prescription Glasses</h4>
+                        <h4 className="text-lg font-semibold text-brand-blue mb-3"><TranslatableText text="Prescription Glasses" /></h4>
                         <div className="overflow-x-auto">
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5">Country</TableHead>
-                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5">Standard Shipping</TableHead>
-                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5">Shipping Provider</TableHead>
+                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Country" /></TableHead>
+                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Standard Shipping" /></TableHead>
+                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Shipping Provider" /></TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               <TableRow>
-                                <TableCell className="text-center border text-sm sm:text-base">Lithuania</TableCell>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="Lithuania" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base font-medium">4-7 days</TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">Omniva</TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="text-center border text-sm sm:text-base">Other Countries</TableCell>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="Other Countries" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base font-medium">9-14 days</TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">DHL</TableCell>
                               </TableRow>
@@ -256,24 +254,24 @@ export default function TermsPage() {
                       </div>
 
                       <div className="mb-4">
-                        <h4 className="text-lg font-semibold text-brand-blue mb-3">Sunglasses (Non-Prescription)</h4>
+                        <h4 className="text-lg font-semibold text-brand-blue mb-3"><TranslatableText text="Sunglasses (Non-Prescription)" /></h4>
                         <div className="overflow-x-auto">
                           <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5">Country</TableHead>
-                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5">Standard Shipping</TableHead>
-                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5">Shipping Provider</TableHead>
+                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Country" /></TableHead>
+                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Standard Shipping" /></TableHead>
+                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Shipping Provider" /></TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
                               <TableRow>
-                                <TableCell className="text-center border text-sm sm:text-base">Lithuania</TableCell>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="Lithuania" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base font-medium">2-4 days</TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">Omniva</TableCell>
                               </TableRow>
                               <TableRow>
-                                <TableCell className="text-center border text-sm sm:text-base">Other Countries</TableCell>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="Other Countries" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base font-medium">4-7 days</TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">DHL</TableCell>
                               </TableRow>
@@ -284,19 +282,16 @@ export default function TermsPage() {
 
                       <div className="bg-brand-teal/10 border border-brand-teal/20 rounded-lg p-4">
                         <p className="text-brand-blue/80 text-sm">
-                          <strong>Note:</strong> If your order contains both prescription glasses and sunglasses, 
-                          the delivery time will be calculated based on prescription glasses (longer delivery time) 
-                          as all items ship together.
+                          <strong><TranslatableText text="Note:" /></strong> <TranslatableText text="If your order contains both prescription glasses and sunglasses, the delivery time will be calculated based on prescription glasses (longer delivery time) as all items ship together." />
                         </p>
                       </div>
                     </div>
 
                     <div>
-                      <h3 className="text-xl font-headline text-brand-blue mb-4">3.3 Order Processing</h3>
+                      <h3 className="text-xl font-headline text-brand-blue mb-4"><TranslatableText text="3.3 Order Processing" /></h3>
                       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                         <p className="text-brand-blue/80 leading-relaxed">
-                          Orders are typically processed within 48 hours. FocusRobin is not responsible for delays 
-                          caused by customs, weather conditions, or other circumstances beyond our control.
+                          <TranslatableText text="Orders are typically processed within 48 hours. FocusRobin is not responsible for delays caused by customs, weather conditions, or other circumstances beyond our control." />
                         </p>
                       </div>
                     </div>
@@ -312,30 +307,29 @@ export default function TermsPage() {
                       <Shield className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      4. Privacy and Data Collection
+                      <TranslatableText text="4. Privacy and Data Collection" />
                     </h2>
                   </div>
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-xl font-headline text-brand-blue mb-3">4.1 Data Collection</h3>
+                      <h3 className="text-xl font-headline text-brand-blue mb-3"><TranslatableText text="4.1 Data Collection" /></h3>
                       <p className="text-brand-blue/80 leading-relaxed mb-3">
-                        We collect and process personal data under our Privacy Policy and applicable laws. This includes:
+                        <TranslatableText text="We collect and process personal data under our Privacy Policy and applicable laws. This includes:" />
                       </p>
                       <div className="grid md:grid-cols-2 gap-3">
                         {['Order information', 'Contact details', 'Payment information', 'Shopping preferences'].map((item, idx) => (
                           <div key={idx} className="flex items-center gap-2 p-3 bg-brand-blue/5 rounded-lg border border-brand-blue/10">
                             <CheckCircle2 className="h-4 w-4 text-brand-teal" />
-                            <span className="text-brand-blue text-sm">{item}</span>
+                            <span className="text-brand-blue text-sm"><TranslatableText text={item} /></span>
                           </div>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-xl font-headline text-brand-blue mb-3">4.2 Marketing Communications</h3>
+                      <h3 className="text-xl font-headline text-brand-blue mb-3"><TranslatableText text="4.2 Marketing Communications" /></h3>
                       <div className="bg-brand-teal/10 border border-brand-teal/20 rounded-lg p-4">
                         <p className="text-brand-blue/80 leading-relaxed">
-                          With your consent, we may send you newsletters and marketing communications. 
-                          You can opt out at any time.
+                          <TranslatableText text="With your consent, we may send you newsletters and marketing communications. You can opt out at any time." />
                         </p>
                       </div>
                     </div>
@@ -351,13 +345,12 @@ export default function TermsPage() {
                       <FileText className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      5. Intellectual Property
+                      <TranslatableText text="5. Intellectual Property" />
                     </h2>
                   </div>
                   <div className="bg-brand-blue/5 rounded-lg p-4 border border-brand-blue/10">
                     <p className="text-brand-blue/80 leading-relaxed">
-                      All content on the FocusRobin website, including text, graphics, logos, and images, 
-                      is protected by intellectual property rights and may not be used without permission.
+                      <TranslatableText text="All content on the FocusRobin website, including text, graphics, logos, and images, is protected by intellectual property rights and may not be used without permission." />
                     </p>
                   </div>
                 </div>
@@ -371,15 +364,15 @@ export default function TermsPage() {
                       <Scale className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      6. Limitation of Liability
+                      <TranslatableText text="6. Limitation of Liability" />
                     </h2>
                   </div>
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-                    <p className="text-brand-blue/80 font-semibold mb-2">FocusRobin&apos;s liability is limited to:</p>
-                    <p className="text-brand-blue/80">The purchase price of the product</p>
+                    <p className="text-brand-blue/80 font-semibold mb-2"><TranslatableText text="FocusRobin&apos;s liability is limited to:" /></p>
+                    <p className="text-brand-blue/80"><TranslatableText text="The purchase price of the product" /></p>
                   </div>
                   <div className="space-y-2">
-                    <p className="text-brand-blue/80 font-semibold">We are not liable for:</p>
+                    <p className="text-brand-blue/80 font-semibold"><TranslatableText text="We are not liable for:" /></p>
                     {[
                       'Indirect or consequential damages',
                       'Lost profits',
@@ -388,7 +381,7 @@ export default function TermsPage() {
                     ].map((item, idx) => (
                       <div key={idx} className="flex items-center gap-2 p-3 bg-red-50 rounded-lg border border-red-100">
                         <AlertCircle className="h-4 w-4 text-red-500" />
-                        <span className="text-brand-blue/80 text-sm">{item}</span>
+                        <span className="text-brand-blue/80 text-sm"><TranslatableText text={item} /></span>
                       </div>
                     ))}
                   </div>
@@ -403,11 +396,11 @@ export default function TermsPage() {
                       <Mail className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      7. Contact Information
+                      <TranslatableText text="7. Contact Information" />
                     </h2>
                   </div>
                   <p className="text-brand-blue/80 leading-relaxed mb-6">
-                    For questions about these Terms, please contact:
+                    <TranslatableText text="For questions about these Terms, please contact:" />
                   </p>
                   <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-brand-blue/10">
                     <Mail className="h-5 w-5 text-brand-teal" />
@@ -426,12 +419,12 @@ export default function TermsPage() {
                       <Scale className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      8. Governing Law
+                      <TranslatableText text="8. Governing Law" />
                     </h2>
                   </div>
                   <div className="bg-brand-blue/5 rounded-lg p-4 border border-brand-blue/10">
                     <p className="text-brand-blue/80 leading-relaxed">
-                      These Terms are governed by Lithuanian law. Any disputes shall be resolved in the courts of Lithuania.
+                      <TranslatableText text="These Terms are governed by Lithuanian law. Any disputes shall be resolved in the courts of Lithuania." />
                     </p>
                   </div>
                 </div>

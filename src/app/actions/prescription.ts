@@ -7,7 +7,7 @@ import type { FullPrescriptionData } from "@/app/shop/[slug]/prescription/Prescr
 /**
  * Save prescription data for logged-in user
  * NOTE: Only ONE prescription per user (shared across all products)
- * productSlug is stored for reference but doesn't affect uniqueness
+ * productSlug parameter is kept for backward compatibility but NOT saved to database
  */
 export async function saveUserPrescription(
   productSlug: string,
@@ -21,7 +21,7 @@ export async function saveUserPrescription(
       return { error: "User not authenticated" };
     }
 
-    // Extract prescription data
+    // Extract prescription data (ONLY prescription values, NOT lens config or price breakdown)
     const {
       od,
       os,
@@ -31,13 +31,16 @@ export async function saveUserPrescription(
       hasTwoPDs,
       hasPrism,
       prescriptionImageUrl,
-      rxConfig,
-      rxPriceBreakdown,
+      // NOTE: rxConfig and rxPriceBreakdown are NOT saved to database - they are product-specific
+      // and stored in localStorage/sessionStorage per product
     } = prescriptionData;
 
     console.log('[saveUserPrescription] Saving prescription (one per user, shared across products):', {
       userId,
-      productSlug,
+      hasTwoPDs,
+      pd: pd || 'empty',
+      pdOd: pdOd || 'empty',
+      pdOs: pdOs || 'empty',
       hasPrism,
       odPrismHorizontal: od.prismHorizontal,
       odPrismHorizontalBase: od.prismHorizontalBase,
@@ -56,16 +59,16 @@ export async function saveUserPrescription(
       },
       create: {
         userId,
-        productSlug: productSlug || null, // Optional: last product used
+        // NOTE: productSlug is NOT saved - prescription is shared across all products
         odSph: od.sph,
         odCyl: od.cyl,
         odAxis: od.axis,
         osSph: os.sph,
         osCyl: os.cyl,
         osAxis: os.axis,
-        pd,
-        pdOd: pdOd || null,
-        pdOs: pdOs || null,
+        pd: pd || '',
+        pdOd: (hasTwoPDs && pdOd) ? pdOd : null,
+        pdOs: (hasTwoPDs && pdOs) ? pdOs : null,
         hasTwoPDs,
         hasPrism,
         odPrismHorizontal: od.prismHorizontal || null,
@@ -77,35 +80,20 @@ export async function saveUserPrescription(
         osPrismVertical: os.prismVertical || null,
         osPrismVerticalBase: os.prismVerticalBase || null,
         prescriptionImageUrl: prescriptionImageUrl || null,
-        // NOTE: Lens configuration fields are required by schema but NOT used when loading
-        // We save defaults here - actual lens config is stored in product-specific localStorage
-        lensType: "CLEAR", // Default - not loaded back
-        lensIndex: "1.56", // Default - not loaded back
-        coating: "UC", // Default - not loaded back
-        tintType: null,
-        tintColor: null,
-        tintShadePercent: null,
-        tintRecipe: null,
-        photochromicColor: null,
-        polarizedColor: null,
-        frameType: rxConfig?.frameType || "FULL_FRAME", // Only frameType is used (for edging fee, auto-detected per product)
-        lensesPair: rxPriceBreakdown?.lensesPair ? rxPriceBreakdown.lensesPair : null,
-        edgingFee: rxPriceBreakdown?.edgingFee ? rxPriceBreakdown.edgingFee : null,
-        profit: rxPriceBreakdown?.profit ? rxPriceBreakdown.profit : null,
-        rxRetailNet: rxPriceBreakdown?.rxRetailNet ? rxPriceBreakdown.rxRetailNet : null,
-        totalNet: rxPriceBreakdown?.totalNet ? rxPriceBreakdown.totalNet : null,
+        // NOTE: Lens configuration and price breakdown are NOT saved to database
+        // They are product-specific and stored in localStorage/sessionStorage per product
       },
       update: {
-        productSlug: productSlug || null, // Update last product reference
+        // NOTE: productSlug is NOT saved - prescription is shared across all products
         odSph: od.sph,
         odCyl: od.cyl,
         odAxis: od.axis,
         osSph: os.sph,
         osCyl: os.cyl,
         osAxis: os.axis,
-        pd,
-        pdOd: pdOd || null,
-        pdOs: pdOs || null,
+        pd: pd || '',
+        pdOd: (hasTwoPDs && pdOd) ? pdOd : null,
+        pdOs: (hasTwoPDs && pdOs) ? pdOs : null,
         hasTwoPDs,
         hasPrism,
         odPrismHorizontal: od.prismHorizontal || null,
@@ -117,23 +105,8 @@ export async function saveUserPrescription(
         osPrismVertical: os.prismVertical || null,
         osPrismVerticalBase: os.prismVerticalBase || null,
         prescriptionImageUrl: prescriptionImageUrl || null,
-        // NOTE: Lens configuration fields are required by schema but NOT used when loading
-        // We save defaults here - actual lens config is stored in product-specific localStorage
-        lensType: "CLEAR", // Default - not loaded back
-        lensIndex: "1.56", // Default - not loaded back
-        coating: "UC", // Default - not loaded back
-        tintType: null,
-        tintColor: null,
-        tintShadePercent: null,
-        tintRecipe: null,
-        photochromicColor: null,
-        polarizedColor: null,
-        frameType: rxConfig?.frameType || "FULL_FRAME", // Only frameType is used (for edging fee, auto-detected per product)
-        lensesPair: rxPriceBreakdown?.lensesPair ? rxPriceBreakdown.lensesPair : null,
-        edgingFee: rxPriceBreakdown?.edgingFee ? rxPriceBreakdown.edgingFee : null,
-        profit: rxPriceBreakdown?.profit ? rxPriceBreakdown.profit : null,
-        rxRetailNet: rxPriceBreakdown?.rxRetailNet ? rxPriceBreakdown.rxRetailNet : null,
-        totalNet: rxPriceBreakdown?.totalNet ? rxPriceBreakdown.totalNet : null,
+        // NOTE: Lens configuration and price breakdown are NOT saved to database
+        // They are product-specific and stored in localStorage/sessionStorage per product
       },
     });
 
@@ -186,7 +159,7 @@ export async function getUserPrescription(productSlug: string) {
         prismVertical: prescription.osPrismVertical || undefined,
         prismVerticalBase: prescription.osPrismVerticalBase || undefined,
       },
-      pd: prescription.pd,
+      pd: prescription.pd || '',
       pdOd: prescription.pdOd || undefined,
       pdOs: prescription.pdOs || undefined,
       hasTwoPDs: prescription.hasTwoPDs,
@@ -200,6 +173,10 @@ export async function getUserPrescription(productSlug: string) {
     };
 
     console.log('[getUserPrescription] Loaded prescription from DB:', {
+      hasTwoPDs: fullData.hasTwoPDs,
+      pd: fullData.pd || 'empty',
+      pdOd: fullData.pdOd || 'empty',
+      pdOs: fullData.pdOs || 'empty',
       hasPrism: fullData.hasPrism,
       odPrismHorizontal: fullData.od.prismHorizontal,
       odPrismHorizontalBase: fullData.od.prismHorizontalBase,

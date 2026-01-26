@@ -14,35 +14,11 @@ export interface CountryLanguage {
   currency: string; // Currency code
 }
 
-// Supported languages
+// Supported languages - Lithuanian, Russian, and English
 export const supportedLanguages: Language[] = [
   { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch' },
-  { code: 'fr', name: 'French', nativeName: 'Français' },
-  { code: 'it', name: 'Italian', nativeName: 'Italiano' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español' },
-  { code: 'nl', name: 'Dutch', nativeName: 'Nederlands' },
-  { code: 'pt', name: 'Portuguese', nativeName: 'Português' },
-  { code: 'pl', name: 'Polish', nativeName: 'Polski' },
-  { code: 'cs', name: 'Czech', nativeName: 'Čeština' },
-  { code: 'sk', name: 'Slovak', nativeName: 'Slovenčina' },
-  { code: 'hu', name: 'Hungarian', nativeName: 'Magyar' },
-  { code: 'ro', name: 'Romanian', nativeName: 'Română' },
-  { code: 'bg', name: 'Bulgarian', nativeName: 'Български' },
-  { code: 'hr', name: 'Croatian', nativeName: 'Hrvatski' },
-  { code: 'sl', name: 'Slovene', nativeName: 'Slovenščina' },
-  { code: 'el', name: 'Greek', nativeName: 'Ελληνικά' },
-  { code: 'fi', name: 'Finnish', nativeName: 'Suomi' },
-  { code: 'sv', name: 'Swedish', nativeName: 'Svenska' },
-  { code: 'da', name: 'Danish', nativeName: 'Dansk' },
-  { code: 'no', name: 'Norwegian', nativeName: 'Norsk' },
-  { code: 'is', name: 'Icelandic', nativeName: 'Íslenska' },
-  { code: 'et', name: 'Estonian', nativeName: 'Eesti' },
-  { code: 'lv', name: 'Latvian', nativeName: 'Latviešu' },
   { code: 'lt', name: 'Lithuanian', nativeName: 'Lietuvių' },
-  { code: 'mt', name: 'Maltese', nativeName: 'Malti' },
-  { code: 'lb', name: 'Luxembourgish', nativeName: 'Lëtzebuergesch' },
-  { code: 'rm', name: 'Romansh', nativeName: 'Rumantsch' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский' },
 ];
 
 // Country to language and currency mapping

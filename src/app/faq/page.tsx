@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 export const metadata: Metadata = {
   title: 'FAQ - Frequently Asked Questions',
@@ -139,10 +140,10 @@ export default function FAQPage() {
         <div className="container mx-auto px-4 py-12 md:py-16">
           <div className="max-w-4xl mx-auto">
             <h1 className="text-brand-h1 font-headline mb-4 text-center">
-              Frequently Asked Questions
+              <TranslatableText text="Frequently Asked Questions" />
             </h1>
             <p className="text-lg text-muted-foreground text-center mb-12">
-              Find answers to common questions about our products, shipping, returns, and more.
+              <TranslatableText text="Find answers to common questions about our products, shipping, returns, and more." />
             </p>
 
             <Accordion type="single" collapsible className="w-full space-y-4">
@@ -153,25 +154,27 @@ export default function FAQPage() {
                   className="border border-border rounded-lg px-6 bg-card"
                 >
                   <AccordionTrigger className="text-left font-semibold hover:no-underline">
-                    {faq.question}
+                    <TranslatableText text={faq.question} />
                   </AccordionTrigger>
                   <AccordionContent className="text-muted-foreground">
-                    {faq.answer}
+                    <TranslatableText text={faq.answer} />
                   </AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
 
             <div className="mt-12 p-6 bg-muted rounded-lg text-center">
-              <h2 className="text-brand-h2 font-headline mb-2">Still have questions?</h2>
+              <h2 className="text-brand-h2 font-headline mb-2">
+                <TranslatableText text="Still have questions?" />
+              </h2>
               <p className="text-muted-foreground mb-4">
-                Can't find the answer you're looking for? Please get in touch with our friendly team.
+                <TranslatableText text="Can't find the answer you're looking for? Please get in touch with our friendly team." />
               </p>
               <a 
                 href="/contact" 
                 className="inline-block px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors font-medium"
               >
-                Contact Us
+                <TranslatableText text="Contact Us" />
               </a>
             </div>
           </div>

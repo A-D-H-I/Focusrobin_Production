@@ -3,6 +3,7 @@ import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import Link from "next/link";
 import { Shield, Lock, Database, Users, FileText, Mail, AlertCircle, CheckCircle2, Eye, Globe, Clock, FileCheck } from 'lucide-react';
+import TranslatableText from "@/components/ui/TranslatableText";
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | FocusRobin',
@@ -78,17 +79,15 @@ export default function PrivacyPolicyPage() {
               </div>
               <div>
                 <h1 className="text-4xl md:text-5xl font-headline text-brand-blue mb-2">
-                  Privacy Policy
+                  <TranslatableText text="Privacy Policy" />
                 </h1>
                 <p className="text-brand-blue/60 text-sm">
-                  Last updated: January 2026
+                  <TranslatableText text="Last updated: January 2026" />
                 </p>
               </div>
             </div>
             <p className="text-lg text-brand-blue/80 max-w-3xl leading-relaxed">
-              MB Focusrobin optika (&quot;FocusRobin&quot;) is committed to protecting your privacy. 
-              This Privacy Policy explains how we collect, use, disclose, and safeguard your personal data. 
-              We comply with GDPR and Lithuanian data protection laws.
+              <TranslatableText text="MB Focusrobin optika (&quot;FocusRobin&quot;) is committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your personal data. We comply with GDPR and Lithuanian data protection laws." />
             </p>
           </div>
         </div>
@@ -100,7 +99,7 @@ export default function PrivacyPolicyPage() {
               <div className="sticky top-24 bg-white border border-brand-blue/10 rounded-xl p-6 shadow-sm">
                 <h3 className="font-headline text-brand-blue mb-4 flex items-center gap-2">
                   <FileText className="h-5 w-5 text-brand-teal" />
-                  Quick Navigation
+                  <TranslatableText text="Quick Navigation" />
                 </h3>
                 <nav className="space-y-2">
                   {sections.map((section) => {
@@ -112,7 +111,7 @@ export default function PrivacyPolicyPage() {
                         className="flex items-center gap-2 text-sm text-brand-blue/70 hover:text-brand-teal transition-colors py-2 px-3 rounded-lg hover:bg-brand-teal/5"
                       >
                         <Icon className="h-4 w-4" />
-                        <span>{section.title}</span>
+                        <span><TranslatableText text={section.title} /></span>
                       </a>
                     );
                   })}
@@ -130,21 +129,21 @@ export default function PrivacyPolicyPage() {
                       <Users className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      1. Data Controller
+                      <TranslatableText text="1. Data Controller" />
                     </h2>
                   </div>
                   <p className="text-brand-blue/80 leading-relaxed mb-4">
-                    The data controller responsible for your personal data is:
+                    <TranslatableText text="The data controller responsible for your personal data is:" />
                   </p>
                   <div className="bg-gradient-to-r from-brand-blue/5 to-brand-teal/5 border border-brand-teal/20 rounded-xl p-6">
                     <div className="space-y-2">
                       <p className="text-brand-blue font-semibold text-lg">MB Focusrobin optika</p>
-                      <p className="text-brand-blue/80">Republic of Lithuania</p>
+                      <p className="text-brand-blue/80"><TranslatableText text="Republic of Lithuania" /></p>
                       <p className="text-brand-blue/80">
-                        Email: <Link href="mailto:support@focusrobin.com" className="text-brand-teal hover:underline font-medium">support@focusrobin.com</Link>
+                        <TranslatableText text="Email:" /> <Link href="mailto:support@focusrobin.com" className="text-brand-teal hover:underline font-medium">support@focusrobin.com</Link>
                       </p>
                       <p className="text-brand-blue/80">
-                        Website: <Link href="https://focusrobin.lt" className="text-brand-teal hover:underline font-medium">focusrobin.lt</Link>
+                        <TranslatableText text="Website:" /> <Link href="https://focusrobin.lt" className="text-brand-teal hover:underline font-medium">focusrobin.lt</Link>
                       </p>
                     </div>
                   </div>
@@ -159,13 +158,13 @@ export default function PrivacyPolicyPage() {
                       <Database className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      2. Personal Data We Collect
+                      <TranslatableText text="2. Personal Data We Collect" />
                     </h2>
                   </div>
                   
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-xl font-headline text-brand-blue mb-4">2.1 Information You Provide</h3>
+                      <h3 className="text-xl font-headline text-brand-blue mb-4"><TranslatableText text="2.1 Information You Provide" /></h3>
                       <div className="grid md:grid-cols-2 gap-4">
                         {[
                           { title: 'Account Information', desc: 'Name, email, password, phone number' },
@@ -177,8 +176,8 @@ export default function PrivacyPolicyPage() {
                           <div key={idx} className="flex items-start gap-3 p-4 bg-brand-blue/5 rounded-lg border border-brand-blue/10">
                             <CheckCircle2 className="h-5 w-5 text-brand-teal flex-shrink-0 mt-0.5" />
                             <div>
-                              <p className="text-brand-blue font-medium">{item.title}</p>
-                              <p className="text-brand-blue/70 text-sm">{item.desc}</p>
+                              <p className="text-brand-blue font-medium"><TranslatableText text={item.title} /></p>
+                              <p className="text-brand-blue/70 text-sm"><TranslatableText text={item.desc} /></p>
                             </div>
                           </div>
                         ))}
@@ -186,7 +185,7 @@ export default function PrivacyPolicyPage() {
                     </div>
 
                     <div>
-                      <h3 className="text-xl font-headline text-brand-blue mb-4">2.2 Information Collected Automatically</h3>
+                      <h3 className="text-xl font-headline text-brand-blue mb-4"><TranslatableText text="2.2 Information Collected Automatically" /></h3>
                       <div className="grid md:grid-cols-2 gap-4">
                         {[
                           { title: 'Device Information', desc: 'IP address, browser type, OS, device IDs' },
@@ -196,8 +195,8 @@ export default function PrivacyPolicyPage() {
                           <div key={idx} className="flex items-start gap-3 p-4 bg-brand-blue/5 rounded-lg border border-brand-blue/10">
                             <CheckCircle2 className="h-5 w-5 text-brand-teal flex-shrink-0 mt-0.5" />
                             <div>
-                              <p className="text-brand-blue font-medium">{item.title}</p>
-                              <p className="text-brand-blue/70 text-sm">{item.desc}</p>
+                              <p className="text-brand-blue font-medium"><TranslatableText text={item.title} /></p>
+                              <p className="text-brand-blue/70 text-sm"><TranslatableText text={item.desc} /></p>
                             </div>
                           </div>
                         ))}
@@ -215,7 +214,7 @@ export default function PrivacyPolicyPage() {
                       <FileText className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      3. How We Use Your Data
+                      <TranslatableText text="3. How We Use Your Data" />
                     </h2>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
@@ -230,7 +229,7 @@ export default function PrivacyPolicyPage() {
                     ].map((use, idx) => (
                       <div key={idx} className="flex items-center gap-3 p-4 bg-gradient-to-r from-brand-teal/5 to-brand-blue/5 rounded-lg border border-brand-teal/20">
                         <div className="w-2 h-2 rounded-full bg-brand-teal"></div>
-                        <span className="text-brand-blue font-medium">{use}</span>
+                        <span className="text-brand-blue font-medium"><TranslatableText text={use} /></span>
                       </div>
                     ))}
                   </div>
@@ -245,7 +244,7 @@ export default function PrivacyPolicyPage() {
                       <FileCheck className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      4. Legal Basis for Processing
+                      <TranslatableText text="4. Legal Basis for Processing" />
                     </h2>
                   </div>
                   <div className="space-y-4">
@@ -256,8 +255,8 @@ export default function PrivacyPolicyPage() {
                       { title: 'Legal Obligation', desc: 'Processing required by law (e.g., tax records)' },
                     ].map((item, idx) => (
                       <div key={idx} className="p-4 bg-brand-blue/5 rounded-lg border-l-4 border-brand-teal">
-                        <p className="text-brand-blue font-semibold mb-1">{item.title}</p>
-                        <p className="text-brand-blue/70 text-sm">{item.desc}</p>
+                        <p className="text-brand-blue font-semibold mb-1"><TranslatableText text={item.title} /></p>
+                        <p className="text-brand-blue/70 text-sm"><TranslatableText text={item.desc} /></p>
                       </div>
                     ))}
                   </div>
@@ -272,7 +271,7 @@ export default function PrivacyPolicyPage() {
                       <Globe className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      5. Data Sharing and Third Parties
+                      <TranslatableText text="5. Data Sharing and Third Parties" />
                     </h2>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4 mb-4">
@@ -285,15 +284,14 @@ export default function PrivacyPolicyPage() {
                       { title: 'Legal Authorities', desc: 'When required by law' },
                     ].map((item, idx) => (
                       <div key={idx} className="p-4 bg-brand-blue/5 rounded-lg border border-brand-blue/10">
-                        <p className="text-brand-blue font-semibold mb-1">{item.title}</p>
-                        <p className="text-brand-blue/70 text-sm">{item.desc}</p>
+                        <p className="text-brand-blue font-semibold mb-1"><TranslatableText text={item.title} /></p>
+                        <p className="text-brand-blue/70 text-sm"><TranslatableText text={item.desc} /></p>
                       </div>
                     ))}
                   </div>
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
                     <p className="text-brand-blue/80 text-sm">
-                      <strong className="text-amber-800">Important:</strong> We do not sell your personal data. 
-                      All third-party providers are contractually bound to protect your data.
+                      <strong className="text-amber-800"><TranslatableText text="Important:" /></strong> <TranslatableText text="We do not sell your personal data. All third-party providers are contractually bound to protect your data." />
                     </p>
                   </div>
                 </div>
@@ -307,7 +305,7 @@ export default function PrivacyPolicyPage() {
                       <Clock className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      7. Data Retention
+                      <TranslatableText text="7. Data Retention" />
                     </h2>
                   </div>
                   <div className="space-y-3">
@@ -319,8 +317,8 @@ export default function PrivacyPolicyPage() {
                       { data: 'Communication Records', period: '3 years after last interaction' },
                     ].map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center p-4 bg-brand-blue/5 rounded-lg border border-brand-blue/10">
-                        <span className="text-brand-blue font-medium">{item.data}</span>
-                        <span className="text-brand-blue/70 text-sm">{item.period}</span>
+                        <span className="text-brand-blue font-medium"><TranslatableText text={item.data} /></span>
+                        <span className="text-brand-blue/70 text-sm"><TranslatableText text={item.period} /></span>
                       </div>
                     ))}
                   </div>
@@ -335,7 +333,7 @@ export default function PrivacyPolicyPage() {
                       <Shield className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      8. Your Rights Under GDPR
+                      <TranslatableText text="8. Your Rights Under GDPR" />
                     </h2>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4 mb-6">
@@ -351,17 +349,17 @@ export default function PrivacyPolicyPage() {
                     ].map((right, idx) => (
                       <div key={idx} className="flex items-start gap-3 p-4 bg-gradient-to-br from-brand-teal/5 to-brand-blue/5 rounded-lg border border-brand-teal/20">
                         <CheckCircle2 className="h-5 w-5 text-brand-teal flex-shrink-0 mt-0.5" />
-                        <span className="text-brand-blue font-medium text-sm">{right}</span>
+                        <span className="text-brand-blue font-medium text-sm"><TranslatableText text={right} /></span>
                       </div>
                     ))}
                   </div>
                   <div className="bg-brand-teal/10 border border-brand-teal/20 rounded-lg p-4">
                     <p className="text-brand-blue/80 text-sm">
-                      To exercise any of these rights, contact us at{' '}
+                      <TranslatableText text="To exercise any of these rights, contact us at" />{' '}
                       <Link href="mailto:support@focusrobin.com" className="text-brand-teal hover:underline font-medium">
                         support@focusrobin.com
                       </Link>
-                      . We respond within 30 days.
+                      . <TranslatableText text="We respond within 30 days." />
                     </p>
                   </div>
                 </div>
@@ -375,7 +373,7 @@ export default function PrivacyPolicyPage() {
                       <Lock className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      9. Data Security
+                      <TranslatableText text="9. Data Security" />
                     </h2>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
@@ -387,7 +385,7 @@ export default function PrivacyPolicyPage() {
                     ].map((measure, idx) => (
                       <div key={idx} className="flex items-center gap-3 p-4 bg-brand-blue/5 rounded-lg border border-brand-blue/10">
                         <Lock className="h-5 w-5 text-brand-teal" />
-                        <span className="text-brand-blue font-medium">{measure}</span>
+                        <span className="text-brand-blue font-medium"><TranslatableText text={measure} /></span>
                       </div>
                     ))}
                   </div>
@@ -402,16 +400,15 @@ export default function PrivacyPolicyPage() {
                       <Eye className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      10. Cookies and Tracking Technologies
+                      <TranslatableText text="10. Cookies and Tracking Technologies" />
                     </h2>
                   </div>
                   <p className="text-brand-blue/80 leading-relaxed mb-4">
-                    We use cookies to enhance your experience, analyze traffic, and personalize content. 
-                    Manage your preferences at any time through our{' '}
+                    <TranslatableText text="We use cookies to enhance your experience, analyze traffic, and personalize content. Manage your preferences at any time through our" />{' '}
                     <Link href="/cookie-preferences" className="text-brand-teal hover:underline font-medium">
-                      Cookie Preferences
+                      <TranslatableText text="Cookie Preferences" />
                     </Link>{' '}
-                    page.
+                    <TranslatableText text="page." />
                   </p>
                 </div>
               </section>
@@ -424,11 +421,11 @@ export default function PrivacyPolicyPage() {
                       <Mail className="h-6 w-6 text-brand-teal" />
                     </div>
                     <h2 className="text-2xl font-headline text-brand-blue">
-                      14. Contact Us
+                      <TranslatableText text="14. Contact Us" />
                     </h2>
                   </div>
                   <p className="text-brand-blue/80 leading-relaxed mb-6">
-                    Questions about this Privacy Policy or our data practices?
+                    <TranslatableText text="Questions about this Privacy Policy or our data practices?" />
                   </p>
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-brand-blue/10">

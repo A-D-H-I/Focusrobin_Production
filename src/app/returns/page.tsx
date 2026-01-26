@@ -3,6 +3,7 @@ import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import Link from "next/link";
 import { RotateCcw, Package, CreditCard, Clock, CheckCircle2, AlertCircle, HelpCircle } from 'lucide-react';
+import TranslatableText from "@/components/ui/TranslatableText";
 
 export const metadata: Metadata = {
   title: 'Returns and Refunds | FocusRobin',
@@ -62,7 +63,7 @@ export default function ReturnsPage() {
           <div className="flex items-center gap-3 mb-8">
             <RotateCcw className="h-10 w-10 text-brand-teal" />
             <h1 className="text-brand-h1 font-headline text-brand-blue">
-              Returns and Refunds
+              <TranslatableText text="Returns and Refunds" />
             </h1>
           </div>
 
@@ -76,11 +77,10 @@ export default function ReturnsPage() {
               </div>
               <div>
                 <h2 className="text-xl font-headline text-brand-blue mb-2">
-                  14-Day Hassle-Free Returns
+                  <TranslatableText text="14-Day Hassle-Free Returns" />
                 </h2>
                 <p className="text-brand-blue/80">
-                  Not satisfied with your purchase? Return any unused item within 14 days of delivery 
-                  for a full refund. We want you to love your FocusRobin eyewear!
+                  <TranslatableText text="Not satisfied with your purchase? Return any unused item within 14 days of delivery for a full refund. We want you to love your FocusRobin eyewear!" />
                 </p>
               </div>
             </div>
@@ -88,76 +88,74 @@ export default function ReturnsPage() {
 
           <div className="prose prose-lg max-w-none">
             <p className="text-brand-blue/80 leading-relaxed mb-6">
-              At FocusRobin, customer satisfaction is our priority. We understand that buying eyewear online 
-              can be challenging, which is why we offer a generous return policy. Please read the following 
-              terms to understand how our returns and refunds process works.
+              <TranslatableText text="At FocusRobin, customer satisfaction is our priority. We understand that buying eyewear online can be challenging, which is why we offer a generous return policy. Please read the following terms to understand how our returns and refunds process works." />
             </p>
 
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              1. Return Eligibility
+              <TranslatableText text="1. Return Eligibility" />
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-4">
-              You may return products purchased from focusrobin.lt under the following conditions:
+              <TranslatableText text="You may return products purchased from focusrobin.lt under the following conditions:" />
             </p>
             
             <div className="grid gap-4 mb-6">
               <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-100">
                 <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-brand-blue font-medium">Within 14 Days</p>
-                  <p className="text-brand-blue/70 text-sm">Return must be initiated within 14 calendar days from the date of delivery</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Within 14 Days" /></p>
+                  <p className="text-brand-blue/70 text-sm"><TranslatableText text="Return must be initiated within 14 calendar days from the date of delivery" /></p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-100">
                 <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-brand-blue font-medium">Unused Condition</p>
-                  <p className="text-brand-blue/70 text-sm">Items must be unworn, unused, and in the same condition as received</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Unused Condition" /></p>
+                  <p className="text-brand-blue/70 text-sm"><TranslatableText text="Items must be unworn, unused, and in the same condition as received" /></p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-100">
                 <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-brand-blue font-medium">Original Packaging</p>
-                  <p className="text-brand-blue/70 text-sm">Products must be returned in original packaging with all accessories (case, cleaning cloth, etc.)</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Original Packaging" /></p>
+                  <p className="text-brand-blue/70 text-sm"><TranslatableText text="Products must be returned in original packaging with all accessories (case, cleaning cloth, etc.)" /></p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-100">
                 <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-brand-blue font-medium">Tags Attached</p>
-                  <p className="text-brand-blue/70 text-sm">Original tags and labels must still be attached to the product</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Tags Attached" /></p>
+                  <p className="text-brand-blue/70 text-sm"><TranslatableText text="Original tags and labels must still be attached to the product" /></p>
                 </div>
               </div>
             </div>
 
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              2. Non-Returnable Items
+              <TranslatableText text="2. Non-Returnable Items" />
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-4">
-              The following items cannot be returned:
+              <TranslatableText text="The following items cannot be returned:" />
             </p>
             
             <div className="grid gap-4 mb-6">
               <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-lg border border-amber-100">
                 <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-brand-blue font-medium">Custom Prescription Lenses</p>
-                  <p className="text-brand-blue/70 text-sm">Prescription glasses with custom-made lenses to your specific prescription cannot be returned unless there is a manufacturing defect or incorrect prescription fulfillment</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Custom Prescription Lenses" /></p>
+                  <p className="text-brand-blue/70 text-sm"><TranslatableText text="Prescription glasses with custom-made lenses to your specific prescription cannot be returned unless there is a manufacturing defect or incorrect prescription fulfillment" /></p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-lg border border-amber-100">
                 <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-brand-blue font-medium">Damaged or Used Items</p>
-                  <p className="text-brand-blue/70 text-sm">Products showing signs of wear, scratches, or damage after delivery</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Damaged or Used Items" /></p>
+                  <p className="text-brand-blue/70 text-sm"><TranslatableText text="Products showing signs of wear, scratches, or damage after delivery" /></p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-lg border border-amber-100">
                 <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-brand-blue font-medium">Missing Components</p>
-                  <p className="text-brand-blue/70 text-sm">Items returned without original packaging, accessories, or tags</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Missing Components" /></p>
+                  <p className="text-brand-blue/70 text-sm"><TranslatableText text="Items returned without original packaging, accessories, or tags" /></p>
                 </div>
               </div>
             </div>
@@ -166,19 +164,16 @@ export default function ReturnsPage() {
               <div className="flex items-start gap-3">
                 <HelpCircle className="h-5 w-5 text-brand-teal flex-shrink-0 mt-0.5" />
                 <p className="text-brand-blue/80 text-sm">
-                  <strong>Note on Prescription Glasses:</strong> If you&apos;re unsure about your frame choice, we recommend 
-                  trying our <Link href="/try-on" className="text-brand-teal hover:underline">Virtual Try-On</Link> feature 
-                  before ordering prescription lenses. For frame-only orders (without prescription lenses), standard 
-                  return policies apply.
+                  <strong><TranslatableText text="Note on Prescription Glasses:" /></strong> <TranslatableText text="If you&apos;re unsure about your frame choice, we recommend trying our" /> <Link href="/try-on" className="text-brand-teal hover:underline"><TranslatableText text="Virtual Try-On" /></Link> <TranslatableText text="feature before ordering prescription lenses. For frame-only orders (without prescription lenses), standard return policies apply." />
                 </p>
               </div>
             </div>
 
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              3. How to Initiate a Return
+              <TranslatableText text="3. How to Initiate a Return" />
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-4">
-              To return a product, please follow these steps:
+              <TranslatableText text="To return a product, please follow these steps:" />
             </p>
             
             <div className="space-y-4 mb-6">
@@ -187,13 +182,13 @@ export default function ReturnsPage() {
                   1
                 </div>
                 <div>
-                  <p className="text-brand-blue font-medium">Contact Our Support Team</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Contact Our Support Team" /></p>
                   <p className="text-brand-blue/70 text-sm">
-                    Email{' '}
+                    <TranslatableText text="Email" />{' '}
                     <Link href="mailto:support@focusrobin.com" className="text-brand-teal hover:underline">
                       support@focusrobin.com
                     </Link>{' '}
-                    with the subject line &quot;Return Request - [Order Number]&quot;
+                    <TranslatableText text="with the subject line &quot;Return Request - [Order Number]&quot;" />
                   </p>
                 </div>
               </div>
@@ -202,9 +197,9 @@ export default function ReturnsPage() {
                   2
                 </div>
                 <div>
-                  <p className="text-brand-blue font-medium">Provide Return Details</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Provide Return Details" /></p>
                   <p className="text-brand-blue/70 text-sm">
-                    Include your order number, the items you wish to return, and the reason for the return
+                    <TranslatableText text="Include your order number, the items you wish to return, and the reason for the return" />
                   </p>
                 </div>
               </div>
@@ -213,9 +208,9 @@ export default function ReturnsPage() {
                   3
                 </div>
                 <div>
-                  <p className="text-brand-blue font-medium">Receive Return Authorization</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Receive Return Authorization" /></p>
                   <p className="text-brand-blue/70 text-sm">
-                    We will send you a Return Authorization Number (RAN) and return instructions within 1-2 business days
+                    <TranslatableText text="We will send you a Return Authorization Number (RAN) and return instructions within 1-2 business days" />
                   </p>
                 </div>
               </div>
@@ -224,9 +219,9 @@ export default function ReturnsPage() {
                   4
                 </div>
                 <div>
-                  <p className="text-brand-blue font-medium">Pack Your Return</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Pack Your Return" /></p>
                   <p className="text-brand-blue/70 text-sm">
-                    Carefully pack the item(s) in original packaging with all accessories and include the RAN inside the package
+                    <TranslatableText text="Carefully pack the item(s) in original packaging with all accessories and include the RAN inside the package" />
                   </p>
                 </div>
               </div>
@@ -235,116 +230,114 @@ export default function ReturnsPage() {
                   5
                 </div>
                 <div>
-                  <p className="text-brand-blue font-medium">Ship Your Return</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Ship Your Return" /></p>
                   <p className="text-brand-blue/70 text-sm">
-                    Send the package using the shipping method specified in your return instructions
+                    <TranslatableText text="Send the package using the shipping method specified in your return instructions" />
                   </p>
                 </div>
               </div>
             </div>
 
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              4. Return Shipping Costs
+              <TranslatableText text="4. Return Shipping Costs" />
             </h2>
             <div className="grid gap-4 mb-6">
               <div className="flex items-start gap-3 p-4 bg-green-50 rounded-lg border border-green-100">
                 <Package className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-brand-blue font-medium">FocusRobin Covers Shipping If:</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="FocusRobin Covers Shipping If:" /></p>
                   <ul className="text-brand-blue/70 text-sm mt-1 space-y-1">
-                    <li>• You received a defective or damaged product</li>
-                    <li>• You received the wrong item</li>
-                    <li>• Prescription was made incorrectly by us</li>
+                    <li>• <TranslatableText text="You received a defective or damaged product" /></li>
+                    <li>• <TranslatableText text="You received the wrong item" /></li>
+                    <li>• <TranslatableText text="Prescription was made incorrectly by us" /></li>
                   </ul>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                 <Package className="h-5 w-5 text-gray-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-brand-blue font-medium">Customer Covers Shipping If:</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Customer Covers Shipping If:" /></p>
                   <ul className="text-brand-blue/70 text-sm mt-1 space-y-1">
-                    <li>• You changed your mind about the purchase</li>
-                    <li>• The product doesn&apos;t fit as expected</li>
-                    <li>• You ordered the wrong item</li>
+                    <li>• <TranslatableText text="You changed your mind about the purchase" /></li>
+                    <li>• <TranslatableText text="The product doesn&apos;t fit as expected" /></li>
+                    <li>• <TranslatableText text="You ordered the wrong item" /></li>
                   </ul>
                 </div>
               </div>
             </div>
 
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              5. Refund Process
+              <TranslatableText text="5. Refund Process" />
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-4">
-              Once we receive and inspect your return, we will process your refund:
+              <TranslatableText text="Once we receive and inspect your return, we will process your refund:" />
             </p>
             
             <div className="grid md:grid-cols-2 gap-4 mb-6">
               <div className="flex items-start gap-3 p-4 bg-brand-blue/5 rounded-lg">
                 <Clock className="h-5 w-5 text-brand-teal flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-brand-blue font-medium">Inspection Time</p>
-                  <p className="text-brand-blue/70 text-sm">1-2 business days after receiving the return</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Inspection Time" /></p>
+                  <p className="text-brand-blue/70 text-sm"><TranslatableText text="1-2 business days after receiving the return" /></p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-4 bg-brand-blue/5 rounded-lg">
                 <CreditCard className="h-5 w-5 text-brand-teal flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-brand-blue font-medium">Refund Processing</p>
-                  <p className="text-brand-blue/70 text-sm">3-5 business days after approval</p>
+                  <p className="text-brand-blue font-medium"><TranslatableText text="Refund Processing" /></p>
+                  <p className="text-brand-blue/70 text-sm"><TranslatableText text="3-5 business days after approval" /></p>
                 </div>
               </div>
             </div>
 
             <p className="text-brand-blue/80 leading-relaxed mb-4">
-              <strong>Refund Method:</strong> Refunds are issued to the original payment method:
+              <strong><TranslatableText text="Refund Method:" /></strong> <TranslatableText text="Refunds are issued to the original payment method:" />
             </p>
             <ul className="list-disc list-inside text-brand-blue/80 space-y-2 mb-6">
-              <li><strong>Credit/Debit Cards:</strong> 5-10 business days to appear on your statement (depends on your bank)</li>
-              <li><strong>PayPal:</strong> 1-3 business days</li>
-              <li><strong>Apple Pay / Google Pay:</strong> 5-10 business days</li>
+              <li><strong><TranslatableText text="Credit/Debit Cards:" /></strong> <TranslatableText text="5-10 business days to appear on your statement (depends on your bank)" /></li>
+              <li><strong><TranslatableText text="PayPal:" /></strong> <TranslatableText text="1-3 business days" /></li>
+              <li><strong><TranslatableText text="Apple Pay / Google Pay:" /></strong> <TranslatableText text="5-10 business days" /></li>
             </ul>
 
             <p className="text-brand-blue/80 leading-relaxed mb-6">
-              You will receive an email confirmation once your refund has been processed.
+              <TranslatableText text="You will receive an email confirmation once your refund has been processed." />
             </p>
 
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              6. Exchanges
+              <TranslatableText text="6. Exchanges" />
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-6">
-              We do not offer direct exchanges at this time. If you would like a different product, please 
-              return the original item for a refund and place a new order. This ensures you receive your 
-              new item as quickly as possible without waiting for the return to be processed first.
+              <TranslatableText text="We do not offer direct exchanges at this time. If you would like a different product, please return the original item for a refund and place a new order. This ensures you receive your new item as quickly as possible without waiting for the return to be processed first." />
             </p>
 
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              7. Defective or Wrong Items
+              <TranslatableText text="7. Defective or Wrong Items" />
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-4">
-              If you received a defective product or the wrong item:
+              <TranslatableText text="If you received a defective product or the wrong item:" />
             </p>
             <ul className="list-disc list-inside text-brand-blue/80 space-y-2 mb-6">
-              <li>Contact us immediately at{' '}
+              <li><TranslatableText text="Contact us immediately at" />{' '}
                 <Link href="mailto:support@focusrobin.com" className="text-brand-teal hover:underline">
                   support@focusrobin.com
                 </Link>
               </li>
-              <li>Include photos of the defect or incorrect item</li>
-              <li>We will arrange for a prepaid return shipping label</li>
-              <li>You can choose between a full refund or a replacement</li>
-              <li>Replacement items are shipped with priority handling</li>
+              <li><TranslatableText text="Include photos of the defect or incorrect item" /></li>
+              <li><TranslatableText text="We will arrange for a prepaid return shipping label" /></li>
+              <li><TranslatableText text="You can choose between a full refund or a replacement" /></li>
+              <li><TranslatableText text="Replacement items are shipped with priority handling" /></li>
             </ul>
 
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              8. Late or Missing Refunds
+              <TranslatableText text="8. Late or Missing Refunds" />
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-4">
-              If you haven&apos;t received your refund within the expected timeframe:
+              <TranslatableText text="If you haven&apos;t received your refund within the expected timeframe:" />
             </p>
             <ol className="list-decimal list-inside text-brand-blue/80 space-y-2 mb-6">
-              <li>Check your bank account or credit card statement again</li>
-              <li>Contact your bank or credit card company, as processing times may vary</li>
-              <li>If you&apos;ve done the above and still haven&apos;t received your refund, contact us at{' '}
+              <li><TranslatableText text="Check your bank account or credit card statement again" /></li>
+              <li><TranslatableText text="Contact your bank or credit card company, as processing times may vary" /></li>
+              <li><TranslatableText text="If you&apos;ve done the above and still haven&apos;t received your refund, contact us at" />{' '}
                 <Link href="mailto:support@focusrobin.com" className="text-brand-teal hover:underline">
                   support@focusrobin.com
                 </Link>
@@ -352,49 +345,49 @@ export default function ReturnsPage() {
             </ol>
 
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              9. Contact Us
+              <TranslatableText text="9. Contact Us" />
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-4">
-              For any questions about returns or refunds, please contact our customer service team:
+              <TranslatableText text="For any questions about returns or refunds, please contact our customer service team:" />
             </p>
             <div className="bg-brand-blue/5 p-4 rounded-lg mb-6">
               <p className="text-brand-blue/80 mb-1">
-                <strong>Email:</strong>{' '}
+                <strong><TranslatableText text="Email:" /></strong>{' '}
                 <Link href="mailto:support@focusrobin.com" className="text-brand-teal hover:underline">
                   support@focusrobin.com
                 </Link>
               </p>
               <p className="text-brand-blue/80 mb-1">
-                <strong>Subject Line:</strong> Return Request - [Your Order Number]
+                <strong><TranslatableText text="Subject Line:" /></strong> <TranslatableText text="Return Request - [Your Order Number]" />
               </p>
               <p className="text-brand-blue/80">
-                <strong>Response Time:</strong> Within 1-2 business days
+                <strong><TranslatableText text="Response Time:" /></strong> <TranslatableText text="Within 1-2 business days" />
               </p>
             </div>
 
             <div className="bg-brand-teal/5 border border-brand-teal/20 rounded-lg p-6">
-              <h3 className="text-lg font-headline text-brand-blue mb-2">Need More Help?</h3>
+              <h3 className="text-lg font-headline text-brand-blue mb-2"><TranslatableText text="Need More Help?" /></h3>
               <p className="text-brand-blue/80 text-sm mb-4">
-                Check out our other support resources:
+                <TranslatableText text="Check out our other support resources:" />
               </p>
               <div className="flex flex-wrap gap-3">
                 <Link 
                   href="/faq" 
                   className="inline-flex items-center px-4 py-2 bg-white border border-brand-teal/30 rounded-lg text-brand-teal text-sm font-medium hover:bg-brand-teal/5 transition-colors"
                 >
-                  FAQs
+                  <TranslatableText text="FAQs" />
                 </Link>
                 <Link 
                   href="/warranty" 
                   className="inline-flex items-center px-4 py-2 bg-white border border-brand-teal/30 rounded-lg text-brand-teal text-sm font-medium hover:bg-brand-teal/5 transition-colors"
                 >
-                  Warranty Information
+                  <TranslatableText text="Warranty Information" />
                 </Link>
                 <Link 
                   href="/contact" 
                   className="inline-flex items-center px-4 py-2 bg-white border border-brand-teal/30 rounded-lg text-brand-teal text-sm font-medium hover:bg-brand-teal/5 transition-colors"
                 >
-                  Contact Us
+                  <TranslatableText text="Contact Us" />
                 </Link>
               </div>
             </div>

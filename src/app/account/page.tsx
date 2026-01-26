@@ -62,6 +62,7 @@ import { refundPendingOrders } from "@/app/actions/checkout";
 import { signOut } from "next-auth/react";
 import { format } from "date-fns";
 import { getDeliveryTime } from "@/lib/delivery-time";
+import { compressImageTo1MB } from "@/lib/imageCompression";
 
 type TabType = 'dashboard' | 'orders' | 'addresses' | 'wallet' | 'reviews' | 'account-details' | 'logout';
 
@@ -522,7 +523,7 @@ export default function AccountPage() {
     setReviewImagePreviews([]);
   };
 
-  const handleReviewImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleReviewImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
@@ -547,27 +548,49 @@ export default function AccountPage() {
         });
         return false;
       }
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({
-          title: "File too large",
-          description: `${file.name} exceeds 5MB limit.`,
-          variant: "destructive",
-        });
-        return false;
-      }
       return true;
     });
 
-    setReviewUploadedImages(prev => [...prev, ...validFiles]);
+    // Compress images before storing
+    const compressedFiles: File[] = [];
+    const previewPromises: Promise<string>[] = [];
 
-    // Create previews
-    validFiles.forEach(file => {
+    for (const file of validFiles) {
+      try {
+        const compressedFile = await compressImageTo1MB(file);
+        compressedFiles.push(compressedFile);
+
+        // Create preview from compressed file
+        const previewPromise = new Promise<string>((resolve) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setReviewImagePreviews(prev => [...prev, reader.result as string]);
-      };
-      reader.readAsDataURL(file);
-    });
+            if (reader.result) {
+              resolve(reader.result as string);
+            } else {
+              resolve('');
+            }
+          };
+          reader.readAsDataURL(compressedFile);
+        });
+        
+        previewPromises.push(previewPromise);
+      } catch (error: any) {
+        console.error('Error compressing image:', error);
+        toast({
+          title: "Compression error",
+          description: `Failed to compress ${file.name}. Please try again.`,
+          variant: "destructive",
+        });
+      }
+    }
+
+    // Wait for all previews to be created
+    const previews = await Promise.all(previewPromises);
+    const validPreviews = previews.filter(p => p.length > 0);
+
+    // Add compressed files and previews to state
+    setReviewUploadedImages(prev => [...prev, ...compressedFiles]);
+    setReviewImagePreviews(prev => [...prev, ...validPreviews]);
   };
 
   const removeReviewImage = (index: number) => {
@@ -2246,7 +2269,7 @@ export default function AccountPage() {
                 Photos (Optional)
               </Label>
               <p className="text-sm text-muted-foreground mb-3">
-                Upload up to 5 images. Max 5MB per image.
+                Upload up to 5 images.
               </p>
               
               {/* Image Previews */}
@@ -2282,7 +2305,7 @@ export default function AccountPage() {
                       <span className="font-semibold">Click to upload</span> or drag and drop
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      PNG, JPG, GIF up to 5MB
+                      PNG, JPG, GIF
                     </p>
                   </div>
                   <input

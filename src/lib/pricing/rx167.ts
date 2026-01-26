@@ -1,10 +1,13 @@
 // Rx Lens Pricing Module for Mono RX 1.67 Lenses
 // Based on BOD Lenses Price List 2025 CSV (auto-generated)
 
-// Import pricing data from CSV (auto-generated)
-import { LENS_PRICE_SINGLE, TINT_FEES_PAIR, EDGING_FEES } from '../data/lensPricingData';
-// Import validation to ensure CSV is always the source of truth
-import { validatePricingOnLoad, getValidatedPrice, getValidatedTintFee, getValidatedEdgingFee } from './validatePricing';
+// Import pricing functions from database (sync version)
+import { 
+  getLensPriceFromDBSync, 
+  getTintFeeFromDBSync,
+  getEdgingFeeFromDBSync,
+  getFixedProfitFromDBSync 
+} from './syncDbPricing';
 
 export type Coating = "UC" | "BLUE_PRO";
 export type LensCategory = "CLEAR_OR_TINT" | "PHOTOCHROMIC_SOLIS" | "POLARIZED_NUPOLAR";
@@ -72,56 +75,65 @@ export type PolarizedColor = (typeof POLARIZED_COLORS)[number];
 // Auto-generated from data/pricing/bod-lenses-price-list-2025.csv
 // Run: npm run generate-pricing to regenerate after CSV changes
 
-// Validate pricing data on module load - ensures CSV is always the source of truth
-validatePricingOnLoad();
+// Pricing is now loaded from database - no validation needed on module load
 
 /**
- * Get lens price for 1.67 index (validated from CSV)
- * 
- * This function ensures prices come from CSV and throws errors if missing.
- * No hardcoded fallbacks - CSV is the only source of truth.
+ * Get lens price for 1.67 index (from database)
  */
 function getLensPrice167(lensType: "CLEAR" | "PHOTOCHROMIC_SOLIS" | "POLARIZED_NUPOLAR", coating: "UC" | "BLUE_PRO"): number {
-  return getValidatedPrice(lensType, "1.67", coating);
+  return getLensPriceFromDBSync(lensType, "1.67", coating);
 }
 
+// PRICES object - values are loaded from database on first access
+// Using getters to ensure fresh data from database
 export const PRICES = {
   // Per 1 lens prices (1.67 index only for this module)
-  // All prices are validated from CSV - no hardcoded fallbacks
-  lenses: {
-    CLEAR_OR_TINT: {
-      UC: getLensPrice167("CLEAR", "UC"),
-      BLUE_PRO: getLensPrice167("CLEAR", "BLUE_PRO"),
-    },
-    PHOTOCHROMIC_SOLIS: {
-      UC: getLensPrice167("PHOTOCHROMIC_SOLIS", "UC"),
-      BLUE_PRO: getLensPrice167("PHOTOCHROMIC_SOLIS", "BLUE_PRO"),
-    },
-    POLARIZED_NUPOLAR: {
-      UC: getLensPrice167("POLARIZED_NUPOLAR", "UC"),
-      BLUE_PRO: getLensPrice167("POLARIZED_NUPOLAR", "BLUE_PRO"),
-    },
+  // All prices are loaded from database
+  get lenses() {
+    return {
+      CLEAR_OR_TINT: {
+        UC: getLensPrice167("CLEAR", "UC"),
+        BLUE_PRO: getLensPrice167("CLEAR", "BLUE_PRO"),
+      },
+      PHOTOCHROMIC_SOLIS: {
+        UC: getLensPrice167("PHOTOCHROMIC_SOLIS", "UC"),
+        BLUE_PRO: getLensPrice167("PHOTOCHROMIC_SOLIS", "BLUE_PRO"),
+      },
+      POLARIZED_NUPOLAR: {
+        UC: getLensPrice167("POLARIZED_NUPOLAR", "UC"),
+        BLUE_PRO: getLensPrice167("POLARIZED_NUPOLAR", "BLUE_PRO"),
+      },
+    };
   },
   // Per PAIR tinting service (not per lens)
-  // All fees are validated from CSV - no hardcoded fallbacks
-  tinting: {
-    NONE: 0,
-    FULL_CATALOG: getValidatedTintFee('FULL_TINT_CATALOG'),
-    GRADIENT: getValidatedTintFee('GRADIENT'),
+  // All fees are loaded from database
+  get tinting() {
+    return {
+      NONE: 0,
+      FULL_CATALOG: getTintFeeFromDBSync('FULL_TINT_CATALOG'),
+      GRADIENT: getTintFeeFromDBSync('GRADIENT'),
+    };
   },
   // Per order edging/mounting fee
-  // All fees are validated from CSV - no hardcoded fallbacks
-  edging: {
-    FULL_FRAME: getValidatedEdgingFee('FULL_FRAME'),
-    NYLON_FRAME: getValidatedEdgingFee('NYLON_FRAME'),
-    RIMLESS_PRESSING: getValidatedEdgingFee('RIMLESS_PRESSING'),
-    RIMLESS_INDIVIDUAL: getValidatedEdgingFee('RIMLESS_INDIVIDUAL'),
-    LINDBERG_COMPLEX: getValidatedEdgingFee('LINDBERG_COMPLEX'),
+  // All fees are loaded from database
+  get edging() {
+    return {
+      FULL_FRAME: getEdgingFeeFromDBSync('FULL_FRAME'),
+      NYLON_FRAME: getEdgingFeeFromDBSync('NYLON_FRAME'),
+      RIMLESS_PRESSING: getEdgingFeeFromDBSync('RIMLESS_PRESSING'),
+      RIMLESS_INDIVIDUAL: getEdgingFeeFromDBSync('RIMLESS_INDIVIDUAL'),
+      LINDBERG_COMPLEX: getEdgingFeeFromDBSync('LINDBERG_COMPLEX'),
+    };
   },
-} as const;
+};
 
-// Fixed profit margin (EUR)
-export const FIXED_PROFIT = 15.00;
+// Fixed profit margin (EUR) - loaded from database
+export function getFIXED_PROFIT(): number {
+  return getFixedProfitFromDBSync();
+}
+
+// For backward compatibility, export as constant (will use default if DB not loaded)
+export const FIXED_PROFIT = getFixedProfitFromDBSync();
 
 function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
@@ -195,8 +207,9 @@ export function calculateRxTotal(input: RxPriceInput): RxPriceResult {
     rxRetailNet = rxAddOnNet / (1 - margin);
     profit = rxRetailNet - rxAddOnNet;
   } else {
-    // Use fixed profit (default: 15 EUR)
-    profit = fixedProfit;
+    // Use fixed profit from database (or provided value)
+    const profitValue = fixedProfit ?? getFixedProfitFromDBSync();
+    profit = profitValue;
     rxRetailNet = rxAddOnNet + profit;
   }
 

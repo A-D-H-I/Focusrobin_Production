@@ -4,3 +4,6 @@ export default function PrescriptionLensImagesPage() {
   return <PrescriptionLensImageManagement />;
 }
 
+
+
+

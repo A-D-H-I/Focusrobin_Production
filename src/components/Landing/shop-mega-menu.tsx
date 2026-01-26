@@ -300,7 +300,7 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
                         </>
                       )}
                     </div>
-                    <span className="text-[10px] sm:text-xs text-black text-center leading-tight">{shapeData.shape}</span>
+                    <span className="text-[10px] sm:text-xs text-black text-center leading-tight"><TranslatableText text={shapeData.shape} /></span>
                   </Link>
                 );
               })}

@@ -330,7 +330,7 @@ model Address {
 model UserPrescription {
   id                String   @id @default(cuid())
   userId            String   @unique // One prescription per user (shared across all products)
-  productSlug       String? // Optional: last product this prescription was saved from (for reference)
+  // NOTE: productSlug is NOT stored - prescription is shared across all products
   // Prescription data (OD - Right Eye)
   odSph             String // Sphere
   odCyl             String // Cylinder
@@ -357,29 +357,13 @@ model UserPrescription {
   osPrismVerticalBase String?
   // Prescription image
   prescriptionImageUrl String? // S3 URL for uploaded prescription image
-  // Lens configuration (last used - may vary per product, but stored here for reference)
-  lensType          String // CLEAR, TINTED, PHOTOCHROMIC_SOLIS, POLARIZED_NUPOLAR
-  lensIndex         String // 1.56, 1.60, 1.67
-  coating           String // UC, BLUE_PRO, SERICUM_UV
-  tintType          String? // FULL_TINT_CATALOG, GRADIENT (only for TINTED)
-  tintColor         String? // Brown, Grey, Green (only for TINTED)
-  tintShadePercent  Int? // 15, 30, 50, 70, 85 (only for FULL_TINT_CATALOG)
-  tintRecipe        String? // 30->0, 50->0, 90->15 (only for GRADIENT)
-  photochromicColor String? // Brown, Grey (only for PHOTOCHROMIC_SOLIS)
-  polarizedColor    String? // Brown, Grey, Green (only for POLARIZED_NUPOLAR)
-  frameType         String // FULL_FRAME, NYLON_FRAME, RIMLESS_PRESSING, etc.
-  // Price breakdown (snapshot at time of save)
-  lensesPair        Decimal? @db.Decimal(10, 2)
-  edgingFee         Decimal? @db.Decimal(10, 2)
-  profit            Decimal? @db.Decimal(10, 2)
-  rxRetailNet       Decimal? @db.Decimal(10, 2)
-  totalNet          Decimal? @db.Decimal(10, 2)
+  // NOTE: Lens configuration and price breakdown are NOT stored here - they are product-specific
+  // and stored in localStorage/sessionStorage per product, not in the database
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   User              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([productSlug])
 }
 
 // Deleted User Archive Model - Stores complete user data before deletion
@@ -813,4 +797,48 @@ model PrescriptionLensImage {
   @@index([lensType])
   @@index([lensType, isOutdoor])
   @@index([lensType, coating, isOutdoor])
+}
+
+// Prescription Pricing Models - Store all lens combinations and pricing
+model PrescriptionLensPrice {
+  id        String   @id @default(cuid())
+  lensType  String   // CLEAR, TINTED, PHOTOCHROMIC_SOLIS, POLARIZED_NUPOLAR
+  lensIndex String   // 1.56, 1.60, 1.67
+  coating   String   // UC, BLUE_PRO, SERICUM_UV
+  price     Decimal  @db.Decimal(10, 2) // Price per SINGLE lens (EUR)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([lensType, lensIndex, coating])
+  @@index([lensType])
+  @@index([lensType, lensIndex])
+}
+
+model PrescriptionTintFee {
+  id        String   @id @default(cuid())
+  tintType  String   @unique // FULL_TINT_CATALOG, GRADIENT
+  price     Decimal  @db.Decimal(10, 2) // Price per PAIR (EUR)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PrescriptionEdgingFee {
+  id        String   @id @default(cuid())
+  frameType String   @unique // FULL_FRAME, NYLON_FRAME, RIMLESS_PRESSING, RIMLESS_INDIVIDUAL, LINDBERG_COMPLEX
+  price     Decimal  @db.Decimal(10, 2) // Price per order (EUR)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PrescriptionProfit {
+  id        String   @id @default(cuid())
+  profit    Decimal  @db.Decimal(10, 2) // Fixed profit amount (EUR) - default: 15.00
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([isActive])
 }

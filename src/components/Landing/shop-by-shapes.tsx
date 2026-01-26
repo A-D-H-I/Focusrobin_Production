@@ -19,17 +19,20 @@ interface ShopByShapesProps {
   shapes: ShapeProduct[];
 }
 
-// Shape descriptions mapping
-const shapeDescriptions: Record<string, string> = {
-  "Cat Eye": "Bold & vintage-inspired",
-  "Cateye": "Bold & vintage-inspired",
-  "Aviator": "Classic & timeless",
-  "Wayfarer": "Iconic & versatile",
-  "Round": "Retro & sophisticated",
-  "Rectangle": "Modern & sleek",
-  "Square": "Bold & contemporary",
-  "Oval": "Elegant & refined",
-  "Clubmaster": "Sophisticated & stylish",
+// Shape descriptions mapping - these will be translated
+const getShapeDescription = (shape: string): string => {
+  const descriptions: Record<string, string> = {
+    "Cat Eye": "Bold & vintage-inspired",
+    "Cateye": "Bold & vintage-inspired",
+    "Aviator": "Classic & timeless",
+    "Wayfarer": "Iconic & versatile",
+    "Round": "Retro & sophisticated",
+    "Rectangle": "Modern & sleek",
+    "Square": "Bold & contemporary",
+    "Oval": "Elegant & refined",
+    "Clubmaster": "Sophisticated & stylish",
+  };
+  return descriptions[shape] || "Stylish & unique";
 };
 
 // Mark popular shapes
@@ -102,7 +105,7 @@ export default function ShopByShapes({ shapes }: ShopByShapesProps) {
           >
             {uniqueShapes.map((shapeItem, index) => {
               const isPopular = popularShapes.includes(shapeItem.shape);
-              const description = shapeDescriptions[shapeItem.shape] || "Stylish & unique";
+              const description = getShapeDescription(shapeItem.shape);
 
               return (
                 <motion.div
@@ -163,7 +166,7 @@ export default function ShopByShapes({ shapes }: ShopByShapesProps) {
                               className="absolute inset-0 flex items-center justify-center"
                             >
                               <button className="bg-white text-slate-900 px-6 py-3 rounded-full flex items-center gap-2 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 font-semibold">
-                                <span>Explore {shapeItem.shape}</span>
+                                <span><TranslatableText text="Explore" /> {shapeItem.shape}</span>
                                 <ArrowRight className="w-4 h-4" />
                               </button>
                             </motion.div>
@@ -181,9 +184,11 @@ export default function ShopByShapes({ shapes }: ShopByShapesProps) {
                     {/* Content */}
                     <div className="p-5">
                       <h3 className="text-brand-h3 font-headline mb-1 text-slate-900">
-                        {shapeItem.shape}
+                        <TranslatableText text={shapeItem.shape} />
                       </h3>
-                      <p className="text-sm text-slate-600">{description}</p>
+                      <p className="text-sm text-slate-600">
+                        <TranslatableText text={description} />
+                      </p>
 
                       {/* Bottom Border Animation */}
                       <motion.div

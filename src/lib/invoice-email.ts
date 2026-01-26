@@ -4,6 +4,9 @@ import { Resend } from "resend";
 import { InvoiceData } from "./invoice";
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { generatePrescriptionPDF, PrescriptionPDFData } from './prescription-pdf';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import sharp from 'sharp';
 
 // Initialize Resend client
 let resend: Resend | null = null;
@@ -29,125 +32,90 @@ function getRecipientEmail(customerEmail: string): string {
 }
 
 /**
- * Generate combined PDF with Payment Receipt + Invoice
- * This is the same PDF that admins can download from the admin panel
+ * Generate invoice PDF matching the new template design
+ * Single page invoice with dark blue/yellow theme, no discounts shown
  */
 async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
-  // Create a new PDF document
   const pdfDoc = await PDFDocument.create();
-  
-  // Embed fonts
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   
-  // Colors
-  const brandColor = rgb(0.16, 0.62, 0.60); // #2A9D9A
-  const greenColor = rgb(0.30, 0.69, 0.31); // #4CAF50
-  const grayColor = rgb(0.4, 0.4, 0.4);
+  // Colors matching the template
+  const darkBlue = rgb(0.1, 0.2, 0.4); // Dark blue for header
+  const yellow = rgb(1.0, 0.84, 0.0); // Yellow for table header and total bar
   const blackColor = rgb(0, 0, 0);
-  const orangeBackground = rgb(1.0, 0.647, 0.0); // Vibrant orange #FFA500
   const whiteColor = rgb(1.0, 1.0, 1.0);
+  const lightGray = rgb(0.9, 0.9, 0.9); // For alternating rows
+  const grayColor = rgb(0.5, 0.5, 0.5);
   
-  // ==================== PAGE 1: Payment Receipt ====================
-  const page1 = pdfDoc.addPage([595.28, 841.89]); // A4 size
-  const { width, height } = page1.getSize();
+  // Create single page
+  const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+  const { width, height } = page.getSize();
   
-  // Header - Logo
-  page1.drawText('FocusRobin', {
-    x: 50,
+  // Logo area - load and embed actual FocusRobin logo (no background)
+  const logoX = 30;
+  const logoY = height - 50;
+  
+  try {
+    // Load the SVG logo and convert to PNG (keep original colors)
+    const logoPath = join(process.cwd(), 'public', 'logo', 'Horizontal Primary dark (Color).svg');
+    const svgBuffer = readFileSync(logoPath);
+    
+    // Convert SVG to PNG (keep original colors, no greyscale or tint)
+    const pngBuffer = await sharp(svgBuffer)
+      .resize(280, null, { fit: 'contain' }) // Larger size for bigger logo
+      .png()
+      .toBuffer();
+    
+    // Embed the logo image in the PDF
+    const logoImage = await pdfDoc.embedPng(pngBuffer);
+    const logoDims = logoImage.scale(0.75); // Larger scale for bigger logo
+    
+    // Draw the logo (original colors, no background)
+    page.drawImage(logoImage, {
+      x: logoX,
+      y: logoY - 20,
+      width: logoDims.width,
+      height: logoDims.height,
+    });
+  } catch (error) {
+    console.warn('[Invoice Email] Could not load logo, using text fallback:', error);
+    // Fallback to text if logo loading fails
+    page.drawText('FOCUSROBIN', {
+      x: logoX + 10,
+      y: logoY - 5,
+      size: 18,
+      font: helveticaBold,
+      color: blackColor,
+    });
+  }
+  
+  // INVOICE text on top right
+  page.drawText('INVOICE', {
+    x: 400,
     y: height - 50,
-    size: 24,
+    size: 36,
     font: helveticaBold,
-    color: brandColor,
-  });
-  
-  page1.drawText('Payment Receipt', {
-    x: 50,
-    y: height - 70,
-    size: 10,
-    font: helvetica,
-    color: grayColor,
-  });
-  
-  // Order details (right side)
-  page1.drawText(`Order Number: ${invoiceData.orderNumber}`, {
-    x: 400,
-    y: height - 50,
-    size: 12,
-    font: helvetica,
     color: blackColor,
   });
   
-  const dateStr = invoiceData.orderDate.toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
-  page1.drawText(`Date: ${dateStr}`, {
-    x: 400,
-    y: height - 70,
-    size: 12,
-    font: helvetica,
-    color: blackColor,
-  });
-  
-  // Success message
+  // Invoice Details Section (left side)
   let yPos = height - 150;
-  page1.drawText('Payment Successful!', {
-    x: 50,
-    y: yPos,
-    size: 18,
-    font: helveticaBold,
-    color: greenColor,
+  const invoiceDateStr = invoiceData.orderDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
   });
   
-  yPos -= 40;
-  page1.drawText(`Dear ${invoiceData.customerName || 'Customer'},`, {
+  page.drawText('INVOICE #', {
     x: 50,
-    y: yPos,
-    size: 12,
-    font: helvetica,
-    color: blackColor,
-  });
-  
-  yPos -= 25;
-  page1.drawText('Thank you for your purchase! Your payment has been successfully processed.', {
-    x: 50,
-    y: yPos,
-    size: 12,
-    font: helvetica,
-    color: blackColor,
-  });
-  
-  // Payment Summary
-  yPos -= 50;
-  page1.drawText('Payment Summary', {
-    x: 50,
-    y: yPos,
-    size: 14,
-    font: helveticaBold,
-    color: brandColor,
-  });
-  
-  yPos -= 30;
-  page1.drawText('Total Amount Paid:', {
-    x: 50,
-    y: yPos,
-    size: 11,
-    font: helvetica,
-    color: blackColor,
-  });
-  page1.drawText(`${invoiceData.currency} ${invoiceData.total.toFixed(2)}`, {
-    x: 400,
     y: yPos,
     size: 11,
     font: helveticaBold,
     color: blackColor,
   });
-  
-  yPos -= 25;
-  page1.drawText('Payment Method: Stripe', {
-    x: 50,
+  page.drawText(invoiceData.orderNumber, {
+    x: 150,
     y: yPos,
     size: 11,
     font: helvetica,
@@ -155,421 +123,266 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
   });
   
   yPos -= 20;
-  page1.drawText('Payment Status: Completed', {
+  page.drawText('INVOICE DATE :', {
     x: 50,
     y: yPos,
     size: 11,
     font: helvetica,
-    color: greenColor,
+    color: blackColor,
+  });
+  page.drawText(invoiceDateStr, {
+    x: 180,
+    y: yPos,
+    size: 11,
+    font: helvetica,
+    color: blackColor,
   });
   
-  // Shipping Address
-  yPos -= 50;
-  page1.drawText('Shipping Address', {
-    x: 50,
-    y: yPos,
-    size: 14,
+  // BILL TO section (right side)
+  let billToY = height - 150;
+  page.drawText('BILL TO', {
+    x: 400,
+    y: billToY,
+    size: 12,
     font: helveticaBold,
-    color: brandColor,
-  });
-  
-  yPos -= 25;
-  page1.drawText(invoiceData.shippingAddress.name, {
-    x: 50,
-    y: yPos,
-    size: 11,
-    font: helvetica,
     color: blackColor,
   });
   
-  yPos -= 15;
-  page1.drawText(invoiceData.shippingAddress.addressLine1, {
-    x: 50,
-    y: yPos,
-    size: 11,
-    font: helvetica,
-    color: blackColor,
-  });
+  billToY -= 20;
+  const billingAddress = [
+    invoiceData.customerName,
+    invoiceData.shippingAddress.addressLine1,
+    invoiceData.shippingAddress.addressLine2,
+    `${invoiceData.shippingAddress.city}, ${invoiceData.shippingAddress.postalCode}`,
+    invoiceData.shippingAddress.state,
+    invoiceData.shippingAddress.country,
+  ].filter(Boolean);
   
-  if (invoiceData.shippingAddress.addressLine2) {
-    yPos -= 15;
-    page1.drawText(invoiceData.shippingAddress.addressLine2, {
-      x: 50,
-      y: yPos,
-      size: 11,
-      font: helvetica,
-      color: blackColor,
-    });
-  }
-  
-  yPos -= 15;
-  page1.drawText(`${invoiceData.shippingAddress.city}, ${invoiceData.shippingAddress.postalCode}`, {
-    x: 50,
-    y: yPos,
-    size: 11,
-    font: helvetica,
-    color: blackColor,
-  });
-  
-  if (invoiceData.shippingAddress.state) {
-    yPos -= 15;
-    page1.drawText(invoiceData.shippingAddress.state, {
-      x: 50,
-      y: yPos,
-      size: 11,
-      font: helvetica,
-      color: blackColor,
-    });
-  }
-  
-  yPos -= 15;
-  page1.drawText(invoiceData.shippingAddress.country, {
-    x: 50,
-    y: yPos,
-    size: 11,
-    font: helvetica,
-    color: blackColor,
-  });
-  
-  // Footer
-  page1.drawText('This is a payment receipt document.', {
-    x: 50,
-    y: 50,
-    size: 8,
-    font: helvetica,
-    color: grayColor,
-  });
-  page1.drawText('Thank you for your purchase!', {
-    x: 50,
-    y: 38,
-    size: 8,
-    font: helvetica,
-    color: grayColor,
-  });
-  
-  // ==================== PAGE 2: Invoice ====================
-  const page2 = pdfDoc.addPage([595.28, 841.89]); // A4 size
-  
-  // Fill entire page with orange background
-  page2.drawRectangle({
-    x: 0,
-    y: 0,
-    width: width,
-    height: height,
-    color: orangeBackground,
-  });
-  
-  // Header Section - Company Name and Contact Info
-  let yPos2 = height - 50;
-  
-  // Company Name (large, white, bold)
-  page2.drawText(invoiceData.companyName || 'FocusRobin', {
-    x: 50,
-    y: yPos2,
-    size: 32,
-    font: helveticaBold,
-    color: whiteColor,
-  });
-  
-  // Contact Information (right side, top)
-  const contactInfo = [
-    invoiceData.companyPhone || '+123-456-7890',
-    invoiceData.companyEmail || 'hello@focusrobin.com',
-    invoiceData.companyAddress || '123 Anywhere St., Any City',
-  ];
-  
-  let contactY = height - 50;
-  contactInfo.forEach((info) => {
-    page2.drawText(info, {
+  billingAddress.forEach((line) => {
+    page.drawText(line, {
       x: 400,
-      y: contactY,
+      y: billToY,
       size: 10,
       font: helvetica,
-      color: whiteColor,
+      color: blackColor,
     });
-    contactY -= 15;
+    billToY -= 15;
   });
   
-  // Invoice Title
-  yPos2 -= 50;
-  page2.drawText('Invoice', {
+  // Table Header: Yellow bar
+  yPos = height - 320;
+  const tableHeaderY = yPos;
+  const tableHeaderHeight = 30;
+  
+  page.drawRectangle({
     x: 50,
-    y: yPos2,
-    size: 28,
-    font: helveticaBold,
-    color: whiteColor,
+    y: tableHeaderY - tableHeaderHeight,
+    width: width - 100,
+    height: tableHeaderHeight,
+    color: yellow,
   });
   
-  // Invoice Details (left side)
-  yPos2 -= 40;
-  page2.drawText(`Invoice Number: [${invoiceData.orderNumber}]`, {
-    x: 50,
-    y: yPos2,
-    size: 12,
-    font: helvetica,
-    color: whiteColor,
-  });
-  
-  yPos2 -= 20;
-  page2.drawText(`Billed To: ${invoiceData.customerName}`, {
-    x: 50,
-    y: yPos2,
-    size: 12,
-    font: helvetica,
-    color: whiteColor,
-  });
-  
-  // Date and Due Date (right side)
-  const dueDateStr = invoiceData.dueDate?.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }) || '';
-  
-  let dateY = height - 130;
-  page2.drawText(`Date: [${dateStr}]`, {
-    x: 400,
-    y: dateY,
-    size: 12,
-    font: helvetica,
-    color: whiteColor,
-  });
-  
-  dateY -= 20;
-  page2.drawText(`Due Date: [${dueDateStr}]`, {
-    x: 400,
-    y: dateY,
-    size: 12,
-    font: helvetica,
-    color: whiteColor,
-  });
-  
-  // Draw horizontal line separator
-  yPos2 = height - 220;
-  page2.drawLine({
-    start: { x: 50, y: yPos2 },
-    end: { x: 545, y: yPos2 },
-    thickness: 1,
-    color: whiteColor,
-  });
-  
-  // Items Section
-  yPos2 -= 30;
-  
-  // Items Table Header
-  page2.drawText('Item', {
-    x: 50,
-    y: yPos2,
+  // Table column headers
+  const headerTextY = tableHeaderY - 20;
+  page.drawText('NO', {
+    x: 60,
+    y: headerTextY,
     size: 11,
     font: helveticaBold,
-    color: whiteColor,
+    color: blackColor,
   });
-  page2.drawText('Quantity', {
-    x: 250,
-    y: yPos2,
+  page.drawText('DESCRIPTION', {
+    x: 120,
+    y: headerTextY,
     size: 11,
     font: helveticaBold,
-    color: whiteColor,
+    color: blackColor,
   });
-  page2.drawText('Unit Price', {
+  page.drawText('PRICE', {
     x: 350,
-    y: yPos2,
+    y: headerTextY,
     size: 11,
     font: helveticaBold,
-    color: whiteColor,
+    color: blackColor,
   });
-  page2.drawText('Total Price', {
-    x: 450,
-    y: yPos2,
+  page.drawText('QTY', {
+    x: 420,
+    y: headerTextY,
     size: 11,
     font: helveticaBold,
-    color: whiteColor,
+    color: blackColor,
+  });
+  page.drawText('TOTAL', {
+    x: 480,
+    y: headerTextY,
+    size: 11,
+    font: helveticaBold,
+    color: blackColor,
   });
   
-  // Items List
-  yPos2 -= 25;
-  invoiceData.items.forEach((item) => {
-    // Truncate long names if needed
-    const itemName = item.name.length > 40 ? item.name.substring(0, 40) + '...' : item.name;
+  // Items rows with alternating colors
+  yPos = tableHeaderY - tableHeaderHeight - 25;
+  invoiceData.items.forEach((item, index) => {
+    const isEven = index % 2 === 0;
+    const rowColor = isEven ? lightGray : whiteColor;
+    const rowHeight = 25;
     
-    page2.drawText(itemName, {
+    // Draw row background
+    page.drawRectangle({
       x: 50,
-      y: yPos2,
-      size: 10,
-      font: helvetica,
-      color: whiteColor,
+      y: yPos - rowHeight,
+      width: width - 100,
+      height: rowHeight,
+      color: rowColor,
     });
     
-    // Show discount info if applicable
-    if (item.originalPrice && item.discountPct) {
-      page2.drawText(`(${item.discountPct}% off)`, {
-        x: 50,
-        y: yPos2 - 12,
-        size: 8,
-        font: helvetica,
-        color: whiteColor,
-      });
-    }
-    
-    page2.drawText(item.quantity.toString(), {
-      x: 250,
-      y: yPos2,
+    // Item number
+    page.drawText((index + 1).toString(), {
+      x: 60,
+      y: yPos - 18,
       size: 10,
       font: helvetica,
-      color: whiteColor,
+      color: blackColor,
     });
     
-    // Show original price with strikethrough if discounted
-    if (item.originalPrice && item.discountPct) {
-      page2.drawText(`${invoiceData.currency} ${item.originalPrice.toFixed(2)}`, {
-        x: 350,
-        y: yPos2 + 10,
-        size: 8,
-        font: helvetica,
-        color: rgb(0.8, 0.8, 0.8),
-      });
-      // Draw line through original price
-      page2.drawLine({
-        start: { x: 350, y: yPos2 + 12 },
-        end: { x: 410, y: yPos2 + 12 },
-        thickness: 0.5,
-        color: rgb(0.8, 0.8, 0.8),
-      });
-    }
+    // Description with color and SKU (truncate if too long)
+    const colorText = item.variant ? ` - ${item.variant}` : '';
+    const skuText = item.sku ? ` (${item.sku})` : '';
+    const fullDescription = `${item.name}${colorText}${skuText}`;
+    const description = fullDescription.length > 40 ? fullDescription.substring(0, 40) + '...' : fullDescription;
+    page.drawText(description, {
+      x: 120,
+      y: yPos - 18,
+      size: 10,
+      font: helvetica,
+      color: blackColor,
+    });
     
-    page2.drawText(`${invoiceData.currency} ${item.price.toFixed(2)}`, {
+    // Price
+    page.drawText(`${invoiceData.currency} ${item.price.toFixed(2)}`, {
       x: 350,
-      y: yPos2,
+      y: yPos - 18,
       size: 10,
       font: helvetica,
-      color: whiteColor,
+      color: blackColor,
     });
-    page2.drawText(`${invoiceData.currency} ${item.total.toFixed(2)}`, {
-      x: 450,
-      y: yPos2,
+    
+    // Quantity
+    page.drawText(item.quantity.toString(), {
+      x: 420,
+      y: yPos - 18,
       size: 10,
       font: helvetica,
-      color: whiteColor,
+      color: blackColor,
     });
-    yPos2 -= item.originalPrice ? 30 : 20;
+    
+    // Total
+    page.drawText(`${invoiceData.currency} ${item.total.toFixed(2)}`, {
+      x: 480,
+      y: yPos - 18,
+      size: 10,
+      font: helvetica,
+      color: blackColor,
+    });
+    
+    yPos -= rowHeight;
   });
   
-  // Summary Section
-  yPos2 -= 20;
-  // Draw horizontal line separator
-  page2.drawLine({
-    start: { x: 50, y: yPos2 + 10 },
-    end: { x: 545, y: yPos2 + 10 },
-    thickness: 1,
-    color: whiteColor,
-  });
+  // Totals Section
+  yPos -= 30;
   
-  yPos2 -= 20;
+  // Calculate original subtotal (before discounts)
+  const originalSubtotal = invoiceData.subtotal + invoiceData.shipping;
+  const totalDiscount = invoiceData.discount + invoiceData.walletAmount;
+  const finalTotal = invoiceData.total;
   
-  // Subtotal
-  page2.drawText('SUBTOTAL:', {
-    x: 370,
-    y: yPos2,
-    size: 11,
-    font: helveticaBold,
-    color: whiteColor,
-  });
-  page2.drawText(`${invoiceData.currency} ${(invoiceData.subtotal + invoiceData.shipping).toFixed(2)}`, {
-    x: 470,
-    y: yPos2,
+  // SUB-TOTAL - Always show the original subtotal
+  page.drawText('SUB-TOTAL', {
+    x: 400,
+    y: yPos,
     size: 11,
     font: helvetica,
-    color: whiteColor,
+    color: blackColor,
   });
-  
-  // Discount
-  yPos2 -= 20;
-  page2.drawText('DISCOUNT:', {
-    x: 370,
-    y: yPos2,
-    size: 11,
-    font: helveticaBold,
-    color: whiteColor,
-  });
-  page2.drawText(`${invoiceData.currency} ${(invoiceData.discount || 0).toFixed(2)}`, {
-    x: 470,
-    y: yPos2,
+  page.drawText(`${invoiceData.currency} ${originalSubtotal.toFixed(2)}`, {
+    x: 480,
+    y: yPos,
     size: 11,
     font: helvetica,
-    color: whiteColor,
+    color: blackColor,
   });
   
-  // Wallet Amount
-  if (invoiceData.walletAmount && invoiceData.walletAmount > 0) {
-    yPos2 -= 20;
-    page2.drawText('WALLET AMOUNT:', {
-      x: 370,
-      y: yPos2,
-      size: 11,
-      font: helveticaBold,
-      color: whiteColor,
-    });
-    page2.drawText(`-${invoiceData.currency} ${invoiceData.walletAmount.toFixed(2)}`, {
-      x: 470,
-      y: yPos2,
+  // DISCOUNT - Show discount amount if there's any discount
+  if (totalDiscount > 0) {
+    yPos -= 25; // Add spacing between subtotal and discount
+    page.drawText('DISCOUNT', {
+      x: 400,
+      y: yPos,
       size: 11,
       font: helvetica,
-      color: whiteColor,
+      color: blackColor,
+    });
+    page.drawText(`-${invoiceData.currency} ${totalDiscount.toFixed(2)}`, {
+      x: 480,
+      y: yPos,
+      size: 11,
+      font: helvetica,
+      color: blackColor,
     });
   }
   
-  // Total
-  yPos2 -= 25;
-  page2.drawText('TOTAL:', {
-    x: 370,
-    y: yPos2,
-    size: 14,
-    font: helveticaBold,
-    color: whiteColor,
-  });
-  page2.drawText(`${invoiceData.currency} ${invoiceData.total.toFixed(2)}`, {
-    x: 470,
-    y: yPos2,
-    size: 14,
-    font: helveticaBold,
-    color: whiteColor,
-  });
-  
-  // Draw horizontal line separator
-  yPos2 -= 30;
-  page2.drawLine({
-    start: { x: 50, y: yPos2 + 10 },
-    end: { x: 545, y: yPos2 + 10 },
-    thickness: 1,
-    color: whiteColor,
-  });
-  
-  // Payment Section
-  yPos2 -= 30;
-  page2.drawText('Payment', {
-    x: 50,
-    y: yPos2,
-    size: 24,
-    font: helveticaBold,
-    color: whiteColor,
-  });
-  
-  yPos2 -= 30;
-  page2.drawText(`Payment Method: ${invoiceData.paymentMethod || 'Online Payment'}`, {
-    x: 50,
-    y: yPos2,
-    size: 12,
-    font: helvetica,
-    color: whiteColor,
-  });
-  
-  // Thank You Message (right side)
-  page2.drawText('THANK YOU!', {
+  // Total Due bar (yellow)
+  yPos -= 30;
+  const totalBarHeight = 35;
+  page.drawRectangle({
     x: 400,
-    y: yPos2,
-    size: 24,
+    y: yPos - totalBarHeight,
+    width: 145,
+    height: totalBarHeight,
+    color: yellow,
+  });
+  
+  page.drawText('Total', {
+    x: 410,
+    y: yPos - 22,
+    size: 12,
     font: helveticaBold,
-    color: whiteColor,
+    color: blackColor,
+  });
+  page.drawText(`${invoiceData.currency} ${finalTotal.toFixed(2)}`, {
+    x: 480,
+    y: yPos - 22,
+    size: 12,
+    font: helveticaBold,
+    color: blackColor,
+  });
+  
+  // Payment Method Section (left side, below items)
+  yPos = yPos - totalBarHeight - 40;
+  page.drawText('PAYMENT METHOD', {
+    x: 50,
+    y: yPos,
+    size: 11,
+    font: helveticaBold,
+    color: blackColor,
+  });
+  
+  yPos -= 20;
+  page.drawText(invoiceData.paymentMethod || 'Online Payment', {
+    x: 50,
+    y: yPos,
+    size: 10,
+    font: helvetica,
+    color: blackColor,
+  });
+  
+  // Footer: THANK YOU FOR YOUR PURCHASE
+  page.drawText('THANK YOU FOR YOUR PURCHASE', {
+    x: width / 2 - 120,
+    y: 50,
+    size: 14,
+    font: helveticaBold,
+    color: blackColor,
   });
   
   // Save the PDF

@@ -1,4 +1,7 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import sharp from 'sharp';
 
 /**
  * Helper function to check if prescription data contains actual prescription values
@@ -219,22 +222,51 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     color: headerBg,
   });
   
-  // Company logo/name
+  // Company logo - load and embed actual FocusRobin logo (same as invoice)
+  const logoX = 30;
+  const logoY = height - 50;
+  
+  try {
+    // Load the SVG logo and convert to PNG (keep original colors)
+    const logoPath = join(process.cwd(), 'public', 'logo', 'Horizontal Primary dark (Color).svg');
+    const svgBuffer = readFileSync(logoPath);
+    
+    // Convert SVG to PNG (keep original colors, no greyscale or tint)
+    const pngBuffer = await sharp(svgBuffer)
+      .resize(280, null, { fit: 'contain' }) // Same size as invoice
+      .png()
+      .toBuffer();
+    
+    // Embed the logo image in the PDF
+    const logoImage = await pdfDoc.embedPng(pngBuffer);
+    const logoDims = logoImage.scale(0.75); // Same scale as invoice
+    
+    // Draw the logo (original colors, no background)
+    page.drawImage(logoImage, {
+      x: logoX,
+      y: logoY - 20,
+      width: logoDims.width,
+      height: logoDims.height,
+    });
+  } catch (error) {
+    console.warn('[Prescription PDF] Could not load logo, using text fallback:', error);
+    // Fallback to text if logo loading fails
   page.drawText('FocusRobin', {
-    x: 50,
-    y: height - 45,
+      x: logoX + 10,
+      y: logoY - 5,
     size: 28,
     font: helveticaBold,
     color: primaryColor,
   });
   
   page.drawText('Prescription Eyewear', {
-    x: 50,
-    y: height - 65,
+      x: logoX + 10,
+      y: logoY - 25,
     size: 12,
     font: helvetica,
     color: grayColor,
   });
+  }
   
   // Document title (right side)
   page.drawText('PRESCRIPTION DETAILS', {
@@ -765,90 +797,8 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     });
   }
   
-  // === SHIPPING ADDRESS SECTION ===
-  if (data.shippingAddress) {
-    yPos -= 30;
-    
-    page.drawText('Shipping Address', {
-      x: 50,
-      y: yPos,
-      size: 12,
-      font: helveticaBold,
-      color: primaryColor,
-    });
-    
-    yPos -= 25;
-    
-    // Shipping address box
-    page.drawRectangle({
-      x: 50,
-      y: yPos - 80,
-      width: 495,
-      height: 80,
-      color: lightGrayBg,
-      borderColor: primaryColor,
-      borderWidth: 1,
-    });
-    
-    let addressY = yPos - 20;
-    
-    page.drawText(data.shippingAddress.name, {
-      x: 60,
-      y: addressY,
-      size: 11,
-      font: helveticaBold,
-      color: blackColor,
-    });
-    
-    addressY -= 18;
-    
-    page.drawText(data.shippingAddress.addressLine1, {
-      x: 60,
-      y: addressY,
-      size: 10,
-      font: helvetica,
-      color: blackColor,
-    });
-    
-    addressY -= 15;
-    
-    if (data.shippingAddress.addressLine2) {
-      page.drawText(data.shippingAddress.addressLine2, {
-        x: 60,
-        y: addressY,
-        size: 10,
-        font: helvetica,
-        color: blackColor,
-      });
-      addressY -= 15;
-    }
-    
-    const cityState = data.shippingAddress.state
-      ? `${data.shippingAddress.city}, ${data.shippingAddress.state} ${data.shippingAddress.postalCode}`
-      : `${data.shippingAddress.city} ${data.shippingAddress.postalCode}`;
-    
-    page.drawText(cityState, {
-      x: 60,
-      y: addressY,
-      size: 10,
-      font: helvetica,
-      color: blackColor,
-    });
-    
-    addressY -= 15;
-    
-    page.drawText(data.shippingAddress.country, {
-      x: 60,
-      y: addressY,
-      size: 10,
-      font: helvetica,
-      color: blackColor,
-    });
-    
-    yPos -= 100;
-  }
-  
   // === FOOTER ===
+  // Shipping address section removed - not needed in prescription PDF
   // Draw footer line
   page.drawLine({
     start: { x: 50, y: 80 },

@@ -183,10 +183,10 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
           <TranslatableText text="Unique Designs" />
         </h2>
         <p className="text-muted-foreground text-sm sm:text-base mb-2">
-          Discover our exclusive collection of distinctive and one-of-a-kind eyewear designs.
+          <TranslatableText text="Discover our exclusive collection of distinctive and one-of-a-kind eyewear designs." />
         </p>
         <p className="text-muted-foreground text-sm sm:text-base">
-          Minimalist sunglasses designed in Lithuania for everyday comfort.
+          <TranslatableText text="Minimalist sunglasses designed in Lithuania for everyday comfort." />
         </p>
       </div>
 
@@ -383,7 +383,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                       {product.cashback && parseEurPrice(product.cashback) > 0 && (
                         <div className="flex justify-center mb-3 sm:mb-4 relative z-40 px-2 sm:px-4">
                           <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
-                            🎁 {formatPrice(parseEurPrice(product.cashback))} cashback
+                            🎁 {formatPrice(parseEurPrice(product.cashback))} <TranslatableText text="cashback" />
                           </Badge>
                         </div>
                       )}

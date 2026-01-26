@@ -2,6 +2,7 @@
 
 import ProductCard from "@/components/shop/product-card";
 import type { Product } from "@/lib/productData";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface Products3DSectionProps {
   products: Product[];
@@ -13,17 +14,17 @@ export default function Products3DSection({ products }: Products3DSectionProps) 
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-brand-h2 font-headline text-foreground mb-6">
-            New Arrivals
+            <TranslatableText text="New Arrivals" />
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Discover our latest additions to the collection. Fresh styles just arrived.
+            <TranslatableText text="Discover our latest additions to the collection. Fresh styles just arrived." />
           </p>
         </div>
 
         {products.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg">
-              No new arrivals at the moment. Check back soon for new arrivals!
+              <TranslatableText text="No new arrivals at the moment. Check back soon for new arrivals!" />
             </p>
           </div>
         ) : (

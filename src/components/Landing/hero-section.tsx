@@ -198,7 +198,7 @@ export default function HeroSection({ heroData }: HeroSectionProps) {
           <div className="flex flex-row gap-3 sm:gap-4 justify-center items-center">
             <Link href={currentRoute || "/shop"}>
               <Button size="lg" className="rounded-full px-5 sm:px-8 py-4.5 sm:py-5.5 lg:px-6 lg:py-4 text-base sm:text-lg md:text-lg lg:text-sm xl:text-base bg-brand-teal hover:bg-brand-teal/90 text-white shadow-lg">
-                {sharedText?.ctaText || <TranslatableText text="Shop Now" />}
+                <TranslatableText text={sharedText?.ctaText || "Shop Now"} />
               </Button>
             </Link>
             <Link href="/try-on">

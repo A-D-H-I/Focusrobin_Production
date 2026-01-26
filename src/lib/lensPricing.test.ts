@@ -133,7 +133,7 @@ describe('lensPricing', () => {
         tintColor: 'Brown',
         tintRecipe: '50->0',
       };
-      expect(calculateLensPairTotal(selection)).toBe(74.14); // 62.14 + 12.00
+      expect(calculateLensPairTotal(selection)).toBe(70.14); // 62.14 + 8.00 (PDF price)
     });
 
     it('should calculate correctly for PHOTOCHROMIC_SOLIS 1.67 SERICUM_UV', () => {
@@ -232,20 +232,25 @@ describe('lensPricing', () => {
   });
 
   describe('getFromPricePair', () => {
-    it('should return correct from price for CLEAR 1.67', () => {
-      expect(getFromPricePair('CLEAR', '1.67')).toBe(50.14); // UC is cheapest
+    // Note: getFromPricePair adds €15 profit to the base price
+    it('should return correct from price for CLEAR 1.67 (with profit)', () => {
+      // UC base pair €50.14 + €15 profit = €65.14
+      expect(getFromPricePair('CLEAR', '1.67')).toBe(65.14);
     });
 
-    it('should return correct from price for TINTED 1.67', () => {
-      expect(getFromPricePair('TINTED', '1.67')).toBe(68.14); // SERICUM_UV (62.14) + Full Tint (6.00)
+    it('should return correct from price for TINTED 1.67 (with profit)', () => {
+      // SERICUM_UV base €62.14 + Full Tint €6.00 + €15 profit = €83.14
+      expect(getFromPricePair('TINTED', '1.67')).toBe(83.14);
     });
 
-    it('should return correct from price for PHOTOCHROMIC_SOLIS 1.67', () => {
-      expect(getFromPricePair('PHOTOCHROMIC_SOLIS', '1.67')).toBe(77.80); // SERICUM_UV
+    it('should return correct from price for PHOTOCHROMIC_SOLIS 1.67 (with profit)', () => {
+      // SERICUM_UV base €77.80 + €15 profit = €92.80
+      expect(getFromPricePair('PHOTOCHROMIC_SOLIS', '1.67')).toBe(92.80);
     });
 
-    it('should return correct from price for POLARIZED_NUPOLAR 1.67', () => {
-      expect(getFromPricePair('POLARIZED_NUPOLAR', '1.67')).toBe(129.24); // SERICUM_UV
+    it('should return correct from price for POLARIZED_NUPOLAR 1.67 (with profit)', () => {
+      // SERICUM_UV base €129.24 + €15 profit = €144.24
+      expect(getFromPricePair('POLARIZED_NUPOLAR', '1.67')).toBe(144.24);
     });
   });
 });

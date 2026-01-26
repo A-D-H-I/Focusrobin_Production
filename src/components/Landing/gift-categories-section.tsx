@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
 import { cn } from "@/lib/utils";
+import TranslatableText from "@/components/ui/TranslatableText";
 
 interface CategoryImageData {
   id: string;
@@ -23,6 +24,16 @@ const categoryLabels: Record<string, string> = {
   MEN: 'SHOP FOR MEN',
   WOMEN: 'SHOP FOR WOMEN',
   KIDS: 'SHOP FOR KIDS',
+};
+
+// Translation mapping for category labels
+const getCategoryLabel = (category: string): string => {
+  const labels: Record<string, string> = {
+    MEN: 'SHOP FOR MEN',
+    WOMEN: 'SHOP FOR WOMEN',
+    KIDS: 'SHOP FOR KIDS',
+  };
+  return labels[category] || `SHOP FOR ${category}`;
 };
 
 const categoryRoutes: Record<string, string> = {
@@ -290,7 +301,7 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
               </div>
               <div className="absolute bottom-8 left-0 right-0 text-center z-10">
                 <h3 className="text-brand-h3 font-headline text-white uppercase tracking-wider drop-shadow-lg">
-                  {categoryLabels[category] || `SHOP FOR ${category}`}
+                  <TranslatableText text={getCategoryLabel(category)} />
                 </h3>
               </div>
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 z-10" />

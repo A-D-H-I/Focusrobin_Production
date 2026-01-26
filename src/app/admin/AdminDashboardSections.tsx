@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Package, Plus, Image as ImageIcon, ShoppingBag, BarChart3, Users, Settings, Trash2, MessageCircle, Mail, ChevronDown, ChevronRight, Layout, Box, Star, Palette, Ticket, Shapes } from 'lucide-react';
+import { Package, Plus, Image as ImageIcon, ShoppingBag, BarChart3, Users, Settings, Trash2, MessageCircle, Mail, ChevronDown, ChevronRight, Layout, Box, Star, Palette, Ticket, Shapes, DollarSign } from 'lucide-react';
 import { useState } from 'react';
 
 export function AdminDashboardSections() {
@@ -91,7 +91,7 @@ export function AdminDashboardSections() {
           </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Add Prescription Glasses Card */}
                 <Card className="hover:shadow-lg transition-shadow">
                   <CardHeader>
@@ -120,6 +120,22 @@ export function AdminDashboardSections() {
                   <CardContent>
                     <Link href="/admin/prescription-glasses">
                       <Button variant="outline" className="w-full">Manage Prescription Glasses</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Prescription Pricing Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <DollarSign className="h-5 w-5 text-primary" />
+                      <CardTitle>Prescription Pricing</CardTitle>
+                    </div>
+                    <CardDescription>Manage lens prices, tint fees, edging fees, and profit margin</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/prescription-pricing">
+                      <Button variant="outline" className="w-full">Manage Pricing</Button>
                     </Link>
                   </CardContent>
                 </Card>

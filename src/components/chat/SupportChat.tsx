@@ -378,13 +378,26 @@ export function SupportChat() {
     }
   };
 
+  // Sanitize HTML to prevent XSS attacks
+  const sanitizeHtml = (input: string): string => {
+    return input
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#x27;");
+  };
+
   // Format message content with markdown-like styling
   const formatContent = (content: string | undefined | null) => {
     if (!content) return null;
     // Simple markdown-like formatting
     return content.split("\n").map((line, i) => {
-      // Bold text
-      let formattedLine = line.replace(
+      // First sanitize the input to prevent XSS
+      let sanitizedLine = sanitizeHtml(line);
+      
+      // Bold text (apply after sanitization, using escaped asterisks)
+      let formattedLine = sanitizedLine.replace(
         /\*\*(.+?)\*\*/g,
         '<strong class="font-semibold">$1</strong>'
       );

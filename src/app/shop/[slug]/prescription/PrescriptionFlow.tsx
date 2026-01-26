@@ -31,10 +31,7 @@ import { detectFrameType } from "@/lib/pricing/detectFrameType";
 import Step0Initial from "./steps/Step0Initial";
 import Step1PrescriptionForm from "./steps/Step1PrescriptionForm";
 // Step2Review removed - redundant step
-import Step3LensCategory from "./steps/Step3LensCategory";
-import Step4Coating from "./steps/Step4Coating";
-import Step5TintOptions from "./steps/Step5TintOptions";
-import Step6FrameType from "./steps/Step6FrameType";
+import Step3LensSelection from "./steps/Step3LensSelection";
 import Step7Summary from "./steps/Step7Summary";
 
 interface PrescriptionFlowProps {
@@ -296,6 +293,65 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   
   // Track if user has made any lens selections (to prevent defaults from being re-applied)
   const [hasUserMadeLensSelection, setHasUserMadeLensSelection] = useState(false);
+  
+  // Track if initial rxConfig has been loaded (to prevent reload on step changes)
+  const [hasLoadedRxConfig, setHasLoadedRxConfig] = useState(false);
+  
+  // Load product-specific rxConfig from localStorage or sessionStorage ONLY on initial mount
+  // This ensures lens configuration persists when navigating back from confirmation/cart
+  // But does NOT reload on step changes (which would reset user's selections)
+  useEffect(() => {
+    // Only load once on mount - never reload on step changes
+    if (hasLoadedRxConfig) return;
+    
+    if (typeof window !== 'undefined') {
+      // First try sessionStorage (most recent, product-specific)
+      const sessionKey = `prescription_${productSlug}`;
+      const sessionStored = sessionStorage.getItem(sessionKey);
+      let rxConfigToLoad: RxConfigData | null = null;
+      
+      if (sessionStored) {
+        try {
+          const parsed = JSON.parse(sessionStored) as FullPrescriptionData;
+          if (parsed.rxConfig) {
+            rxConfigToLoad = parsed.rxConfig;
+            console.log('[PrescriptionFlow] Found rxConfig in sessionStorage');
+          }
+        } catch (error) {
+          console.error('Error parsing prescription data from sessionStorage:', error);
+        }
+      }
+      
+      // If not in sessionStorage, try localStorage (product-specific)
+      if (!rxConfigToLoad) {
+        const productRxConfigKey = `rxConfig_${productSlug}`;
+        const storedRxConfig = localStorage.getItem(productRxConfigKey);
+        if (storedRxConfig) {
+          try {
+            rxConfigToLoad = JSON.parse(storedRxConfig) as RxConfigData;
+            console.log('[PrescriptionFlow] Found rxConfig in localStorage');
+          } catch (error) {
+            console.error('Error parsing rxConfig from localStorage:', error);
+          }
+        }
+      }
+      
+      // Update rxConfig if we found one
+      if (rxConfigToLoad) {
+        // Merge with detected frameType to ensure it's always correct
+        const newConfig = {
+          ...rxConfigToLoad,
+          frameType: detectedFrameType, // Always use detected frameType
+        };
+        console.log('[PrescriptionFlow] Loaded product-specific lens config on mount');
+        setRxConfig(newConfig);
+        setHasUserMadeLensSelection(true);
+      }
+      
+      setHasLoadedRxConfig(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productSlug]); // Only depend on productSlug - NOT currentStep (to avoid reloading on step changes)
 
   // Track the last loaded existingData to prevent duplicate updates (include productSlug for uniqueness)
   const [lastLoadedDataId, setLastLoadedDataId] = useState<string | null>(null);
@@ -355,11 +411,12 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   }, [existingData, hasLoadedInitialData, lastLoadedDataId]);
 
   // Update step if step param changes (from browser back/forward or direct URL)
+  // Now only steps 0, 1, 2, 3 are valid (0=Initial, 1=Prescription, 2=Lens Selection, 3=Summary)
   useEffect(() => {
     const stepParam = searchParams.get('step');
     if (stepParam) {
       const step = parseInt(stepParam);
-      if (!isNaN(step) && step >= 0 && step <= 7) {
+      if (!isNaN(step) && step >= 0 && step <= 3) {
         // Only update if different to prevent unnecessary re-renders
         if (step !== currentStep) {
           setCurrentStep(step);
@@ -689,6 +746,14 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     }
     
     setRxConfig(prev => {
+      // Helper function to save to localStorage immediately
+      const saveToLocalStorage = (config: RxConfigData) => {
+        if (typeof window !== 'undefined' && !isDefaultApplication) {
+          const productRxConfigKey = `rxConfig_${productSlug}`;
+          localStorage.setItem(productRxConfigKey, JSON.stringify(config));
+          console.log('[PrescriptionFlow] Saved rxConfig to localStorage on update:', config);
+        }
+      };
       // CRITICAL: Always preserve lensType from previous state if not explicitly updated
       // This prevents lensType from being reset when only coating is updated
       const lensTypeToUse = data.lensType !== undefined ? data.lensType : prev.lensType;
@@ -699,11 +764,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       // If updating only frameType, just update it directly without normalization
       if (data.frameType !== undefined && Object.keys(data).length === 1) {
         const updated = { ...prev, frameType: data.frameType };
-        // Save to product-specific localStorage
-        if (typeof window !== 'undefined' && !isDefaultApplication) {
-          const productRxConfigKey = `rxConfig_${productSlug}`;
-          localStorage.setItem(productRxConfigKey, JSON.stringify(updated));
-        }
+        saveToLocalStorage(updated);
         return updated;
       }
       
@@ -711,22 +772,14 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       // This prevents errors when trying to normalize without a lensType
       if (!lensTypeToUse && data.coating !== undefined && data.lensType === undefined) {
         const updated = { ...prev, coating: data.coating, frameType: frameTypeToUse };
-        // Save to product-specific localStorage
-        if (typeof window !== 'undefined' && !isDefaultApplication) {
-          const productRxConfigKey = `rxConfig_${productSlug}`;
-          localStorage.setItem(productRxConfigKey, JSON.stringify(updated));
-        }
+        saveToLocalStorage(updated);
         return updated;
       }
       
       // If no lensType exists at all, just apply the update directly (let Step3 handle defaults)
       if (!lensTypeToUse) {
         const updated = { ...prev, ...data, frameType: frameTypeToUse };
-        // Save to product-specific localStorage
-        if (typeof window !== 'undefined' && !isDefaultApplication) {
-          const productRxConfigKey = `rxConfig_${productSlug}`;
-          localStorage.setItem(productRxConfigKey, JSON.stringify(updated));
-        }
+        saveToLocalStorage(updated);
         return updated;
       }
       
@@ -782,12 +835,8 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         frameType: frameTypeToUse, // Always preserve frameType
       };
       
-      // Save to product-specific localStorage (only if user made a selection, not defaults)
-      if (typeof window !== 'undefined' && !isDefaultApplication) {
-        const productRxConfigKey = `rxConfig_${productSlug}`;
-        localStorage.setItem(productRxConfigKey, JSON.stringify(finalConfig));
-        console.log('[PrescriptionFlow] Saved product-specific lens config to localStorage');
-      }
+      // Save to localStorage on EVERY update (using helper function)
+      saveToLocalStorage(finalConfig);
       
       return finalConfig;
     });
@@ -838,6 +887,12 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       }
     }
     
+    // Save to sessionStorage for confirmation page (product-specific)
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`prescription_${productSlug}`, JSON.stringify(fullData));
+      console.log('[PrescriptionFlow] Saved prescription to sessionStorage for confirmation page');
+    }
+    
     // Dispatch custom event
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('prescription-saved'));
@@ -846,33 +901,9 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     router.push(`/shop/${productSlug}/prescription/confirmation`);
   };
 
-  // Determine next step after coating selection
-  const getNextStepAfterCoating = () => {
-    if (rxConfig.lensType === "TINTED") {
-      return 5; // Go to tint options
-    }
-    return 7; // Skip frame type step, go directly to summary
-  };
-
   // Step navigation helpers
-  const goToNextFromLensCategory = () => {
-    handleStepChange(4); // Always go to coating next
-  };
-
-  const goToNextFromCoating = () => {
-    handleStepChange(getNextStepAfterCoating());
-  };
-
-  const goBackFromTintOptions = () => {
-    handleStepChange(4); // Back to coating
-  };
-
   const goBackFromSummary = () => {
-    if (rxConfig.lensType === "TINTED") {
-      handleStepChange(5); // Back to tint options
-    } else {
-      handleStepChange(4); // Back to coating
-    }
+    handleStepChange(2); // Back to lens selection
   };
 
   // Ensure frame type is always set to detected value for current product
@@ -910,7 +941,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
           rxConfig={rxConfig}
           rxPriceResult={rxPriceResult}
           onEditPrescription={() => handleStepChange(1)}
-          onChooseLens={() => handleStepChange(3)}
+          onChooseLens={() => handleStepChange(2)}
         />
       )}
 
@@ -927,15 +958,14 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         />
       )}
 
-      {/* Step 2: REMOVED - Review was redundant, going directly to lens selection */}
-
-      {/* Step 3: Choose Lens Type (Clear, Tinted, Photochromic, Polarized) */}
-      {currentStep === 3 && (
-        <Step3LensCategory
+      {/* Step 2: Complete Lens Selection (Type, Index, Coating, Tint, Frame Type) */}
+      {currentStep === 2 && (
+        <Step3LensSelection
+          product={product}
           rxConfig={rxConfig}
           onConfigUpdate={handleRxConfigUpdate}
           onConfigUpdateDefault={handleRxConfigUpdateWithDefault}
-          onNext={goToNextFromLensCategory}
+          onNext={() => handleStepChange(3)}
           onBack={() => handleStepChange(1)}
           formatPrice={formatPrice}
           rxPriceResult={rxPriceResult}
@@ -943,49 +973,8 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         />
       )}
 
-      {/* Step 4: Choose Coating */}
-      {currentStep === 4 && (
-        <Step4Coating
-          rxConfig={rxConfig}
-          onConfigUpdate={handleRxConfigUpdate}
-          onNext={goToNextFromCoating}
-          onBack={() => handleStepChange(3)}
-          formatPrice={formatPrice}
-          rxPriceResult={rxPriceResult}
-          framePrice={framePrice}
-        />
-      )}
-
-      {/* Step 5: Tint Options (only if TINTED selected) */}
-      {currentStep === 5 && rxConfig.lensType === "TINTED" && (
-        <Step5TintOptions
-          rxConfig={rxConfig}
-          onConfigUpdate={handleRxConfigUpdate}
-          onNext={() => handleStepChange(7)}
-          onBack={goBackFromTintOptions}
-          formatPrice={formatPrice}
-          rxPriceResult={rxPriceResult}
-          framePrice={framePrice}
-        />
-      )}
-
-      {/* Step 6: Frame Type (auto-detected) - HIDDEN FROM USER */}
-      {/* Frame type is automatically detected and set, edging fee is included in pricing */}
-      {false && currentStep === 6 && (
-        <Step6FrameType
-          product={product}
-          rxConfig={rxConfig}
-          onConfigUpdate={handleRxConfigUpdate}
-          onConfigUpdateDefault={handleRxConfigUpdateWithDefault}
-          onNext={() => handleStepChange(7)}
-          onBack={goBackFromSummary}
-          rxPriceResult={rxPriceResult}
-          formatPrice={formatPrice}
-        />
-      )}
-
-      {/* Step 7: Summary with full price breakdown */}
-      {currentStep === 7 && (
+      {/* Step 3: Summary with full price breakdown */}
+      {currentStep === 3 && (
         <Step7Summary
           product={product}
           prescriptionData={prescriptionData}
@@ -996,7 +985,8 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
           onConfirm={handleFinalSubmit}
           onBack={goBackFromSummary}
           onEditPrescription={() => handleStepChange(1)}
-          onEditLens={() => handleStepChange(3)}
+          onEditLens={() => handleStepChange(2)}
+          productSlug={productSlug}
         />
       )}
     </div>

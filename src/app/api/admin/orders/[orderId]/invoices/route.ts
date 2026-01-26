@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import { getInvoiceDataFromOrder, InvoiceData } from '@/lib/invoice';
+import { getInvoiceDataFromOrder, InvoiceData, generateInvoicePDF } from '@/lib/invoice';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { generatePrescriptionPDF, extractPrescriptionFromOrderItem, hasValidPrescriptionValues } from '@/lib/prescription-pdf';
 
@@ -614,8 +614,9 @@ export async function GET(
     console.log(`[Invoice API] Generating invoices for order: ${invoiceData.orderNumber}`);
 
     try {
-      // Generate combined PDF using pdf-lib
-      const invoicePdfBytes = await generateCombinedPDF(invoiceData);
+      // Generate invoice PDF using the new design
+      const invoicePdfBuffer = await generateInvoicePDF(invoiceData);
+      const invoicePdfBytes = new Uint8Array(invoicePdfBuffer);
       console.log(`[Invoice API] Invoice PDF generated successfully, size: ${invoicePdfBytes.length} bytes`);
 
       // Check if any order items have VALID prescription data (not just the field exists)

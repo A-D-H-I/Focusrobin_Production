@@ -85,7 +85,7 @@ interface UserData {
   sessions: any[];
   prescriptions?: Array<{
     id: string;
-    productSlug: string;
+    // NOTE: productSlug is NOT stored - prescription is shared across all products
     odSph: string;
     odCyl: string;
     odAxis: string;
@@ -106,10 +106,8 @@ interface UserData {
     osPrismVertical: string | null;
     osPrismVerticalBase: string | null;
     prescriptionImageUrl: string | null;
-    lensType: string;
-    lensIndex: string;
-    coating: string;
-    frameType: string;
+    // NOTE: lensType, lensIndex, coating, frameType, and price breakdown fields are NOT stored in database
+    // They are product-specific and stored in localStorage/sessionStorage per product
     createdAt: Date;
     updatedAt: Date;
   }>;
@@ -987,15 +985,15 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                                                   </DialogDescription>
                                                 </DialogHeader>
                                                 <div className="space-y-4">
-                                                  {rxData?.rxValues && (
+                                                  {(rxData?.od || rxData?.rxValues) && (
                                                     <div className="grid grid-cols-2 gap-4">
                                                       <div className="border rounded-lg p-3">
                                                         <p className="text-xs font-semibold text-muted-foreground mb-2">OD (Right Eye)</p>
                                                         <div className="text-sm space-y-1">
-                                                          <p>SPH: {rxData.rxValues.odSph} | CYL: {rxData.rxValues.odCyl} | AXIS: {rxData.rxValues.odAxis}</p>
-                                                          {rxData.rxValues.hasPrism && rxData.rxValues.odPrismHorizontal && (
+                                                          <p>SPH: {rxData.od?.sph || rxData.rxValues?.odSph || "+0.00"} | CYL: {rxData.od?.cyl || rxData.rxValues?.odCyl || "+0.00"} | AXIS: {rxData.od?.axis || rxData.rxValues?.odAxis || "0"}</p>
+                                                          {(rxData.od?.hasPrism || rxData.rxValues?.hasPrism) && (rxData.od?.prismHorizontal || rxData.rxValues?.odPrismHorizontal) && (
                                                             <p className="text-xs text-muted-foreground">
-                                                              H Prism: {rxData.rxValues.odPrismHorizontal} {rxData.rxValues.odPrismHorizontalBase}
+                                                              H Prism: {rxData.od?.prismHorizontal || rxData.rxValues?.odPrismHorizontal} {rxData.od?.prismHorizontalBase || rxData.rxValues?.odPrismHorizontalBase || ""}
                                                             </p>
                                                           )}
                                                         </div>
@@ -1003,23 +1001,23 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                                                       <div className="border rounded-lg p-3">
                                                         <p className="text-xs font-semibold text-muted-foreground mb-2">OS (Left Eye)</p>
                                                         <div className="text-sm space-y-1">
-                                                          <p>SPH: {rxData.rxValues.osSph} | CYL: {rxData.rxValues.osCyl} | AXIS: {rxData.rxValues.osAxis}</p>
-                                                          {rxData.rxValues.hasPrism && rxData.rxValues.osPrismHorizontal && (
+                                                          <p>SPH: {rxData.os?.sph || rxData.rxValues?.osSph || "+0.00"} | CYL: {rxData.os?.cyl || rxData.rxValues?.osCyl || "+0.00"} | AXIS: {rxData.os?.axis || rxData.rxValues?.osAxis || "0"}</p>
+                                                          {(rxData.os?.hasPrism || rxData.rxValues?.hasPrism) && (rxData.os?.prismHorizontal || rxData.rxValues?.osPrismHorizontal) && (
                                                             <p className="text-xs text-muted-foreground">
-                                                              H Prism: {rxData.rxValues.osPrismHorizontal} {rxData.rxValues.osPrismHorizontalBase}
+                                                              H Prism: {rxData.os?.prismHorizontal || rxData.rxValues?.osPrismHorizontal} {rxData.os?.prismHorizontalBase || rxData.rxValues?.osPrismHorizontalBase || ""}
                                                             </p>
                                                           )}
                                                         </div>
                                                       </div>
                                                     </div>
                                                   )}
-                                                  {rxData?.rxValues && (
+                                                  {(rxData?.pd || rxData?.rxValues) && (
                                                     <div className="text-sm">
                                                       <span className="font-medium">PD: </span>
-                                                      {rxData.rxValues.hasTwoPDs ? (
-                                                        <span>OD: {rxData.rxValues.pdOd}mm | OS: {rxData.rxValues.pdOs}mm</span>
+                                                      {(rxData.hasTwoPDs || rxData.rxValues?.hasTwoPDs) ? (
+                                                        <span>OD: {rxData.pdOd || rxData.rxValues?.pdOd || ""}mm | OS: {rxData.pdOs || rxData.rxValues?.pdOs || ""}mm</span>
                                                       ) : (
-                                                        <span>{rxData.rxValues.pd}mm</span>
+                                                        <span>{rxData.pd || rxData.rxValues?.pd || ""}mm</span>
                                                       )}
                                                     </div>
                                                   )}
@@ -1565,7 +1563,7 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                                 {user.prescriptions.map((prescription) => (
                                   <div key={prescription.id} className="border rounded-lg p-4 bg-muted/30">
                                     <div className="mb-3 pb-2 border-b">
-                                      <p className="font-medium text-sm">Product: <span className="text-brand-teal">{prescription.productSlug}</span></p>
+                                      {/* NOTE: Product name is NOT stored - prescription is shared across all products */}
                                       <p className="text-xs text-muted-foreground mt-1">
                                         Last updated: {format(new Date(prescription.updatedAt), 'PPp')}
                                       </p>
@@ -1619,30 +1617,39 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                                         <div>
                                           <span className="font-medium">PD: </span>
                                           {prescription.hasTwoPDs ? (
-                                            <span>OD: {prescription.pdOd}mm | OS: {prescription.pdOs}mm</span>
+                                            <span>OD: {prescription.pdOd || 'N/A'}mm | OS: {prescription.pdOs || 'N/A'}mm</span>
                                           ) : (
-                                            <span>{prescription.pd}mm</span>
+                                            <span>{prescription.pd || 'N/A'}mm</span>
                                           )}
                                         </div>
                                         <div>
                                           <span className="font-medium">Prism: </span>
-                                          <span>{prescription.hasPrism ? 'Yes' : 'No'}</span>
+                                          {prescription.hasPrism ? (
+                                            <div className="text-xs space-y-0.5 mt-1">
+                                              {prescription.odPrismHorizontal && (
+                                                <div>OD H: {prescription.odPrismHorizontal} {prescription.odPrismHorizontalBase}</div>
+                                              )}
+                                              {prescription.odPrismVertical && (
+                                                <div>OD V: {prescription.odPrismVertical} {prescription.odPrismVerticalBase}</div>
+                                              )}
+                                              {prescription.osPrismHorizontal && (
+                                                <div>OS H: {prescription.osPrismHorizontal} {prescription.osPrismHorizontalBase}</div>
+                                              )}
+                                              {prescription.osPrismVertical && (
+                                                <div>OS V: {prescription.osPrismVertical} {prescription.osPrismVerticalBase}</div>
+                                              )}
+                                              {!prescription.odPrismHorizontal && !prescription.odPrismVertical && 
+                                               !prescription.osPrismHorizontal && !prescription.osPrismVertical && (
+                                                <div>Yes (values not specified)</div>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <span>No</span>
+                                          )}
                                         </div>
                                       </div>
-                                      <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                          <span className="font-medium">Lens: </span>
-                                          <span>{prescription.lensType} ({prescription.lensIndex})</span>
-                                        </div>
-                                        <div>
-                                          <span className="font-medium">Coating: </span>
-                                          <span>{prescription.coating}</span>
-                                        </div>
-                                      </div>
-                                      <div className="text-sm">
-                                        <span className="font-medium">Frame Type: </span>
-                                        <span>{prescription.frameType}</span>
-                                      </div>
+                                      {/* NOTE: Lens configuration (lensType, lensIndex, coating, frameType) is NOT stored in database */}
+                                      {/* It is product-specific and stored in localStorage/sessionStorage per product */}
                                       {prescription.prescriptionImageUrl && (
                                         <div className="text-sm">
                                           <span className="font-medium">Image: </span>

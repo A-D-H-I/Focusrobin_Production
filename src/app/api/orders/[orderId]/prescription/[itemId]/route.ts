@@ -65,18 +65,7 @@ export async function GET(
       return NextResponse.json({ error: 'Failed to extract prescription data' }, { status: 500 });
     }
 
-    // Add shipping address to prescription data
-    prescriptionPdfData.shippingAddress = {
-      name: order.shippingName,
-      addressLine1: order.shippingAddressLine1,
-      addressLine2: order.shippingAddressLine2 || '',
-      city: order.shippingCity,
-      state: order.shippingState || '',
-      postalCode: order.shippingPostalCode,
-      country: order.shippingCountry,
-    };
-
-    // Generate PDF
+    // Generate PDF (shipping address removed - not needed in prescription PDF)
     const pdfBuffer = await generatePrescriptionPDF(prescriptionPdfData);
 
     // Return PDF as download

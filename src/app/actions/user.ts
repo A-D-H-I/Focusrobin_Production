@@ -202,9 +202,16 @@ export async function addToCart(productSlugOrId: string, variantSkuOrId: string,
   }
 }
 
-export async function removeFromCart(productSlugOrId: string, variantSkuOrId: string) {
+export async function removeFromCart(productSlugOrId: string, variantSkuOrId: string, prescriptionData?: any) {
   return safeAction(async () => {
     const { session } = await requireAuth();
+
+    console.log('[SERVER] removeFromCart called:', { 
+      productSlugOrId, 
+      variantSkuOrId, 
+      hasPrescription: !!prescriptionData,
+      prescriptionData 
+    });
 
     // Validate input
     const schema = z.object({
@@ -251,13 +258,37 @@ export async function removeFromCart(productSlugOrId: string, variantSkuOrId: st
       return { error: "Cart not found" };
     }
 
-    const item = cart.items.find(
-      (i) => i.productId === product!.id && i.variantId === variant.id
-    );
+    // Find the specific item matching product, variant, AND prescription data
+    const item = cart.items.find((i) => {
+      const productMatch = i.productId === product!.id && i.variantId === variant.id;
+      if (!productMatch) return false;
+      
+      // Match prescription data using deep comparison
+      if (prescriptionData !== undefined) {
+        if (prescriptionData) {
+          // Looking for item WITH prescription data that matches
+          return i.prescriptionData && isPrescriptionDataEqual(i.prescriptionData, prescriptionData);
+        } else {
+          // Looking for item WITHOUT prescription data
+          return !i.prescriptionData;
+        }
+      }
+      
+      // If no prescription data argument provided, match the first item (backward compatibility)
+      // But prioritize items without prescription data
+      return !i.prescriptionData;
+    });
+    
     if (!item) {
+      console.error('[SERVER] Item not found in cart. Available items:', cart.items.map(i => ({
+        productId: i.productId,
+        variantId: i.variantId,
+        hasPrescription: !!i.prescriptionData
+      })));
       return { error: "Item not found in cart" };
     }
 
+    console.log('[SERVER] Deleting cart item:', item.id);
     await prisma.cartItem.delete({
       where: { id: item.id },
     });
@@ -267,9 +298,16 @@ export async function removeFromCart(productSlugOrId: string, variantSkuOrId: st
   });
 }
 
-export async function updateCartItemQuantity(productSlugOrId: string, variantSkuOrId: string, quantity: number) {
+export async function updateCartItemQuantity(productSlugOrId: string, variantSkuOrId: string, quantity: number, prescriptionData?: any) {
   return safeAction(async () => {
     const { session } = await requireAuth();
+
+    console.log('[SERVER] updateCartItemQuantity called:', { 
+      productSlugOrId, 
+      variantSkuOrId, 
+      quantity,
+      hasPrescription: !!prescriptionData 
+    });
 
     // Validate input
     const validatedInput = updateCartItemSchema.safeParse({ productSlugOrId, variantSkuOrId, quantity });
@@ -278,7 +316,7 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
     }
 
     if (validatedInput.data.quantity <= 0) {
-      return removeFromCart(productSlugOrId, variantSkuOrId);
+      return removeFromCart(productSlugOrId, variantSkuOrId, prescriptionData);
     }
 
     // Find product
@@ -316,13 +354,37 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
       return { error: "Cart not found" };
     }
 
-    const item = cart.items.find(
-      (i) => i.productId === product!.id && i.variantId === variant.id
-    );
+    // Find the specific item matching product, variant, AND prescription data
+    const item = cart.items.find((i) => {
+      const productMatch = i.productId === product!.id && i.variantId === variant.id;
+      if (!productMatch) return false;
+      
+      // Match prescription data using deep comparison
+      if (prescriptionData !== undefined) {
+        if (prescriptionData) {
+          // Looking for item WITH prescription data that matches
+          return i.prescriptionData && isPrescriptionDataEqual(i.prescriptionData, prescriptionData);
+        } else {
+          // Looking for item WITHOUT prescription data
+          return !i.prescriptionData;
+        }
+      }
+      
+      // If no prescription data argument provided, match the first item (backward compatibility)
+      // But prioritize items without prescription data
+      return !i.prescriptionData;
+    });
+    
     if (!item) {
+      console.error('[SERVER] Item not found in cart. Available items:', cart.items.map(i => ({
+        productId: i.productId,
+        variantId: i.variantId,
+        hasPrescription: !!i.prescriptionData
+      })));
       return { error: "Item not found in cart" };
     }
 
+    console.log('[SERVER] Updating cart item:', item.id, 'to quantity:', quantity);
     await prisma.cartItem.update({
       where: { id: item.id },
       data: { quantity: validatedInput.data.quantity },

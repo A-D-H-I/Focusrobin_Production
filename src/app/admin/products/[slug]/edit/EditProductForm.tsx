@@ -21,6 +21,7 @@ import { Gender } from '@prisma/client';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ImageUploader } from '@/components/admin/ImageUploader';
+import { GalleryImageUploader } from '@/components/admin/GalleryImageUploader';
 
 interface EditProductFormProps {
   product: any; // Prisma product with variants and assets
@@ -577,19 +578,14 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
                 <h4 className="text-brand-h4 font-headline">Assets Configuration</h4>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor={`variant-${index}-asset_nobg`}>
-                      Bestseller Image (Transparent BG)
-                    </Label>
-                    <Input
-                      id={`variant-${index}-asset_nobg`}
-                      type="url"
+                    <ImageUploader
                       value={variant.asset_nobg || ''}
-                      onChange={(e) => updateVariant(index, 'asset_nobg', e.target.value)}
-                      placeholder="/images/products/product-nobg.png"
+                      onChange={(url) => updateVariant(index, 'asset_nobg', url)}
+                      folder="products"
+                      label="Bestseller Image (Transparent BG)"
+                      description="For Landing Page 3D effect"
+                      accept="image/*"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      For Landing Page 3D effect
-                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -609,51 +605,35 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`variant-${index}-asset_tryon`}>
-                      Photo Try-On (Front View)
-                    </Label>
-                    <Input
-                      id={`variant-${index}-asset_tryon`}
-                      type="url"
+                    <ImageUploader
                       value={variant.asset_tryon || ''}
-                      onChange={(e) => updateVariant(index, 'asset_tryon', e.target.value)}
-                      placeholder="/images/products/product-front.jpg"
+                      onChange={(url) => updateVariant(index, 'asset_tryon', url)}
+                      folder="products"
+                      label="Photo Try-On (Front View)"
+                      description="For 'Upload Photo' Try-On"
+                      accept="image/*"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      For "Upload Photo" Try-On
-                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor={`variant-${index}-asset_hover`}>
-                      Shop Card Hover (Tilted)
-                    </Label>
-                    <Input
-                      id={`variant-${index}-asset_hover`}
-                      type="url"
+                    <ImageUploader
                       value={variant.asset_hover || ''}
-                      onChange={(e) => updateVariant(index, 'asset_hover', e.target.value)}
-                      placeholder="/images/products/product-tilted.jpg"
+                      onChange={(url) => updateVariant(index, 'asset_hover', url)}
+                      folder="products"
+                      label="Shop Card Hover (Tilted)"
+                      description="For Shop Card hover effect"
+                      accept="image/*"
                     />
-                    <p className="text-xs text-muted-foreground">
-                      For Shop Card hover effect
-                    </p>
                   </div>
 
                   <div className="space-y-2 md:col-span-2">
-                    <Label htmlFor={`variant-${index}-asset_gallery`}>
-                      Gallery Images
-                    </Label>
-                    <Textarea
-                      id={`variant-${index}-asset_gallery`}
+                    <GalleryImageUploader
                       value={variant.asset_gallery || ''}
-                      onChange={(e) => updateVariant(index, 'asset_gallery', e.target.value)}
-                      placeholder="/images/products/gallery1.jpg, /images/products/gallery2.jpg, /images/products/gallery3.jpg"
-                      rows={3}
+                      onChange={(urls) => updateVariant(index, 'asset_gallery', urls)}
+                      folder="products"
+                      label="Gallery Images"
+                      description="Upload multiple images one by one. First image will be marked as primary."
                     />
-                    <p className="text-xs text-muted-foreground">
-                      Enter multiple URLs separated by commas. First image will be marked as primary.
-                    </p>
                   </div>
                 </div>
               </div>

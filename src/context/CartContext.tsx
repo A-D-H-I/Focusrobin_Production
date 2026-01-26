@@ -594,8 +594,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             return !item.prescriptionData;
           }
         }
-        // If no prescription data argument, match first item (backward compatibility)
-        return true;
+        // If no prescription data argument, only match items without prescription data
+        return !item.prescriptionData;
       }
     );
 
@@ -612,7 +612,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
             return !prevItem.prescriptionData;
           }
         }
-        return true;
+        // If no prescription data argument, only match items without prescription data
+        return !prevItem.prescriptionData;
       });
       
       if (indexToRemove === -1) return prevItems;
@@ -625,7 +626,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (session?.user && item) {
       // User is logged in - remove from database
       try {
-        const result = await removeFromCartAction(productId, item.variant.sku || variantHex);
+        const result = await removeFromCartAction(productId, item.variant.sku || variantHex, prescriptionData);
         if (result.error) {
           console.error('Error removing from cart:', result.error);
         }
@@ -692,7 +693,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     if (session?.user && item) {
       // User is logged in - update in database
       try {
-        const result = await updateCartItemQuantityAction(productId, item.variant.sku || variantHex, quantity);
+        const result = await updateCartItemQuantityAction(productId, item.variant.sku || variantHex, quantity, prescriptionData);
         if (result.error) {
           console.error('Error updating cart quantity:', result.error);
         }

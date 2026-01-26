@@ -60,3 +60,6 @@ export function clearPageTranslationCache(pathname: string) {
   translatedPages.delete(pathname);
 }
 
+
+
+

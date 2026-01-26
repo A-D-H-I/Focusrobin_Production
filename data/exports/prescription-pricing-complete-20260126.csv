@@ -1,0 +1,54 @@
+Type,Category,Item,Price (EUR),Unit,Is Active,Notes
+
+# LENS PRICES (Per Single Lens)
+Type,Category,Item,Price (EUR),Unit,Is Active,Notes
+Lens Price,CLEAR,1.56 - BLUE_PRO,14.49,Per Single Lens,Yes,Pair price: €28.98
+Lens Price,CLEAR,1.56 - SERICUM_UV,14.49,Per Single Lens,Yes,Pair price: €28.98
+Lens Price,CLEAR,1.56 - UC,8.49,Per Single Lens,Yes,Pair price: €16.98
+Lens Price,CLEAR,1.60 - BLUE_PRO,22.98,Per Single Lens,Yes,Pair price: €45.96
+Lens Price,CLEAR,1.60 - SERICUM_UV,22.98,Per Single Lens,Yes,Pair price: €45.96
+Lens Price,CLEAR,1.60 - UC,16.98,Per Single Lens,Yes,Pair price: €33.96
+Lens Price,CLEAR,1.67 - BLUE_PRO,31.07,Per Single Lens,Yes,Pair price: €62.14
+Lens Price,CLEAR,1.67 - SERICUM_UV,31.07,Per Single Lens,Yes,Pair price: €62.14
+Lens Price,CLEAR,1.67 - UC,25.07,Per Single Lens,Yes,Pair price: €50.14
+Lens Price,PHOTOCHROMIC_SOLIS,1.56 - BLUE_PRO,19.53,Per Single Lens,Yes,Pair price: €39.06
+Lens Price,PHOTOCHROMIC_SOLIS,1.56 - SERICUM_UV,19.53,Per Single Lens,Yes,Pair price: €39.06
+Lens Price,PHOTOCHROMIC_SOLIS,1.56 - UC,13.53,Per Single Lens,Yes,Pair price: €27.06
+Lens Price,PHOTOCHROMIC_SOLIS,1.60 - BLUE_PRO,30.66,Per Single Lens,Yes,Pair price: €61.32
+Lens Price,PHOTOCHROMIC_SOLIS,1.60 - SERICUM_UV,30.66,Per Single Lens,Yes,Pair price: €61.32
+Lens Price,PHOTOCHROMIC_SOLIS,1.60 - UC,24.66,Per Single Lens,Yes,Pair price: €49.32
+Lens Price,PHOTOCHROMIC_SOLIS,1.67 - BLUE_PRO,38.90,Per Single Lens,Yes,Pair price: €77.80
+Lens Price,PHOTOCHROMIC_SOLIS,1.67 - SERICUM_UV,38.90,Per Single Lens,Yes,Pair price: €77.80
+Lens Price,PHOTOCHROMIC_SOLIS,1.67 - UC,32.90,Per Single Lens,Yes,Pair price: €65.80
+Lens Price,POLARIZED_NUPOLAR,1.60 - BLUE_PRO,41.98,Per Single Lens,Yes,Pair price: €83.96
+Lens Price,POLARIZED_NUPOLAR,1.60 - SERICUM_UV,41.98,Per Single Lens,Yes,Pair price: €83.96
+Lens Price,POLARIZED_NUPOLAR,1.60 - UC,35.98,Per Single Lens,Yes,Pair price: €71.96
+Lens Price,POLARIZED_NUPOLAR,1.67 - BLUE_PRO,64.62,Per Single Lens,Yes,Pair price: €129.24
+Lens Price,POLARIZED_NUPOLAR,1.67 - SERICUM_UV,64.62,Per Single Lens,Yes,Pair price: €129.24
+Lens Price,POLARIZED_NUPOLAR,1.67 - UC,58.62,Per Single Lens,Yes,Pair price: €117.24
+Lens Price,TINTED,1.56 - BLUE_PRO,14.49,Per Single Lens,Yes,Pair price: €28.98
+Lens Price,TINTED,1.56 - SERICUM_UV,14.49,Per Single Lens,Yes,Pair price: €28.98
+Lens Price,TINTED,1.56 - UC,8.49,Per Single Lens,Yes,Pair price: €16.98
+Lens Price,TINTED,1.60 - BLUE_PRO,22.98,Per Single Lens,Yes,Pair price: €45.96
+Lens Price,TINTED,1.60 - SERICUM_UV,22.98,Per Single Lens,Yes,Pair price: €45.96
+Lens Price,TINTED,1.60 - UC,16.98,Per Single Lens,Yes,Pair price: €33.96
+Lens Price,TINTED,1.67 - BLUE_PRO,31.07,Per Single Lens,Yes,Pair price: €62.14
+Lens Price,TINTED,1.67 - SERICUM_UV,31.07,Per Single Lens,Yes,Pair price: €62.14
+Lens Price,TINTED,1.67 - UC,25.07,Per Single Lens,Yes,Pair price: €50.14
+
+# TINT FEES (Per Pair)
+Type,Category,Item,Price (EUR),Unit,Is Active,Notes
+Tint Fee,Tinting,FULL_TINT_CATALOG,6.00,Per Pair,Yes,
+Tint Fee,Tinting,GRADIENT,8.00,Per Pair,Yes,
+
+# EDGING FEES (Per Order)
+Type,Category,Item,Price (EUR),Unit,Is Active,Notes
+Edging Fee,Frame Mounting,FULL_FRAME,4.60,Per Order,Yes,
+Edging Fee,Frame Mounting,LINDBERG_COMPLEX,20.00,Per Order,Yes,
+Edging Fee,Frame Mounting,NYLON_FRAME,5.90,Per Order,Yes,
+Edging Fee,Frame Mounting,RIMLESS_INDIVIDUAL,20.00,Per Order,Yes,
+Edging Fee,Frame Mounting,RIMLESS_PRESSING,12.00,Per Order,Yes,
+
+# FIXED PROFIT (Per Order)
+Type,Category,Item,Price (EUR),Unit,Is Active,Notes
+Fixed Profit,Profit Margin,FIXED_PROFIT,15.00,Per Order,Yes,Added to total Rx cost

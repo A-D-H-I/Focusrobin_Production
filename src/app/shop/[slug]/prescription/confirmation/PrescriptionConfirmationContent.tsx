@@ -97,11 +97,40 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
       try {
         let loadedData: FullPrescriptionData | null = null;
         
+        // First, try to load from sessionStorage (product-specific, most recent)
+        if (typeof window !== 'undefined') {
+          const sessionKey = `prescription_${productSlug}`;
+          const sessionStored = sessionStorage.getItem(sessionKey);
+          if (sessionStored) {
+            try {
+              loadedData = JSON.parse(sessionStored) as FullPrescriptionData;
+              console.log('[PrescriptionConfirmation] Loaded from sessionStorage');
+            } catch (error) {
+              console.error('Error parsing prescription data from sessionStorage:', error);
+            }
+          }
+        }
+        
+        // If not found in sessionStorage, try database or localStorage
+        if (!loadedData) {
         if (session?.user) {
           // Load from database (shared prescription per user)
           const result = await getUserPrescription(productSlug);
           if (result && 'prescription' in result && result.prescription) {
             loadedData = result.prescription;
+              // Load product-specific rxConfig from localStorage
+              if (typeof window !== 'undefined') {
+                const productRxConfigKey = `rxConfig_${productSlug}`;
+                const storedRxConfig = localStorage.getItem(productRxConfigKey);
+                if (storedRxConfig) {
+                  try {
+                    const parsedRxConfig = JSON.parse(storedRxConfig);
+                    loadedData.rxConfig = parsedRxConfig;
+                  } catch (error) {
+                    console.error('Error parsing rxConfig from localStorage:', error);
+                  }
+                }
+              }
           }
         } else {
           // Guest user - load from localStorage
@@ -110,20 +139,28 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
             if (stored) {
               try {
                 const parsed = JSON.parse(stored) as FullPrescriptionData;
-                // Don't load rxConfig from shared storage - it's product-specific
-                loadedData = {
-                  ...parsed,
-                  rxConfig: undefined,
-                };
+                  loadedData = parsed;
+                  // Load product-specific rxConfig
+                  const productRxConfigKey = `rxConfig_${productSlug}`;
+                  const storedRxConfig = localStorage.getItem(productRxConfigKey);
+                  if (storedRxConfig) {
+                    try {
+                      const parsedRxConfig = JSON.parse(storedRxConfig);
+                      loadedData.rxConfig = parsedRxConfig;
+                    } catch (error) {
+                      console.error('Error parsing rxConfig from localStorage:', error);
+                    }
+                  }
               } catch (error) {
                 console.error('Error parsing prescription data:', error);
+                }
               }
             }
           }
         }
         
-        // Load product-specific rxConfig from localStorage
-        if (loadedData && typeof window !== 'undefined') {
+        // If still no rxConfig, try loading from localStorage (product-specific)
+        if (loadedData && !loadedData.rxConfig && typeof window !== 'undefined') {
           const productRxConfigKey = `rxConfig_${productSlug}`;
           const storedRxConfig = localStorage.getItem(productRxConfigKey);
           if (storedRxConfig) {
@@ -138,14 +175,26 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
                   frameType: detectedFrameType,
                 },
               };
+              console.log('[PrescriptionConfirmation] Loaded rxConfig from localStorage');
             } catch (error) {
               console.error('Error parsing rxConfig from localStorage:', error);
             }
-          } else if (!loadedData.rxConfig) {
-            // No rxConfig found - redirect to prescription flow
-            router.push(`/shop/${productSlug}/prescription?step=3`);
-            return;
           }
+        }
+        
+        // If still no rxConfig, use defaults (don't redirect - let user see confirmation with defaults)
+        if (loadedData && !loadedData.rxConfig) {
+          const detectedFrameType = detectFrameType(product);
+          loadedData = {
+            ...loadedData,
+            rxConfig: {
+              lensType: "CLEAR",
+              lensIndex: "1.56",
+              coating: "UC",
+              frameType: detectedFrameType,
+            },
+          };
+          console.log('[PrescriptionConfirmation] Using default rxConfig (no saved config found)');
         }
         
         if (!loadedData) {
@@ -276,6 +325,18 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
         title: "Added to cart",
         description: `${product.name} with prescription has been added to your cart.`,
       });
+      
+      // Save rxConfig back to sessionStorage before navigating (for when user navigates back)
+      if (typeof window !== 'undefined' && prescriptionData?.rxConfig) {
+        const sessionKey = `prescription_${productSlug}`;
+        const fullData: FullPrescriptionData = {
+          ...prescriptionData,
+          rxConfig: prescriptionData.rxConfig,
+          rxPriceBreakdown: priceBreakdown,
+        };
+        sessionStorage.setItem(sessionKey, JSON.stringify(fullData));
+        console.log('[CONFIRMATION] Saved prescription data to sessionStorage before navigating to cart');
+      }
       
       // Navigate immediately - use window.location for reliable navigation
       // This prevents React state updates from interfering with navigation

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Check, Edit, Package } from "lucide-react";
 import type { Product } from "@/lib/productData";
@@ -12,7 +13,9 @@ import {
   COATING_LABELS,
   type TintType,
 } from "@/lib/lensPricing";
-import type { PrescriptionData, RxConfigData } from "../PrescriptionFlow";
+import type { PrescriptionData, RxConfigData, FullPrescriptionData } from "../PrescriptionFlow";
+import { useSession } from "next-auth/react";
+import { getUserPrescription } from "@/app/actions/prescription";
 
 interface Step7SummaryProps {
   product: Product;
@@ -25,12 +28,13 @@ interface Step7SummaryProps {
   onBack: () => void;
   onEditPrescription: () => void;
   onEditLens: () => void;
+  productSlug: string;
 }
 
 export default function Step7Summary({
   product,
-  prescriptionData,
-  rxConfig,
+  prescriptionData: initialPrescriptionData,
+  rxConfig: initialRxConfig,
   rxPriceResult,
   framePrice,
   formatPrice,
@@ -38,8 +42,123 @@ export default function Step7Summary({
   onBack,
   onEditPrescription,
   onEditLens,
+  productSlug,
 }: Step7SummaryProps) {
   const { breakdown, totalNet } = rxPriceResult;
+  const { data: session } = useSession();
+  const [prescriptionData, setPrescriptionData] = useState(initialPrescriptionData);
+  const [rxConfig, setRxConfig] = useState(initialRxConfig);
+  
+  // Load prescription data from database/localStorage when component mounts
+  useEffect(() => {
+    const loadPrescriptionData = async () => {
+      let loadedPrescriptionData: PrescriptionData | null = null;
+      let loadedRxConfig: RxConfigData | null = null;
+      
+      // 1. Try sessionStorage first (most recent, product-specific)
+      if (typeof window !== 'undefined') {
+        const sessionKey = `prescription_${productSlug}`;
+        const sessionStored = sessionStorage.getItem(sessionKey);
+        
+        if (sessionStored) {
+          try {
+            const parsed = JSON.parse(sessionStored) as FullPrescriptionData;
+            // FullPrescriptionData has od, os, pd directly (not nested)
+            if (parsed.od && parsed.os) {
+              loadedPrescriptionData = {
+                od: parsed.od,
+                os: parsed.os,
+                pd: parsed.pd || "",
+                pdOd: parsed.pdOd || "",
+                pdOs: parsed.pdOs || "",
+                hasTwoPDs: parsed.hasTwoPDs || false,
+                hasPrism: parsed.hasPrism || false,
+              };
+            }
+            if (parsed.rxConfig) {
+              loadedRxConfig = parsed.rxConfig;
+              console.log('[Step7Summary] Loaded from sessionStorage');
+            }
+          } catch (error) {
+            console.error('Error parsing prescription data from sessionStorage:', error);
+          }
+        }
+      }
+      
+      // 2. If not in sessionStorage, try database (for logged-in users)
+      if (!loadedPrescriptionData && session?.user) {
+        try {
+          const result = await getUserPrescription(productSlug);
+          if (result && 'prescription' in result && result.prescription) {
+            const dbData = result.prescription;
+            loadedPrescriptionData = {
+              od: dbData.od,
+              os: dbData.os,
+              pd: dbData.pd || "",
+              pdOd: dbData.pdOd || "",
+              pdOs: dbData.pdOs || "",
+              hasTwoPDs: dbData.hasTwoPDs || false,
+              hasPrism: dbData.hasPrism || false,
+            };
+            console.log('[Step7Summary] Loaded prescription from database');
+          }
+        } catch (error) {
+          console.error('Error loading prescription from database:', error);
+        }
+      }
+      
+      // 3. If still not found, try localStorage (shared prescription)
+      if (!loadedPrescriptionData && typeof window !== 'undefined') {
+        const storageKey = session?.user 
+          ? `prescription_user_${(session.user as any).id}` 
+          : 'prescription_shared';
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored) as FullPrescriptionData;
+            if (parsed.od && parsed.os) {
+              loadedPrescriptionData = {
+                od: parsed.od,
+                os: parsed.os,
+                pd: parsed.pd || "",
+                pdOd: parsed.pdOd || "",
+                pdOs: parsed.pdOs || "",
+                hasTwoPDs: parsed.hasTwoPDs || false,
+                hasPrism: parsed.hasPrism || false,
+              };
+              console.log('[Step7Summary] Loaded prescription from localStorage');
+            }
+          } catch (error) {
+            console.error('Error parsing prescription data from localStorage:', error);
+          }
+        }
+      }
+      
+      // 4. Always check localStorage for rxConfig (product-specific) - this is the source of truth
+      if (typeof window !== 'undefined') {
+        const productRxConfigKey = `rxConfig_${productSlug}`;
+        const storedRxConfig = localStorage.getItem(productRxConfigKey);
+        if (storedRxConfig) {
+          try {
+            loadedRxConfig = JSON.parse(storedRxConfig) as RxConfigData;
+            console.log('[Step7Summary] Loaded rxConfig from localStorage');
+          } catch (error) {
+            console.error('Error parsing rxConfig from localStorage:', error);
+          }
+        }
+      }
+      
+      // Update state with loaded data
+      if (loadedPrescriptionData) {
+        setPrescriptionData(loadedPrescriptionData);
+      }
+      if (loadedRxConfig) {
+        setRxConfig(loadedRxConfig);
+      }
+    };
+    
+    loadPrescriptionData();
+  }, [productSlug, session?.user]); // Reload when productSlug or session changes
 
   return (
     <div className="space-y-3">
