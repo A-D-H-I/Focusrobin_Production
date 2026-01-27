@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
-import { CheckCircle2, Edit, ShoppingCart } from "lucide-react";
+import { CheckCircle2, Edit, ShoppingCart, FileText, Download } from "lucide-react";
 import PrescriptionProductImage from "../PrescriptionProductImage";
 import type { Product } from "@/lib/productData";
 import { usePrice } from "@/hooks/usePrice";
@@ -44,19 +44,19 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
   const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   const framePrice = parseEurPrice(product.price);
-  
+
   // Calculate price breakdown - must be before early returns (Rules of Hooks)
   const priceBreakdown = useMemo(() => {
     // Can't calculate if prescriptionData is not loaded yet
     if (!prescriptionData?.rxConfig) return null;
-    
+
     const rxConfig = prescriptionData.rxConfig;
-    
+
     // If we have price breakdown from loaded data, use it
     if (prescriptionData.rxPriceBreakdown) {
       return prescriptionData.rxPriceBreakdown;
     }
-    
+
     // Otherwise, calculate it from rxConfig
     // Convert RxConfigData to LensSelection for pricing
     const lensSelection: LensSelection = normalizeSelection({
@@ -70,14 +70,14 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
       photochromicColor: rxConfig.photochromicColor,
       polarizedColor: rxConfig.polarizedColor,
     });
-    
+
     // Calculate lens pair price (includes profit and edging fee)
     const basePrice = calculateLensPairTotal(lensSelection);
     // Get edging fee based on frame type
     const edgingFee = PRICES.edging[rxConfig.frameType] || 0;
     // Incorporate profit and edging fee into lens price (both hidden from customer)
     const lensPairPrice = basePrice + FIXED_PROFIT + edgingFee;
-    
+
     // Calculate totals with profit and edging fee already in lens price
     const rxRetailNet = lensPairPrice;
     const totalNet = framePrice + rxRetailNet;
@@ -96,7 +96,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
       setIsLoading(true);
       try {
         let loadedData: FullPrescriptionData | null = null;
-        
+
         // First, try to load from sessionStorage (product-specific, most recent)
         if (typeof window !== 'undefined') {
           const sessionKey = `prescription_${productSlug}`;
@@ -110,14 +110,14 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
             }
           }
         }
-        
+
         // If not found in sessionStorage, try database or localStorage
         if (!loadedData) {
-        if (session?.user) {
-          // Load from database (shared prescription per user)
-          const result = await getUserPrescription(productSlug);
-          if (result && 'prescription' in result && result.prescription) {
-            loadedData = result.prescription;
+          if (session?.user) {
+            // Load from database (shared prescription per user)
+            const result = await getUserPrescription(productSlug);
+            if (result && 'prescription' in result && result.prescription) {
+              loadedData = result.prescription;
               // Load product-specific rxConfig from localStorage
               if (typeof window !== 'undefined') {
                 const productRxConfigKey = `rxConfig_${productSlug}`;
@@ -131,14 +131,14 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
                   }
                 }
               }
-          }
-        } else {
-          // Guest user - load from localStorage
-          if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem('prescription_shared');
-            if (stored) {
-              try {
-                const parsed = JSON.parse(stored) as FullPrescriptionData;
+            }
+          } else {
+            // Guest user - load from localStorage
+            if (typeof window !== 'undefined') {
+              const stored = localStorage.getItem('prescription_shared');
+              if (stored) {
+                try {
+                  const parsed = JSON.parse(stored) as FullPrescriptionData;
                   loadedData = parsed;
                   // Load product-specific rxConfig
                   const productRxConfigKey = `rxConfig_${productSlug}`;
@@ -151,14 +151,14 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
                       console.error('Error parsing rxConfig from localStorage:', error);
                     }
                   }
-              } catch (error) {
-                console.error('Error parsing prescription data:', error);
+                } catch (error) {
+                  console.error('Error parsing prescription data:', error);
                 }
               }
             }
           }
         }
-        
+
         // If still no rxConfig, try loading from localStorage (product-specific)
         if (loadedData && !loadedData.rxConfig && typeof window !== 'undefined') {
           const productRxConfigKey = `rxConfig_${productSlug}`;
@@ -181,7 +181,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
             }
           }
         }
-        
+
         // If still no rxConfig, use defaults (don't redirect - let user see confirmation with defaults)
         if (loadedData && !loadedData.rxConfig) {
           const detectedFrameType = detectFrameType(product);
@@ -196,18 +196,18 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           };
           console.log('[PrescriptionConfirmation] Using default rxConfig (no saved config found)');
         }
-        
+
         if (!loadedData) {
           // No prescription data, redirect to product page
           router.push(`/shop/${productSlug}`);
           return;
         }
-        
+
         // Calculate price breakdown if missing
         if (!loadedData.rxPriceBreakdown && loadedData.rxConfig) {
           // Price breakdown will be calculated in useMemo
         }
-        
+
         setPrescriptionData(loadedData);
       } catch (error) {
         console.error('Error loading prescription data:', error);
@@ -244,7 +244,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
   const rxConfig = prescriptionData.rxConfig;
 
   // Check if prescription has prism values
-  const hasPrism = prescriptionData.hasPrism || 
+  const hasPrism = prescriptionData.hasPrism ||
     (prescriptionData.od.prismHorizontal && prescriptionData.od.prismHorizontal !== "0.00") ||
     (prescriptionData.od.prismVertical && prescriptionData.od.prismVertical !== "0.00") ||
     (prescriptionData.os.prismHorizontal && prescriptionData.os.prismHorizontal !== "0.00") ||
@@ -260,12 +260,12 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
       });
       return;
     }
-    
+
     // Prevent multiple clicks
     if (isAddingToCart) {
       return;
     }
-    
+
     setIsAddingToCart(true);
     try {
       // Prepare prescription data for cart in a standardized format
@@ -295,14 +295,16 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           osPrismHorizontalBase: prescriptionData.os.prismHorizontalBase,
           osPrismVertical: prescriptionData.os.prismVertical,
           osPrismVerticalBase: prescriptionData.os.prismVerticalBase,
-          // Prescription image if uploaded
+          // Prescription image/PDF if uploaded
           prescriptionImageUrl: prescriptionData.prescriptionImageUrl,
+          prescriptionPdfUrl: prescriptionData.prescriptionPdfUrl,
+          isPdfMode: prescriptionData.isPdfMode || false,
         },
         rxConfig: rxConfig,
         // IMPORTANT: Always include price breakdown - this ensures cart has correct price
-        rxPriceBreakdown: priceBreakdown,
+        rxPriceBreakdown: priceBreakdown || undefined,
       };
-      
+
       console.log('[CONFIRMATION] Adding to cart:', {
         productId: product.id,
         productSlug: product.slug,
@@ -313,31 +315,31 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
         hasPrescription: true,
         prescriptionData: cartPrescriptionData,
       });
-      
+
       // Await the addToCart function to ensure it completes
       // Don't await refreshCart - it will happen in the background
       await addToCart(product, selectedVariant, 1, cartPrescriptionData);
-      
+
       console.log('[CONFIRMATION] addToCart completed');
-      
+
       // Show toast
       toast({
         title: "Added to cart",
         description: `${product.name} with prescription has been added to your cart.`,
       });
-      
+
       // Save rxConfig back to sessionStorage before navigating (for when user navigates back)
       if (typeof window !== 'undefined' && prescriptionData?.rxConfig) {
         const sessionKey = `prescription_${productSlug}`;
         const fullData: FullPrescriptionData = {
           ...prescriptionData,
           rxConfig: prescriptionData.rxConfig,
-          rxPriceBreakdown: priceBreakdown,
+          rxPriceBreakdown: priceBreakdown || undefined,
         };
         sessionStorage.setItem(sessionKey, JSON.stringify(fullData));
         console.log('[CONFIRMATION] Saved prescription data to sessionStorage before navigating to cart');
       }
-      
+
       // Navigate immediately - use window.location for reliable navigation
       // This prevents React state updates from interfering with navigation
       if (typeof window !== 'undefined') {
@@ -365,10 +367,10 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           productName={product.name}
           rxConfig={rxConfig}
         />
-        
+
         <div className="space-y-4 mt-6">
           <h2 className="text-2xl font-headline">{product.name}</h2>
-          
+
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Frame:</span>
@@ -393,7 +395,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
               </>
             )}
           </div>
-          
+
           {priceBreakdown && (
             <div className="pt-4 border-t space-y-2">
               <div className="flex justify-between text-sm">
@@ -427,129 +429,159 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
             </div>
           </div>
 
-          {/* Prescription Details - Table Format */}
+          {/* Prescription Details - Conditional: PDF Mode vs Manual Entry */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Prescription Details</h3>
-            
-            <div className="border rounded-lg bg-muted/30">
-              {/* Main Prescription Table */}
-              <table className="w-full">
-                <thead>
-                  <tr className="bg-muted/50 border-b">
-                    <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-medium">Eye</th>
-                    <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">SPH</th>
-                    <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">CYL</th>
-                    <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">AXIS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">OD (Right)</td>
-                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.sph}</td>
-                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.cyl}</td>
-                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.axis}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">OS (Left)</td>
-                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.sph}</td>
-                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.cyl}</td>
-                    <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.axis}</td>
-                  </tr>
-                </tbody>
-              </table>
 
-              {/* PD Section */}
-              <div className="p-3 sm:p-4 border-t">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <span className="text-xs sm:text-sm font-medium text-muted-foreground">PD (Pupillary Distance)</span>
-                  <span className="text-xs sm:text-sm font-medium break-words">
-                    {prescriptionData.hasTwoPDs ? (
-                      <>
-                        OD: {prescriptionData.pdOd && prescriptionData.pdOd !== "" ? `${prescriptionData.pdOd} mm` : "N/A"} | 
-                        OS: {prescriptionData.pdOs && prescriptionData.pdOs !== "" ? `${prescriptionData.pdOs} mm` : "N/A"}
-                      </>
-                    ) : (
-                      <>
-                        {prescriptionData.pd && prescriptionData.pd !== "" ? `${prescriptionData.pd} mm` : "Not set"}
-                      </>
-                    )}
-                  </span>
+            {/* Check for PDF Mode */}
+            {prescriptionData.isPdfMode && prescriptionData.prescriptionPdfUrl ? (
+              // PDF Mode - Show PDF uploaded message
+              <div className="border rounded-lg p-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+                    <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-blue-800 dark:text-blue-200">Prescription PDF Uploaded</p>
+                    <p className="text-sm text-blue-600 dark:text-blue-400">
+                      Your prescription document will be sent directly to our lens manufacturer
+                    </p>
+                  </div>
                 </div>
+                {prescriptionData.prescriptionPdfUrl && (
+                  <a
+                    href={prescriptionData.prescriptionPdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-3"
+                  >
+                    <Download className="h-4 w-4" />
+                    View uploaded prescription
+                  </a>
+                )}
               </div>
+            ) : (
+              // Manual Entry Mode - Show prescription values table
+              <div className="border rounded-lg bg-muted/30">
+                {/* Main Prescription Table */}
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-muted/50 border-b">
+                      <th className="p-2 sm:p-3 text-left text-xs sm:text-sm font-medium">Eye</th>
+                      <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">SPH</th>
+                      <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">CYL</th>
+                      <th className="p-2 sm:p-3 text-center text-xs sm:text-sm font-medium">AXIS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b">
+                      <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">OD (Right)</td>
+                      <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.sph}</td>
+                      <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.cyl}</td>
+                      <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.od.axis}</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2 sm:p-3 font-medium text-xs sm:text-sm">OS (Left)</td>
+                      <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.sph}</td>
+                      <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.cyl}</td>
+                      <td className="p-2 sm:p-3 text-center text-xs sm:text-sm">{prescriptionData.os.axis}</td>
+                    </tr>
+                  </tbody>
+                </table>
 
-              {/* Prism Section - Show if hasPrism is true */}
-              {hasPrism && (
+                {/* PD Section */}
                 <div className="p-3 sm:p-4 border-t">
-                  <h4 className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3">Prism Correction</h4>
-                  <table className="w-full text-xs sm:text-sm">
-                    <thead>
-                      <tr className="bg-muted/50 border-b">
-                        <th className="p-1.5 sm:p-2 text-left text-[10px] sm:text-xs font-medium">Eye</th>
-                        <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">H. Prism</th>
-                        <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">Base</th>
-                        <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">V. Prism</th>
-                        <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">Base</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b">
-                        <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OD (Right)</td>
-                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                          {prescriptionData.od.prismHorizontal && prescriptionData.od.prismHorizontal !== "0.00" 
-                            ? prescriptionData.od.prismHorizontal 
-                            : "-"}
-                        </td>
-                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                          {prescriptionData.od.prismHorizontalBase && prescriptionData.od.prismHorizontalBase !== "" 
-                            ? prescriptionData.od.prismHorizontalBase 
-                            : "-"}
-                        </td>
-                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                          {prescriptionData.od.prismVertical && prescriptionData.od.prismVertical !== "0.00" 
-                            ? prescriptionData.od.prismVertical 
-                            : "-"}
-                        </td>
-                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                          {prescriptionData.od.prismVerticalBase && prescriptionData.od.prismVerticalBase !== "" 
-                            ? prescriptionData.od.prismVerticalBase 
-                            : "-"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OS (Left)</td>
-                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                          {prescriptionData.os.prismHorizontal && prescriptionData.os.prismHorizontal !== "0.00" 
-                            ? prescriptionData.os.prismHorizontal 
-                            : "-"}
-                        </td>
-                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                          {prescriptionData.os.prismHorizontalBase && prescriptionData.os.prismHorizontalBase !== "" 
-                            ? prescriptionData.os.prismHorizontalBase 
-                            : "-"}
-                        </td>
-                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                          {prescriptionData.os.prismVertical && prescriptionData.os.prismVertical !== "0.00" 
-                            ? prescriptionData.os.prismVertical 
-                            : "-"}
-                        </td>
-                        <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                          {prescriptionData.os.prismVerticalBase && prescriptionData.os.prismVerticalBase !== "" 
-                            ? prescriptionData.os.prismVerticalBase 
-                            : "-"}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <span className="text-xs sm:text-sm font-medium text-muted-foreground">PD (Pupillary Distance)</span>
+                    <span className="text-xs sm:text-sm font-medium break-words">
+                      {prescriptionData.hasTwoPDs ? (
+                        <>
+                          OD: {prescriptionData.pdOd && prescriptionData.pdOd !== "" ? `${prescriptionData.pdOd} mm` : "N/A"} |
+                          OS: {prescriptionData.pdOs && prescriptionData.pdOs !== "" ? `${prescriptionData.pdOs} mm` : "N/A"}
+                        </>
+                      ) : (
+                        <>
+                          {prescriptionData.pd && prescriptionData.pd !== "" ? `${prescriptionData.pd} mm` : "Not set"}
+                        </>
+                      )}
+                    </span>
+                  </div>
                 </div>
-              )}
-            </div>
+
+                {/* Prism Section - Show if hasPrism is true */}
+                {hasPrism && (
+                  <div className="p-3 sm:p-4 border-t">
+                    <h4 className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3">Prism Correction</h4>
+                    <table className="w-full text-xs sm:text-sm">
+                      <thead>
+                        <tr className="bg-muted/50 border-b">
+                          <th className="p-1.5 sm:p-2 text-left text-[10px] sm:text-xs font-medium">Eye</th>
+                          <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">H. Prism</th>
+                          <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">Base</th>
+                          <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">V. Prism</th>
+                          <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">Base</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b">
+                          <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OD (Right)</td>
+                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                            {prescriptionData.od.prismHorizontal && prescriptionData.od.prismHorizontal !== "0.00"
+                              ? prescriptionData.od.prismHorizontal
+                              : "-"}
+                          </td>
+                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                            {prescriptionData.od.prismHorizontalBase && prescriptionData.od.prismHorizontalBase !== ""
+                              ? prescriptionData.od.prismHorizontalBase
+                              : "-"}
+                          </td>
+                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                            {prescriptionData.od.prismVertical && prescriptionData.od.prismVertical !== "0.00"
+                              ? prescriptionData.od.prismVertical
+                              : "-"}
+                          </td>
+                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                            {prescriptionData.od.prismVerticalBase && prescriptionData.od.prismVerticalBase !== ""
+                              ? prescriptionData.od.prismVerticalBase
+                              : "-"}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OS (Left)</td>
+                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                            {prescriptionData.os.prismHorizontal && prescriptionData.os.prismHorizontal !== "0.00"
+                              ? prescriptionData.os.prismHorizontal
+                              : "-"}
+                          </td>
+                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                            {prescriptionData.os.prismHorizontalBase && prescriptionData.os.prismHorizontalBase !== ""
+                              ? prescriptionData.os.prismHorizontalBase
+                              : "-"}
+                          </td>
+                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                            {prescriptionData.os.prismVertical && prescriptionData.os.prismVertical !== "0.00"
+                              ? prescriptionData.os.prismVertical
+                              : "-"}
+                          </td>
+                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
+                            {prescriptionData.os.prismVerticalBase && prescriptionData.os.prismVerticalBase !== ""
+                              ? prescriptionData.os.prismVerticalBase
+                              : "-"}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Lens Configuration */}
           {rxConfig && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Lens Configuration</h3>
-              
+
               <div className="border rounded-lg p-4 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Lens Type:</span>
@@ -609,7 +641,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           {priceBreakdown && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Price Breakdown</h3>
-              
+
               <div className="border rounded-lg p-4 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span>Frame</span>

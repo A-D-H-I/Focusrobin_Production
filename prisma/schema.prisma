@@ -652,6 +652,12 @@ model Order {
   billingPostalCode   String?
   billingCountry      String?
 
+  // Business Purchase Information (optional)
+  isBusinessPurchase  Boolean  @default(false)
+  businessName        String?
+  businessNumber      String?  // Business registration number
+  vatNumber           String?  // VAT/Tax ID
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   shippedAt   DateTime?

@@ -7,11 +7,11 @@ import { signIn } from "next-auth/react";
 import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
-import { 
-  LayoutDashboard, 
-  Package, 
-  MapPin, 
-  Wallet, 
+import {
+  LayoutDashboard,
+  Package,
+  MapPin,
+  Wallet,
   LogOut,
   CheckCircle2,
   Clock,
@@ -28,7 +28,9 @@ import {
   ChevronUp,
   CreditCard,
   Truck,
-  Glasses
+  Glasses,
+  FileText,
+  Download
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -106,7 +108,7 @@ export default function AccountPage() {
   const { toast } = useToast();
   const { formatPrice, currency } = usePrice();
   const isNonEurCurrency = currency !== 'EUR';
-  
+
   // Review form state
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [reviewingProduct, setReviewingProduct] = useState<{ productName: string; productId: string; orderId: string } | null>(null);
@@ -117,10 +119,10 @@ export default function AccountPage() {
   const [reviewContent, setReviewContent] = useState("");
   const [reviewUploadedImages, setReviewUploadedImages] = useState<File[]>([]);
   const [reviewImagePreviews, setReviewImagePreviews] = useState<string[]>([]);
-  
+
   // Get user name from session
   const userName = session?.user?.name || session?.user?.email?.split('@')[0] || "User";
-  
+
   // Form state - initialize with session data
   const [formData, setFormData] = useState({
     firstName: '',
@@ -279,7 +281,7 @@ export default function AccountPage() {
         lastUserIdRef.current = null;
         return;
       }
-      
+
       if (activeTab !== 'orders' && activeTab !== 'dashboard') {
         return;
       }
@@ -329,7 +331,7 @@ export default function AccountPage() {
         reviewsLoadedRef.current = false;
         return;
       }
-      
+
       if (activeTab !== 'reviews' && activeTab !== 'orders') {
         return;
       }
@@ -459,7 +461,7 @@ export default function AccountPage() {
     const confirmed = window.confirm(
       'Are you sure you want to delete your account? This action cannot be undone. All your data will be archived and then permanently deleted.'
     );
-    
+
     if (!confirmed) {
       return;
     }
@@ -475,7 +477,7 @@ export default function AccountPage() {
 
     try {
       const result = await deleteMyAccount();
-      
+
       if (result.error) {
         toast({
           title: "Error",
@@ -487,11 +489,11 @@ export default function AccountPage() {
           title: "Account Deleted",
           description: "Your account has been successfully deleted. You will be signed out.",
         });
-        
+
         // Sign out and redirect after a short delay
         setTimeout(async () => {
           // Use current origin to ensure redirect works with ngrok
-          const callbackUrl = typeof window !== 'undefined' 
+          const callbackUrl = typeof window !== 'undefined'
             ? `${window.location.origin}/`
             : "/";
           await signOut({ callbackUrl });
@@ -529,7 +531,7 @@ export default function AccountPage() {
 
     const newFiles = Array.from(files);
     const totalFiles = reviewUploadedImages.length + newFiles.length;
-    
+
     if (totalFiles > 5) {
       toast({
         title: "Too many images",
@@ -562,8 +564,8 @@ export default function AccountPage() {
 
         // Create preview from compressed file
         const previewPromise = new Promise<string>((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
             if (reader.result) {
               resolve(reader.result as string);
             } else {
@@ -572,7 +574,7 @@ export default function AccountPage() {
           };
           reader.readAsDataURL(compressedFile);
         });
-        
+
         previewPromises.push(previewPromise);
       } catch (error: any) {
         console.error('Error compressing image:', error);
@@ -600,7 +602,7 @@ export default function AccountPage() {
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!reviewingProduct) return;
 
     if (reviewRating === 0) {
@@ -635,7 +637,7 @@ export default function AccountPage() {
     try {
       // Upload images to S3
       let imageUrls: string[] = [];
-      
+
       if (reviewUploadedImages.length > 0) {
         const formData = new FormData();
         reviewUploadedImages.forEach((file) => {
@@ -654,7 +656,7 @@ export default function AccountPage() {
         }
 
         imageUrls = uploadResult.urls || [];
-        
+
         // Log any partial upload errors
         if (uploadResult.errors && uploadResult.errors.length > 0) {
           console.warn("Some images failed to upload:", uploadResult.errors);
@@ -754,7 +756,7 @@ export default function AccountPage() {
                 <Button
                   onClick={() => {
                     // Use current origin to ensure redirect works with both ngrok and localhost
-                    const callbackUrl = typeof window !== 'undefined' 
+                    const callbackUrl = typeof window !== 'undefined'
                       ? `${window.location.origin}/account`
                       : "/account";
                     signIn("google", { callbackUrl });
@@ -795,7 +797,7 @@ export default function AccountPage() {
                       onClick={async () => {
                         if (tab.id === 'logout') {
                           // Handle logout with proper callback URL for ngrok
-                          const callbackUrl = typeof window !== 'undefined' 
+                          const callbackUrl = typeof window !== 'undefined'
                             ? `${window.location.origin}/`
                             : "/";
                           await signOut({ callbackUrl });
@@ -902,11 +904,11 @@ export default function AccountPage() {
                                   {format(new Date(order.createdAt), 'MMM dd, yyyy')}
                                 </td>
                                 <td className="py-3 px-4 text-sm">
-                                                  <div className="flex items-center gap-2">
-                                                    {getStatusIcon(order.status)}
-                                                    <span className={getStatusColor(order.status)}>{getStatusLabel(order.status)}</span>
-                                                  </div>
-                                                </td>
+                                  <div className="flex items-center gap-2">
+                                    {getStatusIcon(order.status)}
+                                    <span className={getStatusColor(order.status)}>{getStatusLabel(order.status)}</span>
+                                  </div>
+                                </td>
                                 <td className="py-3 px-4 text-sm text-right font-semibold text-brand-blue">
                                   {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.total.toFixed(2)}
                                 </td>
@@ -958,535 +960,569 @@ export default function AccountPage() {
                           return next;
                         });
                       };
-                      
+
                       return (
-                      <div key={order.id} className="bg-white border border-border rounded-lg overflow-hidden">
-                        {/* Order Header - Clickable */}
-                        <div 
-                          className="p-6 cursor-pointer hover:bg-muted/30 transition-colors"
-                          onClick={toggleExpanded}
-                        >
-                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div className="flex items-center gap-3 flex-1">
-                              <div className="flex-1">
+                        <div key={order.id} className="bg-white border border-border rounded-lg overflow-hidden">
+                          {/* Order Header - Clickable */}
+                          <div
+                            className="p-6 cursor-pointer hover:bg-muted/30 transition-colors"
+                            onClick={toggleExpanded}
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                              <div className="flex items-center gap-3 flex-1">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="text-brand-h3 font-headline text-brand-blue">Order {order.orderNumber}</h3>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-6 w-6"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleExpanded();
+                                      }}
+                                    >
+                                      {isExpanded ? (
+                                        <ChevronUp className="h-4 w-4" />
+                                      ) : (
+                                        <ChevronDown className="h-4 w-4" />
+                                      )}
+                                    </Button>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">Placed on {format(new Date(order.createdAt), 'MMM dd, yyyy')}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2">
-                            <h3 className="text-brand-h3 font-headline text-brand-blue">Order {order.orderNumber}</h3>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleExpanded();
-                                    }}
-                                  >
-                                    {isExpanded ? (
-                                      <ChevronUp className="h-4 w-4" />
-                                    ) : (
-                                      <ChevronDown className="h-4 w-4" />
-                                    )}
-                                  </Button>
+                                  {getStatusIcon(order.status)}
+                                  <span className={`text-sm font-medium ${getStatusColor(order.status)}`}>{getStatusLabel(order.status)}</span>
                                 </div>
-                            <p className="text-sm text-muted-foreground">Placed on {format(new Date(order.createdAt), 'MMM dd, yyyy')}</p>
-                              </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              {getStatusIcon(order.status)}
-                              <span className={`text-sm font-medium ${getStatusColor(order.status)}`}>{getStatusLabel(order.status)}</span>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm text-muted-foreground">Total</p>
-                              <p className="text-lg font-semibold text-brand-blue">
-                                {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.total.toFixed(2)}
-                              </p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Expanded Order Details */}
-                        {isExpanded && (
-                          <div className="border-t border-border p-6 space-y-6">
-                            {/* Order Summary */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                              {/* Order Information */}
-                              <div className="space-y-4">
-                                <h4 className="text-brand-h4 font-headline text-brand-blue flex items-center gap-2">
-                                  <Package className="h-5 w-5" />
-                                  Order Information
-                                </h4>
-                                <div className="space-y-2 text-sm">
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Order Number:</span>
-                                    <span className="font-medium">{order.orderNumber}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Order Date:</span>
-                                    <span className="font-medium">{format(new Date(order.createdAt), 'MMM dd, yyyy HH:mm')}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Status:</span>
-                                    <span className={`font-medium ${getStatusColor(order.status)}`}>{getStatusLabel(order.status)}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Payment Status:</span>
-                                    <span className="font-medium">{order.paymentStatus}</span>
-                                  </div>
-                                  {order.paymentMethod && (
-                                    <div className="flex justify-between">
-                                      <span className="text-muted-foreground">Payment Method:</span>
-                                      <span className="font-medium capitalize">{order.paymentMethod}</span>
-                                    </div>
-                                  )}
-                                  {order.shippedAt && (
-                                    <div className="flex justify-between">
-                                      <span className="text-muted-foreground">Shipped On:</span>
-                                      <span className="font-medium">{format(new Date(order.shippedAt), 'MMM dd, yyyy')}</span>
-                                    </div>
-                                  )}
-                                  {order.deliveredAt && (
-                                    <div className="flex justify-between">
-                                      <span className="text-muted-foreground">Delivered On:</span>
-                                      <span className="font-medium">{format(new Date(order.deliveredAt), 'MMM dd, yyyy')}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Price Breakdown */}
-                              <div className="space-y-4">
-                                <h4 className="text-brand-h4 font-headline text-brand-blue flex items-center gap-2">
-                                  <CreditCard className="h-5 w-5" />
-                                  Price Breakdown
-                                </h4>
-                                <div className="space-y-2 text-sm">
-                                  {order.subtotal !== null && (
-                                    <div className="flex justify-between">
-                                      <span className="text-muted-foreground">Subtotal:</span>
-                                      <span className="font-medium">
-                                        {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.subtotal.toFixed(2)}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {order.shippingCost !== null && (
-                                    <div className="flex justify-between">
-                                      <span className="text-muted-foreground">Shipping:</span>
-                                      <span className="font-medium">
-                                        {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.shippingCost.toFixed(2)}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {order.tax !== null && order.tax > 0 && (
-                                    <div className="flex justify-between">
-                                      <span className="text-muted-foreground">Tax:</span>
-                                      <span className="font-medium">
-                                        {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.tax.toFixed(2)}
-                                      </span>
-                                    </div>
-                                  )}
-                                  <div className="flex justify-between pt-2 border-t border-border">
-                                    <span className="font-semibold text-brand-blue">Total:</span>
-                                    <span className="font-bold text-lg text-brand-blue">
-                                      {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.total.toFixed(2)}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Shipping Address */}
-                            {order.shippingAddressLine1 && (
-                              <div className="space-y-2">
-                                <h4 className="text-brand-h4 font-headline text-brand-blue flex items-center gap-2">
-                                  <Truck className="h-5 w-5" />
-                                  Shipping Address
-                                </h4>
-                                <div className="bg-muted/30 rounded-lg p-4 text-sm">
-                                  <p className="font-medium">{order.shippingName}</p>
-                                  {order.shippingPhone && <p className="text-muted-foreground">{order.shippingPhone}</p>}
-                                  <p className="text-muted-foreground mt-2">{order.shippingAddressLine1}</p>
-                                  {order.shippingAddressLine2 && (
-                                    <p className="text-muted-foreground">{order.shippingAddressLine2}</p>
-                                  )}
-                                  <p className="text-muted-foreground">
-                                    {order.shippingCity}
-                                    {order.shippingState && `, ${order.shippingState}`}
-                                    {order.shippingPostalCode && ` ${order.shippingPostalCode}`}
+                                <div className="text-right">
+                                  <p className="text-sm text-muted-foreground">Total</p>
+                                  <p className="text-lg font-semibold text-brand-blue">
+                                    {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.total.toFixed(2)}
                                   </p>
-                                  <p className="text-muted-foreground">{order.shippingCountry}</p>
                                 </div>
                               </div>
-                            )}
-
-                            {/* Billing Address (if different from shipping) */}
-                            {order.billingAddressLine1 && 
-                             (order.billingAddressLine1 !== order.shippingAddressLine1 || 
-                              order.billingCity !== order.shippingCity) && (
-                              <div className="space-y-2">
-                                <h4 className="text-brand-h4 font-headline text-brand-blue flex items-center gap-2">
-                                  <CreditCard className="h-5 w-5" />
-                                  Billing Address
-                                </h4>
-                                <div className="bg-muted/30 rounded-lg p-4 text-sm">
-                                  <p className="font-medium">{order.billingName}</p>
-                                  {order.billingPhone && <p className="text-muted-foreground">{order.billingPhone}</p>}
-                                  <p className="text-muted-foreground mt-2">{order.billingAddressLine1}</p>
-                                  {order.billingAddressLine2 && (
-                                    <p className="text-muted-foreground">{order.billingAddressLine2}</p>
-                                  )}
-                                  <p className="text-muted-foreground">
-                                    {order.billingCity}
-                                    {order.billingState && `, ${order.billingState}`}
-                                    {order.billingPostalCode && ` ${order.billingPostalCode}`}
-                                  </p>
-                                  <p className="text-muted-foreground">{order.billingCountry}</p>
-                                </div>
-                              </div>
-                            )}
-                        
-                        {/* Delivery Time */}
-                        {order.shippingCountry && (() => {
-                          const deliveryTime = getDeliveryTime(
-                            order.items.map((item: any) => ({
-                              prescriptionData: item.prescriptionData,
-                              productSlug: item.productSlug,
-                            })),
-                            order.shippingCountry
-                          );
-                          return (
-                                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                              <p className="text-sm text-blue-900">
-                                <span className="font-medium">📦 Expected Delivery:</span> {deliveryTime}
-                              </p>
                             </div>
-                          );
-                        })()}
-
-                        {/* Tracking Information */}
-                        {(order.trackingNumber || order.trackingMessage) && (
-                              <div className="p-4 bg-brand-teal/10 border border-brand-teal/20 rounded-lg">
-                            <h4 className="text-brand-h4 font-headline text-brand-blue mb-2">Tracking Information</h4>
-                            {order.shippingProvider && (
-                              <p className="text-sm text-muted-foreground mb-1">
-                                <span className="font-medium">Shipping Provider:</span> {order.shippingProvider}
-                              </p>
-                            )}
-                            {order.trackingNumber && (
-                              <p className="text-sm text-muted-foreground mb-1">
-                                <span className="font-medium">Tracking Number:</span> {order.trackingNumber}
-                              </p>
-                            )}
-                            {order.trackingMessage && (
-                              <p className="text-sm text-muted-foreground mt-2">
-                                <span className="font-medium">Update:</span> {order.trackingMessage}
-                              </p>
-                            )}
                           </div>
-                        )}
 
-                            {/* Order Items */}
-                        <div className="space-y-4">
-                              <h4 className="text-brand-h4 font-headline text-brand-blue">Order Items</h4>
-                          {order.items.map((item: any, itemIndex: number) => (
-                            <div key={itemIndex} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-muted/30 rounded-lg">
-                                  {item.imageUrl && (
-                                    <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 bg-muted rounded-lg overflow-hidden">
-                                      <Image
-                                        src={item.imageUrl}
-                                        alt={item.productName}
-                                        fill
-                                        className="object-cover"
-                                        sizes="96px"
-                                      />
+                          {/* Expanded Order Details */}
+                          {isExpanded && (
+                            <div className="border-t border-border p-6 space-y-6">
+                              {/* Order Summary */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {/* Order Information */}
+                                <div className="space-y-4">
+                                  <h4 className="text-brand-h4 font-headline text-brand-blue flex items-center gap-2">
+                                    <Package className="h-5 w-5" />
+                                    Order Information
+                                  </h4>
+                                  <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Order Number:</span>
+                                      <span className="font-medium">{order.orderNumber}</span>
                                     </div>
-                                  )}
-                              <div className="flex-grow">
-                                    {item.productSlug ? (
-                                      <Link href={`/shop/${item.productSlug}`}>
-                                        <h4 className="text-brand-h4 font-headline text-brand-blue hover:text-brand-teal transition-colors">
-                                          {item.productName}
-                                        </h4>
-                                      </Link>
-                                    ) : (
-                                <h4 className="text-brand-h4 font-headline text-brand-blue">{item.productName}</h4>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Order Date:</span>
+                                      <span className="font-medium">{format(new Date(order.createdAt), 'MMM dd, yyyy HH:mm')}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Status:</span>
+                                      <span className={`font-medium ${getStatusColor(order.status)}`}>{getStatusLabel(order.status)}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-muted-foreground">Payment Status:</span>
+                                      <span className="font-medium">{order.paymentStatus}</span>
+                                    </div>
+                                    {order.paymentMethod && (
+                                      <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Payment Method:</span>
+                                        <span className="font-medium capitalize">{order.paymentMethod}</span>
+                                      </div>
                                     )}
-                                <p className="text-sm text-muted-foreground">Variant: {item.variantName}</p>
-                                    {item.sku && (
-                                      <p className="text-sm text-muted-foreground">SKU: {item.sku}</p>
+                                    {order.shippedAt && (
+                                      <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Shipped On:</span>
+                                        <span className="font-medium">{format(new Date(order.shippedAt), 'MMM dd, yyyy')}</span>
+                                      </div>
                                     )}
-                                <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-                                    {item.prescriptionData && (() => {
-                                      // Handle both nested and flat prescription data formats
-                                      // Flat format: { rxValues: { odSph, odCyl, odAxis, osSph, ... } }
-                                      // Nested format: { od: { sph, cyl, axis }, os: { sph, cyl, axis } }
-                                      const rxValues = item.prescriptionData.rxValues || item.prescriptionData;
-                                      
-                                      // Extract OD (Right Eye) values - handle both formats
-                                      const od = {
-                                        sph: rxValues.od?.sph || rxValues.odSph || '0.00',
-                                        cyl: rxValues.od?.cyl || rxValues.odCyl || '0.00',
-                                        axis: rxValues.od?.axis || rxValues.odAxis || '0',
-                                        prismHorizontal: rxValues.od?.prismHorizontal || rxValues.odPrismHorizontal,
-                                        prismHorizontalBase: rxValues.od?.prismHorizontalBase || rxValues.odPrismHorizontalBase,
-                                        prismVertical: rxValues.od?.prismVertical || rxValues.odPrismVertical,
-                                        prismVerticalBase: rxValues.od?.prismVerticalBase || rxValues.odPrismVerticalBase,
-                                      };
-                                      
-                                      // Extract OS (Left Eye) values - handle both formats
-                                      const os = {
-                                        sph: rxValues.os?.sph || rxValues.osSph || '0.00',
-                                        cyl: rxValues.os?.cyl || rxValues.osCyl || '0.00',
-                                        axis: rxValues.os?.axis || rxValues.osAxis || '0',
-                                        prismHorizontal: rxValues.os?.prismHorizontal || rxValues.osPrismHorizontal,
-                                        prismHorizontalBase: rxValues.os?.prismHorizontalBase || rxValues.osPrismHorizontalBase,
-                                        prismVertical: rxValues.os?.prismVertical || rxValues.osPrismVertical,
-                                        prismVerticalBase: rxValues.os?.prismVerticalBase || rxValues.osPrismVerticalBase,
-                                      };
-                                      
-                                      // Extract PD values
-                                      const pd = rxValues.pd || '';
-                                      const pdOd = rxValues.pdOd || '';
-                                      const pdOs = rxValues.pdOs || '';
-                                      const hasTwoPDs = rxValues.hasTwoPDs || false;
-                                      const hasPrism = rxValues.hasPrism || 
-                                        (od.prismHorizontal && od.prismHorizontal !== "0.00") ||
-                                        (od.prismVertical && od.prismVertical !== "0.00") ||
-                                        (os.prismHorizontal && os.prismHorizontal !== "0.00") ||
-                                        (os.prismVertical && os.prismVertical !== "0.00");
-                                      
-                                      // Extract prescription image URL
-                                      const prescriptionImageUrl = rxValues.prescriptionImageUrl || item.prescriptionData.prescriptionImageUrl;
-                                      
-                                      // Extract lens configuration
-                                      const rxConfig = item.prescriptionData.rxConfig || {};
-                                      
-                                      return (
-                                        <div className="mt-3 space-y-3">
-                                          {/* Prescription Values Section */}
-                                          <div className="border rounded-lg bg-muted/30 overflow-hidden">
-                                            <div className="p-3 border-b bg-muted">
-                                              <h5 className="font-semibold text-sm flex items-center gap-2 text-brand-blue">
-                                                <Glasses className="h-4 w-4" />
-                                                Prescription Details
-                                              </h5>
-                                            </div>
-                                            
-                                            {/* Main Prescription Table */}
-                                            <table className="w-full">
-                                              <thead>
-                                                <tr className="bg-muted/50 border-b">
-                                                  <th className="p-2 text-left text-xs font-medium">Eye</th>
-                                                  <th className="p-2 text-center text-xs font-medium">SPH</th>
-                                                  <th className="p-2 text-center text-xs font-medium">CYL</th>
-                                                  <th className="p-2 text-center text-xs font-medium">AXIS</th>
-                                                </tr>
-                                              </thead>
-                                              <tbody>
-                                                <tr className="border-b">
-                                                  <td className="p-2 font-medium text-xs">OD (Right)</td>
-                                                  <td className="p-2 text-center text-xs">{od.sph !== '0.00' ? od.sph : "-"}</td>
-                                                  <td className="p-2 text-center text-xs">{od.cyl !== '0.00' ? od.cyl : "-"}</td>
-                                                  <td className="p-2 text-center text-xs">{od.axis !== '0' ? od.axis : "-"}</td>
-                                                </tr>
-                                                <tr>
-                                                  <td className="p-2 font-medium text-xs">OS (Left)</td>
-                                                  <td className="p-2 text-center text-xs">{os.sph !== '0.00' ? os.sph : "-"}</td>
-                                                  <td className="p-2 text-center text-xs">{os.cyl !== '0.00' ? os.cyl : "-"}</td>
-                                                  <td className="p-2 text-center text-xs">{os.axis !== '0' ? os.axis : "-"}</td>
-                                                </tr>
-                                              </tbody>
-                                            </table>
+                                    {order.deliveredAt && (
+                                      <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Delivered On:</span>
+                                        <span className="font-medium">{format(new Date(order.deliveredAt), 'MMM dd, yyyy')}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
 
-                                            {/* PD Section */}
-                                            <div className="p-3 border-t">
-                                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                                                <span className="text-xs font-medium text-muted-foreground">PD (Pupillary Distance)</span>
-                                                <span className="text-xs font-medium break-words">
-                                                  {hasTwoPDs ? (
-                                                    <>
-                                                      OD: {pdOd && pdOd !== "" ? `${pdOd} mm` : "N/A"} | 
-                                                      OS: {pdOs && pdOs !== "" ? `${pdOs} mm` : "N/A"}
-                                                    </>
-                                                  ) : (
-                                                    <>
-                                                      {pd && pd !== "" ? `${pd} mm` : "Not set"}
-                                                    </>
+                                {/* Price Breakdown */}
+                                <div className="space-y-4">
+                                  <h4 className="text-brand-h4 font-headline text-brand-blue flex items-center gap-2">
+                                    <CreditCard className="h-5 w-5" />
+                                    Price Breakdown
+                                  </h4>
+                                  <div className="space-y-2 text-sm">
+                                    {order.subtotal !== null && (
+                                      <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Subtotal:</span>
+                                        <span className="font-medium">
+                                          {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.subtotal.toFixed(2)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {order.shippingCost !== null && (
+                                      <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Shipping:</span>
+                                        <span className="font-medium">
+                                          {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.shippingCost.toFixed(2)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {order.tax !== null && order.tax > 0 && (
+                                      <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Tax:</span>
+                                        <span className="font-medium">
+                                          {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.tax.toFixed(2)}
+                                        </span>
+                                      </div>
+                                    )}
+                                    <div className="flex justify-between pt-2 border-t border-border">
+                                      <span className="font-semibold text-brand-blue">Total:</span>
+                                      <span className="font-bold text-lg text-brand-blue">
+                                        {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{order.total.toFixed(2)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Shipping Address */}
+                              {order.shippingAddressLine1 && (
+                                <div className="space-y-2">
+                                  <h4 className="text-brand-h4 font-headline text-brand-blue flex items-center gap-2">
+                                    <Truck className="h-5 w-5" />
+                                    Shipping Address
+                                  </h4>
+                                  <div className="bg-muted/30 rounded-lg p-4 text-sm">
+                                    <p className="font-medium">{order.shippingName}</p>
+                                    {order.shippingPhone && <p className="text-muted-foreground">{order.shippingPhone}</p>}
+                                    <p className="text-muted-foreground mt-2">{order.shippingAddressLine1}</p>
+                                    {order.shippingAddressLine2 && (
+                                      <p className="text-muted-foreground">{order.shippingAddressLine2}</p>
+                                    )}
+                                    <p className="text-muted-foreground">
+                                      {order.shippingCity}
+                                      {order.shippingState && `, ${order.shippingState}`}
+                                      {order.shippingPostalCode && ` ${order.shippingPostalCode}`}
+                                    </p>
+                                    <p className="text-muted-foreground">{order.shippingCountry}</p>
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Billing Address (if different from shipping) */}
+                              {order.billingAddressLine1 &&
+                                (order.billingAddressLine1 !== order.shippingAddressLine1 ||
+                                  order.billingCity !== order.shippingCity) && (
+                                  <div className="space-y-2">
+                                    <h4 className="text-brand-h4 font-headline text-brand-blue flex items-center gap-2">
+                                      <CreditCard className="h-5 w-5" />
+                                      Billing Address
+                                    </h4>
+                                    <div className="bg-muted/30 rounded-lg p-4 text-sm">
+                                      <p className="font-medium">{order.billingName}</p>
+                                      {order.billingPhone && <p className="text-muted-foreground">{order.billingPhone}</p>}
+                                      <p className="text-muted-foreground mt-2">{order.billingAddressLine1}</p>
+                                      {order.billingAddressLine2 && (
+                                        <p className="text-muted-foreground">{order.billingAddressLine2}</p>
+                                      )}
+                                      <p className="text-muted-foreground">
+                                        {order.billingCity}
+                                        {order.billingState && `, ${order.billingState}`}
+                                        {order.billingPostalCode && ` ${order.billingPostalCode}`}
+                                      </p>
+                                      <p className="text-muted-foreground">{order.billingCountry}</p>
+                                    </div>
+                                  </div>
+                                )}
+
+                              {/* Delivery Time */}
+                              {order.shippingCountry && (() => {
+                                const deliveryTime = getDeliveryTime(
+                                  order.items.map((item: any) => ({
+                                    prescriptionData: item.prescriptionData,
+                                    productSlug: item.productSlug,
+                                  })),
+                                  order.shippingCountry
+                                );
+                                return (
+                                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <p className="text-sm text-blue-900">
+                                      <span className="font-medium">📦 Expected Delivery:</span> {deliveryTime}
+                                    </p>
+                                  </div>
+                                );
+                              })()}
+
+                              {/* Tracking Information */}
+                              {(order.trackingNumber || order.trackingMessage) && (
+                                <div className="p-4 bg-brand-teal/10 border border-brand-teal/20 rounded-lg">
+                                  <h4 className="text-brand-h4 font-headline text-brand-blue mb-2">Tracking Information</h4>
+                                  {order.shippingProvider && (
+                                    <p className="text-sm text-muted-foreground mb-1">
+                                      <span className="font-medium">Shipping Provider:</span> {order.shippingProvider}
+                                    </p>
+                                  )}
+                                  {order.trackingNumber && (
+                                    <p className="text-sm text-muted-foreground mb-1">
+                                      <span className="font-medium">Tracking Number:</span> {order.trackingNumber}
+                                    </p>
+                                  )}
+                                  {order.trackingMessage && (
+                                    <p className="text-sm text-muted-foreground mt-2">
+                                      <span className="font-medium">Update:</span> {order.trackingMessage}
+                                    </p>
+                                  )}
+                                </div>
+                              )}
+
+                              {/* Order Items */}
+                              <div className="space-y-4">
+                                <h4 className="text-brand-h4 font-headline text-brand-blue">Order Items</h4>
+                                {order.items.map((item: any, itemIndex: number) => (
+                                  <div key={itemIndex} className="flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-muted/30 rounded-lg">
+                                    {item.imageUrl && (
+                                      <div className="relative w-20 h-20 sm:w-24 sm:h-24 flex-shrink-0 bg-muted rounded-lg overflow-hidden">
+                                        <Image
+                                          src={item.imageUrl}
+                                          alt={item.productName}
+                                          fill
+                                          className="object-cover"
+                                          sizes="96px"
+                                        />
+                                      </div>
+                                    )}
+                                    <div className="flex-grow">
+                                      {item.productSlug ? (
+                                        <Link href={`/shop/${item.productSlug}`}>
+                                          <h4 className="text-brand-h4 font-headline text-brand-blue hover:text-brand-teal transition-colors">
+                                            {item.productName}
+                                          </h4>
+                                        </Link>
+                                      ) : (
+                                        <h4 className="text-brand-h4 font-headline text-brand-blue">{item.productName}</h4>
+                                      )}
+                                      <p className="text-sm text-muted-foreground">Variant: {item.variantName}</p>
+                                      {item.sku && (
+                                        <p className="text-sm text-muted-foreground">SKU: {item.sku}</p>
+                                      )}
+                                      <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
+                                      {item.prescriptionData && (() => {
+                                        // Handle both nested and flat prescription data formats
+                                        // Flat format: { rxValues: { odSph, odCyl, odAxis, osSph, ... } }
+                                        // Nested format: { od: { sph, cyl, axis }, os: { sph, cyl, axis } }
+                                        const rxValues = item.prescriptionData.rxValues || item.prescriptionData;
+
+                                        // Extract OD (Right Eye) values - handle both formats
+                                        const od = {
+                                          sph: rxValues.od?.sph || rxValues.odSph || '0.00',
+                                          cyl: rxValues.od?.cyl || rxValues.odCyl || '0.00',
+                                          axis: rxValues.od?.axis || rxValues.odAxis || '0',
+                                          prismHorizontal: rxValues.od?.prismHorizontal || rxValues.odPrismHorizontal,
+                                          prismHorizontalBase: rxValues.od?.prismHorizontalBase || rxValues.odPrismHorizontalBase,
+                                          prismVertical: rxValues.od?.prismVertical || rxValues.odPrismVertical,
+                                          prismVerticalBase: rxValues.od?.prismVerticalBase || rxValues.odPrismVerticalBase,
+                                        };
+
+                                        // Extract OS (Left Eye) values - handle both formats
+                                        const os = {
+                                          sph: rxValues.os?.sph || rxValues.osSph || '0.00',
+                                          cyl: rxValues.os?.cyl || rxValues.osCyl || '0.00',
+                                          axis: rxValues.os?.axis || rxValues.osAxis || '0',
+                                          prismHorizontal: rxValues.os?.prismHorizontal || rxValues.osPrismHorizontal,
+                                          prismHorizontalBase: rxValues.os?.prismHorizontalBase || rxValues.osPrismHorizontalBase,
+                                          prismVertical: rxValues.os?.prismVertical || rxValues.osPrismVertical,
+                                          prismVerticalBase: rxValues.os?.prismVerticalBase || rxValues.osPrismVerticalBase,
+                                        };
+
+                                        // Extract PD values
+                                        const pd = rxValues.pd || '';
+                                        const pdOd = rxValues.pdOd || '';
+                                        const pdOs = rxValues.pdOs || '';
+                                        const hasTwoPDs = rxValues.hasTwoPDs || false;
+                                        const hasPrism = rxValues.hasPrism ||
+                                          (od.prismHorizontal && od.prismHorizontal !== "0.00") ||
+                                          (od.prismVertical && od.prismVertical !== "0.00") ||
+                                          (os.prismHorizontal && os.prismHorizontal !== "0.00") ||
+                                          (os.prismVertical && os.prismVertical !== "0.00");
+
+                                        // Extract prescription image URL
+                                        const prescriptionImageUrl = rxValues.prescriptionImageUrl || item.prescriptionData.prescriptionImageUrl;
+
+                                        // Extract PDF mode data
+                                        const isPdfMode = rxValues.isPdfMode || false;
+                                        const prescriptionPdfUrl = rxValues.prescriptionPdfUrl || item.prescriptionData.prescriptionPdfUrl;
+
+                                        // Extract lens configuration
+                                        const rxConfig = item.prescriptionData.rxConfig || {};
+
+                                        return (
+                                          <div className="mt-3 space-y-3">
+                                            {/* Prescription Values Section - Conditional: PDF Mode vs Manual */}
+                                            <div className="border rounded-lg bg-muted/30 overflow-hidden">
+                                              <div className="p-3 border-b bg-muted">
+                                                <h5 className="font-semibold text-sm flex items-center gap-2 text-brand-blue">
+                                                  <Glasses className="h-4 w-4" />
+                                                  Prescription Details
+                                                </h5>
+                                              </div>
+
+                                              {/* Check for PDF Mode */}
+                                              {isPdfMode && prescriptionPdfUrl ? (
+                                                // PDF Mode - Show PDF uploaded message
+                                                <div className="p-4">
+                                                  <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                                                    <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
+                                                      <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                      <p className="font-medium text-blue-800 dark:text-blue-200">Prescription PDF Uploaded</p>
+                                                      <p className="text-sm text-blue-600 dark:text-blue-400">
+                                                        Document sent to lens manufacturer
+                                                      </p>
+                                                    </div>
+                                                  </div>
+                                                  <a
+                                                    href={prescriptionPdfUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-3"
+                                                  >
+                                                    <Download className="h-4 w-4" />
+                                                    View uploaded prescription
+                                                  </a>
+                                                </div>
+                                              ) : (
+                                                // Manual Entry Mode - Show prescription values
+                                                <>
+                                                  {/* Main Prescription Table */}
+                                                  <table className="w-full">
+                                                    <thead>
+                                                      <tr className="bg-muted/50 border-b">
+                                                        <th className="p-2 text-left text-xs font-medium">Eye</th>
+                                                        <th className="p-2 text-center text-xs font-medium">SPH</th>
+                                                        <th className="p-2 text-center text-xs font-medium">CYL</th>
+                                                        <th className="p-2 text-center text-xs font-medium">AXIS</th>
+                                                      </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                      <tr className="border-b">
+                                                        <td className="p-2 font-medium text-xs">OD (Right)</td>
+                                                        <td className="p-2 text-center text-xs">{od.sph !== '0.00' ? od.sph : "-"}</td>
+                                                        <td className="p-2 text-center text-xs">{od.cyl !== '0.00' ? od.cyl : "-"}</td>
+                                                        <td className="p-2 text-center text-xs">{od.axis !== '0' ? od.axis : "-"}</td>
+                                                      </tr>
+                                                      <tr>
+                                                        <td className="p-2 font-medium text-xs">OS (Left)</td>
+                                                        <td className="p-2 text-center text-xs">{os.sph !== '0.00' ? os.sph : "-"}</td>
+                                                        <td className="p-2 text-center text-xs">{os.cyl !== '0.00' ? os.cyl : "-"}</td>
+                                                        <td className="p-2 text-center text-xs">{os.axis !== '0' ? os.axis : "-"}</td>
+                                                      </tr>
+                                                    </tbody>
+                                                  </table>
+
+                                                  {/* PD Section */}
+                                                  <div className="p-3 border-t">
+                                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                                      <span className="text-xs font-medium text-muted-foreground">PD (Pupillary Distance)</span>
+                                                      <span className="text-xs font-medium break-words">
+                                                        {hasTwoPDs ? (
+                                                          <>
+                                                            OD: {pdOd && pdOd !== "" ? `${pdOd} mm` : "N/A"} |
+                                                            OS: {pdOs && pdOs !== "" ? `${pdOs} mm` : "N/A"}
+                                                          </>
+                                                        ) : (
+                                                          <>
+                                                            {pd && pd !== "" ? `${pd} mm` : "Not set"}
+                                                          </>
+                                                        )}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+
+                                                  {/* Prism Section - Show if hasPrism is true */}
+                                                  {hasPrism && (
+                                                    <div className="p-3 border-t">
+                                                      <h6 className="text-xs font-semibold mb-2">Prism Correction</h6>
+                                                      <table className="w-full text-xs">
+                                                        <thead>
+                                                          <tr className="bg-muted/50 border-b">
+                                                            <th className="p-1.5 text-left text-[10px] font-medium">Eye</th>
+                                                            <th className="p-1.5 text-center text-[10px] font-medium">H. Prism</th>
+                                                            <th className="p-1.5 text-center text-[10px] font-medium">Base</th>
+                                                            <th className="p-1.5 text-center text-[10px] font-medium">V. Prism</th>
+                                                            <th className="p-1.5 text-center text-[10px] font-medium">Base</th>
+                                                          </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                          <tr className="border-b">
+                                                            <td className="p-1.5 font-medium text-[10px]">OD (Right)</td>
+                                                            <td className="p-1.5 text-center text-[10px]">
+                                                              {od.prismHorizontal && od.prismHorizontal !== "0.00"
+                                                                ? od.prismHorizontal
+                                                                : "-"}
+                                                            </td>
+                                                            <td className="p-1.5 text-center text-[10px]">
+                                                              {od.prismHorizontalBase && od.prismHorizontalBase !== ""
+                                                                ? od.prismHorizontalBase
+                                                                : "-"}
+                                                            </td>
+                                                            <td className="p-1.5 text-center text-[10px]">
+                                                              {od.prismVertical && od.prismVertical !== "0.00"
+                                                                ? od.prismVertical
+                                                                : "-"}
+                                                            </td>
+                                                            <td className="p-1.5 text-center text-[10px]">
+                                                              {od.prismVerticalBase && od.prismVerticalBase !== ""
+                                                                ? od.prismVerticalBase
+                                                                : "-"}
+                                                            </td>
+                                                          </tr>
+                                                          <tr>
+                                                            <td className="p-1.5 font-medium text-[10px]">OS (Left)</td>
+                                                            <td className="p-1.5 text-center text-[10px]">
+                                                              {os.prismHorizontal && os.prismHorizontal !== "0.00"
+                                                                ? os.prismHorizontal
+                                                                : "-"}
+                                                            </td>
+                                                            <td className="p-1.5 text-center text-[10px]">
+                                                              {os.prismHorizontalBase && os.prismHorizontalBase !== ""
+                                                                ? os.prismHorizontalBase
+                                                                : "-"}
+                                                            </td>
+                                                            <td className="p-1.5 text-center text-[10px]">
+                                                              {os.prismVertical && os.prismVertical !== "0.00"
+                                                                ? os.prismVertical
+                                                                : "-"}
+                                                            </td>
+                                                            <td className="p-1.5 text-center text-[10px]">
+                                                              {os.prismVerticalBase && os.prismVerticalBase !== ""
+                                                                ? os.prismVerticalBase
+                                                                : "-"}
+                                                            </td>
+                                                          </tr>
+                                                        </tbody>
+                                                      </table>
+                                                    </div>
                                                   )}
-                                                </span>
-                                              </div>
+
+                                                  {/* Prescription Image (if uploaded) */}
+                                                  {prescriptionImageUrl && (
+                                                    <div className="p-3 border-t">
+                                                      <p className="text-xs font-medium text-muted-foreground mb-2">Prescription Image</p>
+                                                      <div className="relative w-full h-32 bg-muted rounded overflow-hidden">
+                                                        <Image
+                                                          src={prescriptionImageUrl}
+                                                          alt="Prescription"
+                                                          fill
+                                                          className="object-contain"
+                                                          sizes="100%"
+                                                        />
+                                                      </div>
+                                                    </div>
+                                                  )}
+                                                </>
+                                              )}
                                             </div>
 
-                                            {/* Prism Section - Show if hasPrism is true */}
-                                            {hasPrism && (
-                                              <div className="p-3 border-t">
-                                                <h6 className="text-xs font-semibold mb-2">Prism Correction</h6>
-                                                <table className="w-full text-xs">
-                                                  <thead>
-                                                    <tr className="bg-muted/50 border-b">
-                                                      <th className="p-1.5 text-left text-[10px] font-medium">Eye</th>
-                                                      <th className="p-1.5 text-center text-[10px] font-medium">H. Prism</th>
-                                                      <th className="p-1.5 text-center text-[10px] font-medium">Base</th>
-                                                      <th className="p-1.5 text-center text-[10px] font-medium">V. Prism</th>
-                                                      <th className="p-1.5 text-center text-[10px] font-medium">Base</th>
-                                                    </tr>
-                                                  </thead>
-                                                  <tbody>
-                                                    <tr className="border-b">
-                                                      <td className="p-1.5 font-medium text-[10px]">OD (Right)</td>
-                                                      <td className="p-1.5 text-center text-[10px]">
-                                                        {od.prismHorizontal && od.prismHorizontal !== "0.00" 
-                                                          ? od.prismHorizontal 
-                                                          : "-"}
-                                                      </td>
-                                                      <td className="p-1.5 text-center text-[10px]">
-                                                        {od.prismHorizontalBase && od.prismHorizontalBase !== "" 
-                                                          ? od.prismHorizontalBase 
-                                                          : "-"}
-                                                      </td>
-                                                      <td className="p-1.5 text-center text-[10px]">
-                                                        {od.prismVertical && od.prismVertical !== "0.00" 
-                                                          ? od.prismVertical 
-                                                          : "-"}
-                                                      </td>
-                                                      <td className="p-1.5 text-center text-[10px]">
-                                                        {od.prismVerticalBase && od.prismVerticalBase !== "" 
-                                                          ? od.prismVerticalBase 
-                                                          : "-"}
-                                                      </td>
-                                                    </tr>
-                                                    <tr>
-                                                      <td className="p-1.5 font-medium text-[10px]">OS (Left)</td>
-                                                      <td className="p-1.5 text-center text-[10px]">
-                                                        {os.prismHorizontal && os.prismHorizontal !== "0.00" 
-                                                          ? os.prismHorizontal 
-                                                          : "-"}
-                                                      </td>
-                                                      <td className="p-1.5 text-center text-[10px]">
-                                                        {os.prismHorizontalBase && os.prismHorizontalBase !== "" 
-                                                          ? os.prismHorizontalBase 
-                                                          : "-"}
-                                                      </td>
-                                                      <td className="p-1.5 text-center text-[10px]">
-                                                        {os.prismVertical && os.prismVertical !== "0.00" 
-                                                          ? os.prismVertical 
-                                                          : "-"}
-                                                      </td>
-                                                      <td className="p-1.5 text-center text-[10px]">
-                                                        {os.prismVerticalBase && os.prismVerticalBase !== "" 
-                                                          ? os.prismVerticalBase 
-                                                          : "-"}
-                                                      </td>
-                                                    </tr>
-                                                  </tbody>
-                                                </table>
-                                              </div>
-                                            )}
-
-                                            {/* Prescription Image (if uploaded) */}
-                                            {prescriptionImageUrl && (
-                                              <div className="p-3 border-t">
-                                                <p className="text-xs font-medium text-muted-foreground mb-2">Prescription Image</p>
-                                                <div className="relative w-full h-32 bg-muted rounded overflow-hidden">
-                                                  <Image
-                                                    src={prescriptionImageUrl}
-                                                    alt="Prescription"
-                                                    fill
-                                                    className="object-contain"
-                                                    sizes="100%"
-                                                  />
+                                            {/* Lens Configuration Section */}
+                                            {rxConfig && Object.keys(rxConfig).length > 0 && (
+                                              <div className="border rounded-lg bg-blue-50 border-blue-200 p-3">
+                                                <p className="font-medium text-blue-900 mb-2 text-sm">Lens Configuration</p>
+                                                <div className="text-blue-700 space-y-1 text-xs">
+                                                  {rxConfig.lensType && (
+                                                    <p>
+                                                      <span className="font-medium">Lens Type:</span> {
+                                                        rxConfig.lensType === "CLEAR" ? "Clear" :
+                                                          rxConfig.lensType === "TINTED" ? "Tinted" :
+                                                            rxConfig.lensType === "PHOTOCHROMIC_SOLIS" ? "Photochromic" :
+                                                              rxConfig.lensType === "POLARIZED_NUPOLAR" ? "Polarized" :
+                                                                rxConfig.lensType
+                                                      }
+                                                    </p>
+                                                  )}
+                                                  {rxConfig.lensIndex && (
+                                                    <p><span className="font-medium">Index:</span> {rxConfig.lensIndex}</p>
+                                                  )}
+                                                  {rxConfig.coating && (
+                                                    <p><span className="font-medium">Coating:</span> {rxConfig.coating}</p>
+                                                  )}
+                                                  {rxConfig.frameType && (
+                                                    <p><span className="font-medium">Frame Type:</span> {
+                                                      rxConfig.frameType === "FULL_FRAME" ? "Full Frame" :
+                                                        rxConfig.frameType === "SEMI_RIMLESS" ? "Semi-Rimless" :
+                                                          rxConfig.frameType === "RIMLESS" ? "Rimless" :
+                                                            rxConfig.frameType
+                                                    }</p>
+                                                  )}
+                                                  {rxConfig.tintType && (
+                                                    <p><span className="font-medium">Tint Type:</span> {
+                                                      rxConfig.tintType === "FULL_TINT_CATALOG" ? "Full Tint (Catalog)" :
+                                                        rxConfig.tintType === "GRADIENT" ? "Gradient" :
+                                                          rxConfig.tintType
+                                                    }</p>
+                                                  )}
+                                                  {rxConfig.tintColor && (
+                                                    <p><span className="font-medium">Tint Color:</span> {rxConfig.tintColor}</p>
+                                                  )}
+                                                  {rxConfig.tintShadePercent && (
+                                                    <p><span className="font-medium">Tint Shade:</span> {rxConfig.tintShadePercent}%</p>
+                                                  )}
+                                                  {rxConfig.photochromicColor && (
+                                                    <p><span className="font-medium">Photochromic Color:</span> {rxConfig.photochromicColor}</p>
+                                                  )}
+                                                  {rxConfig.polarizedColor && (
+                                                    <p><span className="font-medium">Polarized Color:</span> {rxConfig.polarizedColor}</p>
+                                                  )}
                                                 </div>
                                               </div>
                                             )}
                                           </div>
+                                        );
+                                      })()}
+                                      <p className="text-sm font-semibold text-brand-blue mt-2">
+                                        {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{item.price.toFixed(2)} each
+                                        <span className="text-muted-foreground font-normal ml-2">
+                                          (Total: {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{item.total.toFixed(2)})
+                                        </span>
+                                      </p>
+                                    </div>
+                                    {order.status === "DELIVERED" && (() => {
+                                      // Check if this product has already been reviewed for this order
+                                      const hasReview = userReviews.some(
+                                        (review) => review.Product?.id === item.productId && review.Order?.id === order.id
+                                      );
+                                      const canReview = !hasReview;
 
-                                          {/* Lens Configuration Section */}
-                                          {rxConfig && Object.keys(rxConfig).length > 0 && (
-                                            <div className="border rounded-lg bg-blue-50 border-blue-200 p-3">
-                                              <p className="font-medium text-blue-900 mb-2 text-sm">Lens Configuration</p>
-                                              <div className="text-blue-700 space-y-1 text-xs">
-                                                {rxConfig.lensType && (
-                                                  <p>
-                                                    <span className="font-medium">Lens Type:</span> {
-                                                      rxConfig.lensType === "CLEAR" ? "Clear" : 
-                                                      rxConfig.lensType === "TINTED" ? "Tinted" :
-                                                      rxConfig.lensType === "PHOTOCHROMIC_SOLIS" ? "Photochromic" :
-                                                      rxConfig.lensType === "POLARIZED_NUPOLAR" ? "Polarized" : 
-                                                      rxConfig.lensType
-                                                    }
-                                                  </p>
-                                                )}
-                                                {rxConfig.lensIndex && (
-                                                  <p><span className="font-medium">Index:</span> {rxConfig.lensIndex}</p>
-                                                )}
-                                                {rxConfig.coating && (
-                                                  <p><span className="font-medium">Coating:</span> {rxConfig.coating}</p>
-                                                )}
-                                                {rxConfig.frameType && (
-                                                  <p><span className="font-medium">Frame Type:</span> {
-                                                    rxConfig.frameType === "FULL_FRAME" ? "Full Frame" :
-                                                    rxConfig.frameType === "SEMI_RIMLESS" ? "Semi-Rimless" :
-                                                    rxConfig.frameType === "RIMLESS" ? "Rimless" :
-                                                    rxConfig.frameType
-                                                  }</p>
-                                                )}
-                                                {rxConfig.tintType && (
-                                                  <p><span className="font-medium">Tint Type:</span> {
-                                                    rxConfig.tintType === "FULL_TINT_CATALOG" ? "Full Tint (Catalog)" :
-                                                    rxConfig.tintType === "GRADIENT" ? "Gradient" :
-                                                    rxConfig.tintType
-                                                  }</p>
-                                                )}
-                                                {rxConfig.tintColor && (
-                                                  <p><span className="font-medium">Tint Color:</span> {rxConfig.tintColor}</p>
-                                                )}
-                                                {rxConfig.tintShadePercent && (
-                                                  <p><span className="font-medium">Tint Shade:</span> {rxConfig.tintShadePercent}%</p>
-                                                )}
-                                                {rxConfig.photochromicColor && (
-                                                  <p><span className="font-medium">Photochromic Color:</span> {rxConfig.photochromicColor}</p>
-                                                )}
-                                                {rxConfig.polarizedColor && (
-                                                  <p><span className="font-medium">Polarized Color:</span> {rxConfig.polarizedColor}</p>
-                                                )}
-                                              </div>
-                                            </div>
-                                          )}
-                                        </div>
+                                      return canReview ? (
+                                        <Button
+                                          onClick={() => openReviewDialog(item.productName, item.productId, order.id)}
+                                          className="bg-brand-teal text-white hover:bg-brand-teal/90 text-xs py-1 px-2 whitespace-nowrap"
+                                        >
+                                          Write a Review
+                                        </Button>
+                                      ) : (
+                                        <span className="text-xs text-muted-foreground italic">Already reviewed</span>
                                       );
                                     })()}
-                                    <p className="text-sm font-semibold text-brand-blue mt-2">
-                                  {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{item.price.toFixed(2)} each
-                                      <span className="text-muted-foreground font-normal ml-2">
-                                        (Total: {order.currency === 'EUR' ? '€' : order.currency === 'USD' ? '$' : '£'}{item.total.toFixed(2)})
-                                      </span>
-                                </p>
+                                  </div>
+                                ))}
                               </div>
-                              {order.status === "DELIVERED" && (() => {
-                                // Check if this product has already been reviewed for this order
-                                const hasReview = userReviews.some(
-                                  (review) => review.Product?.id === item.productId && review.Order?.id === order.id
-                                );
-                                const canReview = !hasReview;
-                                
-                                return canReview ? (
-                                  <Button
-                                    onClick={() => openReviewDialog(item.productName, item.productId, order.id)}
-                                    className="bg-brand-teal text-white hover:bg-brand-teal/90 text-xs py-1 px-2 whitespace-nowrap"
-                                  >
-                                    Write a Review
-                                  </Button>
-                                ) : (
-                                  <span className="text-xs text-muted-foreground italic">Already reviewed</span>
-                                );
-                              })()}
                             </div>
-                          ))}
+                          )}
                         </div>
-                      </div>
-                        )}
-                      </div>
-                    );
+                      );
                     })
                   )}
                 </div>
@@ -1883,7 +1919,7 @@ export default function AccountPage() {
                       </>
                     )}
                   </div>
-                  
+
                   {walletTransactions.length > 0 ? (
                     <div className="mt-6">
                       <h3 className="text-brand-h3 font-headline mb-4">Transaction History</h3>
@@ -1949,11 +1985,10 @@ export default function AccountPage() {
                                 {[...Array(5)].map((_, i) => (
                                   <Star
                                     key={i}
-                                    className={`h-4 w-4 ${
-                                      i < review.rating
-                                        ? 'text-yellow-400 fill-current'
-                                        : 'text-gray-300'
-                                    }`}
+                                    className={`h-4 w-4 ${i < review.rating
+                                      ? 'text-yellow-400 fill-current'
+                                      : 'text-gray-300'
+                                      }`}
                                   />
                                 ))}
                               </div>
@@ -2271,7 +2306,7 @@ export default function AccountPage() {
               <p className="text-sm text-muted-foreground mb-3">
                 Upload up to 5 images.
               </p>
-              
+
               {/* Image Previews */}
               {reviewImagePreviews.length > 0 && (
                 <div className="grid grid-cols-3 gap-4 mb-4">

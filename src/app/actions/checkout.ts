@@ -32,6 +32,11 @@ interface CheckoutData {
   // The total amount shown in Order Summary on checkout page
   // This is the EXACT amount that should be charged to Stripe
   orderTotal: number;
+  // Business purchase fields
+  isBusinessPurchase?: boolean;
+  businessName?: string;
+  businessNumber?: string;
+  vatNumber?: string;
 }
 
 function generateOrderNumber(): string {
@@ -70,17 +75,17 @@ function normalizeImageUrl(url: string | null): string | null {
     }
     return url;
   }
-  
+
   const publicPathMatch = url.match(/[\\/]public[\\/](.+)$/i);
   if (publicPathMatch) {
     return '/' + publicPathMatch[1].replace(/\\/g, '/');
   }
-  
+
   const filenameMatch = url.match(/[\\/]([^\\/]+\.(jpg|jpeg|png|gif|webp|svg|glb))$/i);
   if (filenameMatch) {
     return '/' + filenameMatch[1];
   }
-  
+
   return url.startsWith('./') ? url.slice(1) : '/' + url;
 }
 
@@ -144,7 +149,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     if (!cart) {
       return { error: "Your cart is empty. Please add items to your cart first." };
     }
-    
+
     if (cart.items.length === 0) {
       return { error: "Your cart is empty. Please add items to your cart first." };
     }
@@ -157,21 +162,21 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       if (!variant) {
         return { error: `Variant not found for ${cartItem.Product.name}` };
       }
-      
+
       const stock = variant.stock !== null && variant.stock !== undefined ? Number(variant.stock) : null;
-      
+
       // If stock is 0, item is fully sold out - prevent checkout
       if (stock === 0) {
         return {
           error: `${cartItem.Product.name} (${variant.name}) is currently out of stock and cannot be purchased. Please remove it from your cart.`,
         };
       }
-      
+
       // If stock is null/undefined, allow checkout (stock tracking may not be enabled)
       if (stock === null) {
         continue;
       }
-      
+
       // If stock > 0 but less than quantity, allow checkout (item was in cart when available, reserve it)
       // This handles the case where stock goes low after item was added to cart
       // Note: We don't check if stock < quantity anymore - we allow it because item was already in cart
@@ -246,7 +251,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         imageUrl,
         prescriptionData, // Only include actual prescription data from cart item
       });
-      
+
       console.log(`[CHECKOUT] Added order item: ${cartItem.Product.name} - ${variant.name}, qty: ${cartItem.quantity}, price: €${price}, total: €${itemTotal}, hasPrescription: ${!!prescriptionData}`);
     }
 
@@ -267,11 +272,11 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     console.log('[CHECKOUT] Stripe will charge: €' + orderTotalFromFrontend.toFixed(2) + ' (from Order Summary)');
 
     const shipping = 0; // Free shipping
-    
+
     // Use the orderTotal from frontend (Order Summary total)
     // This already includes all discounts, wallet deductions, etc.
     const total = orderTotalFromFrontend;
-    
+
     // Calculate frame quantity and frame subtotal (for frame-only discounts)
     // IMPORTANT: Count ALL frames (both regular frames AND frames from prescription glasses)
     // Discount applies to frame prices only, not prescription lens prices
@@ -280,19 +285,19 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     for (const orderItem of orderItems) {
       // Count ALL frames (every item has a frame, whether it's regular or prescription)
       frameQuantity += orderItem.quantity;
-      
+
       // Extract frame price (base product price, before prescription lenses)
       // For ALL items (both regular and prescription), use the base product price
-      const cartItem = cart.items.find((ci: any) => 
+      const cartItem = cart.items.find((ci: any) =>
         ci.productId === orderItem.productId && ci.variantId === orderItem.variantId
       );
-      
+
       if (cartItem) {
         const variant = cartItem.Product.ProductVariant.find((v: any) => v.id === orderItem.variantId);
         if (variant) {
           // Get base frame price (before any prescription lenses)
-          const basePrice = variant.price 
-            ? Number(variant.price) 
+          const basePrice = variant.price
+            ? Number(variant.price)
             : Number(cartItem.Product.basePrice);
           const discountPct = cartItem.Product.discountPct || 0;
           const framePrice = basePrice * (1 - discountPct / 100);
@@ -304,7 +309,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     // Calculate promo discount and wallet amount for order record
     // (These are already factored into orderTotalFromFrontend)
     const orderTotalBeforePromo = subtotal + shipping;
-    
+
     // Validate and apply promo code if provided (for order record)
     let promoDiscount = 0;
     let promoCashback = 0;
@@ -456,6 +461,11 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         billingState: checkoutData.billingAddress?.state || checkoutData.shippingAddress.state || null,
         billingPostalCode: checkoutData.billingAddress?.postalCode || checkoutData.shippingAddress.postalCode,
         billingCountry: checkoutData.billingAddress?.country || checkoutData.shippingAddress.country,
+        // Business purchase fields
+        isBusinessPurchase: checkoutData.isBusinessPurchase || false,
+        businessName: checkoutData.businessName || null,
+        businessNumber: checkoutData.businessNumber || null,
+        vatNumber: checkoutData.vatNumber || null,
         items: {
           create: orderItems.map((item) => ({
             productId: item.productId,
@@ -491,7 +501,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     // This MUST match the Order Summary total shown on the checkout page
     const exactStripeTotal = total; // This MUST match the Order Summary total on checkout page
     const exactStripeTotalCents = Math.round(exactStripeTotal * 100);
-    
+
     console.log(`[Checkout] Order Summary Total: €${exactStripeTotal.toFixed(2)} (${exactStripeTotalCents} cents)`);
     console.log(`[Checkout] Breakdown: Subtotal: €${subtotal.toFixed(2)}, Shipping: €${shipping.toFixed(2)}, Promo: -€${promoDiscount.toFixed(2)}, Wallet: -€${walletAmount.toFixed(2)}`);
 
@@ -501,7 +511,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
 
     // Create Stripe Checkout Session
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:9002';
-    
+
     if (!stripeLineItems || stripeLineItems.length === 0) {
       return { error: "No items to checkout" };
     }
@@ -525,7 +535,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     const encodedOrderId = encodeURIComponent(order.id);
     const successUrl = `${validBaseUrl}/checkout/success?orderId=${encodedOrderId}`;
     const cancelUrl = `${validBaseUrl}/checkout?cancelled=true&orderId=${encodedOrderId}`;
-    
+
     try {
       const successUrlObj = new URL(successUrl);
       const cancelUrlObj = new URL(cancelUrl);
@@ -533,14 +543,14 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       console.log("Cancel URL:", cancelUrl);
       console.log("Order ID:", order.id);
       console.log("Encoded Order ID:", encodedOrderId);
-      
+
       if (successUrlObj.protocol !== 'http:' && successUrlObj.protocol !== 'https:') {
         throw new Error(`Invalid success URL protocol: ${successUrlObj.protocol}`);
       }
       if (cancelUrlObj.protocol !== 'http:' && cancelUrlObj.protocol !== 'https:') {
         throw new Error(`Invalid cancel URL protocol: ${cancelUrlObj.protocol}`);
       }
-      
+
       // Double-check the URLs are valid strings
       if (typeof successUrl !== 'string' || successUrl.length === 0) {
         throw new Error('Success URL is not a valid string');
@@ -569,7 +579,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     // Final verification: Calculate total from line items
     const finalStripeTotalCents = stripeLineItems.reduce((sum, item) => sum + (item.price_data.unit_amount * item.quantity), 0);
     const finalStripeTotalEur = finalStripeTotalCents / 100;
-    
+
     console.log("========================================");
     console.log("[Checkout] FINAL VERIFICATION:");
     console.log(`[Checkout] Order Summary Total: €${exactStripeTotal.toFixed(2)}`);
@@ -577,12 +587,12 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     console.log(`[Checkout] Match: ${Math.abs(finalStripeTotalEur - exactStripeTotal) < 0.01 ? '✓ EXACT MATCH' : '✗ MISMATCH'}`);
     console.log(`[Checkout] Line Items Count: ${stripeLineItems.length}`);
     console.log("========================================");
-    
+
     if (Math.abs(finalStripeTotalEur - exactStripeTotal) >= 0.01) {
       console.error(`[Checkout] CRITICAL: Stripe total (€${finalStripeTotalEur.toFixed(2)}) does not match Order Summary (€${exactStripeTotal.toFixed(2)})!`);
       return { error: `Payment amount mismatch. Please refresh and try again.` };
     }
-    
+
     // Ensure total is greater than 0
     if (finalStripeTotalCents <= 0) {
       console.error(`[Checkout] CRITICAL: Stripe total is zero or negative: ${finalStripeTotalCents} cents`);
@@ -653,7 +663,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
           allowed_countries: ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'GB', 'CH', 'NO', 'IS'],
         },
       });
-      
+
       // Log the created session details to verify amount
       console.log("========================================");
       console.log("[Checkout] Stripe session created successfully:");
@@ -663,14 +673,14 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       console.log(`[Checkout] Expected Total: €${exactStripeTotal.toFixed(2)} (${exactStripeTotalCents} cents)`);
       console.log(`[Checkout] Match: ${stripeSession.amount_total === exactStripeTotalCents ? '✓ EXACT MATCH' : '✗ MISMATCH'}`);
       console.log("========================================");
-      
+
       if (stripeSession.amount_total !== exactStripeTotalCents) {
         console.error(`[Checkout] WARNING: Stripe session amount (${stripeSession.amount_total} cents) does not match expected (${exactStripeTotalCents} cents)!`);
       }
 
       // Validate that we got a URL
       let checkoutUrl = stripeSession.url;
-      
+
       if (!checkoutUrl) {
         console.error("Stripe session created but no URL returned. Attempting to retrieve session...", {
           sessionId: stripeSession.id,
@@ -678,12 +688,12 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
           url: stripeSession.url,
           paymentStatus: stripeSession.payment_status,
         });
-        
+
         // Try to retrieve the session to get the URL
         try {
           const retrievedSession = await stripe.checkout.sessions.retrieve(stripeSession.id);
           checkoutUrl = retrievedSession.url;
-          
+
           if (!checkoutUrl) {
             return { error: "Failed to create checkout session. No URL returned from Stripe." };
           }
@@ -746,7 +756,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       console.error("Success URL:", successUrl);
       console.error("Cancel URL:", cancelUrl);
       console.error("===========================");
-      
+
       // Provide more specific error messages
       if (stripeError.message && stripeError.message.includes('URL')) {
         // Check which URL might be the problem
@@ -754,19 +764,19 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         if (stripeError.param) {
           urlHint = ` (Parameter: ${stripeError.param})`;
         }
-        return { 
-          error: `Invalid URL in checkout configuration: ${stripeError.message}${urlHint}. Check server logs for details.` 
+        return {
+          error: `Invalid URL in checkout configuration: ${stripeError.message}${urlHint}. Check server logs for details.`
         };
       }
-      
+
       if (stripeError.type === 'StripeInvalidRequestError') {
-        return { 
-          error: `Invalid request to Stripe: ${stripeError.message || 'Please check your configuration.'}. Check server logs for details.` 
+        return {
+          error: `Invalid request to Stripe: ${stripeError.message || 'Please check your configuration.'}. Check server logs for details.`
         };
       }
-      
-      return { 
-        error: stripeError.message || "Failed to create checkout session. Please try again. Check server logs for details." 
+
+      return {
+        error: stripeError.message || "Failed to create checkout session. Please try again. Check server logs for details."
       };
     }
   });
@@ -784,9 +794,9 @@ export async function syncOrderStatusWithStripe(orderId: string) {
   // This function is deprecated and should not be used
   // Orders must be verified through webhooks only
   return safeAction(async () => {
-    return { 
-      success: false, 
-      error: "This function is deprecated. Payment verification must happen through webhooks only." 
+    return {
+      success: false,
+      error: "This function is deprecated. Payment verification must happen through webhooks only."
     };
   });
 }
@@ -970,7 +980,7 @@ export async function refundWalletForOrder(orderId: string) {
     }
 
     const walletAmountUsed = Number(order.walletAmountUsed || 0);
-    
+
     // If no wallet amount was used, nothing to refund
     if (walletAmountUsed <= 0) {
       console.log(`[RefundWallet] No wallet amount used for order ${orderId}`);
@@ -1024,7 +1034,7 @@ export async function refundWalletForOrder(orderId: string) {
     const refundDescription = order.paymentMethod === 'paypal'
       ? `Refund for cancelled PayPal order ${order.orderNumber}`
       : `Refund for cancelled order ${order.orderNumber}`;
-    
+
     await prisma.walletTransaction.create({
       data: {
         walletId: wallet.id,
@@ -1094,7 +1104,7 @@ export async function getPendingOrdersWithWallet() {
           {
             OR: [
               // No payment session (user navigated away before payment)
-              { 
+              {
                 AND: [
                   { stripeSessionId: null },
                   { paypalOrderId: null },
@@ -1156,7 +1166,7 @@ export async function refundPendingOrders() {
     console.log(`[RefundPendingOrders] Checking for pending orders with wallet deductions for user: ${userId}`);
 
     const result = await getPendingOrdersWithWallet();
-    
+
     if (!result.success || !result.orders || result.orders.length === 0) {
       console.log(`[RefundPendingOrders] No pending orders found`);
       return { success: true, refunded: 0, ordersProcessed: 0 };

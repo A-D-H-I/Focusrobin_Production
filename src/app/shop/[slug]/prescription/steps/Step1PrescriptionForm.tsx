@@ -59,10 +59,10 @@ const prismValues = generatePrismValues();
 const horizontalBaseDirections = ["IN", "OUT"];
 const verticalBaseDirections = ["UP", "DOWN"];
 
-export default function Step1PrescriptionForm({ 
-  prescriptionData, 
-  onDataUpdate, 
-  onNext, 
+export default function Step1PrescriptionForm({
+  prescriptionData,
+  onDataUpdate,
+  onNext,
   onBack,
   rxPriceResult,
   framePrice,
@@ -95,19 +95,23 @@ export default function Step1PrescriptionForm({
         throw new Error(result.error || "Failed to upload prescription");
       }
 
-      // Update prescription data with S3 URL
-      onDataUpdate({ prescriptionImageUrl: result.url });
-      
+      // Update prescription data with S3 URL and PDF mode
+      onDataUpdate({
+        prescriptionImageUrl: result.url,
+        prescriptionPdfUrl: result.url,
+        isPdfMode: true,
+      });
+
       toast({
         title: "Prescription uploaded",
-        description: "Your prescription image has been uploaded successfully.",
+        description: "Your prescription has been uploaded successfully.",
       });
 
       console.log("Prescription uploaded to S3:", result.url);
     } catch (error: any) {
       console.error("Error uploading prescription:", error);
       setUploadError(error.message || "Failed to upload prescription");
-      
+
       toast({
         title: "Upload failed",
         description: error.message || "Failed to upload prescription. Please try again.",
@@ -120,7 +124,11 @@ export default function Step1PrescriptionForm({
 
   // Remove uploaded prescription
   const handleRemovePrescription = () => {
-    onDataUpdate({ prescriptionImageUrl: undefined });
+    onDataUpdate({
+      prescriptionImageUrl: undefined,
+      prescriptionPdfUrl: undefined,
+      isPdfMode: false,
+    });
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -210,7 +218,7 @@ export default function Step1PrescriptionForm({
             )}
           </Button>
         )}
-        
+
         {/* Upload error message */}
         {uploadError && (
           <p className="text-sm text-destructive">{uploadError}</p>
@@ -233,7 +241,7 @@ export default function Step1PrescriptionForm({
       {/* Prescription Table */}
       <div className="space-y-2">
         <h3 className="font-semibold text-sm">prescription</h3>
-        
+
         {/* Desktop Table View - Hidden on mobile */}
         <div className="border rounded-lg overflow-hidden hidden md:block">
           <table className="w-full">
@@ -363,7 +371,7 @@ export default function Step1PrescriptionForm({
           {/* OD (Right Eye) Card */}
           <div className="border rounded-lg p-4 space-y-3">
             <h4 className="font-medium text-sm mb-3">OD (Right Eye)</h4>
-            
+
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">SPH</label>
@@ -383,7 +391,7 @@ export default function Step1PrescriptionForm({
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">CYL</label>
                 <Select
@@ -402,7 +410,7 @@ export default function Step1PrescriptionForm({
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">AXIS</label>
                 <Select
@@ -427,7 +435,7 @@ export default function Step1PrescriptionForm({
           {/* OS (Left Eye) Card */}
           <div className="border rounded-lg p-4 space-y-3">
             <h4 className="font-medium text-sm mb-3">OS (Left Eye)</h4>
-            
+
             <div className="grid grid-cols-3 gap-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">SPH</label>
@@ -447,7 +455,7 @@ export default function Step1PrescriptionForm({
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">CYL</label>
                 <Select
@@ -466,7 +474,7 @@ export default function Step1PrescriptionForm({
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">AXIS</label>
                 <Select
@@ -634,7 +642,7 @@ export default function Step1PrescriptionForm({
       {prescriptionData.hasPrism && (
         <div className="space-y-2">
           <label className="text-sm font-medium">Prism Correction</label>
-          
+
           {/* Desktop Table View - Hidden on mobile */}
           <div className="border rounded-lg overflow-hidden hidden md:block">
             <table className="w-full">
@@ -801,7 +809,7 @@ export default function Step1PrescriptionForm({
             {/* OD (Right Eye) Card */}
             <div className="border rounded-lg p-4 space-y-3">
               <h4 className="font-medium text-sm mb-3">OD (Right Eye)</h4>
-              
+
               {/* Horizontal Prism */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Horizontal Prism</label>
@@ -888,7 +896,7 @@ export default function Step1PrescriptionForm({
             {/* OS (Left Eye) Card */}
             <div className="border rounded-lg p-4 space-y-3">
               <h4 className="font-medium text-sm mb-3">OS (Left Eye)</h4>
-              
+
               {/* Horizontal Prism */}
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Horizontal Prism</label>
@@ -983,7 +991,7 @@ export default function Step1PrescriptionForm({
       >
         Submit
       </Button>
-      
+
       {/* Warning message if PD not filled */}
       {!isPdFilled && (
         <p className="text-xs text-destructive text-center -mt-2">
@@ -1003,8 +1011,8 @@ export default function Step1PrescriptionForm({
           <div className="space-y-4 py-4">
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Pupillary distance (PD) measures the distance between the centers of your pupils. 
-                This measurement is used to determine where you look through the lens of your glasses 
+                Pupillary distance (PD) measures the distance between the centers of your pupils.
+                This measurement is used to determine where you look through the lens of your glasses
                 and should be as accurate as possible.
               </p>
               <div className="bg-muted/50 p-4 rounded-lg">
@@ -1014,7 +1022,7 @@ export default function Step1PrescriptionForm({
                 </p>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Your eye doctor will usually measure your PD during an eye exam. However, if it was 
+                Your eye doctor will usually measure your PD during an eye exam. However, if it was
                 not given to you, you can measure it yourself using a ruler with millimeter markings.
               </p>
             </div>
@@ -1047,19 +1055,19 @@ export default function Step1PrescriptionForm({
           <div className="space-y-4 py-4">
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Prism is a measure in prism diopters. We can process prism prescriptions to correct eye orientation. 
+                Prism is a measure in prism diopters. We can process prism prescriptions to correct eye orientation.
                 The most common application for this is the treatment of strabismus.
               </p>
-              
+
               <p className="text-sm text-muted-foreground leading-relaxed">
-                In eyeglasses, prisms are used primarily for double vision, positional correction, or convergence correction. 
+                In eyeglasses, prisms are used primarily for double vision, positional correction, or convergence correction.
                 By moving the image in front of the deviated eye, double vision can be avoided and comfortable binocular vision can be achieved.
               </p>
 
               <div className="bg-muted/50 p-4 rounded-lg">
                 <p className="text-sm font-medium mb-2">How Prism Works:</p>
                 <p className="text-sm text-muted-foreground">
-                  A lens that includes some amount of prism correction will displace the viewed image horizontally, 
+                  A lens that includes some amount of prism correction will displace the viewed image horizontally,
                   vertically, or a combination of both directions.
                 </p>
               </div>
@@ -1081,7 +1089,7 @@ export default function Step1PrescriptionForm({
                   ⚠️ Important:
                 </p>
                 <p className="text-sm text-amber-800 dark:text-amber-200">
-                  Prism prescriptions should be provided by your eye care professional. 
+                  Prism prescriptions should be provided by your eye care professional.
                   Accurate measurements are crucial for effective treatment.
                 </p>
               </div>

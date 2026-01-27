@@ -65,6 +65,9 @@ export type PrescriptionData = {
   hasTwoPDs: boolean;
   hasPrism: boolean;
   prescriptionImageUrl?: string; // URL to uploaded prescription image (S3 link)
+  // PDF upload fields
+  prescriptionPdfUrl?: string; // URL to uploaded prescription PDF (S3 link)
+  isPdfMode: boolean; // Whether prescription was uploaded as PDF
 };
 
 // Rx lens configuration data
@@ -94,18 +97,18 @@ export type FullPrescriptionData = PrescriptionData & {
 };
 
 const DEFAULT_PRESCRIPTION: PrescriptionData = {
-  od: { 
-    sph: "+0.00", 
-    cyl: "+0.00", 
+  od: {
+    sph: "+0.00",
+    cyl: "+0.00",
     axis: "0",
     prismHorizontal: "0.00",
     prismHorizontalBase: "",
     prismVertical: "0.00",
     prismVerticalBase: "",
   },
-  os: { 
-    sph: "+0.00", 
-    cyl: "+0.00", 
+  os: {
+    sph: "+0.00",
+    cyl: "+0.00",
     axis: "0",
     prismHorizontal: "0.00",
     prismHorizontalBase: "",
@@ -118,6 +121,8 @@ const DEFAULT_PRESCRIPTION: PrescriptionData = {
   hasTwoPDs: false,
   hasPrism: false,
   prescriptionImageUrl: undefined,
+  prescriptionPdfUrl: undefined,
+  isPdfMode: false,
 };
 
 const DEFAULT_RX_CONFIG: RxConfigData = {
@@ -139,14 +144,14 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   const { data: session } = useSession();
   const { formatPrice, parseEurPrice } = usePrice();
   const { setPriceData } = usePrescriptionPrice();
-  
+
   // Check if there's a step parameter
   const stepParam = searchParams.get('step');
   const initialStep = stepParam ? parseInt(stepParam) : 0;
-  
+
   // Auto-detect frame type from product
   const detectedFrameType = detectFrameType(product);
-  
+
   // Load existing prescription data if available
   const [existingData, setExistingData] = useState<{ prescription: PrescriptionData; rxConfig: RxConfigData }>({
     prescription: DEFAULT_PRESCRIPTION,
@@ -158,14 +163,14 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
 
   // Track if prescription has been loaded (prescription is now shared across all products)
   const [hasLoadedPrescription, setHasLoadedPrescription] = useState(false);
-  
+
   // Load prescription data ONCE when component mounts or session changes
   // NOTE: Prescription is now shared across all products (one per user)
   // Product changes should NOT reload prescription - it should stay the same across all products
   useEffect(() => {
     // Only load once (prescription is shared, doesn't need to reload per product)
     if (hasLoadedPrescription) return;
-    
+
     const loadPrescriptionData = async () => {
       let loadedData: FullPrescriptionData | null = null;
 
@@ -197,10 +202,10 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
             console.log('[PrescriptionFlow] Removed old product-specific localStorage key:', key);
           }
         }
-        
+
         // Use generic key for shared prescription (not product-specific)
-        const storageKey = session?.user 
-          ? `prescription_user_${(session.user as any).id}` 
+        const storageKey = session?.user
+          ? `prescription_user_${(session.user as any).id}`
           : 'prescription_shared';
         const stored = localStorage.getItem(storageKey);
         if (stored) {
@@ -226,7 +231,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         const hasPdValue = loadedData.hasTwoPDs
           ? (loadedData.pdOd && loadedData.pdOd !== "" && loadedData.pdOs && loadedData.pdOs !== "")
           : (loadedData.pd && loadedData.pd !== "");
-        
+
         if (hasPdValue) {
           // NOTE: rxConfig is NOT loaded from database - it's product-specific
           // Only load prescription data (OD, OS, PD), not lens configuration
@@ -251,6 +256,8 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
               pdOs: loadedData.pdOs || "",
               hasTwoPDs: loadedData.hasTwoPDs,
               hasPrism: loadedData.hasPrism,
+              prescriptionPdfUrl: (loadedData as any).prescriptionPdfUrl,
+              isPdfMode: (loadedData as any).isPdfMode || false,
             },
             // Don't set rxConfig from DB - it's product-specific and should come from localStorage
             rxConfig: {
@@ -261,16 +268,16 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
           console.log('[PrescriptionFlow] Loaded shared prescription data into state (applies to all products) - lens config NOT loaded from DB');
         }
       }
-      
+
       setHasLoadedPrescription(true);
     };
-    
+
     loadPrescriptionData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user]); // Only reload when session changes, not when product changes
-  
+
   const [currentStep, setCurrentStep] = useState(initialStep);
-  
+
   // Ensure URL always has step parameter on initial load (for browser back button support)
   useEffect(() => {
     // Only run once on mount to set initial step parameter if missing
@@ -280,36 +287,36 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
-  
+
   // NOTE: Removed automatic reload on step change - this was causing rxConfig to reset
   // Prescription data is loaded once on mount and only reloaded explicitly when needed
-  
+
   const [prescriptionData, setPrescriptionData] = useState<PrescriptionData>(DEFAULT_PRESCRIPTION);
   const [rxConfig, setRxConfig] = useState<RxConfigData>({
     ...DEFAULT_RX_CONFIG,
     frameType: detectedFrameType,
   });
   const [hasLoadedInitialData, setHasLoadedInitialData] = useState(false);
-  
+
   // Track if user has made any lens selections (to prevent defaults from being re-applied)
   const [hasUserMadeLensSelection, setHasUserMadeLensSelection] = useState(false);
-  
+
   // Track if initial rxConfig has been loaded (to prevent reload on step changes)
   const [hasLoadedRxConfig, setHasLoadedRxConfig] = useState(false);
-  
+
   // Load product-specific rxConfig from localStorage or sessionStorage ONLY on initial mount
   // This ensures lens configuration persists when navigating back from confirmation/cart
   // But does NOT reload on step changes (which would reset user's selections)
   useEffect(() => {
     // Only load once on mount - never reload on step changes
     if (hasLoadedRxConfig) return;
-    
+
     if (typeof window !== 'undefined') {
       // First try sessionStorage (most recent, product-specific)
       const sessionKey = `prescription_${productSlug}`;
       const sessionStored = sessionStorage.getItem(sessionKey);
       let rxConfigToLoad: RxConfigData | null = null;
-      
+
       if (sessionStored) {
         try {
           const parsed = JSON.parse(sessionStored) as FullPrescriptionData;
@@ -321,7 +328,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
           console.error('Error parsing prescription data from sessionStorage:', error);
         }
       }
-      
+
       // If not in sessionStorage, try localStorage (product-specific)
       if (!rxConfigToLoad) {
         const productRxConfigKey = `rxConfig_${productSlug}`;
@@ -335,7 +342,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
           }
         }
       }
-      
+
       // Update rxConfig if we found one
       if (rxConfigToLoad) {
         // Merge with detected frameType to ensure it's always correct
@@ -347,7 +354,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         setRxConfig(newConfig);
         setHasUserMadeLensSelection(true);
       }
-      
+
       setHasLoadedRxConfig(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -355,16 +362,16 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
 
   // Track the last loaded existingData to prevent duplicate updates (include productSlug for uniqueness)
   const [lastLoadedDataId, setLastLoadedDataId] = useState<string | null>(null);
-  
+
   // Update state when existingData changes (after async load)
   // IMPORTANT: Do NOT re-run based on currentStep - that would reset user's lens selections
   useEffect(() => {
     if (existingData) {
       // Only update if existingData has actual prescription data (PD is filled)
-      const hasActualData = existingData.prescription.pd !== "" || 
-                           existingData.prescription.pdOd !== "" ||
-                           existingData.prescription.pdOs !== "";
-      
+      const hasActualData = existingData.prescription.pd !== "" ||
+        existingData.prescription.pdOd !== "" ||
+        existingData.prescription.pdOs !== "";
+
       // Create a unique ID for this data to avoid duplicate updates
       // Prescription is now shared across all products (one per user)
       const dataId = JSON.stringify({
@@ -372,7 +379,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         pdOd: existingData.prescription.pdOd,
         pdOs: existingData.prescription.pdOs,
       });
-      
+
       // Only update if this is NEW data (not the same data we already loaded)
       if (hasActualData && dataId !== lastLoadedDataId) {
         console.log('[PrescriptionFlow] Updating prescription state from existingData:', {
@@ -437,6 +444,55 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only depend on searchParams to respond to browser navigation
 
+  // Reload prescription data from sessionStorage when navigating back to step 0 or 1
+  // This ensures prescription values are always up to date when user navigates between steps
+  useEffect(() => {
+    // Only reload on steps 0 and 1 (where prescription data is displayed/edited)
+    if (currentStep > 1) return;
+
+    if (typeof window !== 'undefined') {
+      const sessionKey = `prescription_${productSlug}`;
+      const sessionStored = sessionStorage.getItem(sessionKey);
+
+      if (sessionStored) {
+        try {
+          const parsed = JSON.parse(sessionStored) as FullPrescriptionData;
+          // Check if we have actual prescription data
+          if (parsed.od && parsed.os) {
+            // Update prescription data from sessionStorage
+            setPrescriptionData({
+              od: {
+                ...parsed.od,
+                prismHorizontal: parsed.od.prismHorizontal || "0.00",
+                prismHorizontalBase: parsed.od.prismHorizontalBase || "",
+                prismVertical: parsed.od.prismVertical || "0.00",
+                prismVerticalBase: parsed.od.prismVerticalBase || "",
+              },
+              os: {
+                ...parsed.os,
+                prismHorizontal: parsed.os.prismHorizontal || "0.00",
+                prismHorizontalBase: parsed.os.prismHorizontalBase || "",
+                prismVertical: parsed.os.prismVertical || "0.00",
+                prismVerticalBase: parsed.os.prismVerticalBase || "",
+              },
+              pd: parsed.pd || "",
+              pdOd: parsed.pdOd || "",
+              pdOs: parsed.pdOs || "",
+              hasTwoPDs: parsed.hasTwoPDs || false,
+              hasPrism: parsed.hasPrism || false,
+              prescriptionImageUrl: parsed.prescriptionImageUrl,
+              prescriptionPdfUrl: (parsed as any).prescriptionPdfUrl,
+              isPdfMode: (parsed as any).isPdfMode || false,
+            });
+            console.log('[PrescriptionFlow] Reloaded prescription data from sessionStorage for step', currentStep);
+          }
+        } catch (error) {
+          console.error('Error parsing prescription data from sessionStorage:', error);
+        }
+      }
+    }
+  }, [currentStep, productSlug]); // Run when step changes or product changes
+
   const framePrice = parseEurPrice(product.price);
 
   // Convert RxConfigData to LensSelection for pricing
@@ -450,7 +506,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         coating: rxConfig.coating || "UC",
       };
     }
-    
+
     // Check if current coating is valid for the lens type
     let validCoating: Coating | null = null;
     if (rxConfig.coating) {
@@ -460,7 +516,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         validCoating = rxConfig.coating;
       }
     }
-    
+
     // Normalize only when we have complete selection
     // This ensures coating is preserved if it's already valid
     const normalized = normalizeSelection({
@@ -474,13 +530,13 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       photochromicColor: rxConfig.photochromicColor,
       polarizedColor: rxConfig.polarizedColor,
     });
-    
+
     // Preserve valid coating - only use normalized coating if current was invalid
     if (validCoating && normalized.coating !== validCoating) {
       // Current coating was valid but got changed - preserve it to prevent price changes
       normalized.coating = validCoating;
     }
-    
+
     return normalized;
   }, [rxConfig]);
 
@@ -498,19 +554,19 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   // Calculate Rx price based on current configuration (using old rx167 for edging)
   const rxPriceResult = useMemo(() => {
     // Map new lens types to old categories for backward compatibility with rx167
-    const oldLensCategory = 
-      rxConfig.lensType === "CLEAR" || rxConfig.lensType === "TINTED" 
+    const oldLensCategory =
+      rxConfig.lensType === "CLEAR" || rxConfig.lensType === "TINTED"
         ? "CLEAR_OR_TINT"
         : rxConfig.lensType === "PHOTOCHROMIC_SOLIS"
-        ? "PHOTOCHROMIC_SOLIS"
-        : "POLARIZED_NUPOLAR";
-    
-    const oldTintType = 
+          ? "PHOTOCHROMIC_SOLIS"
+          : "POLARIZED_NUPOLAR";
+
+    const oldTintType =
       rxConfig.lensType === "TINTED" && rxConfig.tintType === "FULL_TINT_CATALOG"
         ? "FULL_CATALOG"
         : rxConfig.lensType === "TINTED" && rxConfig.tintType === "GRADIENT"
-        ? "GRADIENT"
-        : "NONE";
+          ? "GRADIENT"
+          : "NONE";
 
     // Use rx167 only for edging fee calculation
     const result = calculateRxTotal({
@@ -548,10 +604,10 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   // Only requirement is that PD must be filled - prescription values can be defaults (plano lenses)
   const hasPrescriptionValues = useMemo(() => {
     // Only check if PD is entered (prescription values can be defaults/plano)
-    const hasPdValue = prescriptionData.hasTwoPDs 
+    const hasPdValue = prescriptionData.hasTwoPDs
       ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
       : (prescriptionData.pd && prescriptionData.pd !== "");
-    
+
     return hasPdValue;
   }, [prescriptionData]);
 
@@ -621,13 +677,13 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   const handleStepChange = async (step: number) => {
     // NOTE: Removed automatic reload when navigating to Step 1 - this was causing rxConfig to reset
     // Prescription data is already in state from initial load
-    
+
     // If navigating away from Step 1, save prescription data if PD is filled
     if (currentStep === 1 && step !== 1 && session?.user) {
       const hasPdValue = prescriptionData.hasTwoPDs
         ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
         : (prescriptionData.pd && prescriptionData.pd !== "");
-      
+
       if (hasPdValue) {
         const prescriptionDataToSave: FullPrescriptionData = {
           ...prescriptionData,
@@ -640,7 +696,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
             totalNet: rxPriceResult.totalNet,
           } : undefined,
         };
-        
+
         try {
           await saveUserPrescription(productSlug, prescriptionDataToSave);
           console.log('[PrescriptionFlow] Saved prescription data before navigating away from Step 1 (shared across all products)');
@@ -659,7 +715,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         }
       }
     }
-    
+
     setCurrentStep(step);
     // Update URL to reflect current step
     // Use router.push (not replace) to maintain browser history for back button support
@@ -739,12 +795,12 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       console.log('[PrescriptionFlow] Ignoring default application - user has already made selections');
       return;
     }
-    
+
     // If this is NOT a default application, mark that user has made a selection
     if (!isDefaultApplication) {
       setHasUserMadeLensSelection(true);
     }
-    
+
     setRxConfig(prev => {
       // Helper function to save to localStorage immediately
       const saveToLocalStorage = (config: RxConfigData) => {
@@ -757,17 +813,17 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       // CRITICAL: Always preserve lensType from previous state if not explicitly updated
       // This prevents lensType from being reset when only coating is updated
       const lensTypeToUse = data.lensType !== undefined ? data.lensType : prev.lensType;
-      
+
       // CRITICAL: Always preserve frameType from previous state if not explicitly updated
       const frameTypeToUse = data.frameType !== undefined ? data.frameType : prev.frameType;
-      
+
       // If updating only frameType, just update it directly without normalization
       if (data.frameType !== undefined && Object.keys(data).length === 1) {
         const updated = { ...prev, frameType: data.frameType };
         saveToLocalStorage(updated);
         return updated;
       }
-      
+
       // If updating only coating and no lensType exists, don't proceed
       // This prevents errors when trying to normalize without a lensType
       if (!lensTypeToUse && data.coating !== undefined && data.lensType === undefined) {
@@ -775,21 +831,21 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         saveToLocalStorage(updated);
         return updated;
       }
-      
+
       // If no lensType exists at all, just apply the update directly (let Step3 handle defaults)
       if (!lensTypeToUse) {
         const updated = { ...prev, ...data, frameType: frameTypeToUse };
         saveToLocalStorage(updated);
         return updated;
       }
-      
+
       const updated = { ...prev, ...data, lensType: lensTypeToUse, frameType: frameTypeToUse };
-      
+
       // Preserve existing coating if it's valid for the current lens type
       // This prevents prices from changing when navigating between steps
       let coatingToUse: Coating | undefined = updated.coating;
       const allowedCoatings = getAllowedCoatings(lensTypeToUse);
-      
+
       // If coating is explicitly changed in data, use it (but validate it)
       if (data.coating !== undefined) {
         coatingToUse = allowedCoatings.includes(data.coating) ? data.coating : prev.coating;
@@ -802,7 +858,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       else if (coatingToUse && !allowedCoatings.includes(coatingToUse)) {
         coatingToUse = undefined; // Let normalizeSelection fix invalid coating
       }
-      
+
       // Normalize selection to auto-correct invalid combinations
       // IMPORTANT: Always use preserved lensType (never undefined)
       const tempSelection: LensSelection = {
@@ -816,9 +872,9 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         photochromicColor: updated.photochromicColor,
         polarizedColor: updated.polarizedColor,
       };
-      
+
       const normalized = normalizeSelection(tempSelection);
-      
+
       // Apply normalized values, but ALWAYS preserve lensType and frameType if not explicitly changed
       // This is critical to prevent values from being reset when only one field is updated
       const finalConfig = {
@@ -834,14 +890,14 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         polarizedColor: normalized.polarizedColor,
         frameType: frameTypeToUse, // Always preserve frameType
       };
-      
+
       // Save to localStorage on EVERY update (using helper function)
       saveToLocalStorage(finalConfig);
-      
+
       return finalConfig;
     });
   };
-  
+
   // Wrapper for default applications (from step components on mount)
   const handleRxConfigUpdateWithDefault = (data: Partial<RxConfigData>) => {
     handleRxConfigUpdate(data, true);
@@ -886,18 +942,18 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         localStorage.setItem('prescription_shared', JSON.stringify(fullData));
       }
     }
-    
+
     // Save to sessionStorage for confirmation page (product-specific)
     if (typeof window !== 'undefined') {
       sessionStorage.setItem(`prescription_${productSlug}`, JSON.stringify(fullData));
       console.log('[PrescriptionFlow] Saved prescription to sessionStorage for confirmation page');
     }
-    
+
     // Dispatch custom event
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new Event('prescription-saved'));
     }
-    
+
     router.push(`/shop/${productSlug}/prescription/confirmation`);
   };
 
@@ -918,7 +974,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
 
   // Expose rxConfig for image processing (via context or props)
   // For now, we'll use a custom event to sync with image component
-  
+
   useEffect(() => {
     // Dispatch rxConfig changes to image component
     if (typeof window !== 'undefined') {

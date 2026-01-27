@@ -55,6 +55,9 @@ export type PrescriptionData = {
   hasTwoPDs: boolean;
   hasPrism: boolean;
   savePrescription: boolean;
+  // PDF upload fields
+  prescriptionPdfUrl?: string;
+  isPdfMode: boolean;
 };
 
 // Rx lens configuration data
@@ -90,6 +93,8 @@ const DEFAULT_PRESCRIPTION: PrescriptionData = {
   hasTwoPDs: false,
   hasPrism: false,
   savePrescription: false,
+  prescriptionPdfUrl: undefined,
+  isPdfMode: false,
 };
 
 const DEFAULT_RX_CONFIG: RxConfigData = {

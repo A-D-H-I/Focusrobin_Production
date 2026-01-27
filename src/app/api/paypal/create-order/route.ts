@@ -28,30 +28,35 @@ interface CreatePayPalOrderRequest {
   walletAmount?: number;
   promoCodeId?: string | null;
   orderTotal: number;
+  // Business purchase fields
+  isBusinessPurchase?: boolean;
+  businessName?: string;
+  businessNumber?: string;
+  vatNumber?: string;
 }
 
 async function generateUniqueOrderNumber(): Promise<string> {
   const year = new Date().getFullYear();
   let attempts = 0;
   const maxAttempts = 10;
-  
+
   while (attempts < maxAttempts) {
     const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     const orderNumber = `ORD-${year}-${random}`;
-    
+
     // Check if this order number already exists
     const existing = await prisma.order.findUnique({
       where: { orderNumber },
       select: { id: true },
     });
-    
+
     if (!existing) {
       return orderNumber;
     }
-    
+
     attempts++;
   }
-  
+
   // Fallback: use timestamp if all random attempts fail
   const timestamp = Date.now().toString().slice(-8);
   return `ORD-${year}-${timestamp}`;
@@ -87,24 +92,24 @@ function normalizeImageUrl(url: string | null): string | null {
     }
     return url;
   }
-  
+
   const publicPathMatch = url.match(/[\\/]public[\\/](.+)$/i);
   if (publicPathMatch) {
     return '/' + publicPathMatch[1].replace(/\\/g, '/');
   }
-  
+
   const filenameMatch = url.match(/[\\/]([^\\/]+\.(jpg|jpeg|png|gif|webp|svg|glb))$/i);
   if (filenameMatch) {
     return '/' + filenameMatch[1];
   }
-  
+
   return url.startsWith('./') ? url.slice(1) : '/' + url;
 }
 
 export async function POST(request: Request) {
   try {
     const session = await auth();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -253,19 +258,19 @@ export async function POST(request: Request) {
     for (const orderItem of orderItems) {
       // Count ALL frames (every item has a frame, whether it's regular or prescription)
       frameQuantity += orderItem.quantity;
-      
+
       // Extract frame price (base product price, before prescription lenses)
       // For ALL items (both regular and prescription), use the base product price
-      const cartItem = cart.items.find((ci: any) => 
+      const cartItem = cart.items.find((ci: any) =>
         ci.productId === orderItem.productId && ci.variantId === orderItem.variantId
       );
-      
+
       if (cartItem) {
         const variant = cartItem.Product.ProductVariant.find((v: any) => v.id === orderItem.variantId);
         if (variant) {
           // Get base frame price (before any prescription lenses)
-          const basePrice = variant.price 
-            ? Number(variant.price) 
+          const basePrice = variant.price
+            ? Number(variant.price)
             : Number(cartItem.Product.basePrice);
           const discountPct = cartItem.Product.discountPct || 0;
           const framePrice = basePrice * (1 - discountPct / 100);
@@ -429,6 +434,11 @@ export async function POST(request: Request) {
           billingState: body.billingAddress?.state || body.shippingAddress.state || null,
           billingPostalCode: body.billingAddress?.postalCode || body.shippingAddress.postalCode,
           billingCountry: body.billingAddress?.country || body.shippingAddress.country,
+          // Business purchase fields
+          isBusinessPurchase: body.isBusinessPurchase || false,
+          businessName: body.businessName || null,
+          businessNumber: body.businessNumber || null,
+          vatNumber: body.vatNumber || null,
           items: {
             create: orderItems.map((item) => ({
               productId: item.productId,
@@ -494,7 +504,7 @@ export async function POST(request: Request) {
     // Create PayPal Order
     const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:9002';
     const encodedOrderId = encodeURIComponent(order.id);
-    
+
     const paypalOrder = await createPayPalOrder({
       orderId: order.id,
       orderNumber: order.orderNumber,

@@ -72,7 +72,7 @@ export async function registerUser(formData: FormData) {
 
     // Delete any existing OTP tokens for this email first
     await prisma.verificationToken.deleteMany({
-      where: { 
+      where: {
         identifier: normalizedEmail,
         // Also check if it's a signup token (contains OTP in JSON)
       },

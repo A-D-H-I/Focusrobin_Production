@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Check, Edit, Package } from "lucide-react";
+import { ArrowLeft, Check, Edit, Package, FileText, Download } from "lucide-react";
 import type { Product } from "@/lib/productData";
 import {
   type RxPriceResult,
@@ -42,6 +42,9 @@ export default function Step7Summary({
 }: Step7SummaryProps) {
   const { breakdown, totalNet } = rxPriceResult;
 
+  // Check if in PDF mode
+  const isPdfMode = prescriptionData.isPdfMode && !!prescriptionData.prescriptionPdfUrl;
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -74,20 +77,48 @@ export default function Step7Summary({
           </Button>
         </div>
         <div className="p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="font-medium text-muted-foreground mb-1">OD (Right Eye)</p>
-              <p>SPH: {prescriptionData.od.sph} | CYL: {prescriptionData.od.cyl} | AXIS: {prescriptionData.od.axis}</p>
+          {isPdfMode ? (
+            // PDF Mode - Show PDF uploaded message
+            <div className="flex items-center gap-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
+                <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-blue-800 dark:text-blue-200">Prescription PDF Uploaded</p>
+                <p className="text-sm text-blue-600 dark:text-blue-400">
+                  Document will be sent to lens manufacturer
+                </p>
+              </div>
+              {prescriptionData.prescriptionPdfUrl && (
+                <a
+                  href={prescriptionData.prescriptionPdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  <Download className="h-4 w-4" />
+                </a>
+              )}
             </div>
-            <div>
-              <p className="font-medium text-muted-foreground mb-1">OS (Left Eye)</p>
-              <p>SPH: {prescriptionData.os.sph} | CYL: {prescriptionData.os.cyl} | AXIS: {prescriptionData.os.axis}</p>
-            </div>
-          </div>
-          <div className="text-sm">
-            <p className="font-medium text-muted-foreground mb-1">Pupillary Distance (PD)</p>
-            <p>{prescriptionData.pd} mm</p>
-          </div>
+          ) : (
+            // Manual Entry Mode - Show prescription values
+            <>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="font-medium text-muted-foreground mb-1">OD (Right Eye)</p>
+                  <p>SPH: {prescriptionData.od.sph} | CYL: {prescriptionData.od.cyl} | AXIS: {prescriptionData.od.axis}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-muted-foreground mb-1">OS (Left Eye)</p>
+                  <p>SPH: {prescriptionData.os.sph} | CYL: {prescriptionData.os.cyl} | AXIS: {prescriptionData.os.axis}</p>
+                </div>
+              </div>
+              <div className="text-sm">
+                <p className="font-medium text-muted-foreground mb-1">Pupillary Distance (PD)</p>
+                <p>{prescriptionData.pd} mm</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -207,4 +238,3 @@ export default function Step7Summary({
     </div>
   );
 }
-

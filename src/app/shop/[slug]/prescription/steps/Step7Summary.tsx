@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Check, Edit, Package } from "lucide-react";
+import { ArrowLeft, Check, Edit, Package, FileText, Download } from "lucide-react";
 import type { Product } from "@/lib/productData";
 import {
   type RxPriceResult,
@@ -48,18 +48,27 @@ export default function Step7Summary({
   const { data: session } = useSession();
   const [prescriptionData, setPrescriptionData] = useState(initialPrescriptionData);
   const [rxConfig, setRxConfig] = useState(initialRxConfig);
-  
+
   // Load prescription data from database/localStorage when component mounts
+  // BUT: If a PDF was uploaded (isPdfMode=true), skip loading and use the props directly
   useEffect(() => {
+    // If PDF mode is already set in initial data, don't reload from storage/DB
+    // This prevents the PDF uploaded state from being overwritten
+    if (initialPrescriptionData.isPdfMode && initialPrescriptionData.prescriptionPdfUrl) {
+      console.log('[Step7Summary] PDF mode detected in props, skipping data reload');
+      setPrescriptionData(initialPrescriptionData);
+      return;
+    }
+
     const loadPrescriptionData = async () => {
       let loadedPrescriptionData: PrescriptionData | null = null;
       let loadedRxConfig: RxConfigData | null = null;
-      
+
       // 1. Try sessionStorage first (most recent, product-specific)
       if (typeof window !== 'undefined') {
         const sessionKey = `prescription_${productSlug}`;
         const sessionStored = sessionStorage.getItem(sessionKey);
-        
+
         if (sessionStored) {
           try {
             const parsed = JSON.parse(sessionStored) as FullPrescriptionData;
@@ -73,6 +82,8 @@ export default function Step7Summary({
                 pdOs: parsed.pdOs || "",
                 hasTwoPDs: parsed.hasTwoPDs || false,
                 hasPrism: parsed.hasPrism || false,
+                prescriptionPdfUrl: (parsed as any).prescriptionPdfUrl,
+                isPdfMode: (parsed as any).isPdfMode || false,
               };
             }
             if (parsed.rxConfig) {
@@ -84,7 +95,7 @@ export default function Step7Summary({
           }
         }
       }
-      
+
       // 2. If not in sessionStorage, try database (for logged-in users)
       if (!loadedPrescriptionData && session?.user) {
         try {
@@ -99,6 +110,8 @@ export default function Step7Summary({
               pdOs: dbData.pdOs || "",
               hasTwoPDs: dbData.hasTwoPDs || false,
               hasPrism: dbData.hasPrism || false,
+              prescriptionPdfUrl: (dbData as any).prescriptionPdfUrl,
+              isPdfMode: (dbData as any).isPdfMode || false,
             };
             console.log('[Step7Summary] Loaded prescription from database');
           }
@@ -106,11 +119,11 @@ export default function Step7Summary({
           console.error('Error loading prescription from database:', error);
         }
       }
-      
+
       // 3. If still not found, try localStorage (shared prescription)
       if (!loadedPrescriptionData && typeof window !== 'undefined') {
-        const storageKey = session?.user 
-          ? `prescription_user_${(session.user as any).id}` 
+        const storageKey = session?.user
+          ? `prescription_user_${(session.user as any).id}`
           : 'prescription_shared';
         const stored = localStorage.getItem(storageKey);
         if (stored) {
@@ -125,6 +138,8 @@ export default function Step7Summary({
                 pdOs: parsed.pdOs || "",
                 hasTwoPDs: parsed.hasTwoPDs || false,
                 hasPrism: parsed.hasPrism || false,
+                prescriptionPdfUrl: (parsed as any).prescriptionPdfUrl,
+                isPdfMode: (parsed as any).isPdfMode || false,
               };
               console.log('[Step7Summary] Loaded prescription from localStorage');
             }
@@ -133,7 +148,7 @@ export default function Step7Summary({
           }
         }
       }
-      
+
       // 4. Always check localStorage for rxConfig (product-specific) - this is the source of truth
       if (typeof window !== 'undefined') {
         const productRxConfigKey = `rxConfig_${productSlug}`;
@@ -147,7 +162,7 @@ export default function Step7Summary({
           }
         }
       }
-      
+
       // Update state with loaded data
       if (loadedPrescriptionData) {
         setPrescriptionData(loadedPrescriptionData);
@@ -156,7 +171,7 @@ export default function Step7Summary({
         setRxConfig(loadedRxConfig);
       }
     };
-    
+
     loadPrescriptionData();
   }, [productSlug, session?.user]); // Reload when productSlug or session changes
 
@@ -192,48 +207,77 @@ export default function Step7Summary({
           </Button>
         </div>
         <div className="p-4 space-y-3">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="font-medium text-muted-foreground mb-1">OD (Right Eye)</p>
-              <p>SPH: {prescriptionData.od.sph} | CYL: {prescriptionData.od.cyl} | AXIS: {prescriptionData.od.axis}</p>
+          {/* Check for PDF mode */}
+          {prescriptionData.isPdfMode && prescriptionData.prescriptionPdfUrl ? (
+            // PDF Mode - Show PDF uploaded message
+            <div className="flex items-center gap-4 p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-full">
+                <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-blue-800 dark:text-blue-200">Prescription PDF Uploaded</p>
+                <p className="text-sm text-blue-600 dark:text-blue-400">
+                  Document will be sent to lens manufacturer
+                </p>
+              </div>
+              {prescriptionData.prescriptionPdfUrl && (
+                <a
+                  href={prescriptionData.prescriptionPdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  <Download className="h-4 w-4" />
+                </a>
+              )}
             </div>
-            <div>
-              <p className="font-medium text-muted-foreground mb-1">OS (Left Eye)</p>
-              <p>SPH: {prescriptionData.os.sph} | CYL: {prescriptionData.os.cyl} | AXIS: {prescriptionData.os.axis}</p>
-            </div>
-          </div>
-          <div className="text-sm">
-            <p className="font-medium text-muted-foreground mb-1">Pupillary Distance (PD)</p>
-            {prescriptionData.hasTwoPDs ? (
-              <p>OD: {prescriptionData.pdOd || "N/A"} mm | OS: {prescriptionData.pdOs || "N/A"} mm</p>
-            ) : (
-              <p>{prescriptionData.pd} mm</p>
-            )}
-          </div>
-          {prescriptionData.hasPrism && (
-            <div className="text-sm pt-2 border-t">
-              <p className="font-medium text-muted-foreground mb-2">Prism Correction</p>
-              <div className="space-y-2">
+          ) : (
+            // Manual Entry Mode - Show prescription values
+            <>
+              <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">OD (Right)</p>
-                  <p className="text-xs">
-                    Horizontal: {prescriptionData.od.prismHorizontal || "0.00"}
-                    {prescriptionData.od.prismHorizontalBase && ` ${prescriptionData.od.prismHorizontalBase}`} | 
-                    Vertical: {prescriptionData.od.prismVertical || "0.00"}
-                    {prescriptionData.od.prismVerticalBase && ` ${prescriptionData.od.prismVerticalBase}`}
-                  </p>
+                  <p className="font-medium text-muted-foreground mb-1">OD (Right Eye)</p>
+                  <p>SPH: {prescriptionData.od.sph} | CYL: {prescriptionData.od.cyl} | AXIS: {prescriptionData.od.axis}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">OS (Left)</p>
-                  <p className="text-xs">
-                    Horizontal: {prescriptionData.os.prismHorizontal || "0.00"}
-                    {prescriptionData.os.prismHorizontalBase && ` ${prescriptionData.os.prismHorizontalBase}`} | 
-                    Vertical: {prescriptionData.os.prismVertical || "0.00"}
-                    {prescriptionData.os.prismVerticalBase && ` ${prescriptionData.os.prismVerticalBase}`}
-                  </p>
+                  <p className="font-medium text-muted-foreground mb-1">OS (Left Eye)</p>
+                  <p>SPH: {prescriptionData.os.sph} | CYL: {prescriptionData.os.cyl} | AXIS: {prescriptionData.os.axis}</p>
                 </div>
               </div>
-            </div>
+              <div className="text-sm">
+                <p className="font-medium text-muted-foreground mb-1">Pupillary Distance (PD)</p>
+                {prescriptionData.hasTwoPDs ? (
+                  <p>OD: {prescriptionData.pdOd || "N/A"} mm | OS: {prescriptionData.pdOs || "N/A"} mm</p>
+                ) : (
+                  <p>{prescriptionData.pd} mm</p>
+                )}
+              </div>
+              {prescriptionData.hasPrism && (
+                <div className="text-sm pt-2 border-t">
+                  <p className="font-medium text-muted-foreground mb-2">Prism Correction</p>
+                  <div className="space-y-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">OD (Right)</p>
+                      <p className="text-xs">
+                        Horizontal: {prescriptionData.od.prismHorizontal || "0.00"}
+                        {prescriptionData.od.prismHorizontalBase && ` ${prescriptionData.od.prismHorizontalBase}`} |
+                        Vertical: {prescriptionData.od.prismVertical || "0.00"}
+                        {prescriptionData.od.prismVerticalBase && ` ${prescriptionData.od.prismVerticalBase}`}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">OS (Left)</p>
+                      <p className="text-xs">
+                        Horizontal: {prescriptionData.os.prismHorizontal || "0.00"}
+                        {prescriptionData.os.prismHorizontalBase && ` ${prescriptionData.os.prismHorizontalBase}`} |
+                        Vertical: {prescriptionData.os.prismVertical || "0.00"}
+                        {prescriptionData.os.prismVerticalBase && ` ${prescriptionData.os.prismVerticalBase}`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>

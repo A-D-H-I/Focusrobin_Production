@@ -19,10 +19,10 @@ function getResendClient(): Resend | null {
 // Get the recipient email address
 function getRecipientEmail(customerEmail: string): string {
   const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-  
+
   console.log(`[Order Email] From email: ${fromEmail}`);
   console.log(`[Order Email] Customer email: ${customerEmail}`);
-  
+
   // When using the Resend test domain, emails can only be sent to verified addresses
   // In production with a custom domain, send to the actual customer
   if (fromEmail === "onboarding@resend.dev") {
@@ -36,7 +36,7 @@ function getRecipientEmail(customerEmail: string): string {
   } else {
     console.log(`[Order Email] ✓ Using verified domain - sending to actual customer: ${customerEmail}`);
   }
-  
+
   return customerEmail;
 }
 
@@ -85,7 +85,7 @@ interface OrderEmailData {
 export async function sendOrderConfirmationEmail(orderId: string): Promise<{ success: boolean; error?: string }> {
   console.log(`[Order Email] ========================================`);
   console.log(`[Order Email] Starting email send for order: ${orderId}`);
-  
+
   try {
     const resendClient = getResendClient();
     if (!resendClient) {
@@ -130,7 +130,7 @@ export async function sendOrderConfirmationEmail(orderId: string): Promise<{ suc
 
     const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
     const recipientEmail = getRecipientEmail(order.User.email);
-    
+
     console.log(`[Order Email] Email configuration:`);
     console.log(`[Order Email]   From: FocusRobin <${fromEmail}>`);
     console.log(`[Order Email]   To: ${recipientEmail}`);
@@ -149,7 +149,7 @@ export async function sendOrderConfirmationEmail(orderId: string): Promise<{ suc
       productSlug: item.Product?.slug || null,
       prescriptionData: item.prescriptionData || null,
     }));
-    
+
     console.log(`[Order Email] Processing ${items.length} items:`, items.map(i => ({
       id: i.id,
       name: i.name,
@@ -335,7 +335,7 @@ function generateOrderConfirmationHTML(data: OrderEmailData): string {
                     <div style="flex: 1;">
                       <h3 style="margin: 0 0 5px 0; color: #333333; font-size: 16px; font-weight: bold;">${item.name}</h3>
                       <p style="margin: 0 0 5px 0; color: #666666; font-size: 14px;">${item.variant} • SKU: ${item.sku}</p>
-                      ${item.hasPrescription ? '<p style="margin: 0 0 5px 0; color: #2A9D9A; font-size: 12px; font-weight: bold;">📋 Includes Prescription Lenses</p>' : ''}
+                      ${item.hasPrescription ? (item.prescriptionData?.isPdfMode ? '<p style="margin: 0 0 5px 0; color: #2A9D9A; font-size: 12px; font-weight: bold;">📄 Prescription PDF Uploaded</p>' : '<p style="margin: 0 0 5px 0; color: #2A9D9A; font-size: 12px; font-weight: bold;">📋 Includes Prescription Lenses</p>') : ''}
                       <p style="margin: 0; color: #666666; font-size: 14px;">Quantity: ${item.quantity} × ${formatCurrency(item.price)} = ${formatCurrency(item.price * item.quantity)}</p>
                     </div>
                     <div style="text-align: right;">

@@ -77,10 +77,10 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           alt={product.name}
           productName={product.name}
         />
-        
+
         <div className="space-y-4 mt-6">
           <h2 className="text-2xl font-headline">{product.name}</h2>
-          
+
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Frame:</span>
@@ -105,7 +105,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
               </>
             )}
           </div>
-          
+
           {priceBreakdown && (
             <div className="pt-4 border-t space-y-2">
               <div className="flex justify-between text-sm">
@@ -142,59 +142,88 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           {/* Prescription Details */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Prescription Details</h3>
-            
-            <div className="space-y-4">
-              {/* OD (Right Eye) */}
+
+            {prescriptionData.isPdfMode && prescriptionData.prescriptionPdfUrl ? (
+              // PDF Mode - Show PDF uploaded message
               <div className="border rounded-lg p-4">
-                <h4 className="font-semibold mb-3">OD (Right Eye)</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground mb-1">SPH</p>
-                    <p className="font-mono font-medium">{prescriptionData.od.sph}</p>
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
+                    <Package className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <div>
-                    <p className="text-muted-foreground mb-1">CYL</p>
-                    <p className="font-mono font-medium">{prescriptionData.od.cyl}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground mb-1">AXIS</p>
-                    <p className="font-mono font-medium">{prescriptionData.od.axis}°</p>
+                  <div className="flex-1">
+                    <p className="font-semibold text-blue-800 dark:text-blue-200">Prescription PDF Uploaded</p>
+                    <p className="text-sm text-blue-600 dark:text-blue-400">
+                      Your prescription document will be sent directly to our lens manufacturer
+                    </p>
                   </div>
                 </div>
+                {prescriptionData.prescriptionPdfUrl && (
+                  <a
+                    href={prescriptionData.prescriptionPdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-3"
+                  >
+                    <Package className="h-4 w-4" />
+                    View uploaded prescription
+                  </a>
+                )}
               </div>
-
-              {/* OS (Left Eye) */}
-              <div className="border rounded-lg p-4">
-                <h4 className="font-semibold mb-3">OS (Left Eye)</h4>
-                <div className="grid grid-cols-3 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground mb-1">SPH</p>
-                    <p className="font-mono font-medium">{prescriptionData.os.sph}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground mb-1">CYL</p>
-                    <p className="font-mono font-medium">{prescriptionData.os.cyl}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground mb-1">AXIS</p>
-                    <p className="font-mono font-medium">{prescriptionData.os.axis}°</p>
+            ) : (
+              // Manual Entry Mode - Show prescription values
+              <div className="space-y-4">
+                {/* OD (Right Eye) */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-3">OD (Right Eye)</h4>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground mb-1">SPH</p>
+                      <p className="font-mono font-medium">{prescriptionData.od.sph}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1">CYL</p>
+                      <p className="font-mono font-medium">{prescriptionData.od.cyl}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1">AXIS</p>
+                      <p className="font-mono font-medium">{prescriptionData.od.axis}°</p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* PD */}
-              <div className="border rounded-lg p-4">
-                <h4 className="font-semibold mb-3">PD (Pupillary Distance)</h4>
-                <p className="text-lg font-mono font-medium">{prescriptionData.pd} mm</p>
+                {/* OS (Left Eye) */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-3">OS (Left Eye)</h4>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <p className="text-muted-foreground mb-1">SPH</p>
+                      <p className="font-mono font-medium">{prescriptionData.os.sph}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1">CYL</p>
+                      <p className="font-mono font-medium">{prescriptionData.os.cyl}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1">AXIS</p>
+                      <p className="font-mono font-medium">{prescriptionData.os.axis}°</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* PD */}
+                <div className="border rounded-lg p-4">
+                  <h4 className="font-semibold mb-3">PD (Pupillary Distance)</h4>
+                  <p className="text-lg font-mono font-medium">{prescriptionData.pd} mm</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Lens Configuration */}
           {rxConfig && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Lens Configuration</h3>
-              
+
               <div className="border rounded-lg p-4 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Lens Type:</span>
@@ -254,7 +283,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           {priceBreakdown && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Price Breakdown</h3>
-              
+
               <div className="border rounded-lg p-4 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="flex items-center gap-2">

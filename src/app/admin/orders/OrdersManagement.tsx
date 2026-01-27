@@ -69,10 +69,10 @@ function convertGoogleDriveLink(url: string): string {
 // Helper function to normalize image URLs
 function normalizeImageUrl(url: string | null): string | null {
   if (!url) return null;
-  
+
   // If it's already a relative path starting with /, return as is
   if (url.startsWith('/')) return url;
-  
+
   // Check for Google Drive links and convert them
   if (url.startsWith('http://') || url.startsWith('https://')) {
     if (url.includes('drive.google.com')) {
@@ -80,19 +80,19 @@ function normalizeImageUrl(url: string | null): string | null {
     }
     return url;
   }
-  
+
   // Handle Windows absolute paths
   const publicPathMatch = url.match(/[\\/]public[\\/](.+)$/i);
   if (publicPathMatch) {
     return '/' + publicPathMatch[1].replace(/\\/g, '/');
   }
-  
+
   // Extract filename if it's a full path
   const filenameMatch = url.match(/[\\/]([^\\/]+\.(jpg|jpeg|png|gif|webp|svg|glb))$/i);
   if (filenameMatch) {
     return '/' + filenameMatch[1];
   }
-  
+
   // Fallback
   return url.startsWith('./') ? url.slice(1) : '/' + url;
 }
@@ -140,6 +140,11 @@ interface Order {
   shippedAt: Date | null;
   deliveredAt: Date | null;
   items: OrderItem[];
+  // Business purchase fields
+  isBusinessPurchase?: boolean;
+  businessName?: string | null;
+  businessNumber?: string | null;
+  vatNumber?: string | null;
 }
 
 interface OrdersManagementProps {
@@ -187,9 +192,9 @@ const getStatusIcon = (status: string) => {
 // Helper function to extract prescription data (handles both flat and nested formats)
 const extractPrescriptionData = (prescriptionData: any) => {
   if (!prescriptionData) return null;
-  
+
   const rxValues = prescriptionData.rxValues || prescriptionData;
-  
+
   // Extract OD (Right Eye) - handle both formats
   const od = {
     sph: rxValues.od?.sph || rxValues.odSph || '0.00',
@@ -200,7 +205,7 @@ const extractPrescriptionData = (prescriptionData: any) => {
     prismVertical: rxValues.od?.prismVertical || rxValues.odPrismVertical,
     prismVerticalBase: rxValues.od?.prismVerticalBase || rxValues.odPrismVerticalBase,
   };
-  
+
   // Extract OS (Left Eye) - handle both formats
   const os = {
     sph: rxValues.os?.sph || rxValues.osSph || '0.00',
@@ -211,23 +216,27 @@ const extractPrescriptionData = (prescriptionData: any) => {
     prismVertical: rxValues.os?.prismVertical || rxValues.osPrismVertical,
     prismVerticalBase: rxValues.os?.prismVerticalBase || rxValues.osPrismVerticalBase,
   };
-  
+
   // Extract PD
   const pd = rxValues.pd || prescriptionData.pd || '';
   const pdOd = rxValues.pdOd || prescriptionData.pdOd;
   const pdOs = rxValues.pdOs || prescriptionData.pdOs;
   const hasTwoPDs = rxValues.hasTwoPDs || prescriptionData.hasTwoPDs || false;
-  
+
   // Extract prism flag
-  const hasPrism = rxValues.hasPrism || prescriptionData.hasPrism || 
+  const hasPrism = rxValues.hasPrism || prescriptionData.hasPrism ||
     !!(od.prismHorizontal && od.prismHorizontal !== '0.00') ||
     !!(od.prismVertical && od.prismVertical !== '0.00') ||
     !!(os.prismHorizontal && os.prismHorizontal !== '0.00') ||
     !!(os.prismVertical && os.prismVertical !== '0.00');
-  
+
   // Extract lens configuration
   const rxConfig = prescriptionData.rxConfig;
-  
+
+  // Extract PDF mode fields
+  const isPdfMode = rxValues.isPdfMode || prescriptionData.isPdfMode || false;
+  const prescriptionPdfUrl = rxValues.prescriptionPdfUrl || prescriptionData.prescriptionPdfUrl || rxValues.prescriptionImageUrl || prescriptionData.prescriptionImageUrl;
+
   return {
     od,
     os,
@@ -237,6 +246,8 @@ const extractPrescriptionData = (prescriptionData: any) => {
     hasTwoPDs,
     hasPrism,
     rxConfig,
+    isPdfMode,
+    prescriptionPdfUrl,
     prescriptionImageUrl: rxValues.prescriptionImageUrl || prescriptionData.prescriptionImageUrl,
   };
 };
@@ -315,7 +326,7 @@ export default function OrdersManagement({
     setDownloadingOrderId(orderId);
     try {
       const response = await fetch(`/api/admin/orders/${orderId}/invoices`);
-      
+
       if (!response.ok) {
         // Try to get error message from response
         let errorMessage = 'Failed to download invoices';
@@ -339,7 +350,7 @@ export default function OrdersManagement({
 
       // Get the blob and create download link
       const blob = await response.blob();
-      
+
       if (blob.size === 0) {
         throw new Error('Downloaded file is empty');
       }
@@ -632,6 +643,35 @@ export default function OrdersManagement({
                   </div>
                 </div>
 
+                {/* Business Details (if applicable) */}
+                {selectedOrder.isBusinessPurchase && (
+                  <div>
+                    <h3 className="text-brand-h3 font-headline mb-3">Business Details</h3>
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {selectedOrder.businessName && (
+                          <div>
+                            <Label className="text-sm font-semibold text-blue-900">Business Name</Label>
+                            <p className="font-medium">{selectedOrder.businessName}</p>
+                          </div>
+                        )}
+                        {selectedOrder.businessNumber && (
+                          <div>
+                            <Label className="text-sm font-semibold text-blue-900">Registration Number</Label>
+                            <p>{selectedOrder.businessNumber}</p>
+                          </div>
+                        )}
+                        {selectedOrder.vatNumber && (
+                          <div>
+                            <Label className="text-sm font-semibold text-blue-900">VAT Number</Label>
+                            <p>{selectedOrder.vatNumber}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Shipping Address */}
                 <div>
                   <h3 className="text-brand-h3 font-headline mb-3">Shipping Address</h3>
@@ -768,13 +808,14 @@ export default function OrdersManagement({
                     {selectedOrder.items.map((item) => {
                       const prescription = extractPrescriptionData(item.prescriptionData);
                       const hasPrescription = !!prescription && (
+                        prescription.isPdfMode ||
                         (prescription.od.sph !== '0.00' && prescription.od.sph !== '0') ||
                         (prescription.od.cyl !== '0.00' && prescription.od.cyl !== '0') ||
                         (prescription.os.sph !== '0.00' && prescription.os.sph !== '0') ||
                         (prescription.os.cyl !== '0.00' && prescription.os.cyl !== '0') ||
                         !!prescription.rxConfig
                       );
-                      
+
                       return (
                         <div key={item.id} className="space-y-3">
                           <div className="flex items-center gap-4 p-4 border rounded-lg">
@@ -813,7 +854,7 @@ export default function OrdersManagement({
                               </p>
                               {hasPrescription && (
                                 <Badge className="mt-2 bg-blue-100 text-blue-800">
-                                  📋 Prescription Lenses
+                                  {prescription?.isPdfMode ? '📄 Prescription PDF' : '📋 Prescription Lenses'}
                                 </Badge>
                               )}
                             </div>
@@ -823,91 +864,115 @@ export default function OrdersManagement({
                               </p>
                             </div>
                           </div>
-                          
+
                           {/* Prescription Details for Lens Manufacturer */}
                           {hasPrescription && prescription && (
                             <div className="ml-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                               <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
                                 <span>🔬 Prescription Details for Lens Manufacturer</span>
                               </h4>
-                              
-                              {/* Prescription Values Table */}
-                              <div className="mb-4">
-                                <h5 className="text-sm font-semibold text-blue-800 mb-2">Prescription Values</h5>
-                                <div className="overflow-x-auto">
-                                  <table className="w-full text-sm border-collapse">
-                                    <thead>
-                                      <tr className="bg-blue-100">
-                                        <th className="border border-blue-300 px-2 py-1 text-left">Eye</th>
-                                        <th className="border border-blue-300 px-2 py-1 text-center">SPH</th>
-                                        <th className="border border-blue-300 px-2 py-1 text-center">CYL</th>
-                                        <th className="border border-blue-300 px-2 py-1 text-center">AXIS</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      <tr>
-                                        <td className="border border-blue-300 px-2 py-1 font-medium">OD (Right)</td>
-                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.od.sph}</td>
-                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.od.cyl}</td>
-                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.od.axis}°</td>
-                                      </tr>
-                                      <tr>
-                                        <td className="border border-blue-300 px-2 py-1 font-medium">OS (Left)</td>
-                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.os.sph}</td>
-                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.os.cyl}</td>
-                                        <td className="border border-blue-300 px-2 py-1 text-center">{prescription.os.axis}°</td>
-                                      </tr>
-                                    </tbody>
-                                  </table>
+
+                              {/* PDF Mode - Show download button */}
+                              {prescription.isPdfMode && prescription.prescriptionPdfUrl ? (
+                                <div className="mb-4">
+                                  <div className="flex items-center gap-4 p-4 bg-white rounded-lg border border-blue-200">
+                                    <div className="p-3 bg-blue-100 rounded-full">
+                                      <Download className="h-6 w-6 text-blue-600" />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-semibold text-blue-900">Prescription PDF Uploaded</p>
+                                      <p className="text-sm text-blue-700">Customer uploaded a prescription document</p>
+                                    </div>
+                                    <a
+                                      href={prescription.prescriptionPdfUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                    >
+                                      <Download className="h-4 w-4" />
+                                      Download PDF
+                                    </a>
+                                  </div>
                                 </div>
-                                
-                                {/* PD Values */}
-                                <div className="mt-3 text-sm">
-                                  <span className="font-semibold text-blue-800">PD (Pupillary Distance):</span>{' '}
-                                  {prescription.hasTwoPDs ? (
-                                    <span>OD: {prescription.pdOd || 'N/A'} mm | OS: {prescription.pdOs || 'N/A'} mm</span>
-                                  ) : (
-                                    <span>{prescription.pd || 'N/A'} mm</span>
+                              ) : (
+                                /* Manual Entry Mode - Show prescription values table */
+                                <div className="mb-4">
+                                  <h5 className="text-sm font-semibold text-blue-800 mb-2">Prescription Values</h5>
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-sm border-collapse">
+                                      <thead>
+                                        <tr className="bg-blue-100">
+                                          <th className="border border-blue-300 px-2 py-1 text-left">Eye</th>
+                                          <th className="border border-blue-300 px-2 py-1 text-center">SPH</th>
+                                          <th className="border border-blue-300 px-2 py-1 text-center">CYL</th>
+                                          <th className="border border-blue-300 px-2 py-1 text-center">AXIS</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        <tr>
+                                          <td className="border border-blue-300 px-2 py-1 font-medium">OD (Right)</td>
+                                          <td className="border border-blue-300 px-2 py-1 text-center">{prescription.od.sph}</td>
+                                          <td className="border border-blue-300 px-2 py-1 text-center">{prescription.od.cyl}</td>
+                                          <td className="border border-blue-300 px-2 py-1 text-center">{prescription.od.axis}°</td>
+                                        </tr>
+                                        <tr>
+                                          <td className="border border-blue-300 px-2 py-1 font-medium">OS (Left)</td>
+                                          <td className="border border-blue-300 px-2 py-1 text-center">{prescription.os.sph}</td>
+                                          <td className="border border-blue-300 px-2 py-1 text-center">{prescription.os.cyl}</td>
+                                          <td className="border border-blue-300 px-2 py-1 text-center">{prescription.os.axis}°</td>
+                                        </tr>
+                                      </tbody>
+                                    </table>
+                                  </div>
+
+                                  {/* PD Values */}
+                                  <div className="mt-3 text-sm">
+                                    <span className="font-semibold text-blue-800">PD (Pupillary Distance):</span>{' '}
+                                    {prescription.hasTwoPDs ? (
+                                      <span>OD: {prescription.pdOd || 'N/A'} mm | OS: {prescription.pdOs || 'N/A'} mm</span>
+                                    ) : (
+                                      <span>{prescription.pd || 'N/A'} mm</span>
+                                    )}
+                                  </div>
+
+                                  {/* Prism Values */}
+                                  {prescription.hasPrism && (
+                                    <div className="mt-3">
+                                      <h6 className="text-sm font-semibold text-blue-800 mb-1">Prism Correction</h6>
+                                      <div className="overflow-x-auto">
+                                        <table className="w-full text-xs border-collapse">
+                                          <thead>
+                                            <tr className="bg-blue-100">
+                                              <th className="border border-blue-300 px-1 py-1 text-left">Eye</th>
+                                              <th className="border border-blue-300 px-1 py-1 text-center">H. Prism</th>
+                                              <th className="border border-blue-300 px-1 py-1 text-center">Base H</th>
+                                              <th className="border border-blue-300 px-1 py-1 text-center">V. Prism</th>
+                                              <th className="border border-blue-300 px-1 py-1 text-center">Base V</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody>
+                                            <tr>
+                                              <td className="border border-blue-300 px-1 py-1 font-medium">OD</td>
+                                              <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismHorizontal || '-'}</td>
+                                              <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismHorizontalBase || '-'}</td>
+                                              <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismVertical || '-'}</td>
+                                              <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismVerticalBase || '-'}</td>
+                                            </tr>
+                                            <tr>
+                                              <td className="border border-blue-300 px-1 py-1 font-medium">OS</td>
+                                              <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismHorizontal || '-'}</td>
+                                              <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismHorizontalBase || '-'}</td>
+                                              <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismVertical || '-'}</td>
+                                              <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismVerticalBase || '-'}</td>
+                                            </tr>
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
-                                
-                                {/* Prism Values */}
-                                {prescription.hasPrism && (
-                                  <div className="mt-3">
-                                    <h6 className="text-sm font-semibold text-blue-800 mb-1">Prism Correction</h6>
-                                    <div className="overflow-x-auto">
-                                      <table className="w-full text-xs border-collapse">
-                                        <thead>
-                                          <tr className="bg-blue-100">
-                                            <th className="border border-blue-300 px-1 py-1 text-left">Eye</th>
-                                            <th className="border border-blue-300 px-1 py-1 text-center">H. Prism</th>
-                                            <th className="border border-blue-300 px-1 py-1 text-center">Base H</th>
-                                            <th className="border border-blue-300 px-1 py-1 text-center">V. Prism</th>
-                                            <th className="border border-blue-300 px-1 py-1 text-center">Base V</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          <tr>
-                                            <td className="border border-blue-300 px-1 py-1 font-medium">OD</td>
-                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismHorizontal || '-'}</td>
-                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismHorizontalBase || '-'}</td>
-                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismVertical || '-'}</td>
-                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.od.prismVerticalBase || '-'}</td>
-                                          </tr>
-                                          <tr>
-                                            <td className="border border-blue-300 px-1 py-1 font-medium">OS</td>
-                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismHorizontal || '-'}</td>
-                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismHorizontalBase || '-'}</td>
-                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismVertical || '-'}</td>
-                                            <td className="border border-blue-300 px-1 py-1 text-center">{prescription.os.prismVerticalBase || '-'}</td>
-                                          </tr>
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                              
+                              )}
+
                               {/* Lens Configuration */}
                               {prescription.rxConfig && (
                                 <div className="mt-4 pt-4 border-t border-blue-300">
@@ -964,14 +1029,14 @@ export default function OrdersManagement({
                                   </div>
                                 </div>
                               )}
-                              
+
                               {/* Prescription Image */}
                               {prescription.prescriptionImageUrl && (
                                 <div className="mt-3 pt-3 border-t border-blue-300">
                                   <span className="text-sm font-semibold text-blue-800">Prescription Image:</span>{' '}
-                                  <a 
-                                    href={prescription.prescriptionImageUrl} 
-                                    target="_blank" 
+                                  <a
+                                    href={prescription.prescriptionImageUrl}
+                                    target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-blue-600 hover:underline text-sm"
                                   >
