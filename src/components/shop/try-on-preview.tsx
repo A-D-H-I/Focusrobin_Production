@@ -61,36 +61,52 @@ export default function TryOnPreview({
   // Initialize MediaPipe FaceLandmarker ONCE
   useEffect(() => {
     let mounted = true;
-    
+
     const init = async () => {
       if (landmarkerRef.current) {
         setIsModelReady(true);
         return;
       }
-      
+
       setStatus("loading");
       setStatusMessage("Loading AI Model...");
-      
+
       try {
         const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
-        
+
         if (!mounted) return;
-        
+
         const vision = await FilesetResolver.forVisionTasks(
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
         );
-        
+
         if (!mounted) return;
-        
-        landmarkerRef.current = await FaceLandmarker.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
-            delegate: "GPU",
-          },
-          runningMode: "IMAGE",
-          numFaces: 1,
-        });
-        
+
+        // Try GPU first, fallback to CPU if it fails
+        try {
+          landmarkerRef.current = await FaceLandmarker.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+              delegate: "GPU",
+            },
+            runningMode: "IMAGE",
+            numFaces: 1,
+          });
+        } catch (gpuError) {
+          console.warn("GPU delegate failed, falling back to CPU:", gpuError);
+          if (!mounted) return;
+
+          // Fallback to CPU delegate
+          landmarkerRef.current = await FaceLandmarker.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+              delegate: "CPU",
+            },
+            runningMode: "IMAGE",
+            numFaces: 1,
+          });
+        }
+
         if (mounted) {
           setStatus("ready");
           setStatusMessage("");
@@ -104,9 +120,9 @@ export default function TryOnPreview({
         }
       }
     };
-    
+
     init();
-    
+
     return () => {
       mounted = false;
     };
@@ -116,7 +132,7 @@ export default function TryOnPreview({
   useEffect(() => {
     // Create a unique key for this variants set (using all variant SKUs)
     const variantsKey = variants.map(v => v.sku || v.hex).join('-');
-    
+
     // Only clear cache if this is a completely different set of variants (new product)
     const isNewProduct = previousVariantsRef.current && previousVariantsRef.current !== variantsKey;
     if (isNewProduct) {
@@ -125,14 +141,14 @@ export default function TryOnPreview({
       previousVariantIndexRef.current = -1;
     }
     previousVariantsRef.current = variantsKey;
-    
+
     // Load images for all variants, prioritizing the selected variant
     const loadVariantImage = (variant: ProductColorVariant, idx: number) => {
       const imageUrl = variant.tryOn || variant.thumbnail || "";
       if (!imageUrl) {
         return;
       }
-      
+
       // Check if already loaded - compare by checking if image exists and is complete
       const existingImg = glassesImagesRef.current.get(idx);
       if (existingImg && existingImg.complete && existingImg.naturalWidth > 0) {
@@ -140,16 +156,16 @@ export default function TryOnPreview({
         const existingSrc = existingImg.src || '';
         const normalizedExisting = existingSrc.split('?')[0]; // Remove query params
         const normalizedNew = imageUrl.split('?')[0];
-        
+
         if (normalizedExisting.includes(normalizedNew) || normalizedNew.includes(normalizedExisting)) {
           return; // Already loaded with correct URL
         }
       }
-      
+
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = imageUrl;
-      
+
       img.onload = () => {
         glassesImagesRef.current.set(idx, img);
         // If this is the selected variant and face is detected, trigger redraw immediately
@@ -161,17 +177,17 @@ export default function TryOnPreview({
           });
         }
       };
-      
+
       img.onerror = (err) => {
         console.error(`Failed to load glasses image for variant ${idx}:`, imageUrl, err);
       };
     };
-    
+
     // Load selected variant first (if valid), then others
     if (selectedVariantIndex >= 0 && selectedVariantIndex < variants.length) {
       loadVariantImage(variants[selectedVariantIndex], selectedVariantIndex);
     }
-    
+
     // Load all other variants
     variants.forEach((variant, idx) => {
       if (idx !== selectedVariantIndex) {
@@ -196,13 +212,13 @@ export default function TryOnPreview({
   const drawGlasses = useCallback(() => {
     try {
       const faceData = faceDataRef.current;
-      
+
       // Validate selectedVariantIndex is within bounds
       if (selectedVariantIndex < 0 || selectedVariantIndex >= variants.length) {
         console.warn(`Invalid selectedVariantIndex: ${selectedVariantIndex}, variants length: ${variants.length}`);
         return;
       }
-      
+
       const glassesImg = glassesImagesRef.current.get(selectedVariantIndex);
       const canvas = canvasRef.current;
       const userImg = document.getElementById("tryon-user-photo") as HTMLImageElement;
@@ -257,7 +273,7 @@ export default function TryOnPreview({
       canvas.height = displayedHeight * dpr;
       canvas.style.width = `${displayedWidth}px`;
       canvas.style.height = `${displayedHeight}px`;
-      
+
       ctx.scale(dpr, dpr);
 
       // Scale face data coordinates to displayed size
@@ -273,11 +289,11 @@ export default function TryOnPreview({
       // Draw
       ctx.clearRect(0, 0, displayedWidth, displayedHeight);
       ctx.save();
-      
+
       // Apply rotation and position with offset
       ctx.translate(scaledNx + glassesOffset.x, scaledNy + glassesOffset.y);
       ctx.rotate(faceData.angle);
-      
+
       ctx.drawImage(
         glassesImg,
         -glassesWidth / 2,
@@ -370,12 +386,12 @@ export default function TryOnPreview({
   useEffect(() => {
     if (imageSrc && isModelReady) {
       const userImg = document.getElementById("tryon-user-photo") as HTMLImageElement;
-      
+
       if (userImg) {
         const handleImageLoad = () => {
           setTimeout(() => detectFace(), 100);
         };
-        
+
         if (userImg.complete) {
           handleImageLoad();
         } else {
@@ -391,28 +407,28 @@ export default function TryOnPreview({
     if (!isFaceDetected || !faceDataRef.current) return;
     e.preventDefault();
     e.stopPropagation();
-    
+
     setIsDragging(true);
     const userImg = document.getElementById("tryon-user-photo") as HTMLImageElement;
     if (!userImg) return;
-    
+
     const rect = userImg.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
+
     const mouseX = clientX - rect.left;
     const mouseY = clientY - rect.top;
-    
+
     const scaleX = userImg.clientWidth / userImg.naturalWidth;
     const scaleY = userImg.clientHeight / userImg.naturalHeight;
     const scaledNx = faceDataRef.current.nx * scaleX;
     const scaledNy = faceDataRef.current.ny * scaleY;
     const currentGlassesX = scaledNx + glassesOffset.x;
     const currentGlassesY = scaledNy + glassesOffset.y;
-    
-    setDragStart({ 
-      x: mouseX - currentGlassesX, 
-      y: mouseY - currentGlassesY 
+
+    setDragStart({
+      x: mouseX - currentGlassesX,
+      y: mouseY - currentGlassesY
     });
   };
 
@@ -420,25 +436,25 @@ export default function TryOnPreview({
     if (!isDragging || !isFaceDetected || !faceDataRef.current) return;
     e.preventDefault();
     e.stopPropagation();
-    
+
     const userImg = document.getElementById("tryon-user-photo") as HTMLImageElement;
     if (!userImg) return;
-    
+
     const rect = userImg.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
+
     const mouseX = clientX - rect.left;
     const mouseY = clientY - rect.top;
-    
+
     const scaleX = userImg.clientWidth / userImg.naturalWidth;
     const scaleY = userImg.clientHeight / userImg.naturalHeight;
     const scaledNx = faceDataRef.current.nx * scaleX;
     const scaledNy = faceDataRef.current.ny * scaleY;
-    
-    setGlassesOffset({ 
-      x: mouseX - scaledNx - dragStart.x, 
-      y: mouseY - scaledNy - dragStart.y 
+
+    setGlassesOffset({
+      x: mouseX - scaledNx - dragStart.x,
+      y: mouseY - scaledNy - dragStart.y
     });
   };
 
@@ -462,22 +478,22 @@ export default function TryOnPreview({
   // Redraw glasses when variant or position changes
   useEffect(() => {
     if (!isFaceDetected || !faceDataRef.current) return;
-    
+
     // Validate selectedVariantIndex
     if (selectedVariantIndex < 0 || selectedVariantIndex >= variants.length) {
       console.warn(`Invalid selectedVariantIndex: ${selectedVariantIndex}, variants length: ${variants.length}`);
       return;
     }
-    
+
     const selectedVariant = variants[selectedVariantIndex];
     if (!selectedVariant) {
       console.warn(`No variant found at index ${selectedVariantIndex}`);
       return;
     }
-    
+
     const attemptDraw = () => {
       const glassesImg = glassesImagesRef.current.get(selectedVariantIndex);
-      
+
       if (glassesImg && glassesImg.complete && glassesImg.naturalWidth > 0) {
         // Image is loaded, draw immediately
         requestAnimationFrame(() => {
@@ -489,7 +505,7 @@ export default function TryOnPreview({
       }
       return false;
     };
-    
+
     // Try to draw immediately if image is already loaded
     if (!attemptDraw()) {
       // Image not loaded yet, try to load it now
@@ -511,12 +527,12 @@ export default function TryOnPreview({
           console.error(`Failed to load variant ${selectedVariantIndex} image:`, err);
         };
       }
-      
+
       // Also set up retries in case the preload effect hasn't finished
       let retryCount = 0;
       const maxRetries = 5;
       const retryInterval = 200;
-      
+
       const retryTimer = setInterval(() => {
         retryCount++;
         if (attemptDraw() || retryCount >= maxRetries) {
@@ -526,7 +542,7 @@ export default function TryOnPreview({
           clearInterval(retryTimer);
         }
       }, retryInterval);
-      
+
       return () => clearInterval(retryTimer);
     }
   }, [selectedVariantIndex, glassesOffset, isFaceDetected, variants, drawGlasses]);
@@ -534,11 +550,11 @@ export default function TryOnPreview({
   // Update canvas on window resize
   useEffect(() => {
     if (!isFaceDetected || !imageSrc) return;
-    
+
     const handleResize = () => {
       drawGlasses();
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [isFaceDetected, imageSrc, drawGlasses]);
@@ -548,22 +564,22 @@ export default function TryOnPreview({
   return (
     <div className={cn("flex flex-col overflow-hidden", className)}>
       {/* Photo Upload Area - Takes available space */}
-      <div 
+      <div
         ref={containerRef}
         className="relative flex-1 min-h-0 bg-muted/30 rounded-xl overflow-hidden border border-border/50"
         style={{ maxWidth: '100%' }}
       >
         {imageSrc ? (
-          <div 
-            className="relative w-full h-full flex items-center justify-center" 
+          <div
+            className="relative w-full h-full flex items-center justify-center"
             style={{ maxWidth: '100%', overflow: 'hidden' }}
           >
-            <img 
-              id="tryon-user-photo" 
-              src={imageSrc} 
-              alt="Your photo" 
+            <img
+              id="tryon-user-photo"
+              src={imageSrc}
+              alt="Your photo"
               className="max-w-full max-h-full object-contain"
-              style={{ 
+              style={{
                 display: 'block',
                 maxWidth: '100%',
                 maxHeight: '100%',
@@ -572,10 +588,10 @@ export default function TryOnPreview({
               }}
             />
             {isFaceDetected && (
-              <canvas 
-                ref={canvasRef} 
+              <canvas
+                ref={canvasRef}
                 className="absolute touch-manipulation"
-                style={{ 
+                style={{
                   cursor: isDragging ? 'grabbing' : 'grab',
                   pointerEvents: 'auto',
                   display: 'block',
@@ -592,7 +608,7 @@ export default function TryOnPreview({
             )}
           </div>
         ) : (
-          <div 
+          <div
             className="flex flex-col items-center justify-center h-full text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors"
             onClick={() => fileInputRef.current?.click()}
           >
@@ -601,7 +617,7 @@ export default function TryOnPreview({
             <p className="text-sm mt-2 text-muted-foreground/70">Click here or use the button below</p>
           </div>
         )}
-        
+
         {/* Status overlay */}
         {(status === "loading" || status === "detecting") && (
           <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center">
@@ -611,7 +627,7 @@ export default function TryOnPreview({
             </div>
           </div>
         )}
-        
+
         {status === "error" && statusMessage && (
           <div className="absolute bottom-4 left-4 right-4 bg-destructive/90 text-destructive-foreground px-4 py-3 rounded-lg text-sm text-center font-medium">
             {statusMessage}
@@ -639,7 +655,7 @@ export default function TryOnPreview({
             accept="image/*"
             className="hidden"
           />
-          
+
           {/* Drag hint */}
           {imageSrc && isFaceDetected && (
             <p className="text-sm text-muted-foreground">
@@ -656,7 +672,7 @@ export default function TryOnPreview({
               {tryOnVariants.map((variant) => {
                 const originalIndex = variants.findIndex(v => v.hex === variant.hex);
                 const isSelected = selectedVariantIndex === originalIndex;
-                
+
                 return (
                   <button
                     key={variant.hex}

@@ -103,37 +103,53 @@ export default function VirtualTryOn({
   // Initialize MediaPipe FaceLandmarker ONCE
   useEffect(() => {
     if (!isOpen) return;
-    
+
     let mounted = true;
-    
+
     const init = async () => {
       if (landmarkerRef.current) {
         setIsModelReady(true);
         return; // Already initialized
       }
-      
+
       setStatus("Loading AI Model...");
-      
+
       try {
         const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision");
-        
+
         if (!mounted) return;
-        
+
         const vision = await FilesetResolver.forVisionTasks(
           "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
         );
-        
+
         if (!mounted) return;
-        
-        landmarkerRef.current = await FaceLandmarker.createFromOptions(vision, {
-          baseOptions: {
-            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
-            delegate: "GPU",
-          },
-          runningMode: "IMAGE",
-          numFaces: 1,
-        });
-        
+
+        // Try GPU first, fallback to CPU if it fails
+        try {
+          landmarkerRef.current = await FaceLandmarker.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+              delegate: "GPU",
+            },
+            runningMode: "IMAGE",
+            numFaces: 1,
+          });
+        } catch (gpuError) {
+          console.warn("GPU delegate failed, falling back to CPU:", gpuError);
+          if (!mounted) return;
+
+          // Fallback to CPU delegate
+          landmarkerRef.current = await FaceLandmarker.createFromOptions(vision, {
+            baseOptions: {
+              modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+              delegate: "CPU",
+            },
+            runningMode: "IMAGE",
+            numFaces: 1,
+          });
+        }
+
         if (mounted) {
           setStatus("Ready");
           setIsModelReady(true);
@@ -145,9 +161,9 @@ export default function VirtualTryOn({
         }
       }
     };
-    
+
     init();
-    
+
     return () => {
       mounted = false;
     };
@@ -156,10 +172,10 @@ export default function VirtualTryOn({
   // Preload glasses images
   useEffect(() => {
     if (!isOpen) return;
-    
+
     variants.forEach((variant, idx) => {
       if (glassesImagesRef.current.has(idx)) return; // Already loaded
-      
+
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = variant.tryOn || variant.thumbnail || "";
@@ -217,7 +233,7 @@ export default function VirtualTryOn({
       const dpr = window.devicePixelRatio || 1;
       canvas.width = displayedWidth * dpr;
       canvas.height = displayedHeight * dpr;
-      
+
       // Set canvas style to match image exactly
       if (canvas.style) {
         canvas.style.width = `${displayedWidth}px`;
@@ -227,7 +243,7 @@ export default function VirtualTryOn({
         canvas.style.top = '0';
         canvas.style.left = '0';
       }
-      
+
       // Scale context to match device pixel ratio
       ctx.scale(dpr, dpr);
 
@@ -244,11 +260,11 @@ export default function VirtualTryOn({
       // Draw
       ctx.clearRect(0, 0, displayedWidth, displayedHeight);
       ctx.save();
-      
+
       // Apply rotation and position with offset
       ctx.translate(scaledNx + glassesOffset.x, scaledNy + glassesOffset.y);
       ctx.rotate(faceData.angle);
-      
+
       ctx.drawImage(
         glassesImg,
         -glassesWidth / 2,
@@ -341,7 +357,7 @@ export default function VirtualTryOn({
   useEffect(() => {
     if (imageSrc && isModelReady) {
       const userImg = document.getElementById("user-photo") as HTMLImageElement;
-      
+
       if (userImg) {
         const handleImageLoad = () => {
           // Small delay to ensure image is rendered in DOM
@@ -349,7 +365,7 @@ export default function VirtualTryOn({
             detectFace();
           }, 100);
         };
-        
+
         if (userImg.complete) {
           handleImageLoad();
         } else {
@@ -365,19 +381,19 @@ export default function VirtualTryOn({
     if (!isFaceDetected || !faceDataRef.current) return;
     e.preventDefault();
     e.stopPropagation();
-    
+
     setIsDragging(true);
     const userImg = document.getElementById("user-photo") as HTMLImageElement;
     if (!userImg) return;
-    
+
     const rect = userImg.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
+
     // Store initial drag position relative to image
     const mouseX = clientX - rect.left;
     const mouseY = clientY - rect.top;
-    
+
     // Calculate current glasses position on screen
     const scaleX = userImg.clientWidth / userImg.naturalWidth;
     const scaleY = userImg.clientHeight / userImg.naturalHeight;
@@ -385,11 +401,11 @@ export default function VirtualTryOn({
     const scaledNy = faceDataRef.current.ny * scaleY;
     const currentGlassesX = scaledNx + glassesOffset.x;
     const currentGlassesY = scaledNy + glassesOffset.y;
-    
+
     // Store offset from mouse position to glasses position
-    setDragStart({ 
-      x: mouseX - currentGlassesX, 
-      y: mouseY - currentGlassesY 
+    setDragStart({
+      x: mouseX - currentGlassesX,
+      y: mouseY - currentGlassesY
     });
   };
 
@@ -397,28 +413,28 @@ export default function VirtualTryOn({
     if (!isDragging || !isFaceDetected || !faceDataRef.current) return;
     e.preventDefault();
     e.stopPropagation();
-    
+
     const userImg = document.getElementById("user-photo") as HTMLImageElement;
     if (!userImg) return;
-    
+
     const rect = userImg.getBoundingClientRect();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    
+
     // Calculate mouse position relative to image
     const mouseX = clientX - rect.left;
     const mouseY = clientY - rect.top;
-    
+
     // Calculate face position in displayed coordinates
     const scaleX = userImg.clientWidth / userImg.naturalWidth;
     const scaleY = userImg.clientHeight / userImg.naturalHeight;
     const scaledNx = faceDataRef.current.nx * scaleX;
     const scaledNy = faceDataRef.current.ny * scaleY;
-    
+
     // Calculate new offset: where mouse is minus face position minus drag offset
-    setGlassesOffset({ 
-      x: mouseX - scaledNx - dragStart.x, 
-      y: mouseY - scaledNy - dragStart.y 
+    setGlassesOffset({
+      x: mouseX - scaledNx - dragStart.x,
+      y: mouseY - scaledNy - dragStart.y
     });
   };
 
@@ -440,11 +456,11 @@ export default function VirtualTryOn({
   // Update canvas on window resize
   useEffect(() => {
     if (!isFaceDetected || !imageSrc) return;
-    
+
     const handleResize = () => {
       drawGlasses();
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [isFaceDetected, imageSrc, drawGlasses]);
@@ -462,7 +478,7 @@ export default function VirtualTryOn({
       }}
     >
       {/* Header */}
-      <div 
+      <div
         className="flex items-center justify-between px-3 py-2.5 sm:p-4 md:p-6 bg-black/30 backdrop-blur-md z-20 flex-shrink-0"
         style={{ paddingTop: 'max(0.625rem, env(safe-area-inset-top, 0.625rem))' }}
       >
@@ -538,11 +554,11 @@ export default function VirtualTryOn({
           </div>
 
           {/* Photo Upload Area */}
-          <div 
+          <div
             ref={containerRef}
             className="relative w-full bg-slate-800 rounded-xl sm:rounded-2xl overflow-hidden min-h-[250px] sm:min-h-[300px] md:min-h-[400px] mb-4 sm:mb-6 border border-white/10"
-            style={{ 
-              maxWidth: '100%', 
+            style={{
+              maxWidth: '100%',
               position: 'relative',
               display: 'flex',
               alignItems: 'flex-start',
@@ -550,22 +566,22 @@ export default function VirtualTryOn({
             }}
           >
             {imageSrc ? (
-              <div 
-                className="relative w-full flex items-start justify-center" 
-                style={{ 
-                  maxWidth: '100%', 
+              <div
+                className="relative w-full flex items-start justify-center"
+                style={{
+                  maxWidth: '100%',
                   overflow: 'hidden',
                   margin: '0 auto'
                 }}
               >
-                <img 
-                  id="user-photo" 
-                  src={imageSrc} 
-                  alt="User" 
+                <img
+                  id="user-photo"
+                  src={imageSrc}
+                  alt="User"
                   className="block max-w-full h-auto"
-                  style={{ 
-                    display: 'block', 
-                    maxWidth: '100%', 
+                  style={{
+                    display: 'block',
+                    maxWidth: '100%',
                     width: '100%',
                     height: 'auto',
                     objectFit: 'contain',
@@ -573,10 +589,10 @@ export default function VirtualTryOn({
                   }}
                 />
                 {isFaceDetected && (
-                  <canvas 
-                    ref={canvasRef} 
+                  <canvas
+                    ref={canvasRef}
                     className="absolute top-0 left-0 touch-manipulation"
-                    style={{ 
+                    style={{
                       cursor: isDragging ? 'grabbing' : 'grab',
                       pointerEvents: 'auto',
                       display: 'block',
@@ -621,7 +637,7 @@ export default function VirtualTryOn({
       {/* Fixed Footer */}
       <div
         className="fixed bottom-0 left-0 right-0 px-3 py-2.5 sm:p-4 md:p-6 bg-slate-900/95 backdrop-blur-xl border-t border-white/10"
-        style={{ 
+        style={{
           zIndex: 100000,
           paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom, 0.625rem))',
           paddingLeft: 'max(0.75rem, env(safe-area-inset-left, 0.75rem))',
