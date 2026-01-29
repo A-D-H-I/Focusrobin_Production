@@ -416,7 +416,10 @@ function main() {
   console.log(`   Source: ${csvPath}`);
 
   if (!fs.existsSync(csvPath)) {
-    throw new Error(`CSV file not found: ${csvPath}`);
+    console.warn(`⚠️  CSV file not found: ${csvPath}`);
+    console.warn('⚠️  Skipping pricing data generation. Pricing will be loaded from database.');
+    console.warn('⚠️  If you need to regenerate pricing data, ensure the CSV file exists and run: npm run generate-pricing');
+    return; // Exit gracefully instead of throwing
   }
 
   const { data, metadata } = parseCSV(csvPath);

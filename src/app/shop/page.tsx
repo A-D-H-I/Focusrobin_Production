@@ -8,6 +8,7 @@ import { Gender } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
 import { unstable_noStore as noStore } from 'next/cache';
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import { getPriceRange } from "@/app/actions/getPriceRange";
 
 // Force dynamic rendering to ensure filters work properly
 export const dynamic = 'force-dynamic';
@@ -75,10 +76,10 @@ interface ShopPageProps {
 export default async function ShopPage({ searchParams }: ShopPageProps) {
   // Prevent caching to ensure filters always work
   noStore();
-  
+
   // Await searchParams (required in Next.js 15)
   const params = await searchParams;
-  
+
   // Get filters from URL
   const colorFilter = params.color as string | string[] | undefined; // Legacy single color filter
   const filterType = params.filter as string | undefined;
@@ -89,9 +90,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const minPriceParam = params.minPrice as string | undefined;
   const maxPriceParam = params.maxPrice as string | undefined;
   const searchQuery = params.search as string | undefined;
-  
+
   // Handle legacy single color filter (for backward compatibility)
-  const legacyColorHex = typeof colorFilter === 'string' && !Array.isArray(colorFilter) 
+  const legacyColorHex = typeof colorFilter === 'string' && !Array.isArray(colorFilter)
     ? (colorFilter ? decodeURIComponent(colorFilter) : undefined)
     : undefined;
 
@@ -104,7 +105,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   if (genderFilter) {
     const genders = Array.isArray(genderFilter) ? genderFilter : [genderFilter];
     const genderEnums: Gender[] = [];
-    
+
     // Map display names to enum values
     genders.forEach((g) => {
       const normalized = g.toLowerCase();
@@ -113,7 +114,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       else if (normalized === 'kids') genderEnums.push(Gender.KIDS);
       else if (normalized === 'unisex') genderEnums.push(Gender.UNISEX);
     });
-    
+
     if (genderEnums.length > 0) {
       whereClause.gender = {
         hasSome: genderEnums, // Products that have at least one of the selected genders
@@ -131,7 +132,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         // Replace hyphens with spaces and normalize
         return decoded.replace(/-/g, ' ').trim();
       });
-      
+
       if (normalizedShapes.length === 1) {
         whereClause.glassShape = {
           equals: normalizedShapes[0],
@@ -157,7 +158,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     if (materials.length > 0) {
       // Normalize materials: decode URL and trim
       const normalizedMaterials = materials.map(material => decodeURIComponent(material).trim());
-      
+
       if (normalizedMaterials.length === 1) {
         whereClause.frameMaterial = {
           equals: normalizedMaterials[0],
@@ -179,34 +180,34 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   // Filter by frame color(s) if provided (before AND combination)
   const colorHexes: string[] = [];
-  
+
   // Handle legacy single color filter
   if (legacyColorHex) {
-    const normalized = legacyColorHex.startsWith('#') 
-      ? legacyColorHex.toLowerCase() 
+    const normalized = legacyColorHex.startsWith('#')
+      ? legacyColorHex.toLowerCase()
       : `#${legacyColorHex.toLowerCase()}`;
     colorHexes.push(normalized);
   }
-  
+
   // Handle new multi-color filter
   if (colorFilters && Array.isArray(colorFilters)) {
     colorFilters.forEach((colorHex) => {
-      const normalized = colorHex.startsWith('#') 
-        ? colorHex.toLowerCase() 
+      const normalized = colorHex.startsWith('#')
+        ? colorHex.toLowerCase()
         : `#${colorHex.toLowerCase()}`;
       if (!colorHexes.includes(normalized)) {
         colorHexes.push(normalized);
       }
     });
   } else if (colorFilters && typeof colorFilters === 'string') {
-    const normalized = colorFilters.startsWith('#') 
-      ? colorFilters.toLowerCase() 
+    const normalized = colorFilters.startsWith('#')
+      ? colorFilters.toLowerCase()
       : `#${colorFilters.toLowerCase()}`;
     if (!colorHexes.includes(normalized)) {
       colorHexes.push(normalized);
     }
   }
-  
+
   if (colorHexes.length > 0) {
     if (colorHexes.length === 1) {
       whereClause.ProductVariant = {
@@ -231,7 +232,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       };
     }
   }
-  
+
   // Add search condition if provided
   if (searchQuery && searchQuery.trim()) {
     const searchTerm = searchQuery.trim();
@@ -269,17 +270,17 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         },
       ],
     };
-    
+
     // If there are other filters, add search to AND conditions
     // Otherwise, use search OR directly in whereClause
-    const hasOtherFilters = andConditions.length > 0 || 
-      whereClause.gender || 
-      whereClause.glassShape || 
-      whereClause.frameMaterial || 
+    const hasOtherFilters = andConditions.length > 0 ||
+      whereClause.gender ||
+      whereClause.glassShape ||
+      whereClause.frameMaterial ||
       whereClause.ProductVariant ||
       whereClause.isNewlyAdded !== undefined ||
       whereClause.isUniqueDesign !== undefined;
-    
+
     if (hasOtherFilters) {
       andConditions.push(searchCondition);
     } else {
@@ -291,7 +292,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   // When we have OR conditions (multiple values), we need to wrap everything in AND
   if (andConditions.length > 0) {
     const directFilters: any = {};
-    
+
     // Copy all direct filters (gender, single glassShape, single material, ProductVariant, filterType)
     if (whereClause.gender) directFilters.gender = whereClause.gender;
     if (whereClause.glassShape) directFilters.glassShape = whereClause.glassShape;
@@ -299,13 +300,13 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     if (whereClause.ProductVariant) directFilters.ProductVariant = whereClause.ProductVariant;
     if (whereClause.isNewlyAdded !== undefined) directFilters.isNewlyAdded = whereClause.isNewlyAdded;
     if (whereClause.isUniqueDesign !== undefined) directFilters.isUniqueDesign = whereClause.isUniqueDesign;
-    
+
     // Combine all conditions
     const allConditions = [...andConditions];
     if (Object.keys(directFilters).length > 0) {
       allConditions.push(directFilters);
     }
-    
+
     // Rebuild whereClause with AND wrapping everything
     Object.keys(whereClause).forEach(key => delete whereClause[key]);
     whereClause.AND = allConditions;
@@ -314,7 +315,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   // Check if user has applied additional filters
   const hasAdditionalFilters = !!(glassShapeFilter || materialFilter || genderFilter || colorFilters || legacyColorHex);
-  
+
   // Filter by type (new-arrivals, bestsellers) - BUT only if no additional filters are applied
   // This allows users to filter all products when they select specific criteria
   if (!hasAdditionalFilters) {
@@ -345,12 +346,12 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   if (minPriceParam || maxPriceParam) {
     const minPrice = minPriceParam ? parseFloat(minPriceParam) : undefined;
     const maxPrice = maxPriceParam ? parseFloat(maxPriceParam) : undefined;
-    
+
     prismaProducts = prismaProducts.filter((product: any) => {
       const basePrice = Number(product.basePrice);
       const discountPct = product.discountPct || 0;
       const finalPrice = basePrice * (1 - discountPct / 100);
-      
+
       if (minPrice !== undefined && finalPrice < minPrice) return false;
       if (maxPrice !== undefined && finalPrice > maxPrice) return false;
       return true;
@@ -361,7 +362,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   if (filterType === 'new-arrivals' && prismaProducts.length === 0) {
     // Check if we have any additional filters applied
     const hasAdditionalFilters = glassShapeFilter || materialFilter || genderFilter || colorFilters || legacyColorHex;
-    
+
     if (!hasAdditionalFilters) {
       // No additional filters, check if we have any newly added products at all
       const newlyAddedCount = await prisma.product.count({ where: { isNewlyAdded: true } });
@@ -386,7 +387,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   // Map Prisma products to frontend Product type
   const products = prismaProducts.map(mapPrismaProductToProduct);
-  
+
   // Products are already sorted by createdAt desc, which shows recently added first
 
   // Determine page title based on filter
@@ -407,13 +408,13 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     const prismaProduct = prismaProducts[index];
     const productSlug = prismaProduct?.slug || '';
     const productUrl = `${baseUrl}/shop/${productSlug}`;
-    
+
     // Get product image (use first variant thumbnail)
     let productImage: string | undefined;
     if (product.variants && product.variants.length > 0 && product.variants[0].thumbnail) {
       const normalized = normalizeImageUrl(product.variants[0].thumbnail);
-      productImage = normalized.startsWith('http') 
-        ? normalized 
+      productImage = normalized.startsWith('http')
+        ? normalized
         : `${baseUrl}${normalized.startsWith('/') ? normalized : `/${normalized}`}`;
     }
 
@@ -453,17 +454,22 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       />
       <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background overflow-x-hidden">
-        <ShopPageClient products={products} title={pageTitle} searchQuery={searchQuery} />
-        
+        <ShopPageClient
+          products={products}
+          title={pageTitle}
+          searchQuery={searchQuery}
+          priceRange={await getPriceRange()}
+        />
+
         {/* Lithuanian SEO Content Block */}
         <section lang="lt" className="container mx-auto px-4 py-12 max-w-4xl">
           <div className="prose prose-sm max-w-none text-muted-foreground">
             <p>
-              Ieškote kokybiškų saulės akinių ar korekcinių akinių internetu? Mūsų kolekcijoje rasite 
-              stilingus akinius nuo saulės su UV apsauga ir kokybiškus akinius su dioptrijomis, kurie 
-              tinka tiek vyrams, tiek moterims. Visi mūsų polarizuoti saulės akiniai ir receptiniai 
-              akiniai yra suprojektuoti Lietuvoje ir atitinka aukščiausius kokybės standartus. 
-              Pristatome greitai į Vilnių, Kauną, Klaipėdą ir visą EU/Schengen zoną. Raskite savo 
+              Ieškote kokybiškų saulės akinių ar korekcinių akinių internetu? Mūsų kolekcijoje rasite
+              stilingus akinius nuo saulės su UV apsauga ir kokybiškus akinius su dioptrijomis, kurie
+              tinka tiek vyrams, tiek moterims. Visi mūsų polarizuoti saulės akiniai ir receptiniai
+              akiniai yra suprojektuoti Lietuvoje ir atitinka aukščiausius kokybės standartus.
+              Pristatome greitai į Vilnių, Kauną, Klaipėdą ir visą EU/Schengen zoną. Raskite savo
               idealius akinius mūsų internetinėje parduotuvėje.
             </p>
           </div>

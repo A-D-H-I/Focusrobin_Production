@@ -4,10 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { mapPrismaProductToProduct } from "@/lib/prisma-product-mapper";
 import TryOnPageClient from "./TryOnPageClient";
 
+// Force dynamic rendering - don't pre-render at build time
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function TryOnPage() {
   try {
     // Fetch ALL products to show all models in sidebar
     // Users can still try-on only those with try-on images
+    console.log('[Try-On] Starting to fetch products...');
     const prismaProducts = (await prisma.product.findMany({
       include: {
         ProductVariant: {
@@ -21,8 +26,26 @@ export default async function TryOnPage() {
       },
     } as any)) as any;
 
+    console.log(`[Try-On] Fetched ${prismaProducts.length} products`);
+    
+    if (prismaProducts.length === 0) {
+      console.log('[Try-On] No products found');
+    } else {
+      console.log(`[Try-On] First product: ${prismaProducts[0]?.name}, variants: ${prismaProducts[0]?.ProductVariant?.length || 0}`);
+    }
+
     // Map Prisma products to frontend Product type
-    const products = prismaProducts.map(mapPrismaProductToProduct);
+    console.log('[Try-On] Starting to map products...');
+    const products = prismaProducts.map((product: any, index: number) => {
+      try {
+        return mapPrismaProductToProduct(product);
+      } catch (mapError) {
+        console.error(`[Try-On] Error mapping product ${index} (${product?.name || 'unknown'}):`, mapError);
+        throw mapError;
+      }
+    });
+
+    console.log(`[Try-On] Successfully mapped ${products.length} products`);
 
     return (
       <div className="flex flex-col min-h-screen">
@@ -34,7 +57,12 @@ export default async function TryOnPage() {
       </div>
     );
   } catch (error) {
-    console.error('Error loading try-on page:', error);
+    console.error('[Try-On] Error loading try-on page:', error);
+    console.error('[Try-On] Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined,
+    });
     return (
       <div className="flex flex-col min-h-screen">
         <Header />

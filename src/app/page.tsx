@@ -392,7 +392,7 @@ export default async function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col" style={{ minHeight: '100vh' }}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
@@ -406,7 +406,7 @@ export default async function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
       />
       <Header />
-      <main className="flex-grow">
+      <main className="flex-grow" style={{ minHeight: 0 }}>
         {/* Screen-reader-only H1 for SEO */}
         <h1 className="sr-only">FocusRobin - Premium Sunglasses & Prescription Glasses Lithuania | Buy Eyewear Online</h1>
         {heroImages.length > 0 && <HeroSection heroData={heroImages} />}

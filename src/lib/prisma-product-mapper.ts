@@ -132,7 +132,7 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
   });
 
   // Calculate price with discount
-  const basePrice = Number(prismaProduct.basePrice);
+  const basePrice = prismaProduct.basePrice != null ? Number(prismaProduct.basePrice) : 0;
   const discountPct = prismaProduct.discountPct || 0;
   const hasDiscount = discountPct > 0;
   
@@ -178,17 +178,17 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     averageRating: prismaProduct.averageRating || undefined,
     reviewCount: prismaProduct.reviewCount || undefined,
     size: {
-      lensWidth: `${prismaProduct.lensWidth}mm`,
-      bridge: `${prismaProduct.bridgeWidth}mm`,
-      temple: `${prismaProduct.templeLength}mm`,
+      lensWidth: `${prismaProduct.lensWidth != null ? prismaProduct.lensWidth : 0}mm`,
+      bridge: `${prismaProduct.bridgeWidth != null ? prismaProduct.bridgeWidth : 0}mm`,
+      temple: `${prismaProduct.templeLength != null ? prismaProduct.templeLength : 0}mm`,
     },
     weight: prismaProduct.weightBg,
     // Dimension fields for ProductDimensions component
-    frameWidth: Number(prismaProduct.frameWidth),
-    lensWidth: Number(prismaProduct.lensWidth),
-    lensHeight: Number(prismaProduct.lensHeight),
-    bridgeWidth: Number(prismaProduct.bridgeWidth),
-    templeLength: Number(prismaProduct.templeLength),
+    frameWidth: prismaProduct.frameWidth != null ? Number(prismaProduct.frameWidth) : 0,
+    lensWidth: prismaProduct.lensWidth != null ? Number(prismaProduct.lensWidth) : 0,
+    lensHeight: prismaProduct.lensHeight != null ? Number(prismaProduct.lensHeight) : 0,
+    bridgeWidth: prismaProduct.bridgeWidth != null ? Number(prismaProduct.bridgeWidth) : 0,
+    templeLength: prismaProduct.templeLength != null ? Number(prismaProduct.templeLength) : 0,
   };
 }
 

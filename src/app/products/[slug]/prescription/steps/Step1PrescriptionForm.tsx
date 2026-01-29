@@ -359,25 +359,27 @@ export default function Step1PrescriptionForm({ prescriptionData, onDataUpdate, 
               </table>
             </div>
 
-            {/* PD Field */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">PD (Pupillary Distance)</label>
-              <Select
-                value={prescriptionData.pd}
-                onValueChange={(value) => handleInputChange('pd', value)}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-[200px]">
-                  {pdValues.map((val) => (
-                    <SelectItem key={val} value={val}>
-                      {val}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* PD Field - Only show if PDF is NOT uploaded */}
+            {!(prescriptionData.isPdfMode && prescriptionData.prescriptionPdfUrl) && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">PD (Pupillary Distance)</label>
+                <Select
+                  value={prescriptionData.pd}
+                  onValueChange={(value) => handleInputChange('pd', value)}
+                >
+                  <SelectTrigger className="h-10">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {pdValues.map((val) => (
+                      <SelectItem key={val} value={val}>
+                        {val}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {/* Checkboxes */}

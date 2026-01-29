@@ -119,8 +119,9 @@ export default function VirtualTryOn({
 
         if (!mounted) return;
 
+        // Use the same version as installed package to avoid version mismatches
         const vision = await FilesetResolver.forVisionTasks(
-          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm"
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm"
         );
 
         if (!mounted) return;
@@ -156,8 +157,32 @@ export default function VirtualTryOn({
         }
       } catch (err) {
         console.error("MediaPipe initialization error:", err);
+        let errorMessage = "Unknown error";
+        
+        // Handle different error types
+        if (err instanceof Error) {
+          errorMessage = err.message;
+        } else if (err && typeof err === 'object' && 'message' in err) {
+          errorMessage = String(err.message);
+        } else if (err && typeof err === 'object' && 'type' in err) {
+          // Handle Event objects
+          const event = err as Event;
+          errorMessage = `Script loading failed: ${event.type}`;
+          if (event.target && 'src' in event.target) {
+            errorMessage += ` (${(event.target as any).src})`;
+          }
+        } else {
+          errorMessage = String(err);
+        }
+        
+        console.error("Error details:", {
+          message: errorMessage,
+          error: err,
+          type: err?.constructor?.name,
+        });
+        
         if (mounted) {
-          setStatus("Failed to load AI Model");
+          setStatus(`Failed to load AI Model: ${errorMessage.substring(0, 150)}`);
         }
       }
     };
@@ -169,6 +194,16 @@ export default function VirtualTryOn({
     };
   }, [isOpen]);
 
+  // Helper function to proxy S3 URLs through our API to avoid CORS
+  const getProxiedImageUrl = (url: string): string => {
+    if (!url) return '';
+    // If it's an S3 URL, proxy it through our API
+    if (url.includes('.s3.') || url.includes('s3.amazonaws.com')) {
+      return `/api/proxy-image?url=${encodeURIComponent(url)}`;
+    }
+    return url;
+  };
+
   // Preload glasses images
   useEffect(() => {
     if (!isOpen) return;
@@ -176,11 +211,27 @@ export default function VirtualTryOn({
     variants.forEach((variant, idx) => {
       if (glassesImagesRef.current.has(idx)) return; // Already loaded
 
+      const imageUrl = variant.tryOn || variant.thumbnail || "";
+      if (!imageUrl) return;
+
       const img = new Image();
       img.crossOrigin = "anonymous";
-      img.src = variant.tryOn || variant.thumbnail || "";
+      // Use proxied URL for S3 images to avoid CORS issues
+      img.src = getProxiedImageUrl(imageUrl);
       img.onload = () => {
         glassesImagesRef.current.set(idx, img);
+      };
+      img.onerror = () => {
+        // Try direct URL as fallback if proxy fails
+        if (img.src.includes('/api/proxy-image')) {
+          console.log(`Retrying with direct URL for variant ${idx}`);
+          const directImg = new Image();
+          directImg.crossOrigin = "anonymous";
+          directImg.src = imageUrl;
+          directImg.onload = () => {
+            glassesImagesRef.current.set(idx, directImg);
+          };
+        }
       };
     });
   }, [isOpen, variants]);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -25,7 +25,7 @@ import { useToast } from "@/hooks/use-toast";
 interface Step1PrescriptionFormProps {
   prescriptionData: PrescriptionData;
   onDataUpdate: (data: Partial<PrescriptionData>) => void;
-  onNext: () => void;
+  onNext: () => void | Promise<void>;
   onBack: () => void;
   rxPriceResult: RxPriceResult;
   framePrice: number;
@@ -96,11 +96,16 @@ export default function Step1PrescriptionForm({
       }
 
       // Update prescription data with S3 URL and PDF mode
+      // Ensure we create a new object to trigger React state update
       onDataUpdate({
         prescriptionImageUrl: result.url,
         prescriptionPdfUrl: result.url,
         isPdfMode: true,
       });
+      
+      // Force a small delay to ensure state propagation
+      // This helps in Docker environments where state updates might be slower
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       toast({
         title: "Prescription uploaded",
@@ -134,10 +139,54 @@ export default function Step1PrescriptionForm({
     }
   };
 
+  // Check if PDF is uploaded - check both prescriptionPdfUrl and prescriptionImageUrl
+  // If either exists, consider PDF uploaded (more lenient check)
+  // Use useMemo to ensure reactivity
+  const hasPdfUploaded = useMemo(() => {
+    const uploaded = !!(
+      prescriptionData.prescriptionPdfUrl ||
+      prescriptionData.prescriptionImageUrl
+    );
+    console.log('[Step1PrescriptionForm] hasPdfUploaded check:', {
+      prescriptionPdfUrl: prescriptionData.prescriptionPdfUrl,
+      prescriptionImageUrl: prescriptionData.prescriptionImageUrl,
+      isPdfMode: prescriptionData.isPdfMode,
+      uploaded
+    });
+    return uploaded;
+  }, [prescriptionData.prescriptionPdfUrl, prescriptionData.prescriptionImageUrl, prescriptionData.isPdfMode]);
+  
   // Check if PD is filled
-  const isPdFilled = prescriptionData.hasTwoPDs
-    ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
-    : (prescriptionData.pd && prescriptionData.pd !== "");
+  // If PDF is uploaded, PD is not required - allow submission
+  // Use useMemo to ensure reactivity
+  const isPdFilled = useMemo(() => {
+    const filled = hasPdfUploaded
+      ? true // PDF uploaded, PD not required - always allow submission
+      : prescriptionData.hasTwoPDs
+      ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
+      : (prescriptionData.pd && prescriptionData.pd !== "");
+    console.log('[Step1PrescriptionForm] isPdFilled check:', {
+      hasPdfUploaded,
+      hasTwoPDs: prescriptionData.hasTwoPDs,
+      pd: prescriptionData.pd,
+      pdOd: prescriptionData.pdOd,
+      pdOs: prescriptionData.pdOs,
+      filled
+    });
+    return filled;
+  }, [hasPdfUploaded, prescriptionData.hasTwoPDs, prescriptionData.pd, prescriptionData.pdOd, prescriptionData.pdOs]);
+
+  // Debug: Log the state to help troubleshoot
+  useEffect(() => {
+    console.log('[Step1PrescriptionForm] State update detected', {
+      isPdfMode: prescriptionData.isPdfMode,
+      prescriptionPdfUrl: prescriptionData.prescriptionPdfUrl,
+      prescriptionImageUrl: prescriptionData.prescriptionImageUrl,
+      hasPdfUploaded,
+      isPdFilled,
+      submitButtonEnabled: isPdFilled,
+    });
+  }, [hasPdfUploaded, isPdFilled, prescriptionData.isPdfMode, prescriptionData.prescriptionPdfUrl, prescriptionData.prescriptionImageUrl]);
 
   const handleInputChange = (field: string, value: string, eye?: 'od' | 'os') => {
     if (eye) {
@@ -238,9 +287,10 @@ export default function Step1PrescriptionForm({
         }}
       />
 
-      {/* Prescription Table */}
-      <div className="space-y-2">
-        <h3 className="font-semibold text-sm">prescription</h3>
+      {/* Prescription Table - Only show if PDF is NOT uploaded */}
+      {!hasPdfUploaded && (
+        <div className="space-y-2">
+          <h3 className="font-semibold text-sm">prescription</h3>
 
         {/* Desktop Table View - Hidden on mobile */}
         <div className="border rounded-lg overflow-hidden hidden md:block">
@@ -497,10 +547,11 @@ export default function Step1PrescriptionForm({
           </div>
         </div>
 
-        {/* PD Field */}
-        <div className="space-y-2">
-          <label className="text-sm font-medium">PD (Pupillary Distance)</label>
-          {prescriptionData.hasTwoPDs ? (
+        {/* PD Field - Only show if PDF is NOT uploaded */}
+        {!hasPdfUploaded && (
+          <div className="space-y-2">
+            <label className="text-sm font-medium">PD (Pupillary Distance)</label>
+            {prescriptionData.hasTwoPDs ? (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-xs text-muted-foreground">OD (Right)</label>
@@ -556,8 +607,10 @@ export default function Step1PrescriptionForm({
               </SelectContent>
             </Select>
           )}
+          </div>
+        )}
         </div>
-      </div>
+      )}
 
       {/* Checkboxes */}
       <div className="space-y-2">
@@ -985,15 +1038,42 @@ export default function Step1PrescriptionForm({
 
       {/* Submit Button */}
       <Button
-        onClick={onNext}
+        type="button"
+        onClick={async () => {
+          console.log('[Step1PrescriptionForm] Submit button clicked', {
+            hasPdfUploaded,
+            isPdFilled,
+            isPdfMode: prescriptionData.isPdfMode,
+            prescriptionPdfUrl: prescriptionData.prescriptionPdfUrl,
+            prescriptionImageUrl: prescriptionData.prescriptionImageUrl,
+          });
+          if (isPdFilled) {
+            console.log('[Step1PrescriptionForm] Calling onNext()...');
+            try {
+              await onNext();
+              console.log('[Step1PrescriptionForm] onNext() completed');
+            } catch (error) {
+              console.error('[Step1PrescriptionForm] Error in onNext():', error);
+            }
+          } else {
+            console.warn('[Step1PrescriptionForm] Submit blocked - isPdFilled is false');
+            toast({
+              title: "Cannot proceed",
+              description: hasPdfUploaded 
+                ? "Please wait for prescription processing to complete"
+                : "Please select your Pupillary Distance (PD) to continue",
+              variant: "destructive",
+            });
+          }
+        }}
         disabled={!isPdFilled}
         className="w-full h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
       >
         Submit
       </Button>
 
-      {/* Warning message if PD not filled */}
-      {!isPdFilled && (
+      {/* Warning message if PD not filled - only show if PDF is NOT uploaded */}
+      {!isPdFilled && !hasPdfUploaded && (
         <p className="text-xs text-destructive text-center -mt-2">
           Please select your Pupillary Distance (PD) to continue
         </p>

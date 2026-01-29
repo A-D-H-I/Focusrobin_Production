@@ -1,0 +1,51 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: focusrobin_postgres_local
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: SUKa9599@5567
+      POSTGRES_DB: focusrobin
+    ports:
+      - "5432:5432"  # Exposed for local testing
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - focusrobin-network-local
+
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: focusrobin_app_local
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:SUKa9599@5567@postgres:5432/focusrobin?schema=public
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/google-credentials.json
+      # Add other environment variables as needed for local testing
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - focusrobin-network-local
+
+networks:
+  focusrobin-network-local:
+    driver: bridge
+
+volumes:
+  postgres_data_local:
+    driver: local
+

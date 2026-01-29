@@ -89,15 +89,25 @@
     -moz-osx-font-smoothing: grayscale;
     /* DO NOT use transform on html - it breaks position:fixed elements! */
     overflow-x: hidden;
-    /* Always reserve scrollbar space to prevent layout shift */
-    overflow-y: scroll;
+    /* CRITICAL: Use auto instead of scroll for better Chrome/Edge compatibility */
+    overflow-y: auto;
+    height: 100%;
+    /* CRITICAL: Allow scrolling on all browsers including Chrome/Edge */
+    touch-action: pan-y;
   }
   body {
     @apply bg-background text-foreground;
     overflow-x: hidden;
+    overflow-y: auto;
+    height: 100%;
+    min-height: 100%;
     /* Optimize scrolling performance */
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
+    /* CRITICAL: Use auto to allow scroll detection */
+    overscroll-behavior-y: auto;
+    /* CRITICAL: Enable scroll on body for Chrome/Edge */
+    touch-action: pan-y;
+    position: relative;
   }
 }
 
@@ -145,6 +155,41 @@
   /* Optimize header for smooth background transitions */
   header {
     will-change: background-color;
+    /* CRITICAL: Allow scroll events to work when hovering over navbar */
+    pointer-events: auto;
+    /* Ensure scroll works on navbar - don't block wheel events */
+    touch-action: pan-y;
+  }
+  
+  /* Ensure navbar doesn't block scroll events */
+  header * {
+    pointer-events: auto;
+  }
+
+  /* CRITICAL FIX: Ensure main content area is scrollable in Chrome/Edge */
+  main {
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: visible;
+    /* Allow pointer events and scrolling on main content */
+    pointer-events: auto;
+    touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Ensure all direct children of body can receive scroll events */
+  body > div {
+    position: relative;
+    overflow-x: hidden;
+    overflow-y: visible;
+    /* Allow scroll events to propagate */
+    touch-action: pan-y;
+  }
+  
+  /* CRITICAL: Ensure document can receive scroll events for navbar transparency */
+  html, body {
+    /* Allow scroll events to work everywhere */
+    overscroll-behavior-y: auto;
   }
 
 
@@ -168,10 +213,9 @@
   }
 
   /* CRITICAL FIX: Prevent layout shift from scrollbar disappearing */
-  /* Force html to always have scrollbar space reserved via overflow-y: scroll */
-  /* The scrollbar will only appear when content actually overflows */
   html {
-    overflow-y: scroll !important;
+    /* Use auto to allow natural scrollbar behavior */
+    overflow-y: auto;
   }
   
   /* When body gets overflow:hidden from Radix UI, compensate for scrollbar */

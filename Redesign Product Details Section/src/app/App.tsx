@@ -2,7 +2,7 @@ import { EyewearSpecs } from './components/EyewearSpecs';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="bg-gray-50 py-8">
       <EyewearSpecs />
     </div>
   );

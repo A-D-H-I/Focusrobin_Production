@@ -9,11 +9,12 @@ import type { NextConfig } from 'next';
 // Adjust these based on your actual external services
 const ContentSecurityPolicy = `
   default-src 'self';
-  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://*.google-analytics.com https://apis.google.com https://connect.facebook.net https://www.clarity.ms;
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://www.googletagmanager.com https://*.google-analytics.com https://apis.google.com https://connect.facebook.net https://www.clarity.ms https://*.clarity.ms https://cdn.jsdelivr.net https://storage.googleapis.com;
   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
   font-src 'self' https://fonts.gstatic.com data:;
   img-src 'self' data: blob: https: http:;
-  connect-src 'self' https://api.stripe.com https://*.google-analytics.com https://www.googletagmanager.com https://api.exchangerate-api.com https://*.googleapis.com https://storage.googleapis.com https://ipapi.co https://connect.facebook.net https://*.facebook.com https://www.clarity.ms https://*.clarity.ms https://*.bing.com wss: ws:;
+  connect-src 'self' https://api.stripe.com https://*.google-analytics.com https://www.googletagmanager.com https://api.exchangerate-api.com https://*.googleapis.com https://storage.googleapis.com https://ipapi.co https://connect.facebook.net https://*.facebook.com https://www.clarity.ms https://*.clarity.ms https://*.bing.com https://cdn.jsdelivr.net wss: ws:;
+  worker-src 'self' blob: https://cdn.jsdelivr.net;
   frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com https://www.facebook.com;
   object-src 'none';
   base-uri 'self';
@@ -77,15 +78,26 @@ const nextConfig: NextConfig = {
   // Standalone output for VPS deployment
   // This creates a minimal server.js file with only necessary dependencies
   ...(shouldUseStandalone ? { output: 'standalone' as const } : {}),
-  
-  // Security headers applied to all routes (only in production)
-  // In development, CSP can block resources when accessing via network IP
+
+  // Security headers applied to all routes
+  // In development, we apply CSP with MediaPipe support
   async headers() {
-    // Skip security headers in development for network access compatibility
+    // In development, still apply CSP but ensure MediaPipe works
     if (isDev) {
-      return [];
+      return [
+        {
+          source: '/:path*',
+          headers: [
+            {
+              key: 'Content-Security-Policy',
+              value: ContentSecurityPolicy,
+            },
+            ...securityHeaders.filter(h => h.key !== 'Content-Security-Policy'),
+          ],
+        },
+      ];
     }
-    
+
     return [
       {
         // Apply security headers to all routes
@@ -143,12 +155,12 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-  
+
   // Optimize for faster navigation
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
-  
+
   // TypeScript and ESLint configuration
   // Note: In production, consider enabling these checks
   typescript: {
@@ -157,7 +169,7 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  
+
   // Image domains configuration
   images: {
     remotePatterns: [
@@ -209,12 +221,18 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'focusrobin.s3.eu-central-1.amazonaws.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
     // Allow unoptimized images for local file paths and network access
     // This ensures images work when accessing via network IP
     unoptimized: process.env.NODE_ENV === 'development',
   },
-  
+
   // Powered by header removal (security through obscurity)
   poweredByHeader: false,
 };

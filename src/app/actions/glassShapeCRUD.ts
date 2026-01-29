@@ -7,6 +7,7 @@ export interface GlassShapeData {
   id?: string;
   name: string;
   imageUrl?: string;
+  landingImageUrl?: string;
   order?: number;
   isActive?: boolean;
 }
@@ -15,6 +16,7 @@ export async function createGlassShape(formData: FormData) {
   try {
     const name = formData.get('name') as string;
     const imageUrl = formData.get('imageUrl') as string | null;
+    const landingImageUrl = formData.get('landingImageUrl') as string | null;
     const orderStr = formData.get('order') as string | null;
     const isActiveStr = formData.get('isActive') as string | null;
 
@@ -38,6 +40,7 @@ export async function createGlassShape(formData: FormData) {
       data: {
         name: name.trim(),
         imageUrl: imageUrl || null,
+        landingImageUrl: landingImageUrl || null,
         order: order,
         isActive: isActive,
       },
@@ -59,6 +62,7 @@ export async function updateGlassShape(formData: FormData) {
     const id = formData.get('id') as string;
     const name = formData.get('name') as string;
     const imageUrl = formData.get('imageUrl') as string | null;
+    const landingImageUrl = formData.get('landingImageUrl') as string | null;
     const orderStr = formData.get('order') as string | null;
     const isActiveStr = formData.get('isActive') as string | null;
 
@@ -87,6 +91,7 @@ export async function updateGlassShape(formData: FormData) {
       data: {
         name: name.trim(),
         imageUrl: imageUrl || null,
+        landingImageUrl: landingImageUrl || null,
         order: order,
         isActive: isActive,
       },
@@ -209,6 +214,7 @@ export async function syncGlassShapesFromProducts() {
         data: shapesToCreate.map((shape) => ({
           name: shape,
           imageUrl: null,
+          landingImageUrl: null,
           order: 0,
           isActive: true,
         })),

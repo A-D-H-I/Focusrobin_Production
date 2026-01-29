@@ -19,14 +19,14 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
   // The images array contains all GALLERY type assets from the database
   const galleryImages = selectedVariant.images || [];
   const thumbnail = selectedVariant.thumbnail || '';
-  
+
   // Create a deduplicated list of all images from database
   // Ensure we have images to display - use galleryImages first, fallback to thumbnail
   // Use selectedVariant.sku as key to force recalculation when variant changes
   const allImages = React.useMemo(() => {
     // Force recalculation by including variant identifier
     const variantKey = `${selectedVariant.sku}-${selectedVariant.hex}`;
-    
+
     if (galleryImages.length > 0) {
       // Remove duplicates while preserving order
       const uniqueImages: string[] = [];
@@ -44,12 +44,12 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
     }
     return [];
   }, [thumbnail, galleryImages, selectedVariant.hex, selectedVariant.sku, selectedVariant.name]);
-  
+
   // Initialize state with first image from database
   const [mainImage, setMainImage] = useState(() => allImages[0] || '');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  
+
   // Update main image when variant or images change (data from database)
   useEffect(() => {
     if (allImages.length > 0) {
@@ -160,10 +160,10 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
             </div>
           ))}
         </div>
-        
+
         {/* Main Image Container */}
         <div className="flex-1">
-          <div 
+          <div
             className="relative aspect-square rounded-lg overflow-hidden shadow-lg cursor-pointer bg-muted"
             onClick={() => mainImage && openFullscreen(mainImage)}
           >
@@ -178,7 +178,6 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
                   className="object-contain"
                   sizes="(max-width: 768px) 100vw, 50vw"
                   quality={90}
-                  unoptimized
                 />
               </div>
             ) : (
@@ -192,7 +191,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
 
       {/* Fullscreen Modal */}
       {isFullscreen && (
-        <div 
+        <div
           className="fixed inset-0 z-[150] bg-black/95 overflow-y-auto hide-scrollbar"
           onClick={closeFullscreen}
         >
@@ -206,7 +205,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
           </button>
 
           {/* Fullscreen Image Container - Scrollable */}
-          <div 
+          <div
             className="min-h-screen flex items-center justify-center py-24 px-4 relative"
             onClick={(e) => e.stopPropagation()}
           >
@@ -245,7 +244,6 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
                 sizes="100vw"
                 quality={100}
                 priority
-                unoptimized
               />
             </div>
           </div>

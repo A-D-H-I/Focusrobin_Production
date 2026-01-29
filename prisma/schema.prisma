@@ -772,8 +772,9 @@ model PromoCode {
 model GlassShape {
   id        String   @id @default(cuid())
   name      String   @unique // Shape name (e.g., "Cat Eye", "Rectangle")
-  imageUrl  String?  // Image URL for the shape (uploaded by admin)
-  order     Int      @default(0) // Display order
+  imageUrl        String?  // Image URL for the shape (uploaded by admin) - for Mega Menu
+  landingImageUrl String?  // Image URL for the Shop By Shapes section (uploaded by admin)
+  order           Int      @default(0) // Display order
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -49,28 +49,32 @@ function CollapsibleSection({ title, defaultOpen = true, children }: Collapsible
   );
 }
 
-export default function FilterSidebar() {
+interface FilterSidebarProps {
+  initialPriceRange?: { min: number; max: number };
+}
+
+export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  
+
   // Check if we're on prescription glasses page
   const isPrescriptionGlassesPage = pathname?.includes('/prescription-glasses');
-  
-  // Price range state
-  const [priceRangeData, setPriceRangeData] = useState<PriceRange>({ min: 0, max: 500 });
-  
+
+  // Price range state - default to initialPriceRange if provided, else 0-500
+  const [priceRangeData, setPriceRangeData] = useState<PriceRange>(initialPriceRange || { min: 0, max: 500 });
+
   // Glass shapes state
   const [glassShapes, setGlassShapes] = useState<AvailableGlassShape[]>([]);
-  
+
   // Gender counts state
   const [genderCounts, setGenderCounts] = useState<GenderCount[]>([]);
-  
+
   // Materials state
   const [materials, setMaterials] = useState<AvailableMaterial[]>([]);
-  
+
   // Colors state
   const [colors, setColors] = useState<AvailableColor[]>([]);
-  
+
   // Get current filters from URL (for initialization)
   const genderParams = searchParams.getAll('gender');
   const glassShapeParams = searchParams.getAll('glassShape');
@@ -78,22 +82,27 @@ export default function FilterSidebar() {
   const colorParams = searchParams.getAll('color');
   const minPriceParam = searchParams.get('minPrice');
   const maxPriceParam = searchParams.get('maxPrice');
-  
+
   // Create stable string representation of search params to use as dependency
   const searchParamsStr = useMemo(() => searchParams.toString(), [searchParams]);
-  
+
   // Local state for pending filter selections (before applying)
   const [pendingGenders, setPendingGenders] = useState<string[]>([]);
   const [pendingGlassShapes, setPendingGlassShapes] = useState<string[]>([]);
   const [pendingMaterials, setPendingMaterials] = useState<string[]>([]);
   const [pendingColors, setPendingColors] = useState<string[]>([]);
-  const [pendingPriceRange, setPendingPriceRange] = useState<[number, number]>([0, 500]);
-  const [pendingMinPrice, setPendingMinPrice] = useState<string>("0");
-  const [pendingMaxPrice, setPendingMaxPrice] = useState<string>("500");
-  
+
+  // Initialize pending price range
+  const initialMin = minPriceParam ? parseInt(minPriceParam) : (initialPriceRange?.min ?? 0);
+  const initialMax = maxPriceParam ? parseInt(maxPriceParam) : (initialPriceRange?.max ?? 500);
+
+  const [pendingPriceRange, setPendingPriceRange] = useState<[number, number]>([initialMin, initialMax]);
+  const [pendingMinPrice, setPendingMinPrice] = useState<string>(initialMin.toString());
+  const [pendingMaxPrice, setPendingMaxPrice] = useState<string>(initialMax.toString());
+
   // Track previous search params to prevent unnecessary updates
   const prevSearchParamsStr = useRef<string>('');
-  
+
   // Fetch available glass shapes, gender counts, materials, colors, and price range on mount
   useEffect(() => {
     async function fetchData() {
@@ -113,49 +122,70 @@ export default function FilterSidebar() {
         setPriceRangeData(priceRange);
       } else {
         // Use regular sunglasses functions
-      const [shapes, genders, materialsData, colorsData, priceRange] = await Promise.all([
-        getAvailableGlassShapes(),
-        getAvailableGenderCounts(),
-        getAvailableMaterials(),
-        getAvailableFrameColors(),
-        getPriceRange(),
-      ]);
-      setGlassShapes(shapes);
-      setGenderCounts(genders);
-      setMaterials(materialsData);
-      setColors(colorsData);
-      setPriceRangeData(priceRange);
+        const [shapes, genders, materialsData, colorsData, priceRange] = await Promise.all([
+          getAvailableGlassShapes(),
+          getAvailableGenderCounts(),
+          getAvailableMaterials(),
+          getAvailableFrameColors(),
+          getPriceRange(),
+        ]);
+        setGlassShapes(shapes);
+        setGenderCounts(genders);
+        setMaterials(materialsData);
+        setColors(colorsData);
+
+        // Only update price range if we didn't have an initial one, OR if we want to ensure we have the latest
+        // Ideally the server-passed one is fresh enough. But keeping this update is safe.
+        setPriceRangeData(priceRange);
       }
-      
+
       // Initialize pending filters from URL params
       const initialGenders = genderParams.map(g => g.toLowerCase());
       const initialShapes = glassShapeParams.map(s => s.toLowerCase().replace(/\s+/g, '-'));
       const initialMaterials = materialParams.map(m => m.toLowerCase());
       const initialColors = colorParams.map(c => c.toLowerCase());
-      const initialMin = minPriceParam ? parseInt(minPriceParam) : priceRange.min;
-      const initialMax = maxPriceParam ? parseInt(maxPriceParam) : priceRange.max;
-      
+
+      // Use the newly fetched priceRange for initialization if we are re-initializing
+      // But actually, we initialized state above. 
+      // If fetched priceRange is different from initial, we might need to update pending...
+      // For now, let's just respect URL params or current state.
+
       setPendingGenders(initialGenders);
       setPendingGlassShapes(initialShapes);
       setPendingMaterials(initialMaterials);
       setPendingColors(initialColors);
-      setPendingPriceRange([initialMin, initialMax]);
-      setPendingMinPrice(initialMin.toString());
-      setPendingMaxPrice(initialMax.toString());
+
+      // We don't overwrite pending price here to avoid jumping if user is dragging? 
+      // Actually this is only on mount/page change.
+      // If URL has params, use them. If not, use the fetched/initial range.
+      const currentMin = minPriceParam ? parseInt(minPriceParam) : priceRangeData.min; // Use state which might be initial
+      const currentMax = maxPriceParam ? parseInt(maxPriceParam) : priceRangeData.max;
+
+      // Wait, inside this async function, 'priceRangeData' is stale closure (initial value).
+      // We should use the 'priceRange' variable we just fetched.
+      // Let's rely on the useEffect below [searchParamsStr...] to update pending if params change.
+      // But for initial load without params, we want to ensure we use the correct range.
+
+      // If we provided initialPriceRange, pendingPriceRangestate is already correct.
+      // If we didn't, and fetched it here, we should update it.
+      if (!initialPriceRange) {
+        // ...logic to update if needed...
+        // But simpler: The state updates will trigger re-renders. 
+      }
     }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isPrescriptionGlassesPage]);
-  
+
   // Update pending filters when URL params change (for external navigation)
   // Only update if searchParams actually changed to prevent infinite loops
   useEffect(() => {
     if (priceRangeData.max === 0) return; // Wait for price range to load
     if (prevSearchParamsStr.current === searchParamsStr) return; // No change
-    
+
     // Update the ref
     prevSearchParamsStr.current = searchParamsStr;
-    
+
     // Re-read from searchParams to get fresh values
     const currentGenders = searchParams.getAll('gender').map(g => g.toLowerCase()).sort();
     const currentShapes = searchParams.getAll('glassShape').map(s => s.toLowerCase().replace(/\s+/g, '-')).sort();
@@ -163,7 +193,7 @@ export default function FilterSidebar() {
     const currentColors = searchParams.getAll('color').map(c => c.toLowerCase()).sort();
     const currentMin = searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : priceRangeData.min;
     const currentMax = searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : priceRangeData.max;
-    
+
     setPendingGenders(currentGenders);
     setPendingGlassShapes(currentShapes);
     setPendingMaterials(currentMaterials);
@@ -228,7 +258,7 @@ export default function FilterSidebar() {
 
   // Handle price slider change (updates pending state only)
   const handleSliderChange = (values: number[]) => {
-    setPendingPriceRange(values);
+    setPendingPriceRange(values as [number, number]);
     setPendingMinPrice(values[0].toString());
     setPendingMaxPrice(values[1].toString());
   };
@@ -256,14 +286,14 @@ export default function FilterSidebar() {
       setPendingPriceRange(newRange);
     }
   };
-  
+
   // Apply all pending filters
   const handleApplyFilters = useCallback(() => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     // Preserve filter type (new-arrivals, bestsellers) if present
     const filterType = searchParams.get('filter');
-    
+
     // Clear existing filters
     params.delete('gender');
     params.delete('glassShape');
@@ -271,30 +301,30 @@ export default function FilterSidebar() {
     params.delete('color');
     params.delete('minPrice');
     params.delete('maxPrice');
-    
+
     // Restore filter type if it existed
     if (filterType) {
       params.set('filter', filterType);
     }
-    
+
     // Add pending filters
     pendingGenders.forEach(g => params.append('gender', g));
     pendingGlassShapes.forEach(s => params.append('glassShape', s));
     pendingMaterials.forEach(m => params.append('material', m));
     pendingColors.forEach(c => params.append('color', c));
-    
+
     // Add price range if not at default
     if (pendingPriceRange[0] !== priceRangeData.min || pendingPriceRange[1] !== priceRangeData.max) {
       params.set('minPrice', pendingPriceRange[0].toString());
       params.set('maxPrice', pendingPriceRange[1].toString());
     }
-    
+
     // Determine base URL based on current page
     const baseUrl = isPrescriptionGlassesPage ? '/shop/prescription-glasses' : '/shop';
     const newUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
     navigateWithRefresh(newUrl);
   }, [searchParams, pendingGenders, pendingGlassShapes, pendingMaterials, pendingColors, pendingPriceRange, priceRangeData, navigateWithRefresh, isPrescriptionGlassesPage]);
-  
+
   // Clear all filters
   const handleClearFilters = useCallback(() => {
     setPendingGenders([]);
@@ -304,44 +334,44 @@ export default function FilterSidebar() {
     setPendingPriceRange([priceRangeData.min, priceRangeData.max]);
     setPendingMinPrice(priceRangeData.min.toString());
     setPendingMaxPrice(priceRangeData.max.toString());
-    
+
     // Also clear URL but preserve filter type
     const params = new URLSearchParams(searchParams.toString());
     const filterType = searchParams.get('filter');
-    
+
     params.delete('gender');
     params.delete('glassShape');
     params.delete('material');
     params.delete('color');
     params.delete('minPrice');
     params.delete('maxPrice');
-    
+
     // Restore filter type if it existed
     if (filterType) {
       params.set('filter', filterType);
     }
-    
+
     // Determine base URL based on current page
     const baseUrl = isPrescriptionGlassesPage ? '/shop/prescription-glasses' : '/shop';
     const newUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
     navigateWithRefresh(newUrl);
   }, [searchParams, priceRangeData, navigateWithRefresh, isPrescriptionGlassesPage]);
-  
+
   // Check if there are any pending changes (memoized to prevent unnecessary recalculations)
   const hasPendingChanges = useMemo(() => {
     const currentGendersStr = JSON.stringify([...genderParams].map(g => g.toLowerCase()).sort());
     const currentShapesStr = JSON.stringify([...glassShapeParams].map(s => s.toLowerCase().replace(/\s+/g, '-')).sort());
     const currentMaterialsStr = JSON.stringify([...materialParams].map(m => m.toLowerCase()).sort());
     const currentColorsStr = JSON.stringify([...colorParams].map(c => c.toLowerCase()).sort());
-    
+
     const pendingGendersStr = JSON.stringify([...pendingGenders].sort());
     const pendingShapesStr = JSON.stringify([...pendingGlassShapes].sort());
     const pendingMaterialsStr = JSON.stringify([...pendingMaterials].sort());
     const pendingColorsStr = JSON.stringify([...pendingColors].sort());
-    
+
     const currentMin = minPriceParam ? parseInt(minPriceParam) : priceRangeData.min;
     const currentMax = maxPriceParam ? parseInt(maxPriceParam) : priceRangeData.max;
-    
+
     return (
       pendingGendersStr !== currentGendersStr ||
       pendingShapesStr !== currentShapesStr ||

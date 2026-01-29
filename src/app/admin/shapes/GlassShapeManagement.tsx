@@ -26,6 +26,7 @@ interface GlassShape {
   id: string;
   name: string;
   imageUrl: string | null;
+  landingImageUrl: string | null;
   order: number;
   isActive: boolean;
   createdAt: Date;
@@ -51,6 +52,7 @@ export function GlassShapeManagement({ initialShapes }: GlassShapeManagementProp
   const [formData, setFormData] = useState({
     name: '',
     imageUrl: '',
+    landingImageUrl: '',
     order: '0',
     isActive: true,
   });
@@ -59,6 +61,7 @@ export function GlassShapeManagement({ initialShapes }: GlassShapeManagementProp
     setFormData({
       name: '',
       imageUrl: '',
+      landingImageUrl: '',
       order: '0',
       isActive: true,
     });
@@ -70,6 +73,7 @@ export function GlassShapeManagement({ initialShapes }: GlassShapeManagementProp
     setFormData({
       name: shape.name,
       imageUrl: shape.imageUrl || '',
+      landingImageUrl: shape.landingImageUrl || '',
       order: shape.order.toString(),
       isActive: shape.isActive,
     });
@@ -84,6 +88,7 @@ export function GlassShapeManagement({ initialShapes }: GlassShapeManagementProp
     const form = new FormData();
     form.append('name', formData.name);
     form.append('imageUrl', formData.imageUrl);
+    form.append('landingImageUrl', formData.landingImageUrl);
     form.append('order', formData.order);
     form.append('isActive', formData.isActive.toString());
 
@@ -161,7 +166,7 @@ export function GlassShapeManagement({ initialShapes }: GlassShapeManagementProp
     setIsSubmitting(true);
     try {
       const result = await syncGlassShapesFromProducts();
-      
+
       if (result.error) {
         toast({
           title: 'Error',
@@ -172,7 +177,7 @@ export function GlassShapeManagement({ initialShapes }: GlassShapeManagementProp
         const createdCount = result.created ?? 0;
         toast({
           title: 'Success',
-          description: createdCount > 0 
+          description: createdCount > 0
             ? `Synced ${createdCount} shape(s) from existing products: ${result.shapes?.join(', ') || ''}`
             : 'All shapes are already synced. No new shapes found.',
         });
@@ -199,7 +204,7 @@ export function GlassShapeManagement({ initialShapes }: GlassShapeManagementProp
           </p>
           <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-sm text-blue-900">
-              <strong>Auto-Creation:</strong> When you add a new product and enter a glass shape (e.g., "Cat Eye", "Rectangle"), 
+              <strong>Auto-Creation:</strong> When you add a new product and enter a glass shape (e.g., "Cat Eye", "Rectangle"),
               the shape is automatically created here. You can then add an image for each shape to display in the mega menu.
             </p>
           </div>
@@ -222,98 +227,118 @@ export function GlassShapeManagement({ initialShapes }: GlassShapeManagementProp
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingId ? 'Edit Glass Shape' : 'Add New Glass Shape'}</DialogTitle>
-              <DialogDescription>
-                {editingId
-                  ? 'Update the glass shape details and image.'
-                  : 'Create a new glass shape. The image will be displayed in the mega menu and shop by shapes section.'}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Shape Name *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="e.g., Cat Eye, Rectangle"
-                  required
-                />
-                <p className="text-xs text-muted-foreground">
-                  This name should match the glassShape values used in products.
-                </p>
-              </div>
+              <DialogHeader>
+                <DialogTitle>{editingId ? 'Edit Glass Shape' : 'Add New Glass Shape'}</DialogTitle>
+                <DialogDescription>
+                  {editingId
+                    ? 'Update the glass shape details and images.'
+                    : 'Create a new glass shape. The images will be displayed in the mega menu and shop by shapes section.'}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Shape Name *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="e.g., Cat Eye, Rectangle"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This name should match the glassShape values used in products.
+                  </p>
+                </div>
 
-              <div className="space-y-2">
-                <Label>Shape Image</Label>
-                <ImageUploader
-                  value={formData.imageUrl}
-                  onChange={(url) => setFormData({ ...formData, imageUrl: url })}
-                  folder="shapes"
-                  label="Glass Shape Image"
-                  description="This image will be displayed in the mega menu 'Shop by Shape' section. Recommended size: 200x150px or similar aspect ratio."
-                  maxSizeMB={5}
-                />
-                <p className="text-xs text-blue-600 font-medium">
-                  💡 <strong>Tip:</strong> Shapes are automatically created when you add products with a glass shape. 
-                  You can then come here to add images for each shape.
-                </p>
-                {formData.imageUrl && (
-                  <div className="mt-2 relative w-full h-48 border rounded-lg overflow-hidden bg-gray-50">
-                    <Image
-                      src={normalizeImageUrl(formData.imageUrl)}
-                      alt={formData.name || 'Shape preview'}
-                      fill
-                      className="object-contain"
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Mega Menu Image</Label>
+                    <ImageUploader
+                      value={formData.imageUrl}
+                      onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+                      folder="shapes"
+                      label="Mega Menu Image"
+                      description="Displayed in the dropdown menu."
+                      maxSizeMB={5}
                     />
+                    {formData.imageUrl && (
+                      <div className="mt-2 relative w-full h-32 border rounded-lg overflow-hidden bg-gray-50">
+                        <Image
+                          src={normalizeImageUrl(formData.imageUrl)}
+                          alt={formData.name || 'Shape preview'}
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="order">Display Order</Label>
-                <Input
-                  id="order"
-                  type="number"
-                  value={formData.order}
-                  onChange={(e) => setFormData({ ...formData, order: e.target.value })}
-                  placeholder="0"
-                  min="0"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Lower numbers appear first. Default is 0.
-                </p>
-              </div>
+                  <div className="space-y-2">
+                    <Label>Landing Page Image</Label>
+                    <ImageUploader
+                      value={formData.landingImageUrl}
+                      onChange={(url) => setFormData({ ...formData, landingImageUrl: url })}
+                      folder="shapes"
+                      label="Landing Page Image"
+                      description="Displayed in 'Shop By Shapes' section."
+                      maxSizeMB={5}
+                    />
+                    {formData.landingImageUrl && (
+                      <div className="mt-2 relative w-full h-32 border rounded-lg overflow-hidden bg-gray-50">
+                        <Image
+                          src={normalizeImageUrl(formData.landingImageUrl)}
+                          alt={formData.name || 'Shape preview'}
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="isActive"
-                  checked={formData.isActive}
-                  onCheckedChange={(checked) =>
-                    setFormData({ ...formData, isActive: checked === true })
-                  }
-                />
-                <Label htmlFor="isActive" className="cursor-pointer">
-                  Active (visible in mega menu)
-                </Label>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="order">Display Order</Label>
+                  <Input
+                    id="order"
+                    type="number"
+                    value={formData.order}
+                    onChange={(e) => setFormData({ ...formData, order: e.target.value })}
+                    placeholder="0"
+                    min="0"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Lower numbers appear first. Default is 0.
+                  </p>
+                </div>
 
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={resetForm}
-                  disabled={isSubmitting}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {editingId ? 'Update' : 'Create'}
-                </Button>
-              </div>
-            </form>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isActive"
+                    checked={formData.isActive}
+                    onCheckedChange={(checked) =>
+                      setFormData({ ...formData, isActive: checked === true })
+                    }
+                  />
+                  <Label htmlFor="isActive" className="cursor-pointer">
+                    Active (visible in menu)
+                  </Label>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetForm}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {editingId ? 'Update' : 'Create'}
+                  </Button>
+                </div>
+              </form>
             </DialogContent>
           </Dialog>
         </div>
@@ -331,16 +356,16 @@ export function GlassShapeManagement({ initialShapes }: GlassShapeManagementProp
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {shapes.map((shape) => (
-                <Card key={shape.id} className={`relative ${!shape.imageUrl ? 'border-2 border-orange-200' : 'border'}`}>
+                <Card key={shape.id} className={`relative ${!shape.imageUrl && !shape.landingImageUrl ? 'border-2 border-orange-200' : 'border'}`}>
                   <CardContent className="p-4">
                     <div className="space-y-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-lg">{shape.name}</h3>
-                            {!shape.imageUrl && (
+                            {(!shape.imageUrl || !shape.landingImageUrl) && (
                               <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded whitespace-nowrap">
-                                No Image
+                                {(!shape.imageUrl && !shape.landingImageUrl) ? 'No Images' : 'Missing Image'}
                               </span>
                             )}
                           </div>
@@ -372,29 +397,44 @@ export function GlassShapeManagement({ initialShapes }: GlassShapeManagementProp
                         </div>
                       </div>
 
-                      {shape.imageUrl ? (
-                        <div className="relative w-full h-32 border rounded-lg overflow-hidden bg-gray-50">
-                          <Image
-                            src={normalizeImageUrl(shape.imageUrl)}
-                            alt={shape.name}
-                            fill
-                            className="object-contain"
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">Mega Menu</span>
+                          {shape.imageUrl ? (
+                            <div className="relative w-full h-24 border rounded-lg overflow-hidden bg-gray-50">
+                              <Image
+                                src={normalizeImageUrl(shape.imageUrl)}
+                                alt={`${shape.name} Mega Menu`}
+                                fill
+                                className="object-contain"
+                                sizes="100px"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-full h-24 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center">
+                              <span className="text-xs text-gray-400">None</span>
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="w-full h-32 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 flex flex-col items-center justify-center gap-2">
-                          <p className="text-xs text-muted-foreground font-medium">No image</p>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(shape)}
-                            className="text-xs h-7"
-                          >
-                            Add Image
-                          </Button>
+                        <div className="space-y-1">
+                          <span className="text-xs text-muted-foreground">Landing Page</span>
+                          {shape.landingImageUrl ? (
+                            <div className="relative w-full h-24 border rounded-lg overflow-hidden bg-gray-50">
+                              <Image
+                                src={normalizeImageUrl(shape.landingImageUrl)}
+                                alt={`${shape.name} Landing`}
+                                fill
+                                className="object-contain"
+                                sizes="100px"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-full h-24 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center">
+                              <span className="text-xs text-gray-400">None</span>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

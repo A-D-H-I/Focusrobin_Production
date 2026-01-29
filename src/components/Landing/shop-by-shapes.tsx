@@ -116,9 +116,9 @@ export default function ShopByShapes({ shapes }: ShopByShapesProps) {
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   onHoverStart={() => setHoveredId(shapeItem.shape)}
                   onHoverEnd={() => setHoveredId(null)}
-                  className="group relative flex-shrink-0 w-[300px] md:w-[350px]"
+                  className="group relative flex-shrink-0 w-[300px] md:w-[350px] h-full"
                 >
-                  <div className="relative overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500">
+                  <div className="relative overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 h-full flex flex-col">
                     {/* Popular Badge */}
                     {isPopular && (
                       <div className="absolute top-4 right-4 z-10 bg-gradient-to-r from-teal-primary to-[#4DCECA] text-white px-3 py-1 rounded-full text-xs font-semibold shadow-lg">

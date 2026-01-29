@@ -43,20 +43,20 @@ function getBadgeType(product: Product): string | null {
 function StarRating({ rating, count }: { rating: number; count?: number }) {
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating % 1 >= 0.5;
-  
+
   return (
     <div className="flex items-center gap-1">
       <div className="flex">
         {[...Array(5)].map((_, i) => (
-            <Star
+          <Star
             key={i}
             className={cn(
               "h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5",
               i < fullStars
                 ? "fill-amber-400 text-amber-400"
                 : i === fullStars && hasHalfStar
-                ? "fill-amber-400/50 text-amber-400"
-                : "fill-gray-200 text-gray-200"
+                  ? "fill-amber-400/50 text-amber-400"
+                  : "fill-gray-200 text-gray-200"
             )}
           />
         ))}
@@ -72,39 +72,31 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
   const router = useRouter();
   const [hoveredVariant, setHoveredVariant] = useState<ProductColorVariant | null>(null);
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
-  const [isImageHovered, setIsImageHovered] = useState(false);
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
   const { formatPrice, parseEurPrice } = usePrice();
-  
+
   const priceInEur = parseEurPrice(product.price);
   const originalPriceInEur = product.originalPrice ? parseEurPrice(product.originalPrice) : null;
   const cashbackInEur = product.cashback ? parseEurPrice(product.cashback) : null;
-  
+
   const isWishlisted = isInWishlist(product.id, selectedVariant.hex);
   const badgeType = getBadgeType(product);
-  
+
   // Calculate discount percentage
   const discountPct = originalPriceInEur && priceInEur < originalPriceInEur
     ? Math.round(((originalPriceInEur - priceInEur) / originalPriceInEur) * 100)
     : product.discountPct;
-  
+
   // Determine which image to display
   const displayVariant = hoveredVariant || selectedVariant;
-  let mainImage = '';
-  if (hoveredVariant) {
-    mainImage = hoveredVariant.thumbnail || hoveredVariant.images[0] || '';
-  } else if (isImageHovered && selectedVariant?.tilted) {
-    mainImage = selectedVariant.tilted;
-  } else {
-    mainImage = selectedVariant?.thumbnail || selectedVariant?.images[0] || '';
-  }
+  const mainImage = displayVariant?.thumbnail || displayVariant?.images[0] || '';
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // Check stock before adding to cart
     if (selectedVariant.stock !== undefined && selectedVariant.stock !== null) {
       if (selectedVariant.stock === 0) {
@@ -116,14 +108,14 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
         return;
       }
     }
-    
+
     addToCart(product, selectedVariant, 1);
     toast({
       title: "Added to cart",
       description: `${product.name} (${selectedVariant.name}) has been added to your cart.`,
     });
   };
-  
+
   // Check if selected variant is out of stock
   const isOutOfStock = selectedVariant?.stock !== undefined && selectedVariant?.stock !== null && selectedVariant.stock === 0;
 
@@ -152,30 +144,28 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
     const variantWithTryOn = product.variants.find(v => v.tryOn) || selectedVariant;
     const variantIndex = product.variants.findIndex(v => v.hex === variantWithTryOn.hex);
     // Navigate to try-on page with product and variant info (using slug)
-    router.push(`/try-on?product=${encodeURIComponent(product.slug)}&variant=${variantIndex}`);
+    router.push(`/try-on?product=${encodeURIComponent(product.slug || '')}&variant=${variantIndex}`);
   };
 
   // Extract brand name from product name or categories
   const brandName = product.categories?.[0] || "Focus Robin";
-  
+
   // Ensure we always use a URL-safe slug
   const productSlug = product.slug || product.id;
   const safeSlug = productSlug ? encodeURIComponent(productSlug) : '';
-  
+
   if (viewMode === "list") {
     return (
-      <Link 
-        href={`/shop/${safeSlug}`} 
-        prefetch={true} 
+      <Link
+        href={`/shop/${safeSlug}`}
+        prefetch={true}
         className="block"
       >
         <Card className="overflow-hidden group relative border border-border/50 shadow-sm hover:shadow-lg transition-all duration-300 h-full">
           <CardContent className="p-0 flex flex-row h-full">
             {/* Image Section */}
-            <div 
+            <div
               className="relative w-24 sm:w-32 md:w-48 h-24 sm:h-32 md:h-48 flex-shrink-0 bg-muted/30 overflow-hidden"
-              onMouseEnter={() => !hoveredVariant && setIsImageHovered(true)}
-              onMouseLeave={() => setIsImageHovered(false)}
             >
               {badgeType && (
                 <span className={cn(
@@ -185,7 +175,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                   {badgeStyles[badgeType].text}
                 </span>
               )}
-              
+
               {mainImage && (
                 <Image
                   src={mainImage}
@@ -208,11 +198,11 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                 <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-headline text-foreground mb-1 sm:mb-2 line-clamp-1 break-words overflow-hidden text-ellipsis">
                   {product.name}
                 </h3>
-                
+
                 {product.averageRating && (
                   <StarRating rating={product.averageRating} count={product.reviewCount} />
                 )}
-                
+
                 <div className="flex items-center gap-2 mt-2">
                   <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
                     {formatPrice(priceInEur)}
@@ -247,8 +237,8 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                       onMouseLeave={() => setHoveredVariant(null)}
                       className={cn(
                         "h-5 w-5 rounded-full border-2 transition-all cursor-pointer",
-                        selectedVariant?.hex === variant.hex 
-                          ? "border-teal-primary ring-2 ring-offset-1 ring-teal-primary/50 scale-110" 
+                        selectedVariant?.hex === variant.hex
+                          ? "border-teal-primary ring-2 ring-offset-1 ring-teal-primary/50 scale-110"
                           : "border-border hover:scale-110"
                       )}
                       style={{ backgroundColor: variant.hex }}
@@ -268,7 +258,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
               </div>
 
               <div className="flex flex-col gap-1.5 sm:gap-2 mt-4">
-                <Button 
+                <Button
                   onClick={handleAddToCart}
                   disabled={isOutOfStock}
                   className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white border-0 text-sm sm:text-base md:text-lg px-2 sm:px-3 md:px-4 py-2 sm:py-2.5 md:py-3 h-auto min-h-[36px] sm:min-h-[40px] md:min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -303,20 +293,18 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
       </Link>
     );
   }
-  
+
   return (
-    <Link 
-      href={`/shop/${safeSlug}`} 
-      prefetch={true} 
+    <Link
+      href={`/shop/${safeSlug}`}
+      prefetch={true}
       className="block h-full"
     >
       <Card className="overflow-hidden group relative border border-border/50 shadow-sm hover:shadow-lg transition-all duration-300 h-full rounded-xl">
         <CardContent className="p-0 flex flex-col h-full">
           {/* Image Container */}
-          <div 
+          <div
             className="aspect-[4/3] relative bg-muted/30 overflow-hidden rounded-t-xl"
-            onMouseEnter={() => !hoveredVariant && setIsImageHovered(true)}
-            onMouseLeave={() => setIsImageHovered(false)}
           >
             {/* Badge */}
             {badgeType && (
@@ -327,52 +315,72 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                 ✨ {badgeStyles[badgeType].text}
               </span>
             )}
-            
+
             {/* Wishlist Button */}
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="absolute top-3 right-3 z-10 bg-white/90 backdrop-blur-sm rounded-full h-9 w-9 hover:bg-white shadow-sm border border-border/30"
               onClick={handleWishlistToggle}
             >
               <Heart className={cn("h-4 w-4", isWishlisted ? "fill-red-500 text-red-500" : "text-gray-600")} />
             </Button>
-            
+
             {mainImage && (
               <div className="relative w-full h-full overflow-hidden">
+                {/* Normal Image - Always Visible */}
                 <Image
-                  key={`${displayVariant?.hex || 'default'}-${isImageHovered && !hoveredVariant && selectedVariant?.tilted ? 'tilted' : 'normal'}`}
                   src={mainImage}
                   alt={`${product.name} - ${displayVariant?.name || ''}`}
                   fill
                   priority={priority}
                   loading={priority ? undefined : "lazy"}
-                  className="object-cover transition-all duration-500 ease-in-out group-hover:scale-105"
+                  className={cn(
+                    "object-cover transition-opacity duration-300 ease-in-out",
+                    // If we have a tilted image to show, we might want to fade this out, 
+                    // or just let the tilted one cover only if opaque.
+                    // For simple "change", just keeping it is fine as tilted covers it.
+                    // But if tilted has transparency, we might need opacity switch.
+                    // Assuming no transparency for now, or standard crossfade behavior.
+                  )}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
+
+                {/* Tilted Hover Image - Pre-rendered but hidden */}
+                {!hoveredVariant && selectedVariant?.tilted && (
+                  <Image
+                    src={selectedVariant.tilted}
+                    alt={`${product.name} - Tilted View`}
+                    fill
+                    priority={priority}
+                    loading={priority ? undefined : "lazy"}
+                    className="object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  />
+                )}
               </div>
             )}
           </div>
-          
+
           {/* Content Section */}
           <div className="p-1.5 sm:p-2 md:p-3 flex flex-col flex-grow">
             {/* Brand Name */}
             <p className="text-xs sm:text-sm md:text-base font-semibold text-teal-primary uppercase tracking-wider mb-0.5">
               {brandName}
             </p>
-            
+
             {/* Product Name */}
             <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-headline text-foreground mb-1 line-clamp-1 break-words overflow-hidden text-ellipsis leading-tight">
               {product.name}
             </h3>
-            
+
             {/* Star Rating */}
             {product.averageRating && (
               <div className="mb-1">
                 <StarRating rating={product.averageRating} count={product.reviewCount} />
               </div>
             )}
-            
+
             {/* Price Section */}
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
               <p className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">
@@ -391,7 +399,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                 </>
               )}
             </div>
-            
+
             {/* Color Swatches */}
             <div className="flex items-center gap-1.5 mb-1.5">
               {product.variants.slice(0, 5).map((variant) => (
@@ -408,8 +416,8 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                   onMouseLeave={() => setHoveredVariant(null)}
                   className={cn(
                     "h-4 w-4 rounded-full border-2 transition-all cursor-pointer",
-                    selectedVariant?.hex === variant.hex 
-                      ? "border-teal-primary ring-1 ring-offset-1 ring-teal-primary/50 scale-110" 
+                    selectedVariant?.hex === variant.hex
+                      ? "border-teal-primary ring-1 ring-offset-1 ring-teal-primary/50 scale-110"
                       : "border-border hover:scale-110"
                   )}
                   style={{ backgroundColor: variant.hex }}
@@ -426,10 +434,10 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                 </Badge>
               </div>
             )}
-            
+
             {/* Buttons */}
             <div className="flex flex-col gap-1 mt-auto">
-              <Button 
+              <Button
                 onClick={handleAddToCart}
                 disabled={isOutOfStock}
                 className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white border-0 font-semibold shadow-md hover:shadow-lg transition-all duration-300 text-sm sm:text-base md:text-lg px-2 sm:px-3 py-1.5 sm:py-2 md:py-2.5 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -439,7 +447,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                   {isOutOfStock ? <TranslatableText text="Out of Stock" /> : <TranslatableText text="Add to Cart" />}
                 </span>
               </Button>
-              <Button 
+              <Button
                 variant="outline"
                 onClick={handleTryOnClick}
                 className="w-full border-teal-primary text-teal-primary hover:bg-teal-primary/10 font-semibold text-sm sm:text-base md:text-lg px-2 sm:px-3 py-1.5 sm:py-2 md:py-2.5 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px]"

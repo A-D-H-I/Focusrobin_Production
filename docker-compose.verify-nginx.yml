@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: focusrobin_postgres_verify
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: SUKa9599@5567
+      POSTGRES_DB: focusrobin
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_verify:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - focusrobin-network-verify
+
+  # Next.js Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: focusrobin_app_verify
+    restart: unless-stopped
+    ports:
+      - "3000:3000"  # Expose app directly
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:SUKa9599@5567@postgres:5432/focusrobin?schema=public
+      # Add other environment variables as needed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - focusrobin-network-verify
+    # Load env file if available
+    env_file:
+      - .env
+
+networks:
+  focusrobin-network-verify:
+    driver: bridge
+
+volumes:
+  postgres_data_verify:
+    driver: local

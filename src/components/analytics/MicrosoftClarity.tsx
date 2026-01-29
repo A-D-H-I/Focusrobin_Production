@@ -47,6 +47,14 @@ function MicrosoftClarityWithConsent({ projectId }: { projectId: string }) {
     }
   }, [consent]);
 
+  // Debug consent for troubleshooting
+  useEffect(() => {
+    console.log('🔍 Clarity Consent Check:', {
+      consentReceived: !!consent,
+      analyticsEnabled: consent?.analytics
+    });
+  }, [consent]);
+
   // Listen for consent updates
   useEffect(() => {
     const handleConsentUpdate = (event: CustomEvent) => {

@@ -25,7 +25,7 @@ function getResendClient(): Resend | null {
 // Get the recipient email - always send to actual customer
 function getRecipientEmail(customerEmail: string): string {
   const fromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-  
+
   // Always send to the actual customer email
   console.log(`[Invoice Email] Sending to customer: ${customerEmail}`);
   return customerEmail;
@@ -39,7 +39,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
   const pdfDoc = await PDFDocument.create();
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  
+
   // Colors matching the template
   const darkBlue = rgb(0.1, 0.2, 0.4); // Dark blue for header
   const yellow = rgb(1.0, 0.84, 0.0); // Yellow for table header and total bar
@@ -47,30 +47,30 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
   const whiteColor = rgb(1.0, 1.0, 1.0);
   const lightGray = rgb(0.9, 0.9, 0.9); // For alternating rows
   const grayColor = rgb(0.5, 0.5, 0.5);
-  
+
   // Create single page
   const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
   const { width, height } = page.getSize();
-  
+
   // Logo area - load and embed actual FocusRobin logo (no background)
   const logoX = 30;
   const logoY = height - 50;
-  
+
   try {
     // Load the SVG logo and convert to PNG (keep original colors)
     const logoPath = join(process.cwd(), 'public', 'logo', 'Horizontal Primary dark (Color).svg');
     const svgBuffer = readFileSync(logoPath);
-    
+
     // Convert SVG to PNG (keep original colors, no greyscale or tint)
     const pngBuffer = await sharp(svgBuffer)
       .resize(280, null, { fit: 'contain' }) // Larger size for bigger logo
       .png()
       .toBuffer();
-    
+
     // Embed the logo image in the PDF
     const logoImage = await pdfDoc.embedPng(pngBuffer);
     const logoDims = logoImage.scale(0.75); // Larger scale for bigger logo
-    
+
     // Draw the logo (original colors, no background)
     page.drawImage(logoImage, {
       x: logoX,
@@ -89,7 +89,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
       color: blackColor,
     });
   }
-  
+
   // INVOICE text on top right
   page.drawText('INVOICE', {
     x: 400,
@@ -98,7 +98,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     font: helveticaBold,
     color: blackColor,
   });
-  
+
   // Invoice Details Section (left side)
   let yPos = height - 150;
   const invoiceDateStr = invoiceData.orderDate.toLocaleDateString('en-US', {
@@ -106,7 +106,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     month: '2-digit',
     day: '2-digit',
   });
-  
+
   page.drawText('INVOICE #', {
     x: 50,
     y: yPos,
@@ -121,7 +121,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     font: helvetica,
     color: blackColor,
   });
-  
+
   yPos -= 20;
   page.drawText('INVOICE DATE :', {
     x: 50,
@@ -137,7 +137,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     font: helvetica,
     color: blackColor,
   });
-  
+
   // BILL TO section (right side)
   let billToY = height - 150;
   page.drawText('BILL TO', {
@@ -147,17 +147,33 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     font: helveticaBold,
     color: blackColor,
   });
-  
+
   billToY -= 20;
-  const billingAddress = [
-    invoiceData.customerName,
-    invoiceData.shippingAddress.addressLine1,
-    invoiceData.shippingAddress.addressLine2,
-    `${invoiceData.shippingAddress.city}, ${invoiceData.shippingAddress.postalCode}`,
-    invoiceData.shippingAddress.state,
-    invoiceData.shippingAddress.country,
-  ].filter(Boolean);
-  
+  const billingAddress: string[] = [];
+
+  // Add business info first if it's a business purchase
+  if (invoiceData.isBusinessPurchase && invoiceData.businessName) {
+    billingAddress.push(invoiceData.businessName);
+    if (invoiceData.businessNumber) {
+      billingAddress.push(`Reg. No: ${invoiceData.businessNumber}`);
+    }
+    if (invoiceData.vatNumber) {
+      billingAddress.push(`VAT: ${invoiceData.vatNumber}`);
+    }
+  }
+
+  // Add customer name and address
+  billingAddress.push(invoiceData.customerName);
+  billingAddress.push(invoiceData.shippingAddress.addressLine1);
+  if (invoiceData.shippingAddress.addressLine2) {
+    billingAddress.push(invoiceData.shippingAddress.addressLine2);
+  }
+  billingAddress.push(`${invoiceData.shippingAddress.city}, ${invoiceData.shippingAddress.postalCode}`);
+  if (invoiceData.shippingAddress.state) {
+    billingAddress.push(invoiceData.shippingAddress.state);
+  }
+  billingAddress.push(invoiceData.shippingAddress.country);
+
   billingAddress.forEach((line) => {
     page.drawText(line, {
       x: 400,
@@ -168,12 +184,12 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     });
     billToY -= 15;
   });
-  
+
   // Table Header: Yellow bar
   yPos = height - 320;
   const tableHeaderY = yPos;
   const tableHeaderHeight = 30;
-  
+
   page.drawRectangle({
     x: 50,
     y: tableHeaderY - tableHeaderHeight,
@@ -181,7 +197,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     height: tableHeaderHeight,
     color: yellow,
   });
-  
+
   // Table column headers
   const headerTextY = tableHeaderY - 20;
   page.drawText('NO', {
@@ -219,14 +235,14 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     font: helveticaBold,
     color: blackColor,
   });
-  
+
   // Items rows with alternating colors
   yPos = tableHeaderY - tableHeaderHeight - 25;
   invoiceData.items.forEach((item, index) => {
     const isEven = index % 2 === 0;
     const rowColor = isEven ? lightGray : whiteColor;
     const rowHeight = 25;
-    
+
     // Draw row background
     page.drawRectangle({
       x: 50,
@@ -235,7 +251,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
       height: rowHeight,
       color: rowColor,
     });
-    
+
     // Item number
     page.drawText((index + 1).toString(), {
       x: 60,
@@ -244,7 +260,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
       font: helvetica,
       color: blackColor,
     });
-    
+
     // Description with color and SKU (truncate if too long)
     const colorText = item.variant ? ` - ${item.variant}` : '';
     const skuText = item.sku ? ` (${item.sku})` : '';
@@ -257,7 +273,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
       font: helvetica,
       color: blackColor,
     });
-    
+
     // Price
     page.drawText(`${invoiceData.currency} ${item.price.toFixed(2)}`, {
       x: 350,
@@ -266,7 +282,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
       font: helvetica,
       color: blackColor,
     });
-    
+
     // Quantity
     page.drawText(item.quantity.toString(), {
       x: 420,
@@ -275,7 +291,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
       font: helvetica,
       color: blackColor,
     });
-    
+
     // Total
     page.drawText(`${invoiceData.currency} ${item.total.toFixed(2)}`, {
       x: 480,
@@ -284,18 +300,18 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
       font: helvetica,
       color: blackColor,
     });
-    
+
     yPos -= rowHeight;
   });
-  
+
   // Totals Section
   yPos -= 30;
-  
+
   // Calculate original subtotal (before discounts)
   const originalSubtotal = invoiceData.subtotal + invoiceData.shipping;
   const totalDiscount = invoiceData.discount + invoiceData.walletAmount;
   const finalTotal = invoiceData.total;
-  
+
   // SUB-TOTAL - Always show the original subtotal
   page.drawText('SUB-TOTAL', {
     x: 400,
@@ -311,7 +327,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     font: helvetica,
     color: blackColor,
   });
-  
+
   // DISCOUNT - Show discount amount if there's any discount
   if (totalDiscount > 0) {
     yPos -= 25; // Add spacing between subtotal and discount
@@ -330,7 +346,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
       color: blackColor,
     });
   }
-  
+
   // Total Due bar (yellow)
   yPos -= 30;
   const totalBarHeight = 35;
@@ -341,7 +357,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     height: totalBarHeight,
     color: yellow,
   });
-  
+
   page.drawText('Total', {
     x: 410,
     y: yPos - 22,
@@ -356,7 +372,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     font: helveticaBold,
     color: blackColor,
   });
-  
+
   // Payment Method Section (left side, below items)
   yPos = yPos - totalBarHeight - 40;
   page.drawText('PAYMENT METHOD', {
@@ -366,7 +382,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     font: helveticaBold,
     color: blackColor,
   });
-  
+
   yPos -= 20;
   page.drawText(invoiceData.paymentMethod || 'Online Payment', {
     x: 50,
@@ -375,7 +391,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     font: helvetica,
     color: blackColor,
   });
-  
+
   // Footer: THANK YOU FOR YOUR PURCHASE
   page.drawText('THANK YOU FOR YOUR PURCHASE', {
     x: width / 2 - 120,
@@ -384,7 +400,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     font: helveticaBold,
     color: blackColor,
   });
-  
+
   // Save the PDF
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
@@ -408,19 +424,19 @@ export async function sendOrderConfirmationWithDocuments(
   const recipientEmail = getRecipientEmail(invoiceData.customerEmail);
 
   console.log(`[Invoice Email] Generating combined PDF (Payment Receipt + Invoice)...`);
-  
+
   try {
     // Generate the combined PDF (Payment Receipt + Invoice)
     let pdfBuffer = await generateCombinedPDF(invoiceData);
     console.log(`[Invoice Email] Combined PDF generated successfully (${pdfBuffer.length} bytes)`);
-    
+
     // If there are prescription items, generate and append prescription PDFs
     if (prescriptionDataList && prescriptionDataList.length > 0) {
       console.log(`[Invoice Email] Found ${prescriptionDataList.length} prescription items, generating prescription PDFs...`);
-      
+
       // Load the combined PDF
       const mergedPdf = await PDFDocument.load(pdfBuffer);
-      
+
       // Generate and append prescription PDFs
       for (const prescriptionData of prescriptionDataList) {
         console.log(`[Invoice Email] Generating prescription PDF for: ${prescriptionData.productName}`);
@@ -429,13 +445,13 @@ export async function sendOrderConfirmationWithDocuments(
         const pages = await mergedPdf.copyPages(prescriptionPdf, prescriptionPdf.getPageIndices());
         pages.forEach(page => mergedPdf.addPage(page));
       }
-      
+
       // Save the merged PDF
       const mergedPdfBytes = await mergedPdf.save();
       pdfBuffer = Buffer.from(mergedPdfBytes);
       console.log(`[Invoice Email] Merged PDF with prescriptions generated (${pdfBuffer.length} bytes)`);
     }
-    
+
     // Convert buffer to base64 for email attachment
     const pdfBase64 = pdfBuffer.toString('base64');
 
@@ -550,11 +566,11 @@ export async function sendOrderConfirmationWithDocuments(
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Order Date:</span>
-                  <span>${invoiceData.orderDate.toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}</span>
+                  <span>${invoiceData.orderDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })}</span>
                 </div>
                 <div class="detail-row">
                   <span class="detail-label">Total Amount Paid:</span>

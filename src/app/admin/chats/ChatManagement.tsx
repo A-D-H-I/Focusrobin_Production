@@ -191,31 +191,57 @@ export default function ChatManagement({ initialChats }: ChatManagementProps) {
     setInputValue("");
     setIsSending(true);
 
-    // Optimistically add admin message
+    // Optimistically add admin message using SWR optimistic update
     const tempMessage: Message = {
       id: `temp-${Date.now()}`,
       text: messageText,
       sender: "admin",
       timestamp: new Date(),
     };
-    setMessages((prev) => [...prev, tempMessage]);
+
+    // Store current messages for rollback
+    const currentMessagesData = messagesData;
+
+    // Optimistic update: add temp message to current messages
+    mutateMessages(
+      (current) => {
+        if (!current) {
+          // If no current data, create a minimal structure
+          return {
+            messages: [tempMessage],
+            chat: chatInfo || {
+              id: selectedChatId!,
+              userEmail: "",
+              userName: "",
+              userLanguage: "en",
+              status: "OPEN",
+            },
+          };
+        }
+        return {
+          ...current,
+          messages: [...current.messages, tempMessage],
+        };
+      },
+      false // Don't revalidate yet
+    );
 
     try {
       const result = await sendAdminReply(selectedChatId, messageText);
 
       if (result.success) {
         // Reload messages and chats using SWR mutate
-        await mutateMessages();
+        await mutateMessages(); // Revalidate to get real message from server
         await mutateChats();
       } else {
-        // Remove optimistic message on error
-        setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
+        // Remove optimistic message on error by reverting to previous data
+        mutateMessages(currentMessagesData, false); // Revert to previous state
         alert(result.error || "Failed to send reply");
       }
     } catch (error) {
       console.error("Error sending reply:", error);
-      // Remove optimistic message on error
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
+      // Remove optimistic message on error by reverting to previous data
+      mutateMessages(currentMessagesData, false); // Revert to previous state
       alert("Failed to send reply. Please try again.");
     } finally {
       setIsSending(false);

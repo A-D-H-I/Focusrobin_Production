@@ -675,16 +675,25 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   }, [session, prescriptionData, rxConfig, rxPriceResult, productSlug]);
 
   const handleStepChange = async (step: number) => {
+    console.log('[PrescriptionFlow] handleStepChange called:', { from: currentStep, to: step });
+    
     // NOTE: Removed automatic reload when navigating to Step 1 - this was causing rxConfig to reset
     // Prescription data is already in state from initial load
 
-    // If navigating away from Step 1, save prescription data if PD is filled
+    // If navigating away from Step 1, save prescription data if PD is filled OR PDF is uploaded
     if (currentStep === 1 && step !== 1 && session?.user) {
+      // Check if PDF is uploaded - if so, we can save without PD
+      const hasPdfUploaded = !!(
+        prescriptionData.prescriptionPdfUrl ||
+        prescriptionData.prescriptionImageUrl
+      );
+      
       const hasPdValue = prescriptionData.hasTwoPDs
         ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
         : (prescriptionData.pd && prescriptionData.pd !== "");
 
-      if (hasPdValue) {
+      // Save if either PD is filled OR PDF is uploaded
+      if (hasPdValue || hasPdfUploaded) {
         const prescriptionDataToSave: FullPrescriptionData = {
           ...prescriptionData,
           rxConfig,
@@ -716,7 +725,10 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       }
     }
 
+    // ALWAYS update step - don't block navigation
     setCurrentStep(step);
+    console.log('[PrescriptionFlow] Step changed to:', step);
+    
     // Update URL to reflect current step
     // Use router.push (not replace) to maintain browser history for back button support
     // Always use productSlug to ensure we use the proper slug, not ID
@@ -733,19 +745,52 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   };
 
   const handlePrescriptionUpdate = (data: Partial<PrescriptionData>) => {
-    setPrescriptionData(prev => ({ ...prev, ...data }));
+    setPrescriptionData(prev => {
+      const updated = { ...prev, ...data };
+      // Log state update for debugging (especially in Docker)
+      if (data.prescriptionImageUrl || data.prescriptionPdfUrl) {
+        console.log('[PrescriptionFlow] Prescription data updated:', {
+          prescriptionImageUrl: updated.prescriptionImageUrl,
+          prescriptionPdfUrl: updated.prescriptionPdfUrl,
+          isPdfMode: updated.isPdfMode,
+        });
+      }
+      return updated;
+    });
   };
 
   // Save prescription data when user submits Step 1
   const handlePrescriptionSubmit = async () => {
+    console.log('[PrescriptionFlow] handlePrescriptionSubmit called');
+    
+    // Check if PDF is uploaded - if so, PD is not required
+    const hasPdfUploaded = !!(
+      prescriptionData.prescriptionPdfUrl ||
+      prescriptionData.prescriptionImageUrl
+    );
+
+    console.log('[PrescriptionFlow] Checking submission conditions:', {
+      hasPdfUploaded,
+      prescriptionPdfUrl: prescriptionData.prescriptionPdfUrl,
+      prescriptionImageUrl: prescriptionData.prescriptionImageUrl,
+      pd: prescriptionData.pd,
+      hasTwoPDs: prescriptionData.hasTwoPDs,
+    });
+
     // Check if PD is entered - prescription values can be defaults (plano lenses are valid)
-    const hasPdValue = prescriptionData.hasTwoPDs
+    // If PDF is uploaded, PD is not required
+    const hasPdValue = hasPdfUploaded
+      ? true // PDF uploaded, PD not required
+      : prescriptionData.hasTwoPDs
       ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
       : (prescriptionData.pd && prescriptionData.pd !== "");
 
+    console.log('[PrescriptionFlow] hasPdValue:', hasPdValue);
+
     if (!hasPdValue) {
-      // PD not entered, cannot proceed
+      // PD not entered and no PDF uploaded, cannot proceed
       // The UI should prevent this, but double-check here
+      console.warn('[PrescriptionFlow] Submit blocked - PD not filled and no PDF uploaded');
       return;
     }
 
@@ -770,8 +815,8 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
           localStorage.setItem(storageKey, JSON.stringify(prescriptionDataToSave));
         }
       } catch (error) {
-        console.error('Error saving prescription to database:', error);
-        // Fallback to localStorage if DB save fails
+        console.error('[PrescriptionFlow] Error saving prescription to database:', error);
+        // Fallback to localStorage if DB save fails - but DON'T block navigation
         if (typeof window !== 'undefined') {
           const storageKey = `prescription_user_${(session.user as any).id}`;
           localStorage.setItem(storageKey, JSON.stringify(prescriptionDataToSave));
@@ -784,8 +829,9 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       }
     }
 
-    // Skip Step 2 (Review) and go directly to Step 3 (Lens Category)
-    handleStepChange(3);
+    // Go to Step 2 (Lens Selection) after prescription submission - ALWAYS navigate
+    console.log('[PrescriptionFlow] Navigating to Step 2...');
+    handleStepChange(2);
   };
 
   const handleRxConfigUpdate = (data: Partial<RxConfigData>, isDefaultApplication = false) => {

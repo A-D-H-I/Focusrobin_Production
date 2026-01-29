@@ -379,119 +379,61 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
   });
   
   // === PRESCRIPTION VALUES TABLE ===
-  yPos -= 90;
-  
-  page.drawText('PRESCRIPTION VALUES', {
-    x: 50,
-    y: yPos,
-    size: 14,
-    font: helveticaBold,
-    color: primaryColor,
-  });
-  
-  yPos -= 25;
-  
-  // Table dimensions
-  const tableX = 50;
-  const tableWidth = 495;
-  const colWidths = [80, 85, 85, 85, 80, 80]; // Eye, SPH, CYL, AXIS, ADD, PD
-  const rowHeight = 28;
-  
-  // Table header
-  page.drawRectangle({
-    x: tableX,
-    y: yPos - rowHeight,
-    width: tableWidth,
-    height: rowHeight,
-    color: tableHeaderBg,
-  });
-  
-  // Header text
-  const headers = ['EYE', 'SPHERE (SPH)', 'CYLINDER (CYL)', 'AXIS', 'ADD', 'PD'];
-  let headerX = tableX + 10;
-  headers.forEach((header, i) => {
-    page.drawText(header, {
-      x: headerX,
-      y: yPos - 18,
-      size: 9,
+  // Check if prescription values are all zeros/defaults - if so, skip showing them
+  const hasNonZeroValues = 
+    (data.od.sph && data.od.sph !== '0.00' && data.od.sph !== '0' && data.od.sph !== '+0.00') ||
+    (data.od.cyl && data.od.cyl !== '0.00' && data.od.cyl !== '0' && data.od.cyl !== '+0.00') ||
+    (data.od.axis && data.od.axis !== '0' && data.od.axis !== '0°') ||
+    (data.os.sph && data.os.sph !== '0.00' && data.os.sph !== '0' && data.os.sph !== '+0.00') ||
+    (data.os.cyl && data.os.cyl !== '0.00' && data.os.cyl !== '0' && data.os.cyl !== '+0.00') ||
+    (data.os.axis && data.os.axis !== '0' && data.os.axis !== '0°');
+
+  // Only show prescription values table if there are non-zero values
+  if (hasNonZeroValues) {
+    yPos -= 90;
+    
+    page.drawText('PRESCRIPTION VALUES', {
+      x: 50,
+      y: yPos,
+      size: 14,
       font: helveticaBold,
-      color: whiteColor,
+      color: primaryColor,
     });
-    headerX += colWidths[i];
-  });
-  
-  yPos -= rowHeight;
-  
-  // Right Eye (OD) row
-  page.drawRectangle({
-    x: tableX,
-    y: yPos - rowHeight,
-    width: tableWidth,
-    height: rowHeight,
-    color: lightGrayBg,
-    borderColor: rgb(0.9, 0.9, 0.9),
-    borderWidth: 0.5,
-  });
-  
-  let cellX = tableX + 10;
-  const odValues = [
-    'OD (Right)',
-    data.od.sph,
-    data.od.cyl,
-    data.od.axis + '°',
-    '-', // ADD (not typically used for single vision)
-    data.hasTwoPDs && data.pdOd ? data.pdOd + ' mm' : '-',
-  ];
-  
-  odValues.forEach((val, i) => {
-    page.drawText(val, {
-      x: cellX,
-      y: yPos - 18,
-      size: 10,
-      font: i === 0 ? helveticaBold : helvetica,
-      color: blackColor,
+    
+    yPos -= 25;
+    
+    // Table dimensions
+    const tableX = 50;
+    const tableWidth = 495;
+    const colWidths = [80, 85, 85, 85, 80, 80]; // Eye, SPH, CYL, AXIS, ADD, PD
+    const rowHeight = 28;
+    
+    // Table header
+    page.drawRectangle({
+      x: tableX,
+      y: yPos - rowHeight,
+      width: tableWidth,
+      height: rowHeight,
+      color: tableHeaderBg,
     });
-    cellX += colWidths[i];
-  });
-  
-  yPos -= rowHeight;
-  
-  // Left Eye (OS) row
-  page.drawRectangle({
-    x: tableX,
-    y: yPos - rowHeight,
-    width: tableWidth,
-    height: rowHeight,
-    color: whiteColor,
-    borderColor: rgb(0.9, 0.9, 0.9),
-    borderWidth: 0.5,
-  });
-  
-  cellX = tableX + 10;
-  const osValues = [
-    'OS (Left)',
-    data.os.sph,
-    data.os.cyl,
-    data.os.axis + '°',
-    '-',
-    data.hasTwoPDs && data.pdOs ? data.pdOs + ' mm' : '-',
-  ];
-  
-  osValues.forEach((val, i) => {
-    page.drawText(val, {
-      x: cellX,
-      y: yPos - 18,
-      size: 10,
-      font: i === 0 ? helveticaBold : helvetica,
-      color: blackColor,
+    
+    // Header text
+    const headers = ['EYE', 'SPHERE (SPH)', 'CYLINDER (CYL)', 'AXIS', 'ADD', 'PD'];
+    let headerX = tableX + 10;
+    headers.forEach((header, i) => {
+      page.drawText(header, {
+        x: headerX,
+        y: yPos - 18,
+        size: 9,
+        font: helveticaBold,
+        color: whiteColor,
+      });
+      headerX += colWidths[i];
     });
-    cellX += colWidths[i];
-  });
-  
-  yPos -= rowHeight;
-  
-  // Single PD row (if not using two PDs)
-  if (!data.hasTwoPDs) {
+    
+    yPos -= rowHeight;
+    
+    // Right Eye (OD) row
     page.drawRectangle({
       x: tableX,
       y: yPos - rowHeight,
@@ -502,24 +444,94 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       borderWidth: 0.5,
     });
     
-    page.drawText('Pupillary Distance (PD):', {
-      x: tableX + 10,
-      y: yPos - 18,
-      size: 10,
-      font: helveticaBold,
-      color: blackColor,
-    });
+    let cellX = tableX + 10;
+    const odValues = [
+      'OD (Right)',
+      data.od.sph,
+      data.od.cyl,
+      data.od.axis + '°',
+      '-', // ADD (not typically used for single vision)
+      data.hasTwoPDs && data.pdOd ? data.pdOd + ' mm' : '-',
+    ];
     
-    page.drawText(data.pd + ' mm', {
-      x: tableX + 200,
-      y: yPos - 18,
-      size: 11,
-      font: helvetica,
-      color: blackColor,
+    odValues.forEach((val, i) => {
+      page.drawText(val, {
+        x: cellX,
+        y: yPos - 18,
+        size: 10,
+        font: i === 0 ? helveticaBold : helvetica,
+        color: blackColor,
+      });
+      cellX += colWidths[i];
     });
     
     yPos -= rowHeight;
-  }
+    
+    // Left Eye (OS) row
+    page.drawRectangle({
+      x: tableX,
+      y: yPos - rowHeight,
+      width: tableWidth,
+      height: rowHeight,
+      color: whiteColor,
+      borderColor: rgb(0.9, 0.9, 0.9),
+      borderWidth: 0.5,
+    });
+    
+    cellX = tableX + 10;
+    const osValues = [
+      'OS (Left)',
+      data.os.sph,
+      data.os.cyl,
+      data.os.axis + '°',
+      '-',
+      data.hasTwoPDs && data.pdOs ? data.pdOs + ' mm' : '-',
+    ];
+    
+    osValues.forEach((val, i) => {
+      page.drawText(val, {
+        x: cellX,
+        y: yPos - 18,
+        size: 10,
+        font: i === 0 ? helveticaBold : helvetica,
+        color: blackColor,
+      });
+      cellX += colWidths[i];
+    });
+    
+    yPos -= rowHeight;
+    
+    // Single PD row (if not using two PDs)
+    if (!data.hasTwoPDs) {
+      page.drawRectangle({
+        x: tableX,
+        y: yPos - rowHeight,
+        width: tableWidth,
+        height: rowHeight,
+        color: lightGrayBg,
+        borderColor: rgb(0.9, 0.9, 0.9),
+        borderWidth: 0.5,
+      });
+      
+      page.drawText('Pupillary Distance (PD):', {
+        x: tableX + 10,
+        y: yPos - 18,
+        size: 10,
+        font: helveticaBold,
+        color: blackColor,
+      });
+      
+      page.drawText(data.pd + ' mm', {
+        x: tableX + 200,
+        y: yPos - 18,
+        size: 11,
+        font: helvetica,
+        color: blackColor,
+      });
+      
+      yPos -= rowHeight;
+    }
+  } // End of hasNonZeroValues check - only show prescription values if they're not all zeros
   
   // === PRISM VALUES (if applicable) ===
   if (data.hasPrism) {

@@ -26,10 +26,19 @@ function getTranslateClient(): Translate {
   const clientEmail = process.env.GOOGLE_TRANSLATE_CLIENT_EMAIL;
   const privateKey = process.env.GOOGLE_TRANSLATE_PRIVATE_KEY;
 
+  // If no credentials path is set, check for default location
+  if (!credentialsPath) {
+    const defaultCredentialsPath = path.resolve(process.cwd(), 'google-credentials.json');
+    if (fs.existsSync(defaultCredentialsPath)) {
+      credentialsPath = defaultCredentialsPath;
+    }
+  }
+
   if (!credentialsPath && !projectId) {
     throw new Error(
       "Google Translation API credentials not configured. " +
-      "Please set GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_TRANSLATE_PROJECT_ID in your environment variables."
+      "Please set GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_TRANSLATE_PROJECT_ID in your environment variables, " +
+      "or place google-credentials.json in the project root."
     );
   }
 
@@ -228,11 +237,19 @@ export function isTranslationAvailable(): boolean {
     const clientEmail = process.env.GOOGLE_TRANSLATE_CLIENT_EMAIL;
     const privateKey = process.env.GOOGLE_TRANSLATE_PRIVATE_KEY;
 
-    return !!(
-      credentialsPath ||
-      (projectId && clientEmail && privateKey) ||
-      process.env.GOOGLE_APPLICATION_CREDENTIALS // For GCP default credentials
-    );
+    // Check if credentials are set via environment variables
+    if (credentialsPath || (projectId && clientEmail && privateKey)) {
+      return true;
+    }
+
+    // Check if default credentials file exists (for both dev and production)
+    const defaultCredentialsPath = path.resolve(process.cwd(), 'google-credentials.json');
+    if (fs.existsSync(defaultCredentialsPath)) {
+      return true;
+    }
+
+    // For GCP environments with default credentials
+    return false;
   } catch {
     return false;
   }

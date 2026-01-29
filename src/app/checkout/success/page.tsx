@@ -107,6 +107,36 @@ export default function CheckoutSuccessPage() {
     return null;
   }, [orderId]);
 
+  // Verify Stripe session status
+  const verifyStripeSession = useCallback(async (): Promise<{ success: boolean; paymentStatus: string; shouldRefund: boolean; message: string } | null> => {
+    if (!orderId) return null;
+
+    try {
+      const response = await fetch('/api/checkout/verify-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('[CheckoutSuccess] Verify session response:', data);
+        return {
+          success: data.success,
+          paymentStatus: data.paymentStatus || 'UNKNOWN',
+          shouldRefund: data.shouldRefundWallet || false,
+          message: data.message || 'Payment status checked',
+        };
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[CheckoutSuccess] Verify session failed:', response.status, errorData);
+      }
+    } catch (err) {
+      console.error('[CheckoutSuccess] Error verifying Stripe session:', err);
+    }
+    return null;
+  }, [orderId]);
+
   const verifyPayment = useCallback(async () => {
     if (!orderId) {
       setError("No order ID provided");
@@ -114,103 +144,187 @@ export default function CheckoutSuccessPage() {
       return;
     }
 
-    let attempts = 0;
-    const maxAttempts = 30; // Try for up to 30 seconds
-    const pollInterval = 1000; // Check every 1 second
+    console.log('[CheckoutSuccess] Starting payment verification for order:', orderId);
 
-    const pollOrderStatus = async (): Promise<OrderDetails | null> => {
-      const orderData = await fetchOrderStatus();
+    // Fetch order status first (this is the source of truth)
+    const orderData = await fetchOrderStatus();
+    console.log('[CheckoutSuccess] Order data fetched:', orderData ? {
+      orderNumber: orderData.orderNumber,
+      isPaid: orderData.isPaid,
+      paymentStatus: orderData.paymentStatus,
+      status: orderData.status,
+    } : 'null');
+
+    if (orderData) {
+      setOrder(orderData);
       
-      if (orderData) {
-        setPollCount(attempts + 1);
-        
-        // Check if payment is completed
-        if (orderData.isPaid && orderData.paymentStatus === 'COMPLETED') {
-          return orderData;
-        }
-        
-        // Check if payment failed
-        if (orderData.paymentStatus === 'FAILED' || orderData.status === 'CANCELLED') {
-          setError(`Payment was declined or cancelled. Status: ${orderData.paymentStatus}. Please try again with a different payment method.`);
-          setOrder(orderData);
-          
-          // Refund wallet if payment failed and wallet was used
-          if (orderData.walletAmountUsed && orderData.walletAmountUsed > 0 && orderId) {
-            console.log('[CheckoutSuccess] Payment failed, refunding wallet...');
-            refundWalletForFailedOrder(orderId);
+      // Check if payment is completed - this is the primary check
+      if (orderData.isPaid && orderData.paymentStatus === 'COMPLETED') {
+        console.log('[CheckoutSuccess] Payment already completed, showing success');
+        clearCart();
+        // Track Purchase event with Meta Pixel and GA4 (only once)
+        if (!hasTrackedPurchase.current) {
+          hasTrackedPurchase.current = true;
+          try {
+            const contents = orderData.items.map((item) => ({
+              id: item.sku || item.id,
+              quantity: item.quantity,
+            }));
+            
+            // Meta Pixel
+            trackPurchase(orderData.orderNumber, orderData.total, orderData.currency || 'EUR', contents);
+            
+            // GA4
+            const ga4Items = orderData.items.map((item) => ({
+              item_id: item.sku || item.id,
+              item_name: item.productName,
+              price: item.price,
+              quantity: item.quantity,
+            }));
+            
+            trackGA4Purchase({
+              transaction_id: orderData.orderNumber,
+              value: orderData.total,
+              currency: orderData.currency || 'EUR',
+              items: ga4Items,
+            });
+          } catch (trackError) {
+            console.error('[CheckoutSuccess] Analytics tracking error:', trackError);
           }
-          
-          return null;
         }
-        
-        // Keep polling if we haven't exceeded max attempts
-        if (attempts < maxAttempts) {
-          attempts++;
-          await new Promise(resolve => setTimeout(resolve, pollInterval));
-          return pollOrderStatus();
-        }
-        
-        // Timeout - but still show the order info
-        return orderData;
+        setLoading(false);
+        setHasFetched(true);
+        return;
       }
+    }
+
+    // If order is not paid yet, start polling for order update (webhook might be processing)
+    console.log('[CheckoutSuccess] Order not paid yet, starting polling for webhook update...');
+    
+    // Start polling immediately - webhook might still be processing
+    let pollAttempts = 0;
+    const maxPollAttempts = 30; // 30 seconds
+    const pollInterval = 1000; // 1 second
+
+    const pollForPayment = async () => {
+      pollAttempts++;
+      setPollCount(pollAttempts);
+
+      // Check order status
+      const currentOrder = await fetchOrderStatus();
       
-      return null;
+      if (currentOrder && currentOrder.isPaid && currentOrder.paymentStatus === 'COMPLETED') {
+        console.log('[CheckoutSuccess] Payment confirmed via polling!');
+        setOrder(currentOrder);
+        clearCart();
+        setError(null);
+        setLoading(false);
+        setHasFetched(true);
+        return;
+      }
+
+      // If we haven't exceeded max attempts, continue polling
+      if (pollAttempts < maxPollAttempts) {
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        pollForPayment();
+      } else {
+        // Timeout - check Stripe session status as fallback
+        console.log('[CheckoutSuccess] Polling timeout, checking Stripe session...');
+        const sessionStatus = await verifyStripeSession();
+        
+        // Re-check order one more time after Stripe verification
+        const finalOrderCheck = await fetchOrderStatus();
+        if (finalOrderCheck && finalOrderCheck.isPaid && finalOrderCheck.paymentStatus === 'COMPLETED') {
+          console.log('[CheckoutSuccess] Payment confirmed after Stripe verification!');
+          setOrder(finalOrderCheck);
+          clearCart();
+          setError(null);
+          setLoading(false);
+          setHasFetched(true);
+          return;
+        }
+
+        // If Stripe session check returned results, use that for more accurate status
+        if (sessionStatus) {
+          console.log('[CheckoutSuccess] Stripe session status:', sessionStatus);
+      
+          // Payment confirmed by Stripe but order not updated yet (webhook pending)
+          if (sessionStatus.paymentStatus === 'PENDING' && sessionStatus.success) {
+            setError("Payment confirmed! Processing your order. This may take a few moments...");
+            // Continue polling (already started above)
+            return;
+          }
+
+          // Payment failed or not completed
+          if (sessionStatus.paymentStatus === 'FAILED' || !sessionStatus.success) {
+            setError(sessionStatus.message || "Payment was not completed. Please try again.");
+            
+            // Refund wallet if needed
+            if (sessionStatus.shouldRefund && orderId) {
+              console.log('[CheckoutSuccess] Payment not completed, refunding wallet...');
+              refundWalletForFailedOrder(orderId);
+            }
+
+            setLoading(false);
+            setHasFetched(true);
+            return;
+          }
+        } else {
+          // If verifyStripeSession returned null, it means the API call failed
+          // Fall through to check order status directly
+          console.log('[CheckoutSuccess] Stripe session verification failed or returned null, checking order status directly...');
+        }
+      }
     };
 
-    try {
-      const orderData = await pollOrderStatus();
-      if (orderData) {
-        setOrder(orderData);
-        // Clear cart on successful payment
+    // Start polling
+    pollForPayment();
+
+    // Fallback: Check order status directly
+    if (orderData) {
+      // Check if payment failed
+      if (orderData.paymentStatus === 'FAILED' || orderData.status === 'CANCELLED') {
+        setError(`Payment was declined or cancelled. Status: ${orderData.paymentStatus}. Please try again with a different payment method.`);
+        
+        // Refund wallet if payment failed and wallet was used
+        if (orderData.walletAmountUsed && orderData.walletAmountUsed > 0 && orderId) {
+          console.log('[CheckoutSuccess] Payment failed, refunding wallet...');
+          refundWalletForFailedOrder(orderId);
+        }
+        
+        setLoading(false);
+        setHasFetched(true);
+        return;
+      }
+
+      // Payment still pending
+      if (orderData.paymentStatus === 'PENDING' || orderData.status === 'PENDING') {
+        setError("Payment is still processing. Please wait a moment and click 'Check Again' to refresh status.");
+        setLoading(false);
+        setHasFetched(true);
+        return;
+      }
+    }
+
+    // Default: Could not verify - but check if order exists and show it
+    if (orderData) {
+      // We have order data, show it even if verification failed
+      setOrder(orderData);
+      if (!error) {
+        // If order is paid, show success even if verification failed
         if (orderData.isPaid && orderData.paymentStatus === 'COMPLETED') {
           clearCart();
-          // Track Purchase event with Meta Pixel and GA4 (only once)
-          if (!hasTrackedPurchase.current) {
-            hasTrackedPurchase.current = true;
-            try {
-              const contents = orderData.items.map((item) => ({
-                id: item.sku || item.id,
-                quantity: item.quantity,
-              }));
-              
-              // Meta Pixel
-              trackPurchase(orderData.orderNumber, orderData.total, orderData.currency || 'EUR', contents);
-              
-              // GA4
-              const ga4Items = orderData.items.map((item) => ({
-                item_id: item.sku || item.id,
-                item_name: item.productName,
-                price: item.price,
-                quantity: item.quantity,
-              }));
-              
-              trackGA4Purchase({
-                transaction_id: orderData.orderNumber,
-                value: orderData.total,
-                currency: orderData.currency || 'EUR',
-                items: ga4Items,
-              });
-            } catch (trackError) {
-              console.error('[CheckoutSuccess] Analytics tracking error:', trackError);
-            }
-          }
-        } else if (!error) {
-          // Payment not completed after polling
-          setError("Payment verification timeout. Your payment may still be processing. Click 'Check Again' to refresh status.");
+          setError(null);
+        } else {
+          setError("Payment verification is taking longer than expected. Your order status: " + orderData.paymentStatus + ". Please check your orders page or contact support if you were charged.");
         }
-      } else if (!error) {
-        setError("Could not verify payment. Please check your orders page or contact support.");
       }
-    } catch (err) {
-      console.error("Error verifying payment:", err);
-      if (!error) {
-        setError("An error occurred while verifying your payment. Please check your orders page.");
-      }
-    } finally {
-      setLoading(false);
-      setHasFetched(true);
+    } else if (!error) {
+      setError("Could not verify payment status. Please check your orders page or contact support.");
     }
-  }, [orderId, clearCart, fetchOrderStatus]);
+    setLoading(false);
+    setHasFetched(true);
+  }, [orderId, clearCart, fetchOrderStatus, verifyStripeSession]);
 
   // Handle PayPal return - capture the payment
   const capturePayPalPayment = useCallback(async () => {
@@ -367,12 +481,33 @@ export default function CheckoutSuccessPage() {
     setError(null);
     
     try {
+      // Verify Stripe session first for accurate status
+      const sessionStatus = await verifyStripeSession();
       const orderData = await fetchOrderStatus();
+      
       if (orderData) {
         setOrder(orderData);
+        
         if (orderData.isPaid && orderData.paymentStatus === 'COMPLETED') {
           clearCart();
           setError(null);
+        } else if (sessionStatus) {
+          // Use Stripe session status for more accurate information
+          if (sessionStatus.paymentStatus === 'COMPLETED' || (sessionStatus.success && sessionStatus.paymentStatus === 'PENDING')) {
+            setError("Payment confirmed! Processing your order. Please wait...");
+            // Poll for completion
+            setTimeout(() => handleRetry(), 2000);
+          } else if (sessionStatus.paymentStatus === 'FAILED' || !sessionStatus.success) {
+            setError(sessionStatus.message || "Payment was not completed. Please try again.");
+            
+            // Refund wallet if needed
+            if (sessionStatus.shouldRefund && orderId) {
+              console.log('[CheckoutSuccess] Payment failed on retry, refunding wallet...');
+              refundWalletForFailedOrder(orderId);
+            }
+          } else {
+            setError(sessionStatus.message || "Payment status is unclear. Please try again.");
+          }
         } else if (orderData.paymentStatus === 'FAILED' || orderData.status === 'CANCELLED') {
           setError(`Payment was declined. Status: ${orderData.paymentStatus}. Please try again.`);
           
@@ -384,8 +519,11 @@ export default function CheckoutSuccessPage() {
         } else {
           setError("Payment still processing. Please wait a moment and try again.");
         }
+      } else {
+        setError("Could not fetch order status. Please try again.");
       }
     } catch (err) {
+      console.error('[CheckoutSuccess] Error on retry:', err);
       setError("Failed to check payment status. Please try again.");
     } finally {
       setIsRetrying(false);

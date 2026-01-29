@@ -18,10 +18,10 @@ interface BestsellersCarouselProps {
 
 export default function BestsellersCarousel({ products }: BestsellersCarouselProps) {
   const { formatPrice, parseEurPrice } = usePrice();
-  
+
   // Use provided products or fallback to empty array
   const displayProducts = products && products.length > 0 ? products : [];
-  
+
   // If no products, show empty state
   if (displayProducts.length === 0) {
     return (
@@ -33,7 +33,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
       </section>
     );
   }
-  
+
   // 2. Start in the middle
   const midIndex = Math.floor(displayProducts.length / 2);
 
@@ -227,21 +227,21 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
               const selectedVariant = product.variants && product.variants.length > 0
                 ? (product.variants[selectedVariantIndex] || product.variants[0])
                 : null;
-              
+
               // Get image for bestseller - prefer NO_BG (transparent background) for 3D effect, fallback to thumbnail
               let mainImage = "";
               if (selectedVariant) {
                 // Try NO_BG first, then thumbnail, then first gallery image
-                mainImage = selectedVariant.nobg 
-                  || selectedVariant.thumbnail 
+                mainImage = selectedVariant.nobg
+                  || selectedVariant.thumbnail
                   || (selectedVariant.images && selectedVariant.images.length > 0 ? selectedVariant.images[0] : "")
                   || "";
               }
-              const visibleVariants = product.variants && product.variants.length > 0 
-                ? product.variants.slice(0, 4) 
+              const visibleVariants = product.variants && product.variants.length > 0
+                ? product.variants.slice(0, 4)
                 : [];
-              const remainingCount = product.variants && product.variants.length > 4 
-                ? product.variants.length - 4 
+              const remainingCount = product.variants && product.variants.length > 4
+                ? product.variants.length - 4
                 : 0;
 
               // Handle color variant selection
@@ -339,7 +339,7 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                                 className="object-contain drop-shadow-2xl transition-transform duration-200"
                                 sizes="(max-width: 640px) 80vw, (max-width: 768px) 70vw, 40vw"
                                 unoptimized
-                                style={{ 
+                                style={{
                                   objectFit: 'contain',
                                   width: '100%',
                                   height: '100%',
@@ -362,28 +362,28 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                         {product.name}
                       </h3>
 
-                             <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6 flex-wrap px-2 sm:px-4">
-                               <p className="text-lg font-medium text-brand-blue/80 drop-shadow-md">
-                                 {formatPrice(parseEurPrice(product.price))}
-                               </p>
-                               {product.originalPrice && product.originalPrice !== product.price && (
-                                 <>
-                                   <p className="text-sm text-muted-foreground line-through drop-shadow-md">
-                                     {formatPrice(parseEurPrice(product.originalPrice))}
-                                   </p>
-                                   {product.discountPct && (
-                                     <span className="text-xs font-semibold text-destructive bg-white/90 px-2 py-0.5 rounded drop-shadow-md">
-                                       -{product.discountPct}%
-                                     </span>
-                                   )}
-                                 </>
-                               )}
-                             </div>
+                      <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6 flex-wrap px-2 sm:px-4">
+                        <p className="text-lg font-medium text-brand-blue/80 drop-shadow-md">
+                          {formatPrice(parseEurPrice(product.price))}
+                        </p>
+                        {product.originalPrice && product.originalPrice !== product.price && (
+                          <>
+                            <p className="text-sm text-muted-foreground line-through drop-shadow-md">
+                              {formatPrice(parseEurPrice(product.originalPrice))}
+                            </p>
+                            {product.discountPct && (
+                              <span className="text-xs font-semibold text-destructive bg-white/90 px-2 py-0.5 rounded drop-shadow-md">
+                                -{product.discountPct}%
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </div>
 
                       {product.cashback && parseEurPrice(product.cashback) > 0 && (
                         <div className="flex justify-center mb-3 sm:mb-4 relative z-40 px-2 sm:px-4">
                           <Badge variant="outline" className="text-sm bg-green-50 text-green-700 border-green-200">
-                            🎁 {formatPrice(parseEurPrice(product.cashback))} <TranslatableText text="cashback" />
+                            🎁 {formatPrice(parseEurPrice(product.cashback))}&nbsp;<TranslatableText text="cashback" />
                           </Badge>
                         </div>
                       )}
@@ -398,11 +398,10 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                                 e.stopPropagation();
                                 handleVariantSelect(variantIndex);
                               }}
-                              className={`h-6 w-6 rounded-full border-2 transition-all relative z-40 ${
-                                selectedVariantIndex === variantIndex
+                              className={`h-6 w-6 rounded-full border-2 transition-all relative z-40 ${selectedVariantIndex === variantIndex
                                   ? "border-brand-blue ring-2 ring-brand-blue ring-offset-2 scale-125"
                                   : "border-white/50 ring-1 ring-border/20 hover:scale-110"
-                              } shadow-sm cursor-pointer`}
+                                } shadow-sm cursor-pointer`}
                               style={{ backgroundColor: variant.hex }}
                               title={variant.name}
                               aria-label={`Select color: ${variant.name}`}
@@ -426,9 +425,9 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                               transition={{ duration: 0.2 }}
                               className="relative z-50 pointer-events-auto"
                             >
-                              <Link 
-                                href={`/shop/${encodeURIComponent(product.slug || product.id)}`} 
-                                prefetch={true} 
+                              <Link
+                                href={`/shop/${encodeURIComponent(product.slug || product.id)}`}
+                                prefetch={true}
                                 className="relative z-50 pointer-events-auto"
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -460,11 +459,10 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
             <button
               key={index}
               onClick={() => emblaApi?.scrollTo(index)}
-              className={`transition-all duration-300 rounded-full ${
-                index === selectedIndex
+              className={`transition-all duration-300 rounded-full ${index === selectedIndex
                   ? "w-8 h-1.5 bg-brand-blue"
                   : "w-2 h-2 bg-brand-blue/20 hover:bg-brand-blue/40"
-              }`}
+                }`}
               aria-label={`Go to slide ${index + 1}`}
             />
           ))}

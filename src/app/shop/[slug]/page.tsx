@@ -18,6 +18,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { getPriceRange } from "@/app/actions/getPriceRange";
 
 // Helper to get OG image with fallback
 function getOGImageUrl(productImage?: string): string {
@@ -31,7 +32,7 @@ function getOGImageUrl(productImage?: string): string {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
-  
+
   // First check if it's a custom shop page
   let customPage: any = null;
   try {
@@ -84,7 +85,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const product = mapPrismaProductToProduct(prismaProduct);
   const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
   const ogImage = getOGImageUrl(productImage);
-  
+
   // Build description with polarized/UV info if available
   let description = `${product.name} - Premium sunglasses by FocusRobin.`;
   if (product.uvProtection && product.uvProtection.includes('UV')) {
@@ -147,10 +148,10 @@ const RelatedProducts = dynamic(() => import("@/components/shop/related-products
 export default async function ShopSlugPage({ params }: { params: Promise<{ slug: string }> }) {
   // Await params (required in Next.js 15)
   const { slug } = await params;
-  
+
   // Decode the slug
   const decodedSlug = decodeURIComponent(slug);
-  
+
   // First, try to fetch custom shop page from database
   let customPage: any = null;
   try {
@@ -167,101 +168,105 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
 
   // If custom page exists and is visible, render it
   if (customPage && customPage.isVisible) {
-  // Fetch products by their slugs
-  const productSlugs = customPage.products || [];
-  let prismaProducts: any[] = [];
-  
-  if (productSlugs.length > 0) {
-    try {
-      prismaProducts = await prisma.product.findMany({
-        where: {
-          slug: {
-            in: productSlugs,
-          },
-        },
-        include: {
-          ProductVariant: {
-            include: {
-              ProductAsset: true,
+    // Fetch products by their slugs
+    const productSlugs = customPage.products || [];
+    let prismaProducts: any[] = [];
+
+    if (productSlugs.length > 0) {
+      try {
+        prismaProducts = await prisma.product.findMany({
+          where: {
+            slug: {
+              in: productSlugs,
             },
           },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
-      });
-    } catch (error) {
-      console.error('Error fetching products for custom shop page:', error);
+          include: {
+            ProductVariant: {
+              include: {
+                ProductAsset: true,
+              },
+            },
+          },
+          orderBy: {
+            createdAt: 'desc',
+          },
+        });
+      } catch (error) {
+        console.error('Error fetching products for custom shop page:', error);
+      }
     }
-  }
 
-  // Map Prisma products to frontend Product type
-  const products = prismaProducts.map(mapPrismaProductToProduct);
+    // Map Prisma products to frontend Product type
+    const products = prismaProducts.map(mapPrismaProductToProduct);
 
-  // Banner data
-  const bannerTitle = customPage.name;
-  const bannerDescription = customPage.description || '';
-  const bannerImage = normalizeImageUrl(customPage.bannerImage);
-  const bannerAlt = customPage.name || 'Shop page banner';
+    // Banner data
+    const bannerTitle = customPage.name;
+    const bannerDescription = customPage.description || '';
+    const bannerImage = normalizeImageUrl(customPage.bannerImage);
+    const bannerAlt = customPage.name || 'Shop page banner';
 
-  return (
-    <div className="flex flex-col min-h-screen">
-      <Header />
-      <main className="flex-grow bg-background">
-        {/* Banner */}
-        <CategoryBanner
-          title={bannerTitle}
-          imageSrc={bannerImage}
-          description={bannerDescription}
-          alt={bannerAlt}
-        />
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Header />
+        <main className="flex-grow bg-background">
+          {/* Banner */}
+          <CategoryBanner
+            title={bannerTitle}
+            imageSrc={bannerImage}
+            description={bannerDescription}
+            alt={bannerAlt}
+          />
 
-        {/* Video Section */}
-        {customPage.videoUrl && (
-          <section className="w-full py-12 bg-background">
-            <div className="container mx-auto px-4">
-              <div className="max-w-4xl mx-auto">
-                <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-                  {customPage.videoUrl.includes('youtube.com') || customPage.videoUrl.includes('youtu.be') ? (
-                    <iframe
-                      src={customPage.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                      title={customPage.name}
-                      className="w-full h-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : (
-                    <video
-                      src={customPage.videoUrl}
-                      controls
-                      className="w-full h-full object-contain"
-                    >
-                      Your browser does not support the video tag.
-                    </video>
-                  )}
+          {/* Video Section */}
+          {customPage.videoUrl && (
+            <section className="w-full py-12 bg-background">
+              <div className="container mx-auto px-4">
+                <div className="max-w-4xl mx-auto">
+                  <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+                    {customPage.videoUrl.includes('youtube.com') || customPage.videoUrl.includes('youtu.be') ? (
+                      <iframe
+                        src={customPage.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                        title={customPage.name}
+                        className="w-full h-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <video
+                        src={customPage.videoUrl}
+                        controls
+                        className="w-full h-full object-contain"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          </section>
-        )}
+            </section>
+          )}
 
-        {/* Products Grid */}
-        <div className="bg-background py-8">
-          <div className="container mx-auto px-4">
-            {products.length > 0 ? (
-              <ShopPageClient products={products} title={customPage.name} />
-            ) : (
-              <div className="text-center py-16">
-                <p className="text-muted-foreground text-lg">No products found for this page.</p>
-              </div>
-            )}
+          {/* Products Grid */}
+          <div className="bg-background py-8">
+            <div className="container mx-auto px-4">
+              {products.length > 0 ? (
+                <ShopPageClient
+                  products={products}
+                  title={customPage.name}
+                  priceRange={await getPriceRange()}
+                />
+              ) : (
+                <div className="text-center py-16">
+                  <p className="text-muted-foreground text-lg">No products found for this page.</p>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </main>
-      <Footer />
-    </div>
-  );
-}
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   // If not a custom page, try to find a product
   // Fetch product by slug from database (primary lookup)
@@ -301,8 +306,8 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
 
   // Fetch reviews explicitly by productId to ensure we get all reviews
   const productReviews = await prisma.review.findMany({
-    where: { 
-      productId: prismaProduct.id 
+    where: {
+      productId: prismaProduct.id
     },
     include: {
       User: {
@@ -355,15 +360,15 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
   // Build structured data for product
   const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
   const productImages = product.variants.flatMap(v => v.images || [v.thumbnail]).filter(Boolean);
-  const allImages = productImages.length > 0 
+  const allImages = productImages.length > 0
     ? productImages.map(img => {
-        const normalized = normalizeImageUrl(img);
-        return normalized.startsWith('http') ? normalized : `https://focusrobin.lt${normalized}`;
-      })
+      const normalized = normalizeImageUrl(img);
+      return normalized.startsWith('http') ? normalized : `https://focusrobin.lt${normalized}`;
+    })
     : ['https://focusrobin.lt/Symbol Wide Primary light (Teal).svg'];
 
   const basePrice = Number(product.price.replace(/[^\d.]/g, '')) || 0;
-  
+
   const productSchema = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -453,11 +458,11 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
             </BreadcrumbList>
           </Breadcrumb>
         </div>
-        
+
         {/* Main Product Content - outside container for full-width sections */}
-        <ProductPageContent 
-          product={product} 
-          reviews={productReviews} 
+        <ProductPageContent
+          product={product}
+          reviews={productReviews}
           relatedProducts={relatedProductsMapped}
         />
       </main>

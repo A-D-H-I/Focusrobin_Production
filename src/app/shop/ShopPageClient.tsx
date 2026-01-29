@@ -27,9 +27,10 @@ interface ShopPageClientProps {
   products: Product[];
   title?: string;
   searchQuery?: string;
+  priceRange?: { min: number; max: number };
 }
 
-export default function ShopPageClient({ products, title = "All Products", searchQuery }: ShopPageClientProps) {
+export default function ShopPageClient({ products, title = "All Products", searchQuery, priceRange }: ShopPageClientProps) {
   const searchParams = useSearchParams();
   const [filtersApplied, setFiltersApplied] = useState(0);
   const [sortBy, setSortBy] = useState<string>("recommend");
@@ -101,12 +102,12 @@ export default function ShopPageClient({ products, title = "All Products", searc
           <div className="sticky top-32">
             <div className="max-h-[calc(100vh-10rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
               <Suspense fallback={<div className="text-muted-foreground">Loading filters...</div>}>
-                <FilterSidebar />
+                <FilterSidebar initialPriceRange={priceRange} />
               </Suspense>
             </div>
           </div>
         </div>
-        
+
         {/* Main Content */}
         <div className="w-full md:flex-1 min-w-0 overflow-x-hidden">
           {/* Header Section */}
@@ -118,7 +119,7 @@ export default function ShopPageClient({ products, title = "All Products", searc
               <p className="text-sm text-muted-foreground mt-1">
                 {searchQuery ? (
                   <>
-                    {sortedProducts.length === 0 
+                    {sortedProducts.length === 0
                       ? `No products found for "${searchQuery}"`
                       : `Found ${sortedProducts.length} ${sortedProducts.length === 1 ? 'product' : 'products'} for "${searchQuery}"`
                     }
@@ -128,7 +129,7 @@ export default function ShopPageClient({ products, title = "All Products", searc
                 )}
               </p>
             </div>
-            
+
             {/* Desktop Controls */}
             <div className="hidden md:flex items-center gap-3">
               {/* Sort Dropdown */}
@@ -145,14 +146,14 @@ export default function ShopPageClient({ products, title = "All Products", searc
               </Select>
             </div>
           </div>
-          
+
           {/* Shipping Signal - Above product grid */}
           <div className="mb-6">
             <p className="text-sm sm:text-base text-muted-foreground break-words max-w-full">
               Shop sunglasses online with shipping from Lithuania—fast delivery across Lithuania and the EU/Schengen.
             </p>
           </div>
-          
+
           {/* Mobile Controls */}
           <div className="md:hidden mb-6 space-y-4">
             <div className="flex gap-3">
@@ -176,13 +177,13 @@ export default function ShopPageClient({ products, title = "All Products", searc
                   <ScrollArea className="h-[calc(100%-4rem)]">
                     <div className="p-6">
                       <Suspense fallback={<div className="text-muted-foreground">Loading filters...</div>}>
-                        <FilterSidebar />
+                        <FilterSidebar initialPriceRange={priceRange} />
                       </Suspense>
                     </div>
                   </ScrollArea>
                 </SheetContent>
               </Sheet>
-              
+
               {/* Sort Dropdown - Mobile */}
               <Select value={sortBy} onValueChange={setSortBy}>
                 <SelectTrigger className="flex-1 h-10">
@@ -197,7 +198,7 @@ export default function ShopPageClient({ products, title = "All Products", searc
               </Select>
             </div>
           </div>
-          
+
           {/* Products Grid */}
           <ProductGrid products={sortedProducts} viewMode="grid" />
         </div>

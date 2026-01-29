@@ -510,7 +510,35 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     console.log(`[Checkout] Stripe will charge: €${exactStripeTotal.toFixed(2)} (from Order Summary)`);
 
     // Create Stripe Checkout Session
-    const baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:9002';
+    // For local development, use localhost. For production, use NEXT_PUBLIC_URL
+    let baseUrl: string;
+    const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === undefined;
+    
+    if (isDevelopment) {
+      // Local development - prioritize localhost URLs
+      const envUrl = process.env.NEXT_PUBLIC_URL;
+      
+      // If NEXT_PUBLIC_URL is explicitly set to localhost, use it
+      if (envUrl && (envUrl.includes('localhost') || envUrl.includes('127.0.0.1'))) {
+        baseUrl = envUrl;
+        console.log('[Checkout] Using localhost URL from NEXT_PUBLIC_URL:', baseUrl);
+      } else if (envUrl && !envUrl.includes('focusrobin.lt') && !envUrl.includes('https://')) {
+        // If NEXT_PUBLIC_URL is set but not production, use it (might be a test URL)
+        baseUrl = envUrl;
+        console.log('[Checkout] Using non-production URL from NEXT_PUBLIC_URL:', baseUrl);
+      } else {
+        // Default to localhost:3000 (Docker) - override production URL in development
+        // This ensures local testing always uses localhost even if NEXT_PUBLIC_URL is set to production
+        const port = process.env.PORT || '3000';
+        baseUrl = `http://localhost:${port}`;
+        console.log('[Checkout] Development mode - overriding NEXT_PUBLIC_URL, using localhost:', baseUrl);
+        console.log('[Checkout] Note: NEXT_PUBLIC_URL was:', envUrl || 'not set');
+      }
+    } else {
+      // Production - use NEXT_PUBLIC_URL
+      baseUrl = process.env.NEXT_PUBLIC_URL || 'https://focusrobin.lt';
+      console.log('[Checkout] Production mode, using:', baseUrl);
+    }
 
     if (!stripeLineItems || stripeLineItems.length === 0) {
       return { error: "No items to checkout" };
