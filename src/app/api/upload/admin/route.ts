@@ -28,6 +28,7 @@ const ALLOWED_FOLDERS = [
   "gift-banners",
   "shapes",
   "lens-images",
+  "split-banners",
   "other",
 ];
 
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
   try {
     // Check authentication and admin role
     const session = await auth();
-    
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Unauthorized. Please sign in." },
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     // Validate folder
     if (!ALLOWED_FOLDERS.includes(folder)) {
       return NextResponse.json(
-        { 
+        {
           error: `Invalid folder. Allowed folders: ${ALLOWED_FOLDERS.join(", ")}`,
           allowedFolders: ALLOWED_FOLDERS
         },
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
       return NextResponse.json(
-        { 
+        {
           error: "Invalid file type. Allowed types: JPEG, PNG, WebP, GIF, SVG, GLB",
           allowedTypes: ALLOWED_TYPES
         },
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { 
+        {
           error: `File too large. Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB`,
           maxSize: MAX_FILE_SIZE
         },
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
 export async function OPTIONS() {
   // Use environment variable for production, fallback to same-origin
   const allowedOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXTAUTH_URL || "*";
-  
+
   return new NextResponse(null, {
     status: 200,
     headers: {

@@ -12,6 +12,12 @@ import { useCurrency } from "@/context/CurrencyContext";
 import RelatedProducts from "@/components/shop/related-products";
 
 // Dynamically import heavy components for better performance
+
+
+// ... imports
+
+// ...
+
 const ProductDetailsTabs = dynamic(() => import("@/components/shop/product-details-tabs"), {
   loading: () => <div className="h-64 bg-muted animate-pulse rounded-lg" />,
 });
@@ -66,10 +72,10 @@ export default function ProductPageContent({ product, reviews, relatedProducts =
         // Parse price from product.price string
         // Handle formats like: "€47.50", "47.50 €", "93.10 ЛВ", "47,50", etc.
         let priceStr = product.price;
-        
+
         // Remove currency symbols and text, keep only numbers, dots, and commas
         priceStr = priceStr.replace(/[^\d.,]/g, '').trim();
-        
+
         // Handle comma as decimal separator (European format: "47,50")
         if (priceStr.includes(',') && !priceStr.includes('.')) {
           priceStr = priceStr.replace(',', '.');
@@ -88,9 +94,9 @@ export default function ProductPageContent({ product, reviews, relatedProducts =
             priceStr = priceStr.replace(/,/g, '');
           }
         }
-        
+
         const parsedPrice = parseFloat(priceStr);
-        
+
         // Validate price
         if (isNaN(parsedPrice) || parsedPrice <= 0) {
           console.warn('[ProductPage] Invalid price for Meta Pixel:', {
@@ -100,26 +106,26 @@ export default function ProductPageContent({ product, reviews, relatedProducts =
           });
           // Track without value/currency if price is invalid
           trackViewContent(
-            product.slug || product.id, 
-            product.name, 
-            product.categories?.join(', ') || 'Sunglasses', 
-            0, 
+            product.slug || product.id,
+            product.name,
+            product.categories?.join(', ') || 'Sunglasses',
+            0,
             'EUR'
           );
           return;
         }
-        
+
         const category = product.categories?.join(', ') || 'Sunglasses';
-        
+
         // Track with Meta Pixel
         trackViewContent(
-          product.slug || product.id, 
-          product.name, 
-          category, 
-          parsedPrice, 
+          product.slug || product.id,
+          product.name,
+          category,
+          parsedPrice,
           'EUR'
         );
-        
+
         // Track with GA4
         trackGA4ViewItem({
           item_id: product.slug || product.id,
@@ -128,7 +134,7 @@ export default function ProductPageContent({ product, reviews, relatedProducts =
           currency: 'EUR',
           item_category: category,
         });
-        
+
         if (process.env.NODE_ENV === 'development') {
           console.log('[ProductPage] Analytics tracked:', {
             product: product.name,
@@ -153,19 +159,19 @@ export default function ProductPageContent({ product, reviews, relatedProducts =
           <div className="flex gap-8 lg:gap-12 xl:gap-16 items-start w-full">
             {/* Left Column - Gallery (scrolled with page) */}
             <div className="w-[55%] flex-shrink-0 min-w-0">
-              <ProductGalleryDesktopStack 
-                product={product} 
+              <ProductGalleryDesktopStack
+                product={product}
                 selectedVariant={selectedVariant}
               />
             </div>
-            
+
             {/* Right Column - Sticky Product Info (stays fixed until gallery ends) */}
             <div className="flex-1 min-w-0 max-w-[45%]">
               <div className="sticky top-[140px] overflow-hidden">
-                <ProductPurchaseForm 
-                  product={product} 
+                <ProductPurchaseForm
+                  product={product}
                   selectedVariant={selectedVariant}
-                  onVariantChange={setSelectedVariant} 
+                  onVariantChange={setSelectedVariant}
                 />
               </div>
             </div>
@@ -181,11 +187,13 @@ export default function ProductPageContent({ product, reviews, relatedProducts =
 
         {/* Full Width Sections - Product Details, Reviews, etc. */}
         <div className="mt-12 lg:mt-16 space-y-12">
+
+
           {/* Product Details Tabs - Full Width */}
           <Suspense fallback={<div className="h-64 bg-muted animate-pulse rounded-lg" />}>
             <ProductDetailsTabs product={product} selectedVariant={selectedVariant} />
           </Suspense>
-          
+
           {/* Customer Reviews - Full Width */}
           <Suspense fallback={<div className="h-48 bg-muted animate-pulse rounded-lg" />}>
             <CustomerReviews reviews={reviews} />
@@ -200,14 +208,14 @@ export default function ProductPageContent({ product, reviews, relatedProducts =
 
       <div className="pt-24 pb-12 lg:pb-8 overflow-x-hidden">
         <Suspense fallback={<div className="h-64 bg-muted animate-pulse" />}>
-          <ThingsToKnow />
+          <ThingsToKnow product={product} />
         </Suspense>
       </div>
 
       {/* You Might Also Like Section - Full Width using viewport width */}
       {relatedProducts.length > 0 && (
-        <div 
-          className="pt-0 pb-12 lg:pb-16" 
+        <div
+          className="pt-0 pb-12 lg:pb-16"
           style={{ marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)', width: '100vw' }}
         >
           <RelatedProducts products={relatedProducts} />

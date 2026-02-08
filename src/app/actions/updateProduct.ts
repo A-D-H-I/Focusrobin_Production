@@ -15,6 +15,7 @@ export interface VariantData {
   lensColor: string;
   stock: number;
   asset_nobg?: string;
+  asset_glb?: string;
   asset_tryon?: string;
   asset_hover?: string;
   asset_gallery?: string;
@@ -24,6 +25,7 @@ export interface VariantData {
 const productSchema = z.object({
   name: z.string().trim().min(2).max(200),
   slug: z.string().trim().min(1).max(100),
+  brand: z.string().trim().min(1).max(100).optional().default("FocusRobin"),
   description: z.string().trim().max(5000).optional().nullable(),
   basePrice: z.number().positive().max(100000),
   discountPct: z.number().int().min(0).max(99).optional().default(0),
@@ -39,6 +41,16 @@ const productSchema = z.object({
   templeLength: z.number().positive().optional(),
   weightBg: z.number().positive().optional(),
   tags: z.array(z.string().trim().max(50)).max(20).optional().default([]),
+  // Dynamic Product Features
+  isPolarized: z.boolean().optional().default(false),
+  isUVProtection: z.boolean().optional().default(false),
+  isHydrophobic: z.boolean().optional().default(false),
+  isAntiScratch: z.boolean().optional().default(false),
+  isBioBased: z.boolean().optional().default(false),
+  // Custom Features & Warranty
+  warranty: z.string().max(100).optional().default("2 Years Warranty"),
+  customFeatures: z.array(z.string().trim().max(100)).max(20).optional().default([]),
+  showHighlights: z.boolean().optional().default(false),
 });
 
 const variantSchema = z.object({
@@ -86,7 +98,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     const basePrice = parseFloat(formData.get('basePrice') as string);
     const discountPct = parseInt(formData.get('discountPct') as string) || 0;
     const cashbackAmount = parseFloat(formData.get('cashbackAmount') as string) || 0;
-    
+
     // Parse multiple genders
     const genderCount = parseInt(formData.get('genderCount') as string) || 0;
     const genders: Gender[] = [];
@@ -99,8 +111,10 @@ export async function updateProduct(productId: string, formData: FormData) {
     if (genders.length === 0) {
       genders.push(Gender.UNISEX);
     }
-    
+
     const tags = (formData.get('tags') as string)?.split(',').map(t => t.trim()).filter(Boolean) || [];
+    const customFeatures = (formData.get('customFeatures') as string)?.split(',').map(t => t.trim()).filter(Boolean) || [];
+    const warranty = (formData.get('warranty') as string) || "2 Years Warranty";
 
     // Dimensions
     const frameWidth = parseFloat(formData.get('frameWidth') as string) || undefined;
@@ -111,12 +125,13 @@ export async function updateProduct(productId: string, formData: FormData) {
     const weightBg = parseFloat(formData.get('weightBg') as string) || undefined;
 
     // Specs
+    const brand = (formData.get('brand') as string) || 'FocusRobin';
     const frameMaterial = formData.get('frameMaterial') as string;
     const lensMaterial = (formData.get('lensMaterial') as string) || 'Polycarbonate';
     const uvProtection = formData.get('uvProtection') as string;
     const glassShapeRaw = formData.get('glassShape') as string | null;
     const glassShape = glassShapeRaw?.trim() || null;
-    
+
     // Auto-create shape in GlassShape table if it doesn't exist
     if (glassShape) {
       try {
@@ -144,10 +159,38 @@ export async function updateProduct(productId: string, formData: FormData) {
     const lensBackgroundImageUrlRaw = formData.get('lensBackgroundImageUrl') as string | null;
     const lensBackgroundImageUrl = lensBackgroundImageUrlRaw?.trim() || null;
 
+    // Dynamic Product Features
+    const isPolarized = formData.get('isPolarized') === 'on';
+    const isUVProtection = formData.get('isUVProtection') === 'on';
+    const isHydrophobic = formData.get('isHydrophobic') === 'on';
+    const isAntiScratch = formData.get('isAntiScratch') === 'on';
+    const isBioBased = formData.get('isBioBased') === 'on';
+
+    // Product Highlights
+    const showHighlights = formData.get('showHighlights') === 'on';
+    const highlightCount = parseInt(formData.get('highlightCount') as string) || 0;
+    const highlightsData: Array<{ title: string; description: string; imageUrl: string; order: number }> = [];
+
+    for (let i = 0; i < highlightCount; i++) {
+      const title = formData.get(`highlight-${i}-title`) as string;
+      const description = formData.get(`highlight-${i}-description`) as string;
+      const imageUrl = formData.get(`highlight-${i}-image`) as string;
+
+      if (title && description && imageUrl) {
+        highlightsData.push({
+          title,
+          description,
+          imageUrl,
+          order: i
+        });
+      }
+    }
+
     // Validate product data
     const productValidation = productSchema.safeParse({
       name,
       slug,
+      brand,
       description,
       basePrice,
       discountPct,
@@ -163,6 +206,14 @@ export async function updateProduct(productId: string, formData: FormData) {
       templeLength,
       weightBg,
       tags,
+      isPolarized,
+      isUVProtection,
+      isHydrophobic,
+      isAntiScratch,
+      isBioBased,
+      warranty,
+      customFeatures,
+      showHighlights,
     });
 
     if (!productValidation.success) {
@@ -225,7 +276,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     // Check for duplicate SKUs
     const existingSkus = existingProduct.ProductVariant.map(v => v.sku);
     const newSkus = variantsData.map(v => v.sku).filter(sku => !existingSkus.includes(sku));
-    
+
     if (newSkus.length > 0) {
       const duplicateCheck = await prisma.productVariant.findMany({
         where: {
@@ -255,7 +306,7 @@ export async function updateProduct(productId: string, formData: FormData) {
     // Get or create default category
     let categoryId: string;
     const defaultCategoryName = 'Unisex';
-    
+
     const existingCategory = await prisma.category.findUnique({
       where: { name: defaultCategoryName },
     });
@@ -287,6 +338,7 @@ export async function updateProduct(productId: string, formData: FormData) {
       data: {
         name: productValidation.data.name,
         slug: productValidation.data.slug,
+        brand: productValidation.data.brand,
         description: productValidation.data.description || null,
         basePrice: productValidation.data.basePrice,
         discountPct: productValidation.data.discountPct || 0,
@@ -307,6 +359,26 @@ export async function updateProduct(productId: string, formData: FormData) {
         lensMaskImageUrl: lensMaskImageUrl || null,
         lensBackgroundImageUrl: lensBackgroundImageUrl || null,
         categoryId,
+        // Dynamic Product Features
+        isPolarized: productValidation.data.isPolarized,
+        isUVProtection: productValidation.data.isUVProtection,
+        isHydrophobic: productValidation.data.isHydrophobic,
+        isAntiScratch: productValidation.data.isAntiScratch,
+
+        isBioBased: productValidation.data.isBioBased,
+        warranty: productValidation.data.warranty,
+        customFeatures: productValidation.data.customFeatures,
+        // Product Highlights
+        showHighlights: productValidation.data.showHighlights,
+        highlights: {
+          deleteMany: {},
+          create: highlightsData.map(h => ({
+            title: h.title,
+            description: h.description,
+            imageUrl: h.imageUrl,
+            order: h.order
+          }))
+        },
       } as any,
     } as any);
 
@@ -351,7 +423,7 @@ export async function updateProduct(productId: string, formData: FormData) {
           .split(',')
           .map((url) => url.trim())
           .filter(Boolean);
-        
+
         galleryUrls.forEach((url, index) => {
           assets.push({
             url,

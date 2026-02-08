@@ -8,16 +8,15 @@ import { usePrice } from "@/hooks/usePrice";
 import { usePrescriptionPrice } from "./context/PrescriptionPriceContext";
 import { saveUserPrescription, getUserPrescription } from "@/app/actions/prescription";
 import {
-  type LensType,
-  type LensIndex,
-  type Coating,
-  type TintType,
+  type LensBundle,
   type TintColor,
-  normalizeSelection,
-  type LensSelection,
-  calculateLensPairTotal,
+  type PhotochromicColor,
+  getBundlePrice,
+  LensSelection,
   getAllowedCoatings,
-  getSupportedIndexes,
+  normalizeSelection,
+  type Coating,
+  calculateLensPairTotal,
 } from "@/lib/lensPricing";
 import {
   type FrameType,
@@ -26,6 +25,7 @@ import {
   PRICES,
 } from "@/lib/pricing/rx167";
 import { detectFrameType } from "@/lib/pricing/detectFrameType";
+import type { PrescriptionData, RxConfigData, FullPrescriptionData } from "@/types/prescription";
 
 // Step Components
 import Step0Initial from "./steps/Step0Initial";
@@ -38,63 +38,6 @@ interface PrescriptionFlowProps {
   product: Product;
   productSlug: string;
 }
-
-// Prescription data for vision correction
-export type PrescriptionData = {
-  od: {
-    sph: string;
-    cyl: string;
-    axis: string;
-    prismHorizontal?: string;
-    prismHorizontalBase?: string;
-    prismVertical?: string;
-    prismVerticalBase?: string;
-  };
-  os: {
-    sph: string;
-    cyl: string;
-    axis: string;
-    prismHorizontal?: string;
-    prismHorizontalBase?: string;
-    prismVertical?: string;
-    prismVerticalBase?: string;
-  };
-  pd: string; // Single PD value (used when hasTwoPDs is false)
-  pdOd?: string; // Right eye PD (used when hasTwoPDs is true)
-  pdOs?: string; // Left eye PD (used when hasTwoPDs is true)
-  hasTwoPDs: boolean;
-  hasPrism: boolean;
-  prescriptionImageUrl?: string; // URL to uploaded prescription image (S3 link)
-  // PDF upload fields
-  prescriptionPdfUrl?: string; // URL to uploaded prescription PDF (S3 link)
-  isPdfMode: boolean; // Whether prescription was uploaded as PDF
-};
-
-// Rx lens configuration data
-export type RxConfigData = {
-  lensType: LensType;
-  lensIndex: LensIndex;
-  coating: Coating;
-  tintType?: TintType; // Only for TINTED
-  tintColor?: TintColor; // Only for TINTED
-  tintShadePercent?: number; // For Full Tint: 15, 30, 50, 70, or 85
-  tintRecipe?: string; // For Gradient: "30->0", "50->0", or "90->15"
-  photochromicColor?: "Brown" | "Grey"; // Only for PHOTOCHROMIC_SOLIS
-  polarizedColor?: "Brown" | "Grey" | "Green"; // Only for POLARIZED_NUPOLAR
-  frameType: FrameType;
-};
-
-// Combined data for storage
-export type FullPrescriptionData = PrescriptionData & {
-  rxConfig?: RxConfigData; // Optional - lens config is product-specific, not loaded from DB
-  rxPriceBreakdown?: {
-    lensesPair: number;
-    edgingFee: number;
-    profit: number;
-    rxRetailNet: number;
-    totalNet: number;
-  };
-};
 
 const DEFAULT_PRESCRIPTION: PrescriptionData = {
   od: {
@@ -126,16 +69,12 @@ const DEFAULT_PRESCRIPTION: PrescriptionData = {
 };
 
 const DEFAULT_RX_CONFIG: RxConfigData = {
-  lensType: "CLEAR",
-  lensIndex: "1.56",
-  coating: "UC",
-  tintType: undefined,
-  tintColor: undefined,
-  tintShadePercent: undefined,
-  tintRecipe: undefined,
-  photochromicColor: undefined,
-  polarizedColor: undefined,
+  lensBundle: "BASIC",
   frameType: "FULL_FRAME",
+  // Legacy defaults
+  lensType: "SIMPLE_STOCK",
+  lensIndex: "1.50",
+  coating: "HMC",
 };
 
 export default function PrescriptionFlow({ product, productSlug }: PrescriptionFlowProps) {
@@ -501,8 +440,9 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     // If we don't have lensType or lensIndex, return a minimal selection
     if (!rxConfig.lensType || !rxConfig.lensIndex) {
       return {
-        lensType: rxConfig.lensType || "CLEAR",
-        lensIndex: rxConfig.lensIndex || "1.56",
+        lensType: rxConfig.lensType || "SIMPLE_STOCK",
+        lensBundle: rxConfig.lensBundle || "BASIC",
+        lensIndex: rxConfig.lensIndex || "1.50",
         coating: rxConfig.coating || "UC",
       };
     }
@@ -510,7 +450,10 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     // Check if current coating is valid for the lens type
     let validCoating: Coating | null = null;
     if (rxConfig.coating) {
-      const allowedCoatings = getAllowedCoatings(rxConfig.lensType);
+      // Pass lensIndex if available, or fall back to single-arg call if not
+      // actually getAllowedCoatings needs index now? 
+      // The previous replace for lensPricing.ts added optional index.
+      const allowedCoatings = getAllowedCoatings(rxConfig.lensType, rxConfig.lensIndex);
       if (allowedCoatings.includes(rxConfig.coating)) {
         // Coating is valid, preserve it
         validCoating = rxConfig.coating;
@@ -551,35 +494,16 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     return basePrice + FIXED_PROFIT + edgingFee;
   }, [lensSelection, rxConfig.frameType]);
 
-  // Calculate Rx price based on current configuration (using old rx167 for edging)
+  // Calculate Rx price based on current configuration (Simplified Bundles)
   const rxPriceResult = useMemo(() => {
-    // Map new lens types to old categories for backward compatibility with rx167
-    const oldLensCategory =
-      rxConfig.lensType === "CLEAR" || rxConfig.lensType === "TINTED"
-        ? "CLEAR_OR_TINT"
-        : rxConfig.lensType === "PHOTOCHROMIC_SOLIS"
-          ? "PHOTOCHROMIC_SOLIS"
-          : "POLARIZED_NUPOLAR";
+    // 1. Get Bundle Price (Fixed pair price including edging)
+    const bundlePrice = getBundlePrice(rxConfig.lensBundle);
 
-    const oldTintType =
-      rxConfig.lensType === "TINTED" && rxConfig.tintType === "FULL_TINT_CATALOG"
-        ? "FULL_CATALOG"
-        : rxConfig.lensType === "TINTED" && rxConfig.tintType === "GRADIENT"
-          ? "GRADIENT"
-          : "NONE";
+    // 2. We don't add extra profit or edging fee on top, as it's included in the bundle price
+    // But for the breakdown, we can simulate them if needed, or just put everything in lensesPair
 
-    // Use rx167 only for edging fee calculation
-    const result = calculateRxTotal({
-      framePrice,
-      lensCategory: oldLensCategory,
-      coating: rxConfig.coating === "SERICUM_UV" ? "UC" : rxConfig.coating, // Map SERICUM_UV to UC for rx167
-      tintType: oldTintType,
-      frameType: rxConfig.frameType,
-      fixedProfit: 0, // Profit is already incorporated into lensPairPrice
-    });
-
-    // Calculate totals with profit and edging fee already in lens price
-    // lensPairPrice already includes profit + edging fee, so rxRetailNet = lensPairPrice
+    // We'll mimic the old structure for compatibility
+    const lensPairPrice = bundlePrice;
     const rxRetailNet = lensPairPrice;
     const rxRetailGross = rxRetailNet * 1.21; // VAT
     const totalGross = framePrice + rxRetailGross;
@@ -587,18 +511,61 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
 
     return {
       breakdown: {
-        ...result.breakdown,
-        lensesPair: lensPairPrice, // This already includes profit + edging fee
-        rxAddOnNet: rxRetailNet, // Same as rxRetailNet since profit is in lens price
+        lensesPair: lensPairPrice,
+        rxAddOnNet: rxRetailNet,
         rxRetailNet,
         rxRetailGross,
-        profit: FIXED_PROFIT, // Keep for internal tracking, but not shown to customer
-        edgingFee: 0, // Not shown to customer (included in lensesPair)
+        profit: 0, // Profit is inside the fixed price
+        edgingFee: 0, // Edging is inside the fixed price
       },
       totalNet,
       totalGross,
     };
-  }, [framePrice, rxConfig, lensPairPrice]);
+  }, [framePrice, rxConfig.lensBundle]);
+
+  // Handle configuration updates
+  const handleRxConfigUpdate = (data: Partial<RxConfigData>, isDefaultApplication = false) => {
+    // If this is a default application and user has already made a selection, ignore it
+    if (isDefaultApplication && hasUserMadeLensSelection) {
+      console.log('[PrescriptionFlow] Ignoring default application - user has already made selections');
+      return;
+    }
+
+    if (!isDefaultApplication) {
+      setHasUserMadeLensSelection(true);
+    }
+
+    setRxConfig(prev => {
+      const saveToLocalStorage = (config: RxConfigData) => {
+        if (typeof window !== 'undefined' && !isDefaultApplication) {
+          const productRxConfigKey = `rxConfig_${productSlug}`;
+          localStorage.setItem(productRxConfigKey, JSON.stringify(config));
+          console.log('[PrescriptionFlow] Saved rxConfig to localStorage on update:', config);
+        }
+      };
+
+      // Merge new data
+      const updated = { ...prev, ...data };
+
+      // Clear irrelevant fields based on new bundle selection
+      if (updated.lensBundle !== "PHOTOCHROMIC") {
+        updated.photochromicColor = undefined;
+      } else if (!updated.photochromicColor) {
+        updated.photochromicColor = "Brown"; // Default
+      }
+
+      if (updated.lensBundle !== "SUNGLASSES_TINT" && updated.lensBundle !== "SUNGLASSES_GRADIENT") {
+        updated.tintColor = undefined;
+        updated.tintRecipe = undefined;
+        updated.tintShadePercent = undefined;
+      } else if (!updated.tintColor) {
+        updated.tintColor = "Grey"; // Default
+      }
+
+      saveToLocalStorage(updated as RxConfigData);
+      return updated as RxConfigData;
+    });
+  };
 
   // Helper function to check if prescription can be saved
   // Only requirement is that PD must be filled - prescription values can be defaults (plano lenses)
@@ -676,7 +643,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
 
   const handleStepChange = async (step: number) => {
     console.log('[PrescriptionFlow] handleStepChange called:', { from: currentStep, to: step });
-    
+
     // NOTE: Removed automatic reload when navigating to Step 1 - this was causing rxConfig to reset
     // Prescription data is already in state from initial load
 
@@ -687,7 +654,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         prescriptionData.prescriptionPdfUrl ||
         prescriptionData.prescriptionImageUrl
       );
-      
+
       const hasPdValue = prescriptionData.hasTwoPDs
         ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
         : (prescriptionData.pd && prescriptionData.pd !== "");
@@ -728,7 +695,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     // ALWAYS update step - don't block navigation
     setCurrentStep(step);
     console.log('[PrescriptionFlow] Step changed to:', step);
-    
+
     // Update URL to reflect current step
     // Use router.push (not replace) to maintain browser history for back button support
     // Always use productSlug to ensure we use the proper slug, not ID
@@ -762,7 +729,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   // Save prescription data when user submits Step 1
   const handlePrescriptionSubmit = async () => {
     console.log('[PrescriptionFlow] handlePrescriptionSubmit called');
-    
+
     // Check if PDF is uploaded - if so, PD is not required
     const hasPdfUploaded = !!(
       prescriptionData.prescriptionPdfUrl ||
@@ -782,8 +749,8 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     const hasPdValue = hasPdfUploaded
       ? true // PDF uploaded, PD not required
       : prescriptionData.hasTwoPDs
-      ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
-      : (prescriptionData.pd && prescriptionData.pd !== "");
+        ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
+        : (prescriptionData.pd && prescriptionData.pd !== "");
 
     console.log('[PrescriptionFlow] hasPdValue:', hasPdValue);
 
@@ -834,115 +801,8 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     handleStepChange(2);
   };
 
-  const handleRxConfigUpdate = (data: Partial<RxConfigData>, isDefaultApplication = false) => {
-    // If this is a default application and user has already made a selection, ignore it
-    // This prevents Step3's useEffect from resetting user's choices when navigating back
-    if (isDefaultApplication && hasUserMadeLensSelection) {
-      console.log('[PrescriptionFlow] Ignoring default application - user has already made selections');
-      return;
-    }
 
-    // If this is NOT a default application, mark that user has made a selection
-    if (!isDefaultApplication) {
-      setHasUserMadeLensSelection(true);
-    }
 
-    setRxConfig(prev => {
-      // Helper function to save to localStorage immediately
-      const saveToLocalStorage = (config: RxConfigData) => {
-        if (typeof window !== 'undefined' && !isDefaultApplication) {
-          const productRxConfigKey = `rxConfig_${productSlug}`;
-          localStorage.setItem(productRxConfigKey, JSON.stringify(config));
-          console.log('[PrescriptionFlow] Saved rxConfig to localStorage on update:', config);
-        }
-      };
-      // CRITICAL: Always preserve lensType from previous state if not explicitly updated
-      // This prevents lensType from being reset when only coating is updated
-      const lensTypeToUse = data.lensType !== undefined ? data.lensType : prev.lensType;
-
-      // CRITICAL: Always preserve frameType from previous state if not explicitly updated
-      const frameTypeToUse = data.frameType !== undefined ? data.frameType : prev.frameType;
-
-      // If updating only frameType, just update it directly without normalization
-      if (data.frameType !== undefined && Object.keys(data).length === 1) {
-        const updated = { ...prev, frameType: data.frameType };
-        saveToLocalStorage(updated);
-        return updated;
-      }
-
-      // If updating only coating and no lensType exists, don't proceed
-      // This prevents errors when trying to normalize without a lensType
-      if (!lensTypeToUse && data.coating !== undefined && data.lensType === undefined) {
-        const updated = { ...prev, coating: data.coating, frameType: frameTypeToUse };
-        saveToLocalStorage(updated);
-        return updated;
-      }
-
-      // If no lensType exists at all, just apply the update directly (let Step3 handle defaults)
-      if (!lensTypeToUse) {
-        const updated = { ...prev, ...data, frameType: frameTypeToUse };
-        saveToLocalStorage(updated);
-        return updated;
-      }
-
-      const updated = { ...prev, ...data, lensType: lensTypeToUse, frameType: frameTypeToUse };
-
-      // Preserve existing coating if it's valid for the current lens type
-      // This prevents prices from changing when navigating between steps
-      let coatingToUse: Coating | undefined = updated.coating;
-      const allowedCoatings = getAllowedCoatings(lensTypeToUse);
-
-      // If coating is explicitly changed in data, use it (but validate it)
-      if (data.coating !== undefined) {
-        coatingToUse = allowedCoatings.includes(data.coating) ? data.coating : prev.coating;
-      }
-      // If coating wasn't explicitly changed, preserve previous coating if it's still valid
-      else if (!coatingToUse && prev.coating && allowedCoatings.includes(prev.coating)) {
-        coatingToUse = prev.coating; // Preserve previous valid coating
-      }
-      // If current coating is invalid, let normalizeSelection set the default
-      else if (coatingToUse && !allowedCoatings.includes(coatingToUse)) {
-        coatingToUse = undefined; // Let normalizeSelection fix invalid coating
-      }
-
-      // Normalize selection to auto-correct invalid combinations
-      // IMPORTANT: Always use preserved lensType (never undefined)
-      const tempSelection: LensSelection = {
-        lensType: lensTypeToUse, // Always use preserved lensType
-        lensIndex: updated.lensIndex || prev.lensIndex || "1.67",
-        coating: coatingToUse || prev.coating || "UC", // Provide fallback
-        tintType: updated.tintType,
-        tintColor: updated.tintColor,
-        tintShade: updated.tintShadePercent,
-        tintRecipe: updated.tintRecipe,
-        photochromicColor: updated.photochromicColor,
-        polarizedColor: updated.polarizedColor,
-      };
-
-      const normalized = normalizeSelection(tempSelection);
-
-      // Apply normalized values, but ALWAYS preserve lensType and frameType if not explicitly changed
-      // This is critical to prevent values from being reset when only one field is updated
-      const finalConfig = {
-        ...updated,
-        lensType: data.lensType !== undefined ? normalized.lensType : prev.lensType, // Preserve if not explicitly changed
-        lensIndex: normalized.lensIndex,
-        coating: normalized.coating,
-        tintType: normalized.tintType,
-        tintColor: normalized.tintColor,
-        tintShadePercent: normalized.tintShade,
-        tintRecipe: normalized.tintRecipe,
-        photochromicColor: normalized.photochromicColor,
-        polarizedColor: normalized.polarizedColor,
-        frameType: frameTypeToUse, // Always preserve frameType
-      };
-
-      // Save to localStorage on EVERY update (using helper function)
-      saveToLocalStorage(finalConfig);
-
-      return finalConfig;
-    });
-  };
 
   // Wrapper for default applications (from step components on mount)
   const handleRxConfigUpdateWithDefault = (data: Partial<RxConfigData>) => {

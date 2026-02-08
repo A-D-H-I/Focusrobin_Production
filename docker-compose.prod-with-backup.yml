@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: focusrobin_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SUKa9599@5567}
+      POSTGRES_DB: focusrobin
+    ports:
+      - "127.0.0.1:5432:5432"  # Only accessible from localhost for security
+    volumes:
+      - postgres_data_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - focusrobin-network-prod
+
+  # Database Backup Service
+  # Automatically creates daily backups
+  db-backup:
+    image: prodrigestivill/postgres-backup-local
+    restart: always
+    container_name: focusrobin_db_backup
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: focusrobin
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-SUKa9599@5567}
+      SCHEDULE: "@daily"      # Run once a day
+      BACKUP_KEEP_DAYS: 7     # Keep last 7 days
+      BACKUP_KEEP_WEEKS: 4    # Keep last 4 weeks
+      BACKUP_KEEP_MONTHS: 6   # Keep last 6 months
+    healthcheck:
+      disable: true
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - focusrobin-network-prod
+
+  # Next.js Application
+  app:
+    image: hariharan11111/focusrobin-app:latest
+    container_name: focusrobin_app_prod
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-SUKa9599@5567}@postgres:5432/focusrobin?schema=public
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/google-credentials.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - focusrobin-network-prod
+    env_file:
+      - .env
+
+networks:
+  focusrobin-network-prod:
+    driver: bridge
+
+volumes:
+  postgres_data_prod:
+    driver: local

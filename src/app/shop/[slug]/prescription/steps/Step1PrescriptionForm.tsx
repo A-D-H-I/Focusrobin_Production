@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ArrowLeft, Upload, ArrowRight, HelpCircle, Loader2, CheckCircle, X } from "lucide-react";
-import type { PrescriptionData } from "../PrescriptionFlow";
+import type { PrescriptionData } from "@/types/prescription";
 import { type RxPriceResult } from "@/lib/pricing/rx167";
 import { useToast } from "@/hooks/use-toast";
 
@@ -102,7 +102,7 @@ export default function Step1PrescriptionForm({
         prescriptionPdfUrl: result.url,
         isPdfMode: true,
       });
-      
+
       // Force a small delay to ensure state propagation
       // This helps in Docker environments where state updates might be slower
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -155,7 +155,7 @@ export default function Step1PrescriptionForm({
     });
     return uploaded;
   }, [prescriptionData.prescriptionPdfUrl, prescriptionData.prescriptionImageUrl, prescriptionData.isPdfMode]);
-  
+
   // Check if PD is filled
   // If PDF is uploaded, PD is not required - allow submission
   // Use useMemo to ensure reactivity
@@ -163,8 +163,8 @@ export default function Step1PrescriptionForm({
     const filled = hasPdfUploaded
       ? true // PDF uploaded, PD not required - always allow submission
       : prescriptionData.hasTwoPDs
-      ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
-      : (prescriptionData.pd && prescriptionData.pd !== "");
+        ? (prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== "")
+        : (prescriptionData.pd && prescriptionData.pd !== "");
     console.log('[Step1PrescriptionForm] isPdFilled check:', {
       hasPdfUploaded,
       hasTwoPDs: prescriptionData.hasTwoPDs,
@@ -292,21 +292,139 @@ export default function Step1PrescriptionForm({
         <div className="space-y-2">
           <h3 className="font-semibold text-sm">prescription</h3>
 
-        {/* Desktop Table View - Hidden on mobile */}
-        <div className="border rounded-lg overflow-hidden hidden md:block">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-muted border-b">
-                <th className="p-3 text-left text-sm font-medium"></th>
-                <th className="p-3 text-center text-sm font-medium">SPH</th>
-                <th className="p-3 text-center text-sm font-medium">CYL</th>
-                <th className="p-3 text-center text-sm font-medium">AXIS</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr className="border-b">
-                <td className="p-3 font-medium">OD (Right)</td>
-                <td className="p-3">
+          {/* Desktop Table View - Hidden on mobile */}
+          <div className="border rounded-lg overflow-hidden hidden md:block">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-muted border-b">
+                  <th className="p-3 text-left text-sm font-medium"></th>
+                  <th className="p-3 text-center text-sm font-medium">SPH</th>
+                  <th className="p-3 text-center text-sm font-medium">CYL</th>
+                  <th className="p-3 text-center text-sm font-medium">AXIS</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  <td className="p-3 font-medium">OD (Right)</td>
+                  <td className="p-3">
+                    <Select
+                      value={prescriptionData.od.sph}
+                      onValueChange={(value) => handleInputChange('sph', value, 'od')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {prescriptionValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-3">
+                    <Select
+                      value={prescriptionData.od.cyl}
+                      onValueChange={(value) => handleInputChange('cyl', value, 'od')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {prescriptionValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-3">
+                    <Select
+                      value={prescriptionData.od.axis}
+                      onValueChange={(value) => handleInputChange('axis', value, 'od')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {axisValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                </tr>
+                <tr>
+                  <td className="p-3 font-medium">OS (Left)</td>
+                  <td className="p-3">
+                    <Select
+                      value={prescriptionData.os.sph}
+                      onValueChange={(value) => handleInputChange('sph', value, 'os')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {prescriptionValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-3">
+                    <Select
+                      value={prescriptionData.os.cyl}
+                      onValueChange={(value) => handleInputChange('cyl', value, 'os')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {prescriptionValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="p-3">
+                    <Select
+                      value={prescriptionData.os.axis}
+                      onValueChange={(value) => handleInputChange('axis', value, 'os')}
+                    >
+                      <SelectTrigger className="h-10">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {axisValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile Card View - Shown on mobile only */}
+          <div className="space-y-4 md:hidden">
+            {/* OD (Right Eye) Card */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <h4 className="font-medium text-sm mb-3">OD (Right Eye)</h4>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">SPH</label>
                   <Select
                     value={prescriptionData.od.sph}
                     onValueChange={(value) => handleInputChange('sph', value, 'od')}
@@ -322,8 +440,10 @@ export default function Step1PrescriptionForm({
                       ))}
                     </SelectContent>
                   </Select>
-                </td>
-                <td className="p-3">
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">CYL</label>
                   <Select
                     value={prescriptionData.od.cyl}
                     onValueChange={(value) => handleInputChange('cyl', value, 'od')}
@@ -339,8 +459,10 @@ export default function Step1PrescriptionForm({
                       ))}
                     </SelectContent>
                   </Select>
-                </td>
-                <td className="p-3">
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">AXIS</label>
                   <Select
                     value={prescriptionData.od.axis}
                     onValueChange={(value) => handleInputChange('axis', value, 'od')}
@@ -356,11 +478,17 @@ export default function Step1PrescriptionForm({
                       ))}
                     </SelectContent>
                   </Select>
-                </td>
-              </tr>
-              <tr>
-                <td className="p-3 font-medium">OS (Left)</td>
-                <td className="p-3">
+                </div>
+              </div>
+            </div>
+
+            {/* OS (Left Eye) Card */}
+            <div className="border rounded-lg p-4 space-y-3">
+              <h4 className="font-medium text-sm mb-3">OS (Left Eye)</h4>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">SPH</label>
                   <Select
                     value={prescriptionData.os.sph}
                     onValueChange={(value) => handleInputChange('sph', value, 'os')}
@@ -376,8 +504,10 @@ export default function Step1PrescriptionForm({
                       ))}
                     </SelectContent>
                   </Select>
-                </td>
-                <td className="p-3">
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">CYL</label>
                   <Select
                     value={prescriptionData.os.cyl}
                     onValueChange={(value) => handleInputChange('cyl', value, 'os')}
@@ -393,8 +523,10 @@ export default function Step1PrescriptionForm({
                       ))}
                     </SelectContent>
                   </Select>
-                </td>
-                <td className="p-3">
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">AXIS</label>
                   <Select
                     value={prescriptionData.os.axis}
                     onValueChange={(value) => handleInputChange('axis', value, 'os')}
@@ -410,157 +542,61 @@ export default function Step1PrescriptionForm({
                       ))}
                     </SelectContent>
                   </Select>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Card View - Shown on mobile only */}
-        <div className="space-y-4 md:hidden">
-          {/* OD (Right Eye) Card */}
-          <div className="border rounded-lg p-4 space-y-3">
-            <h4 className="font-medium text-sm mb-3">OD (Right Eye)</h4>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">SPH</label>
-                <Select
-                  value={prescriptionData.od.sph}
-                  onValueChange={(value) => handleInputChange('sph', value, 'od')}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
-                    {prescriptionValues.map((val) => (
-                      <SelectItem key={val} value={val}>
-                        {val}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">CYL</label>
-                <Select
-                  value={prescriptionData.od.cyl}
-                  onValueChange={(value) => handleInputChange('cyl', value, 'od')}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
-                    {prescriptionValues.map((val) => (
-                      <SelectItem key={val} value={val}>
-                        {val}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">AXIS</label>
-                <Select
-                  value={prescriptionData.od.axis}
-                  onValueChange={(value) => handleInputChange('axis', value, 'od')}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
-                    {axisValues.map((val) => (
-                      <SelectItem key={val} value={val}>
-                        {val}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* OS (Left Eye) Card */}
-          <div className="border rounded-lg p-4 space-y-3">
-            <h4 className="font-medium text-sm mb-3">OS (Left Eye)</h4>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">SPH</label>
+          {/* PD Field - Only show if PDF is NOT uploaded */}
+          {!hasPdfUploaded && (
+            <div className="space-y-2">
+              <label className="text-sm font-medium">PD (Pupillary Distance)</label>
+              {prescriptionData.hasTwoPDs ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground">OD (Right)</label>
+                    <Select
+                      value={prescriptionData.pdOd || ""}
+                      onValueChange={(value) => handleInputChange('pdOd', value)}
+                    >
+                      <SelectTrigger className={`h-10 ${!prescriptionData.pdOd || prescriptionData.pdOd === "" ? "text-muted-foreground" : ""}`}>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {pdValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val} mm
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs text-muted-foreground">OS (Left)</label>
+                    <Select
+                      value={prescriptionData.pdOs || ""}
+                      onValueChange={(value) => handleInputChange('pdOs', value)}
+                    >
+                      <SelectTrigger className={`h-10 ${!prescriptionData.pdOs || prescriptionData.pdOs === "" ? "text-muted-foreground" : ""}`}>
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent className="max-h-[200px]">
+                        {pdValues.map((val) => (
+                          <SelectItem key={val} value={val}>
+                            {val} mm
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ) : (
                 <Select
-                  value={prescriptionData.os.sph}
-                  onValueChange={(value) => handleInputChange('sph', value, 'os')}
+                  value={prescriptionData.pd || ""}
+                  onValueChange={(value) => handleInputChange('pd', value)}
                 >
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
-                    {prescriptionValues.map((val) => (
-                      <SelectItem key={val} value={val}>
-                        {val}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">CYL</label>
-                <Select
-                  value={prescriptionData.os.cyl}
-                  onValueChange={(value) => handleInputChange('cyl', value, 'os')}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
-                    {prescriptionValues.map((val) => (
-                      <SelectItem key={val} value={val}>
-                        {val}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">AXIS</label>
-                <Select
-                  value={prescriptionData.os.axis}
-                  onValueChange={(value) => handleInputChange('axis', value, 'os')}
-                >
-                  <SelectTrigger className="h-10">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
-                    {axisValues.map((val) => (
-                      <SelectItem key={val} value={val}>
-                        {val}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* PD Field - Only show if PDF is NOT uploaded */}
-        {!hasPdfUploaded && (
-          <div className="space-y-2">
-            <label className="text-sm font-medium">PD (Pupillary Distance)</label>
-            {prescriptionData.hasTwoPDs ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">OD (Right)</label>
-                <Select
-                  value={prescriptionData.pdOd || ""}
-                  onValueChange={(value) => handleInputChange('pdOd', value)}
-                >
-                  <SelectTrigger className={`h-10 ${!prescriptionData.pdOd || prescriptionData.pdOd === "" ? "text-muted-foreground" : ""}`}>
-                    <SelectValue placeholder="Select" />
+                  <SelectTrigger className={`h-10 ${!prescriptionData.pd || prescriptionData.pd === "" ? "text-muted-foreground" : ""}`}>
+                    <SelectValue placeholder="Select PD" />
                   </SelectTrigger>
                   <SelectContent className="max-h-[200px]">
                     {pdValues.map((val) => (
@@ -570,45 +606,9 @@ export default function Step1PrescriptionForm({
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs text-muted-foreground">OS (Left)</label>
-                <Select
-                  value={prescriptionData.pdOs || ""}
-                  onValueChange={(value) => handleInputChange('pdOs', value)}
-                >
-                  <SelectTrigger className={`h-10 ${!prescriptionData.pdOs || prescriptionData.pdOs === "" ? "text-muted-foreground" : ""}`}>
-                    <SelectValue placeholder="Select" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[200px]">
-                    {pdValues.map((val) => (
-                      <SelectItem key={val} value={val}>
-                        {val} mm
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              )}
             </div>
-          ) : (
-            <Select
-              value={prescriptionData.pd || ""}
-              onValueChange={(value) => handleInputChange('pd', value)}
-            >
-              <SelectTrigger className={`h-10 ${!prescriptionData.pd || prescriptionData.pd === "" ? "text-muted-foreground" : ""}`}>
-                <SelectValue placeholder="Select PD" />
-              </SelectTrigger>
-              <SelectContent className="max-h-[200px]">
-                {pdValues.map((val) => (
-                  <SelectItem key={val} value={val}>
-                    {val} mm
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           )}
-          </div>
-        )}
         </div>
       )}
 
@@ -1059,7 +1059,7 @@ export default function Step1PrescriptionForm({
             console.warn('[Step1PrescriptionForm] Submit blocked - isPdFilled is false');
             toast({
               title: "Cannot proceed",
-              description: hasPdfUploaded 
+              description: hasPdfUploaded
                 ? "Please wait for prescription processing to complete"
                 : "Please select your Pupillary Distance (PD) to continue",
               variant: "destructive",

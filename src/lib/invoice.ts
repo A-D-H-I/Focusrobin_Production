@@ -5,6 +5,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import sharp from 'sharp';
+import { getFriendlyLensDescription } from '@/lib/lensPricing';
 
 export interface InvoiceData {
   orderId: string;
@@ -23,6 +24,7 @@ export interface InvoiceData {
     discountPct?: number; // Product discount percentage
     total: number;
     hasPrescription?: boolean; // Whether this item has prescription
+    prescriptionData?: any; // Full data for display
   }>;
   subtotal: number;
   shipping: number;
@@ -270,7 +272,7 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
     invoiceData.items.forEach((item, index) => {
       const isEven = index % 2 === 0;
       const rowColor = isEven ? lightGray : whiteColor;
-      const rowHeight = 25;
+      const rowHeight = 35;
 
       // Draw row background
       page.drawRectangle({
@@ -284,29 +286,50 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       // Item number
       page.drawText((index + 1).toString(), {
         x: 60,
-        y: yPos - 18,
+        y: yPos - 20, // Adjusted vertical center approx
         size: 10,
         font: helvetica,
         color: blackColor,
       });
 
-      // Description with color and SKU (truncate if too long)
+      // Description with color and SKU (split into two lines if needed)
       const colorText = item.variant ? ` - ${item.variant}` : '';
       const skuText = item.sku ? ` (${item.sku})` : '';
-      const fullDescription = `${item.name}${colorText}${skuText}`;
-      const description = fullDescription.length > 40 ? fullDescription.substring(0, 40) + '...' : fullDescription;
-      page.drawText(description, {
+
+      // Line 1: Product Name + Variant + SKU
+      const mainDescription = `${item.name}${colorText}${skuText}`;
+      const displayMain = mainDescription.length > 45 ? mainDescription.substring(0, 45) + '...' : mainDescription;
+
+      page.drawText(displayMain, {
         x: 120,
-        y: yPos - 18,
+        y: yPos - 14,
         size: 10,
-        font: helvetica,
+        font: helveticaBold, // Bold for main item
         color: blackColor,
       });
+
+      // Line 2: Lens Info (if applicable)
+      if (item.hasPrescription && item.prescriptionData?.rxConfig?.lensBundle) {
+        const lensDesc = getFriendlyLensDescription(item.prescriptionData.rxConfig);
+        if (lensDesc) {
+          // Prepend "Prescription: "
+          const fullLensDesc = `Prescription: ${lensDesc}`;
+          // Shorten lens desc if needed
+          const displayLens = fullLensDesc.length > 65 ? fullLensDesc.substring(0, 65) + '...' : fullLensDesc;
+          page.drawText(displayLens, {
+            x: 120,
+            y: yPos - 26,
+            size: 9, // Smaller font for detail
+            font: helvetica,
+            color: rgb(0.3, 0.3, 0.3), // Dark gray
+          });
+        }
+      }
 
       // Price
       page.drawText(`${invoiceData.currency} ${item.price.toFixed(2)}`, {
         x: 350,
-        y: yPos - 18,
+        y: yPos - 20,
         size: 10,
         font: helvetica,
         color: blackColor,
@@ -315,7 +338,7 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       // Quantity
       page.drawText(item.quantity.toString(), {
         x: 420,
-        y: yPos - 18,
+        y: yPos - 20,
         size: 10,
         font: helvetica,
         color: blackColor,
@@ -324,7 +347,7 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       // Total
       page.drawText(`${invoiceData.currency} ${item.total.toFixed(2)}`, {
         x: 480,
-        y: yPos - 18,
+        y: yPos - 20,
         size: 10,
         font: helvetica,
         color: blackColor,
@@ -488,9 +511,20 @@ export async function getInvoiceDataFromOrder(orderId: string): Promise<InvoiceD
         const finalPrice = Number(item.price);
         const discountPct = item.Product?.discountPct || 0;
         const originalPrice = discountPct > 0 ? finalPrice / (1 - discountPct / 100) : finalPrice;
-        const hasPrescription = !!(item.prescriptionData);
 
-        console.log(`[Invoice]   Item ${index + 1}: ${item.productName} (${item.variantName}) - SKU: ${item.sku}, ID: ${item.id}, HasPrescription: ${hasPrescription}, Price: €${finalPrice}, Qty: ${item.quantity}, Total: €${Number(item.total)}`);
+        let prescriptionDescription = "";
+        const itemPrescriptionData = item.prescriptionData as any;
+
+        // Extract friendly lens description if available
+        if (itemPrescriptionData && itemPrescriptionData.rxConfig && itemPrescriptionData.rxConfig.lensBundle) {
+          // Import this dynamically or assume we can access the helper
+          // For now, let's hardcode the logic or use the helper if available in scope
+          // Since we can't easily import inside this function without top-level import, 
+          // let's rely on the top-level import which we will add next.
+          // Note: We need to update imports first.
+        }
+
+        const hasPrescription = !!(item.prescriptionData);
 
         return {
           id: item.id,
@@ -503,6 +537,7 @@ export async function getInvoiceDataFromOrder(orderId: string): Promise<InvoiceD
           discountPct: discountPct > 0 ? discountPct : undefined,
           total: Number(item.total),
           hasPrescription,
+          prescriptionData: item.prescriptionData, // Pass full data to use in PDF generation
         };
       }),
       subtotal: Number(order.subtotal),

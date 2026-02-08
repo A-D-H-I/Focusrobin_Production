@@ -8,9 +8,9 @@ import { ArrowLeft } from 'lucide-react';
 export default async function EditProductPage({ params }: { params: Promise<{ slug: string }> }) {
   // Await params (required in Next.js 15)
   const { slug } = await params;
-  
+
   const decodedSlug = decodeURIComponent(slug);
-  
+
   // Fetch product by slug from database
   const prismaProduct = (await prisma.product.findUnique({
     where: { slug: decodedSlug },
@@ -20,10 +20,11 @@ export default async function EditProductPage({ params }: { params: Promise<{ sl
           ProductAsset: true,
         },
       },
+      highlights: true,
     },
     // Use raw query workaround if Prisma has issues with enum arrays
   })) as any;
-  
+
   // Ensure gender is always an array (handle any edge cases)
   if (prismaProduct && !Array.isArray(prismaProduct.gender)) {
     prismaProduct.gender = prismaProduct.gender ? [prismaProduct.gender] : [];

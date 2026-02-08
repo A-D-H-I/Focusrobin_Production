@@ -2,6 +2,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import sharp from 'sharp';
+import { LENS_BUNDLE_LABELS, LensBundle, BUNDLE_BOD_MAPPING, isValidBundle } from './lensPricing';
 
 /**
  * Helper function to check if prescription data contains actual prescription values
@@ -27,46 +28,46 @@ export function hasValidPrescriptionValues(prescriptionData: any): boolean {
 
   // Check for rxValues structure (from cart or prescription flow)
   const rxValues = prescriptionData.rxValues || prescriptionData;
-  
+
   // Helper to check if a value is a valid non-zero prescription value
   const isValidValue = (val: string | undefined | null): boolean => {
     if (!val) return false;
     const cleanVal = String(val).trim();
     return cleanVal !== '' && cleanVal !== '0.00' && cleanVal !== '0' && cleanVal !== 'undefined';
   };
-  
+
   // Check NESTED format (od.sph, os.sph)
   const hasNestedOdValues = rxValues.od && (
     isValidValue(rxValues.od.sph) || isValidValue(rxValues.od.cyl)
   );
-  
+
   const hasNestedOsValues = rxValues.os && (
     isValidValue(rxValues.os.sph) || isValidValue(rxValues.os.cyl)
   );
-  
+
   // Check FLAT format (odSph, osSph) - from cart prescription data
   const hasFlatOdValues = (
     isValidValue(rxValues.odSph) || isValidValue(rxValues.odCyl)
   );
-  
+
   const hasFlatOsValues = (
     isValidValue(rxValues.osSph) || isValidValue(rxValues.osCyl)
   );
-  
+
   // Combined check for OD/OS values
   const hasOdValues = hasNestedOdValues || hasFlatOdValues;
   const hasOsValues = hasNestedOsValues || hasFlatOsValues;
-  
+
   // Also check if there's a lens configuration (some prescriptions may have plano but still need lenses)
   const hasLensConfig = prescriptionData.rxConfig && (
     prescriptionData.rxConfig.lensType ||
     prescriptionData.rxConfig.lensIndex ||
     prescriptionData.rxConfig.coating
   );
-  
+
   // Check for prescription image URL (indicates user uploaded a prescription)
   const hasUploadedPrescription = !!(
-    rxValues.prescriptionImageUrl || 
+    rxValues.prescriptionImageUrl ||
     prescriptionData.prescriptionImageUrl
   );
 
@@ -75,7 +76,7 @@ export function hasValidPrescriptionValues(prescriptionData: any): boolean {
   // 2. Lens configuration (even for plano lenses), OR
   // 3. Uploaded prescription image
   const isValidPrescription = hasOdValues || hasOsValues || hasLensConfig || hasUploadedPrescription;
-  
+
   console.log('[PrescriptionPDF] hasValidPrescriptionValues check:', {
     hasNestedOdValues,
     hasNestedOsValues,
@@ -85,7 +86,7 @@ export function hasValidPrescriptionValues(prescriptionData: any): boolean {
     hasUploadedPrescription,
     isValid: isValidPrescription,
   });
-  
+
   return isValidPrescription;
 }
 
@@ -121,6 +122,7 @@ export interface PrescriptionPDFData {
   hasTwoPDs: boolean;
   hasPrism: boolean;
   // Lens configuration
+  lensBundle?: string;
   lensType: string;
   lensIndex: string;
   coating: string;
@@ -154,6 +156,11 @@ export interface PrescriptionPDFData {
  * Format lens type for display
  */
 function formatLensType(lensType: string): string {
+  // Check if it's a bundle first
+  if (lensType in LENS_BUNDLE_LABELS) {
+    return LENS_BUNDLE_LABELS[lensType as LensBundle];
+  }
+
   const types: Record<string, string> = {
     'CLEAR': 'Clear Lenses',
     'TINTED': 'Tinted Lenses',
@@ -194,11 +201,11 @@ function formatFrameType(frameType: string): string {
  */
 export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promise<Buffer> {
   const pdfDoc = await PDFDocument.create();
-  
+
   // Embed fonts
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  
+
   // Colors - Professional medical look
   const primaryColor = rgb(0.16, 0.62, 0.60); // Teal #2A9D9A
   const headerBg = rgb(0.95, 0.97, 0.98); // Light gray-blue
@@ -207,11 +214,11 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
   const grayColor = rgb(0.4, 0.4, 0.4);
   const whiteColor = rgb(1, 1, 1);
   const lightGrayBg = rgb(0.96, 0.96, 0.96);
-  
+
   // Create page (A4 size)
   const page = pdfDoc.addPage([595.28, 841.89]);
   const { width, height } = page.getSize();
-  
+
   // === HEADER SECTION ===
   // Draw header background
   page.drawRectangle({
@@ -221,26 +228,26 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     height: 100,
     color: headerBg,
   });
-  
+
   // Company logo - load and embed actual FocusRobin logo (same as invoice)
   const logoX = 30;
   const logoY = height - 50;
-  
+
   try {
     // Load the SVG logo and convert to PNG (keep original colors)
     const logoPath = join(process.cwd(), 'public', 'logo', 'Horizontal Primary dark (Color).svg');
     const svgBuffer = readFileSync(logoPath);
-    
+
     // Convert SVG to PNG (keep original colors, no greyscale or tint)
     const pngBuffer = await sharp(svgBuffer)
       .resize(280, null, { fit: 'contain' }) // Same size as invoice
       .png()
       .toBuffer();
-    
+
     // Embed the logo image in the PDF
     const logoImage = await pdfDoc.embedPng(pngBuffer);
     const logoDims = logoImage.scale(0.75); // Same scale as invoice
-    
+
     // Draw the logo (original colors, no background)
     page.drawImage(logoImage, {
       x: logoX,
@@ -251,23 +258,23 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
   } catch (error) {
     console.warn('[Prescription PDF] Could not load logo, using text fallback:', error);
     // Fallback to text if logo loading fails
-  page.drawText('FocusRobin', {
+    page.drawText('FocusRobin', {
       x: logoX + 10,
       y: logoY - 5,
-    size: 28,
-    font: helveticaBold,
-    color: primaryColor,
-  });
-  
-  page.drawText('Prescription Eyewear', {
+      size: 28,
+      font: helveticaBold,
+      color: primaryColor,
+    });
+
+    page.drawText('Prescription Eyewear', {
       x: logoX + 10,
       y: logoY - 25,
-    size: 12,
-    font: helvetica,
-    color: grayColor,
-  });
+      size: 12,
+      font: helvetica,
+      color: grayColor,
+    });
   }
-  
+
   // Document title (right side)
   page.drawText('PRESCRIPTION DETAILS', {
     x: 380,
@@ -276,14 +283,14 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helveticaBold,
     color: primaryColor,
   });
-  
+
   // Order info
   const dateStr = data.orderDate.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
-  
+
   page.drawText(`Order: ${data.orderNumber}`, {
     x: 380,
     y: height - 65,
@@ -291,7 +298,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helvetica,
     color: grayColor,
   });
-  
+
   page.drawText(`Date: ${dateStr}`, {
     x: 380,
     y: height - 80,
@@ -299,10 +306,10 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helvetica,
     color: grayColor,
   });
-  
+
   // === CUSTOMER & PRODUCT INFO ===
   let yPos = height - 130;
-  
+
   // Customer info box
   page.drawRectangle({
     x: 50,
@@ -313,7 +320,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     borderColor: rgb(0.9, 0.9, 0.9),
     borderWidth: 1,
   });
-  
+
   page.drawText('Customer', {
     x: 60,
     y: yPos - 15,
@@ -321,7 +328,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helveticaBold,
     color: grayColor,
   });
-  
+
   page.drawText(data.customerName, {
     x: 60,
     y: yPos - 32,
@@ -329,7 +336,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helvetica,
     color: blackColor,
   });
-  
+
   page.drawText(data.customerEmail, {
     x: 60,
     y: yPos - 45,
@@ -337,7 +344,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helvetica,
     color: grayColor,
   });
-  
+
   // Product info box
   page.drawRectangle({
     x: 305,
@@ -348,7 +355,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     borderColor: rgb(0.9, 0.9, 0.9),
     borderWidth: 1,
   });
-  
+
   page.drawText('Product', {
     x: 315,
     y: yPos - 15,
@@ -356,12 +363,12 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helveticaBold,
     color: grayColor,
   });
-  
+
   // Truncate product name if too long
-  const productName = data.productName.length > 35 
-    ? data.productName.substring(0, 35) + '...' 
+  const productName = data.productName.length > 35
+    ? data.productName.substring(0, 35) + '...'
     : data.productName;
-  
+
   page.drawText(productName, {
     x: 315,
     y: yPos - 32,
@@ -369,7 +376,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helvetica,
     color: blackColor,
   });
-  
+
   page.drawText(formatFrameType(data.frameType), {
     x: 315,
     y: yPos - 45,
@@ -377,21 +384,13 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helvetica,
     color: grayColor,
   });
-  
-  // === PRESCRIPTION VALUES TABLE ===
-  // Check if prescription values are all zeros/defaults - if so, skip showing them
-  const hasNonZeroValues = 
-    (data.od.sph && data.od.sph !== '0.00' && data.od.sph !== '0' && data.od.sph !== '+0.00') ||
-    (data.od.cyl && data.od.cyl !== '0.00' && data.od.cyl !== '0' && data.od.cyl !== '+0.00') ||
-    (data.od.axis && data.od.axis !== '0' && data.od.axis !== '0°') ||
-    (data.os.sph && data.os.sph !== '0.00' && data.os.sph !== '0' && data.os.sph !== '+0.00') ||
-    (data.os.cyl && data.os.cyl !== '0.00' && data.os.cyl !== '0' && data.os.cyl !== '+0.00') ||
-    (data.os.axis && data.os.axis !== '0' && data.os.axis !== '0°');
 
-  // Only show prescription values table if there are non-zero values
-  if (hasNonZeroValues) {
+  // === PRESCRIPTION VALUES TABLE ===
+
+  // Check if prescription was uploaded
+  if (data.prescriptionImageUrl) {
     yPos -= 90;
-    
+
     page.drawText('PRESCRIPTION VALUES', {
       x: 50,
       y: yPos,
@@ -399,15 +398,70 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       font: helveticaBold,
       color: primaryColor,
     });
-    
-    yPos -= 25;
-    
-    // Table dimensions
+
+    yPos -= 30;
+
+    // Draw "Prescription Uploaded" message box
+    page.drawRectangle({
+      x: 50,
+      y: yPos - 40,
+      width: width - 100,
+      height: 40,
+      color: lightGrayBg,
+      borderColor: rgb(0.9, 0.9, 0.9),
+      borderWidth: 1,
+    });
+
+    page.drawText('Prescription Uploaded', {
+      x: 70,
+      y: yPos - 25,
+      size: 12,
+      font: helveticaBold,
+      color: blackColor,
+    });
+
+    page.drawText('(See attached file for details)', {
+      x: 220,
+      y: yPos - 25,
+      size: 10,
+      font: helvetica,
+      color: grayColor,
+    });
+
+    yPos -= 60; // Move down past the message box
+
+  } else {
+    // Manual Entry: Check if we have values to display
+    const hasNonZeroValues =
+      (data.od.sph && data.od.sph !== '0.00' && data.od.sph !== '0' && data.od.sph !== '+0.00') ||
+      (data.od.cyl && data.od.cyl !== '0.00' && data.od.cyl !== '0' && data.od.cyl !== '+0.00') ||
+      (data.od.axis && data.od.axis !== '0' && data.od.axis !== '0°') ||
+      (data.os.sph && data.os.sph !== '0.00' && data.os.sph !== '0' && data.os.sph !== '+0.00') ||
+      (data.os.cyl && data.os.cyl !== '0.00' && data.os.cyl !== '0' && data.os.cyl !== '+0.00') ||
+      (data.os.axis && data.os.axis !== '0' && data.os.axis !== '0°');
+
+    // Table dimensions - defined here to be available for both Prescription Values and Prism Values logic
     const tableX = 50;
     const tableWidth = 495;
     const colWidths = [80, 85, 85, 85, 80, 80]; // Eye, SPH, CYL, AXIS, ADD, PD
     const rowHeight = 28;
-    
+    let headerX = 0;
+    let cellX = 0;
+
+    // Manual Entry: Always show prescription values table
+    // Even if values are 0.00, we should display them if this is a prescription item
+    yPos -= 90;
+
+    page.drawText('PRESCRIPTION VALUES', {
+      x: 50,
+      y: yPos,
+      size: 14,
+      font: helveticaBold,
+      color: primaryColor,
+    });
+
+    yPos -= 25;
+
     // Table header
     page.drawRectangle({
       x: tableX,
@@ -416,10 +470,10 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       height: rowHeight,
       color: tableHeaderBg,
     });
-    
+
     // Header text
     const headers = ['EYE', 'SPHERE (SPH)', 'CYLINDER (CYL)', 'AXIS', 'ADD', 'PD'];
-    let headerX = tableX + 10;
+    headerX = tableX + 10;
     headers.forEach((header, i) => {
       page.drawText(header, {
         x: headerX,
@@ -430,9 +484,9 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       });
       headerX += colWidths[i];
     });
-    
+
     yPos -= rowHeight;
-    
+
     // Right Eye (OD) row
     page.drawRectangle({
       x: tableX,
@@ -443,8 +497,8 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       borderColor: rgb(0.9, 0.9, 0.9),
       borderWidth: 0.5,
     });
-    
-    let cellX = tableX + 10;
+
+    cellX = tableX + 10;
     const odValues = [
       'OD (Right)',
       data.od.sph,
@@ -453,7 +507,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       '-', // ADD (not typically used for single vision)
       data.hasTwoPDs && data.pdOd ? data.pdOd + ' mm' : '-',
     ];
-    
+
     odValues.forEach((val, i) => {
       page.drawText(val, {
         x: cellX,
@@ -464,9 +518,9 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       });
       cellX += colWidths[i];
     });
-    
+
     yPos -= rowHeight;
-    
+
     // Left Eye (OS) row
     page.drawRectangle({
       x: tableX,
@@ -477,7 +531,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       borderColor: rgb(0.9, 0.9, 0.9),
       borderWidth: 0.5,
     });
-    
+
     cellX = tableX + 10;
     const osValues = [
       'OS (Left)',
@@ -487,7 +541,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       '-',
       data.hasTwoPDs && data.pdOs ? data.pdOs + ' mm' : '-',
     ];
-    
+
     osValues.forEach((val, i) => {
       page.drawText(val, {
         x: cellX,
@@ -498,9 +552,9 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       });
       cellX += colWidths[i];
     });
-    
+
     yPos -= rowHeight;
-    
+
     // Single PD row (if not using two PDs)
     if (!data.hasTwoPDs) {
       page.drawRectangle({
@@ -512,7 +566,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
         borderColor: rgb(0.9, 0.9, 0.9),
         borderWidth: 0.5,
       });
-      
+
       page.drawText('Pupillary Distance (PD):', {
         x: tableX + 10,
         y: yPos - 18,
@@ -520,7 +574,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
         font: helveticaBold,
         color: blackColor,
       });
-      
+
       page.drawText(data.pd + ' mm', {
         x: tableX + 200,
         y: yPos - 18,
@@ -528,15 +582,15 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
         font: helvetica,
         color: blackColor,
       });
-      
+
       yPos -= rowHeight;
     }
-  } // End of hasNonZeroValues check - only show prescription values if they're not all zeros
-  
+  }
+
   // === PRISM VALUES (if applicable) ===
   if (data.hasPrism) {
     yPos -= 20;
-    
+
     page.drawText('PRISM VALUES', {
       x: 50,
       y: yPos,
@@ -544,9 +598,9 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       font: helveticaBold,
       color: primaryColor,
     });
-    
+
     yPos -= 25;
-    
+
     // Prism table header
     page.drawRectangle({
       x: tableX,
@@ -555,7 +609,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       height: rowHeight,
       color: tableHeaderBg,
     });
-    
+
     const prismHeaders = ['EYE', 'HORIZONTAL', 'BASE H', 'VERTICAL', 'BASE V'];
     const prismColWidths = [100, 100, 100, 100, 95];
     headerX = tableX + 10;
@@ -569,9 +623,9 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       });
       headerX += prismColWidths[i];
     });
-    
+
     yPos -= rowHeight;
-    
+
     // OD Prism row
     page.drawRectangle({
       x: tableX,
@@ -582,7 +636,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       borderColor: rgb(0.9, 0.9, 0.9),
       borderWidth: 0.5,
     });
-    
+
     cellX = tableX + 10;
     const odPrismValues = [
       'OD (Right)',
@@ -591,7 +645,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       data.od.prismVertical || '-',
       data.od.prismVerticalBase || '-',
     ];
-    
+
     odPrismValues.forEach((val, i) => {
       page.drawText(val, {
         x: cellX,
@@ -602,9 +656,9 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       });
       cellX += prismColWidths[i];
     });
-    
+
     yPos -= rowHeight;
-    
+
     // OS Prism row
     page.drawRectangle({
       x: tableX,
@@ -615,7 +669,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       borderColor: rgb(0.9, 0.9, 0.9),
       borderWidth: 0.5,
     });
-    
+
     cellX = tableX + 10;
     const osPrismValues = [
       'OS (Left)',
@@ -624,7 +678,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       data.os.prismVertical || '-',
       data.os.prismVerticalBase || '-',
     ];
-    
+
     osPrismValues.forEach((val, i) => {
       page.drawText(val, {
         x: cellX,
@@ -635,13 +689,13 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       });
       cellX += prismColWidths[i];
     });
-    
+
     yPos -= rowHeight;
   }
-  
+
   // === LENS CONFIGURATION ===
   yPos -= 30;
-  
+
   page.drawText('LENS CONFIGURATION', {
     x: 50,
     y: yPos,
@@ -649,47 +703,58 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helveticaBold,
     color: primaryColor,
   });
-  
+
   yPos -= 25;
-  
+
   // Configuration grid
   const configItems: [string, string][] = [
-    ['Lens Type', formatLensType(data.lensType)],
+    ['Lens Option', formatLensType(data.lensBundle || data.lensType)],
     ['Lens Index', data.lensIndex],
     ['Coating', formatCoating(data.coating)],
     ['Frame Type', formatFrameType(data.frameType)],
   ];
-  
+
   // Add tint info if applicable
-  if (data.lensType === 'TINTED' && data.tintType) {
-    if (data.tintType === 'FULL_TINT_CATALOG' && data.tintColor && data.tintShadePercent) {
-      configItems.push(['Tint', `${data.tintColor} - ${data.tintShadePercent}%`]);
-    } else if (data.tintType === 'GRADIENT' && data.tintRecipe) {
-      configItems.push(['Tint', `Gradient ${data.tintRecipe}`]);
+  // Check for both legacy TINTED type AND new bundle types
+  if (
+    (data.lensType === 'TINTED' && data.tintType) ||
+    data.lensBundle === 'SUNGLASSES_TINT' ||
+    data.lensBundle === 'SUNGLASSES_GRADIENT'
+  ) {
+    if (data.tintColor) {
+      let tintDesc = data.tintColor;
+      if (data.tintShadePercent) {
+        tintDesc += ` - ${data.tintShadePercent}%`;
+      }
+      if (data.lensBundle === 'SUNGLASSES_GRADIENT' || data.tintType === 'GRADIENT') {
+        tintDesc += ' Gradient';
+        if (data.tintRecipe) tintDesc += ` (${data.tintRecipe})`;
+      }
+      configItems.push(['Tint', tintDesc]);
     }
   }
-  
+
   // Add photochromic color if applicable
-  if (data.lensType === 'PHOTOCHROMIC_SOLIS' && data.photochromicColor) {
+  if ((data.lensType === 'PHOTOCHROMIC_SOLIS' || data.lensBundle === 'PHOTOCHROMIC') && data.photochromicColor) {
     configItems.push(['Photochromic Color', data.photochromicColor]);
   }
-  
+
   // Add polarized color if applicable
   if (data.lensType === 'POLARIZED_NUPOLAR' && data.polarizedColor) {
     configItems.push(['Polarized Color', data.polarizedColor]);
   }
-  
+
   // Draw config items in 2 columns
   const configColWidth = 245;
   let configRow = 0;
-  
+
   configItems.forEach((item, i) => {
     const col = i % 2;
     if (i > 0 && col === 0) configRow++;
-    
+
     const boxX = 50 + col * (configColWidth + 5);
     const boxY = yPos - (configRow * 35);
-    
+
     page.drawRectangle({
       x: boxX,
       y: boxY - 30,
@@ -699,7 +764,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       borderColor: rgb(0.9, 0.9, 0.9),
       borderWidth: 0.5,
     });
-    
+
     page.drawText(item[0] + ':', {
       x: boxX + 10,
       y: boxY - 12,
@@ -707,7 +772,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       font: helveticaBold,
       color: grayColor,
     });
-    
+
     page.drawText(item[1], {
       x: boxX + 10,
       y: boxY - 24,
@@ -716,13 +781,13 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       color: blackColor,
     });
   });
-  
+
   yPos -= (Math.ceil(configItems.length / 2) * 35) + 20;
-  
+
   // === PRICE BREAKDOWN (if available) ===
   if (data.lensesPair || data.rxRetailNet || data.totalNet) {
     yPos -= 20;
-    
+
     page.drawText('LENS PRICING', {
       x: 50,
       y: yPos,
@@ -730,9 +795,9 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       font: helveticaBold,
       color: primaryColor,
     });
-    
+
     yPos -= 25;
-    
+
     // Price box
     page.drawRectangle({
       x: 50,
@@ -743,9 +808,9 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       borderColor: primaryColor,
       borderWidth: 1,
     });
-    
+
     let priceY = yPos - 20;
-    
+
     if (data.lensesPair) {
       page.drawText('Lenses (pair):', {
         x: 60,
@@ -763,7 +828,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       });
       priceY -= 18;
     }
-    
+
     if (data.edgingFee && data.edgingFee > 0) {
       page.drawText('Edging Fee:', {
         x: 60,
@@ -781,7 +846,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       });
       priceY -= 18;
     }
-    
+
     // Total
     page.drawLine({
       start: { x: 60, y: priceY + 5 },
@@ -789,9 +854,9 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       thickness: 1,
       color: primaryColor,
     });
-    
+
     priceY -= 10;
-    
+
     const totalPrice = data.rxRetailNet || data.totalNet || 0;
     page.drawText('Rx Add-On Total:', {
       x: 60,
@@ -808,7 +873,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       color: primaryColor,
     });
   }
-  
+
   // === FOOTER ===
   // Shipping address section removed - not needed in prescription PDF
   // Draw footer line
@@ -818,7 +883,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     thickness: 1,
     color: rgb(0.9, 0.9, 0.9),
   });
-  
+
   page.drawText('This prescription document is for reference only.', {
     x: 50,
     y: 60,
@@ -826,7 +891,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helvetica,
     color: grayColor,
   });
-  
+
   page.drawText('Please consult with your eye care professional for any questions.', {
     x: 50,
     y: 48,
@@ -834,7 +899,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helvetica,
     color: grayColor,
   });
-  
+
   page.drawText(`Generated by FocusRobin | ${new Date().toLocaleDateString()}`, {
     x: 380,
     y: 48,
@@ -842,7 +907,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helvetica,
     color: grayColor,
   });
-  
+
   // Save the PDF
   const pdfBytes = await pdfDoc.save();
   return Buffer.from(pdfBytes);
@@ -869,15 +934,15 @@ export async function extractPrescriptionFromOrderItem(
   customerEmail: string
 ): Promise<PrescriptionPDFData | null> {
   const prescriptionData = orderItem.prescriptionData;
-  
+
   if (!prescriptionData) {
     console.log(`[PrescriptionPDF] No prescription data for item: ${orderItem.productName}`);
     return null;
   }
-  
+
   // Handle rxValues structure (from cart or prescription flow)
   const rxValues = prescriptionData.rxValues || prescriptionData;
-  
+
   // Extract OD (Right Eye) values - handle both nested and flat formats
   const od = {
     sph: rxValues.od?.sph || rxValues.odSph || '0.00',
@@ -888,7 +953,7 @@ export async function extractPrescriptionFromOrderItem(
     prismVertical: rxValues.od?.prismVertical || rxValues.odPrismVertical,
     prismVerticalBase: rxValues.od?.prismVerticalBase || rxValues.odPrismVerticalBase,
   };
-  
+
   // Extract OS (Left Eye) values - handle both nested and flat formats
   const os = {
     sph: rxValues.os?.sph || rxValues.osSph || '0.00',
@@ -899,20 +964,20 @@ export async function extractPrescriptionFromOrderItem(
     prismVertical: rxValues.os?.prismVertical || rxValues.osPrismVertical,
     prismVerticalBase: rxValues.os?.prismVerticalBase || rxValues.osPrismVerticalBase,
   };
-  
+
   // Extract PD values
   const pd = rxValues.pd || prescriptionData.pd || '62';
   const pdOd = rxValues.pdOd || prescriptionData.pdOd;
   const pdOs = rxValues.pdOs || prescriptionData.pdOs;
   const hasTwoPDs = rxValues.hasTwoPDs || prescriptionData.hasTwoPDs || false;
-  
+
   // Extract prism flag
-  const hasPrism = rxValues.hasPrism || prescriptionData.hasPrism || 
+  const hasPrism = rxValues.hasPrism || prescriptionData.hasPrism ||
     !!(od.prismHorizontal && od.prismHorizontal !== '0.00') ||
     !!(od.prismVertical && od.prismVertical !== '0.00') ||
     !!(os.prismHorizontal && os.prismHorizontal !== '0.00') ||
     !!(os.prismVertical && os.prismVertical !== '0.00');
-  
+
   // Build product name with variant info for better tracking
   let fullProductName = orderItem.productName;
   if (orderItem.variantName) {
@@ -921,7 +986,7 @@ export async function extractPrescriptionFromOrderItem(
   if (orderItem.sku) {
     fullProductName += ` - SKU: ${orderItem.sku}`;
   }
-  
+
   console.log(`[PrescriptionPDF] Extracted prescription data for: ${fullProductName}`, {
     od: { sph: od.sph, cyl: od.cyl, axis: od.axis },
     os: { sph: os.sph, cyl: os.cyl, axis: os.axis },
@@ -930,7 +995,7 @@ export async function extractPrescriptionFromOrderItem(
     hasPrism,
     hasRxConfig: !!prescriptionData.rxConfig,
   });
-  
+
   return {
     orderNumber,
     orderDate,
@@ -944,8 +1009,11 @@ export async function extractPrescriptionFromOrderItem(
     pdOs,
     hasTwoPDs,
     hasPrism,
+    lensBundle: prescriptionData.rxConfig?.lensBundle,
     lensType: prescriptionData.rxConfig?.lensType || 'CLEAR',
-    lensIndex: prescriptionData.rxConfig?.lensIndex || '1.56',
+    lensIndex: (prescriptionData.rxConfig?.lensBundle && isValidBundle(prescriptionData.rxConfig.lensBundle))
+      ? BUNDLE_BOD_MAPPING[prescriptionData.rxConfig.lensBundle as LensBundle]?.index || prescriptionData.rxConfig?.lensIndex || '1.56'
+      : prescriptionData.rxConfig?.lensIndex || '1.56',
     coating: prescriptionData.rxConfig?.coating || 'UC',
     tintType: prescriptionData.rxConfig?.tintType,
     tintColor: prescriptionData.rxConfig?.tintColor,

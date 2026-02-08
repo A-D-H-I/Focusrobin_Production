@@ -3,6 +3,7 @@
 import { Resend } from "resend";
 import { prisma } from "@/lib/prisma";
 import { getDeliveryTime } from "@/lib/delivery-time";
+import { getFriendlyLensDescription } from '@/lib/lensPricing';
 
 // Initialize Resend client - create fresh instance each time to avoid stale state
 function getResendClient(): Resend | null {
@@ -335,7 +336,14 @@ function generateOrderConfirmationHTML(data: OrderEmailData): string {
                     <div style="flex: 1;">
                       <h3 style="margin: 0 0 5px 0; color: #333333; font-size: 16px; font-weight: bold;">${item.name}</h3>
                       <p style="margin: 0 0 5px 0; color: #666666; font-size: 14px;">${item.variant} • SKU: ${item.sku}</p>
-                      ${item.hasPrescription ? (item.prescriptionData?.isPdfMode ? '<p style="margin: 0 0 5px 0; color: #2A9D9A; font-size: 12px; font-weight: bold;">📄 Prescription PDF Uploaded</p>' : '<p style="margin: 0 0 5px 0; color: #2A9D9A; font-size: 12px; font-weight: bold;">📋 Includes Prescription Lenses</p>') : ''}
+                      ${item.hasPrescription ?
+      (item.prescriptionData?.isPdfMode ?
+        '<p style="margin: 0 0 5px 0; color: #2A9D9A; font-size: 12px; font-weight: bold;">📄 Prescription PDF Uploaded</p>' :
+        `<p style="margin: 0 0 5px 0; color: #2A9D9A; font-size: 12px; font-weight: bold;">📋 Prescription Lenses: ${item.prescriptionData?.rxConfig?.lensBundle ?
+          getFriendlyLensDescription(item.prescriptionData.rxConfig) :
+          'Prescription Included'
+        }</p>`
+      ) : ''}
                       <p style="margin: 0; color: #666666; font-size: 14px;">Quantity: ${item.quantity} × ${formatCurrency(item.price)} = ${formatCurrency(item.price * item.quantity)}</p>
                     </div>
                     <div style="text-align: right;">

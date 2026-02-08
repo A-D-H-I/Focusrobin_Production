@@ -9,16 +9,12 @@ import { Button } from "@/components/ui/button";
 import { useCallback, useState, useEffect, useMemo, useRef } from "react";
 import { SlidersHorizontal, ChevronDown, ChevronUp, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getAvailableGlassShapes, type AvailableGlassShape } from "@/app/actions/getAvailableGlassShapes";
-import { getAvailableGenderCounts, type GenderCount } from "@/app/actions/getAvailableGenderCounts";
-import { getPriceRange, type PriceRange } from "@/app/actions/getPriceRange";
-import { getAvailableMaterials, type AvailableMaterial } from "@/app/actions/getAvailableMaterials";
-import { getAvailableFrameColors, type AvailableColor } from "@/app/actions/getAvailableColors";
-import { getPrescriptionGlassesGlassShapes } from "@/app/actions/getPrescriptionGlassesGlassShapes";
-import { getPrescriptionGlassesGenderCounts } from "@/app/actions/getPrescriptionGlassesGenderCounts";
-import { getPrescriptionGlassesPriceRange } from "@/app/actions/getPrescriptionGlassesPriceRange";
-import { getPrescriptionGlassesMaterials } from "@/app/actions/getPrescriptionGlassesMaterials";
-import { getPrescriptionGlassesColors } from "@/app/actions/getPrescriptionGlassesColors";
+import { type AvailableGlassShape } from "@/app/actions/getAvailableGlassShapes";
+import { type GenderCount } from "@/app/actions/getAvailableGenderCounts";
+import { type PriceRange } from "@/app/actions/getPriceRange";
+import { type AvailableMaterial } from "@/app/actions/getAvailableMaterials";
+import { type AvailableColor } from "@/app/actions/getAvailableColors";
+import { type AvailableBrand } from "@/app/actions/getAvailableBrands";
 import TranslatableText from "@/components/ui/TranslatableText";
 
 interface CollapsibleSectionProps {
@@ -51,35 +47,43 @@ function CollapsibleSection({ title, defaultOpen = true, children }: Collapsible
 
 interface FilterSidebarProps {
   initialPriceRange?: { min: number; max: number };
+  glassShapes: AvailableGlassShape[];
+  genderCounts: GenderCount[];
+  materials: AvailableMaterial[];
+  colors: AvailableColor[];
+  brands: AvailableBrand[];
+  priceRange: PriceRange;
 }
 
-export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps) {
+export default function FilterSidebar({
+  initialPriceRange,
+  glassShapes,
+  genderCounts,
+  materials,
+
+  colors,
+  brands,
+  priceRange
+}: FilterSidebarProps) {
   const searchParams = useSearchParams();
   const pathname = usePathname();
 
   // Check if we're on prescription glasses page
   const isPrescriptionGlassesPage = pathname?.includes('/prescription-glasses');
 
-  // Price range state - default to initialPriceRange if provided, else 0-500
-  const [priceRangeData, setPriceRangeData] = useState<PriceRange>(initialPriceRange || { min: 0, max: 500 });
+  // Price range state - default to passed priceRange or initialPriceRange
+  // We use the data passed from server which is fresh
+  const [priceRangeData] = useState<PriceRange>(priceRange);
 
-  // Glass shapes state
-  const [glassShapes, setGlassShapes] = useState<AvailableGlassShape[]>([]);
-
-  // Gender counts state
-  const [genderCounts, setGenderCounts] = useState<GenderCount[]>([]);
-
-  // Materials state
-  const [materials, setMaterials] = useState<AvailableMaterial[]>([]);
-
-  // Colors state
-  const [colors, setColors] = useState<AvailableColor[]>([]);
+  // Filter keys are now passed as props, so we don't need state for them
+  // But we keep using props directly in rendering
 
   // Get current filters from URL (for initialization)
   const genderParams = searchParams.getAll('gender');
   const glassShapeParams = searchParams.getAll('glassShape');
   const materialParams = searchParams.getAll('material');
   const colorParams = searchParams.getAll('color');
+  const brandParams = searchParams.getAll('brand');
   const minPriceParam = searchParams.get('minPrice');
   const maxPriceParam = searchParams.get('maxPrice');
 
@@ -91,10 +95,11 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
   const [pendingGlassShapes, setPendingGlassShapes] = useState<string[]>([]);
   const [pendingMaterials, setPendingMaterials] = useState<string[]>([]);
   const [pendingColors, setPendingColors] = useState<string[]>([]);
+  const [pendingBrands, setPendingBrands] = useState<string[]>([]);
 
   // Initialize pending price range
-  const initialMin = minPriceParam ? parseInt(minPriceParam) : (initialPriceRange?.min ?? 0);
-  const initialMax = maxPriceParam ? parseInt(maxPriceParam) : (initialPriceRange?.max ?? 500);
+  const initialMin = minPriceParam ? parseInt(minPriceParam) : priceRangeData.min;
+  const initialMax = maxPriceParam ? parseInt(maxPriceParam) : priceRangeData.max;
 
   const [pendingPriceRange, setPendingPriceRange] = useState<[number, number]>([initialMin, initialMax]);
   const [pendingMinPrice, setPendingMinPrice] = useState<string>(initialMin.toString());
@@ -103,79 +108,21 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
   // Track previous search params to prevent unnecessary updates
   const prevSearchParamsStr = useRef<string>('');
 
-  // Fetch available glass shapes, gender counts, materials, colors, and price range on mount
+  // Initialize pending filters from URL params on mount
   useEffect(() => {
-    async function fetchData() {
-      if (isPrescriptionGlassesPage) {
-        // Use prescription glasses specific functions
-        const [shapes, genders, materialsData, colorsData, priceRange] = await Promise.all([
-          getPrescriptionGlassesGlassShapes(),
-          getPrescriptionGlassesGenderCounts(),
-          getPrescriptionGlassesMaterials(),
-          getPrescriptionGlassesColors(),
-          getPrescriptionGlassesPriceRange(),
-        ]);
-        setGlassShapes(shapes);
-        setGenderCounts(genders);
-        setMaterials(materialsData);
-        setColors(colorsData);
-        setPriceRangeData(priceRange);
-      } else {
-        // Use regular sunglasses functions
-        const [shapes, genders, materialsData, colorsData, priceRange] = await Promise.all([
-          getAvailableGlassShapes(),
-          getAvailableGenderCounts(),
-          getAvailableMaterials(),
-          getAvailableFrameColors(),
-          getPriceRange(),
-        ]);
-        setGlassShapes(shapes);
-        setGenderCounts(genders);
-        setMaterials(materialsData);
-        setColors(colorsData);
+    const initialGenders = genderParams.map(g => g.toLowerCase());
+    const initialShapes = glassShapeParams.map(s => s.toLowerCase().replace(/\s+/g, '-'));
+    const initialMaterials = materialParams.map(m => m.toLowerCase());
+    const initialColors = colorParams.map(c => c.toLowerCase());
+    const initialBrands = brandParams.map(b => b); // Brands are case sensitive or stored as is? Better keep original case if possible, or normalize. I'll defer normalization to backend or consistent usage.
 
-        // Only update price range if we didn't have an initial one, OR if we want to ensure we have the latest
-        // Ideally the server-passed one is fresh enough. But keeping this update is safe.
-        setPriceRangeData(priceRange);
-      }
+    setPendingGenders(initialGenders);
+    setPendingGlassShapes(initialShapes);
+    setPendingMaterials(initialMaterials);
+    setPendingColors(initialColors);
+    setPendingBrands(initialBrands);
+  }, []); // Only run on mount
 
-      // Initialize pending filters from URL params
-      const initialGenders = genderParams.map(g => g.toLowerCase());
-      const initialShapes = glassShapeParams.map(s => s.toLowerCase().replace(/\s+/g, '-'));
-      const initialMaterials = materialParams.map(m => m.toLowerCase());
-      const initialColors = colorParams.map(c => c.toLowerCase());
-
-      // Use the newly fetched priceRange for initialization if we are re-initializing
-      // But actually, we initialized state above. 
-      // If fetched priceRange is different from initial, we might need to update pending...
-      // For now, let's just respect URL params or current state.
-
-      setPendingGenders(initialGenders);
-      setPendingGlassShapes(initialShapes);
-      setPendingMaterials(initialMaterials);
-      setPendingColors(initialColors);
-
-      // We don't overwrite pending price here to avoid jumping if user is dragging? 
-      // Actually this is only on mount/page change.
-      // If URL has params, use them. If not, use the fetched/initial range.
-      const currentMin = minPriceParam ? parseInt(minPriceParam) : priceRangeData.min; // Use state which might be initial
-      const currentMax = maxPriceParam ? parseInt(maxPriceParam) : priceRangeData.max;
-
-      // Wait, inside this async function, 'priceRangeData' is stale closure (initial value).
-      // We should use the 'priceRange' variable we just fetched.
-      // Let's rely on the useEffect below [searchParamsStr...] to update pending if params change.
-      // But for initial load without params, we want to ensure we use the correct range.
-
-      // If we provided initialPriceRange, pendingPriceRangestate is already correct.
-      // If we didn't, and fetched it here, we should update it.
-      if (!initialPriceRange) {
-        // ...logic to update if needed...
-        // But simpler: The state updates will trigger re-renders. 
-      }
-    }
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPrescriptionGlassesPage]);
 
   // Update pending filters when URL params change (for external navigation)
   // Only update if searchParams actually changed to prevent infinite loops
@@ -191,6 +138,7 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
     const currentShapes = searchParams.getAll('glassShape').map(s => s.toLowerCase().replace(/\s+/g, '-')).sort();
     const currentMaterials = searchParams.getAll('material').map(m => m.toLowerCase()).sort();
     const currentColors = searchParams.getAll('color').map(c => c.toLowerCase()).sort();
+    const currentBrands = searchParams.getAll('brand').sort();
     const currentMin = searchParams.get('minPrice') ? parseInt(searchParams.get('minPrice')!) : priceRangeData.min;
     const currentMax = searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')!) : priceRangeData.max;
 
@@ -198,6 +146,7 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
     setPendingGlassShapes(currentShapes);
     setPendingMaterials(currentMaterials);
     setPendingColors(currentColors);
+    setPendingBrands(currentBrands);
     setPendingPriceRange([currentMin, currentMax]);
     setPendingMinPrice(currentMin.toString());
     setPendingMaxPrice(currentMax.toString());
@@ -256,6 +205,17 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
     });
   }, []);
 
+  // Handle brand filter toggle (updates pending state only)
+  const handleBrandToggle = useCallback((brand: string) => {
+    setPendingBrands(prev => {
+      if (prev.includes(brand)) {
+        return prev.filter(b => b !== brand);
+      } else {
+        return [...prev, brand];
+      }
+    });
+  }, []);
+
   // Handle price slider change (updates pending state only)
   const handleSliderChange = (values: number[]) => {
     setPendingPriceRange(values as [number, number]);
@@ -299,6 +259,7 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
     params.delete('glassShape');
     params.delete('material');
     params.delete('color');
+    params.delete('brand');
     params.delete('minPrice');
     params.delete('maxPrice');
 
@@ -312,6 +273,7 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
     pendingGlassShapes.forEach(s => params.append('glassShape', s));
     pendingMaterials.forEach(m => params.append('material', m));
     pendingColors.forEach(c => params.append('color', c));
+    pendingBrands.forEach(b => params.append('brand', b));
 
     // Add price range if not at default
     if (pendingPriceRange[0] !== priceRangeData.min || pendingPriceRange[1] !== priceRangeData.max) {
@@ -320,10 +282,22 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
     }
 
     // Determine base URL based on current page
-    const baseUrl = isPrescriptionGlassesPage ? '/shop/prescription-glasses' : '/shop';
+    let baseUrl = isPrescriptionGlassesPage ? '/shop/prescription-glasses' : '/shop';
+
+    if (pathname && (
+      pathname.includes('/shop/men') ||
+      pathname.includes('/shop/women') ||
+      pathname.includes('/shop/kids') ||
+      pathname.includes('/shop/unisex') ||
+      pathname.includes('/shop/new-arrivals') ||
+      pathname.includes('/shop/prescription-glasses/')
+    )) {
+      baseUrl = pathname;
+    }
+
     const newUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
     navigateWithRefresh(newUrl);
-  }, [searchParams, pendingGenders, pendingGlassShapes, pendingMaterials, pendingColors, pendingPriceRange, priceRangeData, navigateWithRefresh, isPrescriptionGlassesPage]);
+  }, [searchParams, pendingGenders, pendingGlassShapes, pendingMaterials, pendingColors, pendingBrands, pendingPriceRange, priceRangeData, navigateWithRefresh, isPrescriptionGlassesPage, pathname]);
 
   // Clear all filters
   const handleClearFilters = useCallback(() => {
@@ -331,6 +305,7 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
     setPendingGlassShapes([]);
     setPendingMaterials([]);
     setPendingColors([]);
+    setPendingBrands([]);
     setPendingPriceRange([priceRangeData.min, priceRangeData.max]);
     setPendingMinPrice(priceRangeData.min.toString());
     setPendingMaxPrice(priceRangeData.max.toString());
@@ -343,6 +318,7 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
     params.delete('glassShape');
     params.delete('material');
     params.delete('color');
+    params.delete('brand');
     params.delete('minPrice');
     params.delete('maxPrice');
 
@@ -352,10 +328,22 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
     }
 
     // Determine base URL based on current page
-    const baseUrl = isPrescriptionGlassesPage ? '/shop/prescription-glasses' : '/shop';
+    let baseUrl = isPrescriptionGlassesPage ? '/shop/prescription-glasses' : '/shop';
+
+    if (pathname && (
+      pathname.includes('/shop/men') ||
+      pathname.includes('/shop/women') ||
+      pathname.includes('/shop/kids') ||
+      pathname.includes('/shop/unisex') ||
+      pathname.includes('/shop/new-arrivals') ||
+      pathname.includes('/shop/prescription-glasses/')
+    )) {
+      baseUrl = pathname;
+    }
+
     const newUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
     navigateWithRefresh(newUrl);
-  }, [searchParams, priceRangeData, navigateWithRefresh, isPrescriptionGlassesPage]);
+  }, [searchParams, priceRangeData, navigateWithRefresh, isPrescriptionGlassesPage, pathname]);
 
   // Check if there are any pending changes (memoized to prevent unnecessary recalculations)
   const hasPendingChanges = useMemo(() => {
@@ -363,11 +351,13 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
     const currentShapesStr = JSON.stringify([...glassShapeParams].map(s => s.toLowerCase().replace(/\s+/g, '-')).sort());
     const currentMaterialsStr = JSON.stringify([...materialParams].map(m => m.toLowerCase()).sort());
     const currentColorsStr = JSON.stringify([...colorParams].map(c => c.toLowerCase()).sort());
+    const currentBrandsStr = JSON.stringify([...brandParams].sort());
 
     const pendingGendersStr = JSON.stringify([...pendingGenders].sort());
     const pendingShapesStr = JSON.stringify([...pendingGlassShapes].sort());
     const pendingMaterialsStr = JSON.stringify([...pendingMaterials].sort());
     const pendingColorsStr = JSON.stringify([...pendingColors].sort());
+    const pendingBrandsStr = JSON.stringify([...pendingBrands].sort());
 
     const currentMin = minPriceParam ? parseInt(minPriceParam) : priceRangeData.min;
     const currentMax = maxPriceParam ? parseInt(maxPriceParam) : priceRangeData.max;
@@ -377,10 +367,11 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
       pendingShapesStr !== currentShapesStr ||
       pendingMaterialsStr !== currentMaterialsStr ||
       pendingColorsStr !== currentColorsStr ||
+      pendingBrandsStr !== currentBrandsStr ||
       currentMin !== pendingPriceRange[0] ||
       currentMax !== pendingPriceRange[1]
     );
-  }, [genderParams, glassShapeParams, materialParams, colorParams, minPriceParam, maxPriceParam, priceRangeData, pendingGenders, pendingGlassShapes, pendingMaterials, pendingColors, pendingPriceRange]);
+  }, [genderParams, glassShapeParams, materialParams, colorParams, brandParams, minPriceParam, maxPriceParam, priceRangeData, pendingGenders, pendingGlassShapes, pendingMaterials, pendingColors, pendingBrands, pendingPriceRange]);
 
 
   return (
@@ -445,6 +436,33 @@ export default function FilterSidebar({ initialPriceRange }: FilterSidebarProps)
           </div>
         </div>
       </CollapsibleSection>
+
+      {/* Brand */}
+      {brands && brands.length > 0 && (
+        <CollapsibleSection title="Brand" defaultOpen={true}>
+          <div className="space-y-3">
+            {brands.map((brandData) => {
+              const isChecked = pendingBrands.includes(brandData.brand);
+              return (
+                <div key={brandData.brand} className="flex items-center space-x-3">
+                  <Checkbox
+                    id={`brand-${brandData.brand}`}
+                    checked={isChecked}
+                    onCheckedChange={() => handleBrandToggle(brandData.brand)}
+                    className="border-muted-foreground/50 data-[state=checked]:bg-teal-primary data-[state=checked]:border-teal-primary"
+                  />
+                  <Label
+                    htmlFor={`brand-${brandData.brand}`}
+                    className="text-sm font-normal text-foreground/80 cursor-pointer hover:text-foreground transition-colors"
+                  >
+                    {brandData.brand} ({brandData.count})
+                  </Label>
+                </div>
+              );
+            })}
+          </div>
+        </CollapsibleSection>
+      )}
 
       {/* Gender */}
       {genderCounts.length > 0 && (

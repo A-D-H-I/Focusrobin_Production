@@ -15,8 +15,8 @@ interface PrescriptionPageClientProps {
   lensBackgroundImageUrl?: string | null;
 }
 
-function PrescriptionPageContent({ 
-  product, 
+function PrescriptionPageContent({
+  product,
   productSlug,
   lensBaseImageUrl,
   lensMaskImageUrl,
@@ -25,7 +25,7 @@ function PrescriptionPageContent({
   const selectedVariant = product.variants[0];
   const productImage = selectedVariant?.thumbnail || selectedVariant?.images[0] || '';
   const normalizedImage = productImage ? normalizeImageUrl(productImage) : '';
-  
+
   // Normalize lens image URLs if provided
   const normalizedLensBase = lensBaseImageUrl ? normalizeImageUrl(lensBaseImageUrl) : null;
   const normalizedLensMask = lensMaskImageUrl ? normalizeImageUrl(lensMaskImageUrl) : null;
@@ -62,7 +62,7 @@ function PrescriptionPageContent({
             currentStep={currentStep}
           />
         </div>
-        
+
         {/* Order Summary Section */}
         <div className="border rounded-lg p-4 bg-muted/30 space-y-2">
           <h3 className="font-semibold text-sm mb-3">Order Summary</h3>
@@ -70,7 +70,7 @@ function PrescriptionPageContent({
             <span className="text-muted-foreground">Frame</span>
             <span className="font-medium">{safeFormatPrice(framePrice || 0)}</span>
           </div>
-          
+
           {/* Show full breakdown only for steps 3+ */}
           {showFullBreakdown && rxPriceResult && formatPrice && (
             <>
@@ -99,15 +99,16 @@ function PrescriptionPageContent({
   );
 }
 
-export default function PrescriptionPageClient({ 
-  product, 
+export default function PrescriptionPageClient({
+  product,
   productSlug,
   lensBaseImageUrl,
   lensMaskImageUrl,
   lensBackgroundImageUrl,
-}: PrescriptionPageClientProps) {
+  bundlePrices,
+}: PrescriptionPageClientProps & { bundlePrices?: Record<string, number> }) {
   return (
-    <PrescriptionPriceProvider>
+    <PrescriptionPriceProvider initialBundlePrices={bundlePrices}>
       <PrescriptionPageContent
         product={product}
         productSlug={productSlug}

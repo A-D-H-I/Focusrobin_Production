@@ -21,19 +21,19 @@ interface GiftCategoriesSectionProps {
 }
 
 const categoryLabels: Record<string, string> = {
-  MEN: 'SHOP FOR MEN',
-  WOMEN: 'SHOP FOR WOMEN',
-  KIDS: 'SHOP FOR KIDS',
+  MEN: 'MEN',
+  WOMEN: 'WOMEN',
+  KIDS: 'KIDS',
 };
 
 // Translation mapping for category labels
 const getCategoryLabel = (category: string): string => {
   const labels: Record<string, string> = {
-    MEN: 'SHOP FOR MEN',
-    WOMEN: 'SHOP FOR WOMEN',
-    KIDS: 'SHOP FOR KIDS',
+    MEN: 'MEN',
+    WOMEN: 'WOMEN',
+    KIDS: 'KIDS',
   };
-  return labels[category] || `SHOP FOR ${category}`;
+  return labels[category] || category;
 };
 
 const categoryRoutes: Record<string, string> = {
@@ -55,11 +55,11 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
   useEffect(() => {
     const handleScroll = () => {
       if (!sectionRef.current) return;
-      
+
       const rect = sectionRef.current.getBoundingClientRect();
       const sectionTop = rect.top;
       const sectionHeight = rect.height;
-      
+
       // Only apply parallax on desktop (md and up)
       if (window.innerWidth >= 768) {
         // Calculate parallax offset based on scroll position
@@ -90,10 +90,10 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
     // Only run on client side
     if (typeof window === 'undefined') return;
     if (window.innerWidth >= 1024) return; // Desktop - no auto-scroll
-    
+
     let retryCount = 0;
     const maxRetries = 10;
-    
+
     const scrollToNextCategory = () => {
       const scrollContainer = scrollContainerRef.current;
       if (!scrollContainer) {
@@ -103,28 +103,28 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
         }
         return;
       }
-      
+
       // Don't scroll if user has clicked/tapped (but allow during manual scrolling)
       if (hasUserInteracted) {
         return; // Stop auto-scroll permanently if user has clicked/tapped
       }
-      
+
       const container = scrollContainer;
       const scrollWidth = container.scrollWidth;
       const clientWidth = container.clientWidth;
       const maxScroll = scrollWidth - clientWidth;
 
       if (maxScroll <= 0) return; // No need to scroll if content fits
-      
+
       // Get all category items (snap points)
       const categoryItems = container.querySelectorAll('[class*="snap-start"]');
       if (categoryItems.length <= 1) return; // Only one or no items, can't scroll
-      
+
       // Find the current visible item
       const containerRect = container.getBoundingClientRect();
       let currentIndex = 0;
       let minDistance = Infinity;
-      
+
       categoryItems.forEach((item, index) => {
         const itemRect = item.getBoundingClientRect();
         const distance = Math.abs(itemRect.left - containerRect.left);
@@ -133,37 +133,37 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
           currentIndex = index;
         }
       });
-      
+
       // Calculate next index (wrap around if at end)
       const nextIndex = (currentIndex + 1) % categoryItems.length;
       const nextItem = categoryItems[nextIndex] as HTMLElement;
-      
+
       if (!nextItem) return;
-      
+
       // Calculate scroll position to show the next item
       const nextItemRect = nextItem.getBoundingClientRect();
       const containerRect2 = container.getBoundingClientRect();
       const scrollLeft = container.scrollLeft;
       const targetScroll = scrollLeft + (nextItemRect.left - containerRect2.left);
-      
+
       // Smooth scroll to next category over 1 second
       const startScroll = container.scrollLeft;
       const distance = targetScroll - startScroll;
       const duration = 1000; // 1 second
       const startTime = performance.now();
 
-        const animateScroll = (currentTime: number) => {
+      const animateScroll = (currentTime: number) => {
         const cont = scrollContainerRef.current;
         if (!cont || hasUserInteracted) return; // Only stop if user clicked/tapped, not if scrolling
-        
+
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1); // 0 to 1
-        
+
         // Easing function for smooth animation
         const easeOutCubic = 1 - Math.pow(1 - progress, 3);
-        
+
         const currentScroll = startScroll + (distance * easeOutCubic);
-        
+
         cont.scrollLeft = currentScroll;
 
         if (progress < 1) {
@@ -199,11 +199,11 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
 
     const handleUserInteraction = () => {
       if (window.innerWidth >= 768) return; // Only on mobile/tablet
-      
+
       // Stop auto-scroll permanently on click/tap
       setHasUserInteracted(true);
       setIsAutoScrolling(false);
-      
+
       // Clear any pending auto-scroll timers
       if (autoScrollTimeoutRef.current) {
         clearTimeout(autoScrollTimeoutRef.current);
@@ -254,138 +254,153 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
   }
 
   return (
-    <section 
-      ref={sectionRef}
-      className="relative min-h-[300px] lg:min-h-[600px] overflow-hidden w-full"
-    >
-      {/* Desktop: Grid Layout (lg and above) */}
-      <div className="hidden lg:grid lg:grid-cols-3 min-h-[600px]">
-        {categories.map(({ image, category }) => {
-          if (!image) return null;
-          
-          return (
-            <Link 
-              key={image.id}
-              href={categoryRoutes[category] || '/shop'} 
-              prefetch={true}
-              className="relative group overflow-hidden cursor-pointer"
-              aria-label={`Shop for ${category.toLowerCase()}`}
-            >
-              <div className="absolute inset-0 overflow-hidden">
-                <div
-                  style={{
-                    transform: `translateY(${scrollY}px) scale(1.15)`,
-                    transition: 'transform 0.1s ease-out',
-                    height: '120%',
-                    width: '100%',
-                    top: '-10%',
-                    left: '0',
-                    position: 'absolute',
-                  }}
-                >
-                  <Image
-                    src={normalizeImageUrl(image.imageUrl)}
-                    alt={image.alt}
-                    fill
-                    className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300 hidden lg:block"
-                    unoptimized
-                  />
-                  <Image
-                    src={normalizeImageUrl(image.mobileTabletImageUrl || image.imageUrl)}
-                    alt={image.alt}
-                    fill
-                    className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300 lg:hidden"
-                    unoptimized
-                  />
-                </div>
-              </div>
-              <div className="absolute bottom-8 left-0 right-0 text-center z-10">
-                <h3 className="text-brand-h3 font-headline text-white uppercase tracking-wider drop-shadow-lg">
-                  <TranslatableText text={getCategoryLabel(category)} />
-                </h3>
-              </div>
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 z-10" />
-            </Link>
-          );
-        })}
-      </div>
-
-      {/* Mobile & Tablet: Horizontal Scrollable - Edge to Edge */}
-      <div className="lg:hidden overflow-hidden relative w-full">
-        <div 
-          ref={scrollContainerRef}
-          className="overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory w-full"
-          style={{
-            scrollbarWidth: 'none',
-            msOverflowStyle: 'none',
-            WebkitOverflowScrolling: 'touch',
-            touchAction: 'pan-x',
-          }}
-        >
-          <div className="flex gap-0">
-            {categories.map(({ image, category }) => {
-              if (!image) return null;
-              
-              return (
-                <Link 
-                  key={image.id}
-                  href={categoryRoutes[category] || '/shop'} 
-                  prefetch={true}
-                  className="relative group overflow-hidden cursor-pointer flex-shrink-0 snap-start min-h-[300px] w-screen"
-                  aria-label={`Shop for ${category.toLowerCase()}`}
-                >
-                  <div className="absolute inset-0 overflow-hidden">
-                    <Image
-                      src={normalizeImageUrl(image.mobileTabletImageUrl || image.imageUrl)}
-                      alt={image.alt}
-                      fill
-                      className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
-                      unoptimized
-                    />
-                  </div>
-                  <div className="absolute bottom-8 left-0 right-0 text-center z-10">
-                    <h3 className="text-brand-h3 font-headline text-white uppercase tracking-wider drop-shadow-lg">
-                      {categoryLabels[category] || `SHOP FOR ${category}`}
-                    </h3>
-                  </div>
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 z-10" />
-                </Link>
-              );
-            })}
-            {/* Duplicate for seamless loop */}
-            {categories.map(({ image, category }) => {
-              if (!image) return null;
-              
-              return (
-                <Link 
-                  key={`duplicate-${image.id}`}
-                  href={categoryRoutes[category] || '/shop'} 
-                  prefetch={true}
-                  className="relative group overflow-hidden cursor-pointer flex-shrink-0 snap-start min-h-[300px] w-screen"
-                  aria-label={`Shop for ${category.toLowerCase()} (duplicate)`}
-                >
-                  <div className="absolute inset-0 overflow-hidden">
-                    <Image
-                      src={normalizeImageUrl(image.mobileTabletImageUrl || image.imageUrl)}
-                      alt={image.alt}
-                      fill
-                      className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
-                      unoptimized
-                    />
-                  </div>
-                  <div className="absolute bottom-8 left-0 right-0 text-center z-10">
-                    <h3 className="text-brand-h3 font-headline text-white uppercase tracking-wider drop-shadow-lg">
-                      {categoryLabels[category] || `SHOP FOR ${category}`}
-                    </h3>
-                  </div>
-                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 z-10" />
-                </Link>
-              );
-            })}
-          </div>
+    <>
+      {/* Heading Section - Above Images */}
+      <div className="bg-white py-8 md:py-12">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-brand-blue mb-2 md:mb-3">
+            <TranslatableText text="Shop Polarized Sunglasses by Category" />
+          </h2>
+          <p className="text-sm md:text-base lg:text-lg text-gray-600 max-w-2xl mx-auto">
+            <TranslatableText text="Discover premium polarized eyewear designed for everyone" />
+          </p>
         </div>
       </div>
-      <style jsx global>{`
+
+      {/* Category Images Section */}
+      <section
+        ref={sectionRef}
+        className="relative min-h-[300px] lg:min-h-[600px] overflow-hidden w-full"
+      >
+
+        {/* Desktop: Grid Layout (lg and above) */}
+        <div className="hidden lg:grid lg:grid-cols-3 min-h-[600px]">
+          {categories.map(({ image, category }) => {
+            if (!image) return null;
+
+            return (
+              <Link
+                key={image.id}
+                href={categoryRoutes[category] || '/shop'}
+                prefetch={true}
+                className="relative group overflow-hidden cursor-pointer"
+                aria-label={`Shop for ${category.toLowerCase()}`}
+              >
+                <div className="absolute inset-0 overflow-hidden">
+                  <div
+                    style={{
+                      transform: `translateY(${scrollY}px) scale(1.15)`,
+                      transition: 'transform 0.1s ease-out',
+                      height: '120%',
+                      width: '100%',
+                      top: '-10%',
+                      left: '0',
+                      position: 'absolute',
+                    }}
+                  >
+                    <Image
+                      src={normalizeImageUrl(image.imageUrl)}
+                      alt={image.alt}
+                      fill
+                      className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300 hidden lg:block"
+                      unoptimized
+                    />
+                    <Image
+                      src={normalizeImageUrl(image.mobileTabletImageUrl || image.imageUrl)}
+                      alt={image.alt}
+                      fill
+                      className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300 lg:hidden"
+                      unoptimized
+                    />
+                  </div>
+                </div>
+                <div className="absolute bottom-8 left-0 right-0 text-center z-10">
+                  <h3 className="text-brand-h3 font-headline text-white uppercase tracking-wider drop-shadow-lg">
+                    <TranslatableText text={getCategoryLabel(category)} />
+                  </h3>
+                </div>
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 z-10" />
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Mobile & Tablet: Horizontal Scrollable - Edge to Edge */}
+        <div className="lg:hidden overflow-hidden relative w-full">
+          <div
+            ref={scrollContainerRef}
+            className="overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory w-full"
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-x',
+            }}
+          >
+            <div className="flex gap-0">
+              {categories.map(({ image, category }) => {
+                if (!image) return null;
+
+                return (
+                  <Link
+                    key={image.id}
+                    href={categoryRoutes[category] || '/shop'}
+                    prefetch={true}
+                    className="relative group overflow-hidden cursor-pointer flex-shrink-0 snap-start min-h-[300px] w-screen"
+                    aria-label={`Shop for ${category.toLowerCase()}`}
+                  >
+                    <div className="absolute inset-0 overflow-hidden">
+                      <Image
+                        src={normalizeImageUrl(image.mobileTabletImageUrl || image.imageUrl)}
+                        alt={image.alt}
+                        fill
+                        className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+                        unoptimized
+                      />
+                    </div>
+                    <div className="absolute bottom-8 left-0 right-0 text-center z-10">
+                      <h3 className="text-brand-h3 font-headline text-white uppercase tracking-wider drop-shadow-lg">
+                        {categoryLabels[category] || category}
+                      </h3>
+                    </div>
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 z-10" />
+                  </Link>
+                );
+              })}
+              {/* Duplicate for seamless loop */}
+              {categories.map(({ image, category }) => {
+                if (!image) return null;
+
+                return (
+                  <Link
+                    key={`duplicate-${image.id}`}
+                    href={categoryRoutes[category] || '/shop'}
+                    prefetch={true}
+                    className="relative group overflow-hidden cursor-pointer flex-shrink-0 snap-start min-h-[300px] w-screen"
+                    aria-label={`Shop for ${category.toLowerCase()} (duplicate)`}
+                  >
+                    <div className="absolute inset-0 overflow-hidden">
+                      <Image
+                        src={normalizeImageUrl(image.mobileTabletImageUrl || image.imageUrl)}
+                        alt={image.alt}
+                        fill
+                        className="object-cover grayscale group-hover:grayscale-0 transition-all duration-300"
+                        unoptimized
+                      />
+                    </div>
+                    <div className="absolute bottom-8 left-0 right-0 text-center z-10">
+                      <h3 className="text-brand-h3 font-headline text-white uppercase tracking-wider drop-shadow-lg">
+                        {categoryLabels[category] || category}
+                      </h3>
+                    </div>
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 z-10" />
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+        <style jsx global>{`
         div[class*="overflow-x-auto"]::-webkit-scrollbar {
           display: none;
           width: 0;
@@ -395,7 +410,8 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
           -webkit-overflow-scrolling: touch;
         }
       `}</style>
-    </section>
+      </section>
+    </>
   );
 }
 

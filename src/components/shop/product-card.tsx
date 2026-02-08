@@ -344,6 +344,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                     // Assuming no transparency for now, or standard crossfade behavior.
                   )}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  unoptimized
                 />
 
                 {/* Tilted Hover Image - Pre-rendered but hidden */}
@@ -356,6 +357,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                     loading={priority ? undefined : "lazy"}
                     className="object-cover absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 ease-in-out"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    unoptimized
                   />
                 )}
               </div>

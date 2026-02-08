@@ -26,6 +26,7 @@ export interface PrescriptionGlassesVariantData {
 const prescriptionGlassesSchema = z.object({
   name: z.string().trim().min(2).max(200),
   slug: z.string().trim().min(1).max(100),
+  brand: z.string().trim().min(1).max(100).optional().default("FocusRobin"),
   description: z.string().trim().max(5000).optional().nullable(),
   basePrice: z.number().positive().max(100000),
   discountPct: z.number().int().min(0).max(99).optional().default(0),
@@ -80,12 +81,12 @@ export async function createPrescriptionGlasses(formData: FormData) {
     const basePrice = parseFloat(formData.get('basePrice') as string);
     const discountPct = parseInt(formData.get('discountPct') as string) || 0;
     const cashbackAmount = parseFloat(formData.get('cashbackAmount') as string) || 0;
-    
+
     // Parse linked product info
     const linkedProductIdRaw = formData.get('linkedProductId') as string | null;
     const linkedProductId = linkedProductIdRaw && linkedProductIdRaw.trim() ? linkedProductIdRaw.trim() : null;
     const useSharedStock = formData.get('useSharedStock') === 'true';
-    
+
     // Parse multiple genders
     const genderCount = parseInt(formData.get('genderCount') as string) || 0;
     const genders: Gender[] = [];
@@ -98,7 +99,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
     if (genders.length === 0) {
       genders.push(Gender.UNISEX);
     }
-    
+
     const tags = (formData.get('tags') as string)?.split(',').map(t => t.trim()).filter(Boolean) || [];
 
     // Dimensions
@@ -115,7 +116,30 @@ export async function createPrescriptionGlasses(formData: FormData) {
     const uvProtection = (formData.get('uvProtection') as string) || null;
     const glassShapeRaw = formData.get('glassShape') as string | null;
     const glassShape = glassShapeRaw?.trim() || null;
-    
+
+    // Dynamic Product Features
+    const isPolarized = formData.get('isPolarized') === 'on';
+    const isUVProtection = formData.get('isUVProtection') === 'on';
+    const isHydrophobic = formData.get('isHydrophobic') === 'on';
+    const isAntiScratch = formData.get('isAntiScratch') === 'on';
+    const isBioBased = formData.get('isBioBased') === 'on';
+    const warranty = (formData.get('warranty') as string) || '1.5 Years Warranty';
+    const customFeaturesRaw = formData.get('customFeatures') as string;
+    const customFeatures = customFeaturesRaw?.split(',').map(f => f.trim()).filter(Boolean) || [];
+
+    // Product Highlights
+    const showHighlights = formData.get('showHighlights') === 'on';
+    const highlightCount = parseInt(formData.get('highlightCount') as string) || 0;
+    const highlightsData: Array<{ title: string; description: string; imageUrl: string; order: number }> = [];
+    for (let i = 0; i < highlightCount; i++) {
+      const title = formData.get(`highlight-${i}-title`) as string;
+      const description = formData.get(`highlight-${i}-description`) as string;
+      const imageUrl = formData.get(`highlight-${i}-image`) as string;
+      if (title && description) {
+        highlightsData.push({ title, description, imageUrl: imageUrl || '', order: i });
+      }
+    }
+
     // Auto-create shape in GlassShape table if it doesn't exist
     if (glassShape) {
       try {
@@ -139,6 +163,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
     const validation = prescriptionGlassesSchema.safeParse({
       name,
       slug,
+      brand,
       description,
       basePrice,
       discountPct,
@@ -231,7 +256,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
     // Get or create default category
     let categoryId: string;
     const defaultCategoryName = 'Prescription';
-    
+
     const existingCategory = await prisma.category.findUnique({
       where: { name: defaultCategoryName },
     });
@@ -250,6 +275,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
       data: {
         name: validation.data.name,
         slug: validation.data.slug,
+        brand: validation.data.brand,
         description: validation.data.description || null,
         basePrice: validation.data.basePrice,
         discountPct: validation.data.discountPct || 0,
@@ -258,16 +284,25 @@ export async function createPrescriptionGlasses(formData: FormData) {
         useSharedStock: linkedProductId ? useSharedStock : false,
         gender: genders,
         tags: validation.data.tags || [],
-        frameWidth: validation.data.frameWidth,
-        lensWidth: validation.data.lensWidth,
-        lensHeight: validation.data.lensHeight,
-        bridgeWidth: validation.data.bridgeWidth,
-        templeLength: validation.data.templeLength,
-        weightBg: validation.data.weightBg,
-        frameMaterial: validation.data.frameMaterial,
-        lensMaterial: validation.data.lensMaterial,
-        uvProtection: validation.data.uvProtection || null,
-        glassShape: validation.data.glassShape || null,
+        frameWidth,
+        lensWidth,
+        lensHeight,
+        bridgeWidth,
+        templeLength,
+        weightBg,
+        frameMaterial,
+        lensMaterial,
+        uvProtection,
+        glassShape,
+        // Dynamic Product Features
+        isPolarized,
+        isUVProtection,
+        isHydrophobic,
+        isAntiScratch,
+        isBioBased,
+        warranty,
+        customFeatures,
+        showHighlights,
         categoryId,
         PrescriptionGlassesVariant: {
           create: variantsData.map((variant) => {
@@ -310,7 +345,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
                 .split(',')
                 .map((url) => url.trim())
                 .filter(Boolean);
-              
+
               galleryUrls.forEach((url, index) => {
                 assets.push({
                   url,
@@ -334,6 +369,15 @@ export async function createPrescriptionGlasses(formData: FormData) {
             };
           }),
         },
+        // Create highlights if present
+        highlights: showHighlights && highlightsData.length > 0 ? {
+          create: highlightsData.map(h => ({
+            title: h.title,
+            description: h.description,
+            imageUrl: h.imageUrl,
+            order: h.order,
+          })),
+        } : undefined,
       },
     });
 
@@ -368,3 +412,174 @@ export async function deletePrescriptionGlasses(id: string) {
   });
 }
 
+/**
+ * Update an existing prescription glasses product (Admin only)
+ */
+export async function updatePrescriptionGlasses(id: string, formData: FormData) {
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // Validate ID
+    const idSchema = z.string().min(1).max(30);
+    const validatedId = idSchema.safeParse(id);
+    if (!validatedId.success) {
+      return { error: "Invalid prescription glasses ID" };
+    }
+
+    // Check if exists
+    const existing = await prisma.prescriptionGlasses.findUnique({
+      where: { id: validatedId.data },
+      select: { id: true, slug: true },
+    });
+
+    if (!existing) {
+      return { error: "Prescription glasses not found" };
+    }
+
+    // Extract basic data
+    const name = formData.get('name') as string;
+    const rawSlug = formData.get('slug') as string;
+    const slug = rawSlug
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '');
+    const brand = (formData.get('brand') as string) || 'FocusRobin';
+    const descriptionRaw = formData.get('description') as string | null;
+    const description = descriptionRaw?.trim() || null;
+    const basePrice = parseFloat(formData.get('basePrice') as string);
+    const discountPct = parseInt(formData.get('discountPct') as string) || 0;
+    const cashbackAmount = parseFloat(formData.get('cashbackAmount') as string) || 0;
+
+    // Parse linked product info
+    const linkedProductIdRaw = formData.get('linkedProductId') as string | null;
+    const linkedProductId = linkedProductIdRaw && linkedProductIdRaw.trim() && linkedProductIdRaw !== 'none' ? linkedProductIdRaw.trim() : null;
+    const useSharedStock = formData.get('useSharedStock') === 'true';
+
+    // Parse genders
+    const genderCount = parseInt(formData.get('genderCount') as string) || 0;
+    const genders: Gender[] = [];
+    for (let i = 0; i < genderCount; i++) {
+      const genderValue = formData.get(`gender-${i}`) as Gender;
+      if (genderValue && Object.values(Gender).includes(genderValue)) {
+        genders.push(genderValue);
+      }
+    }
+    if (genders.length === 0) {
+      genders.push(Gender.UNISEX);
+    }
+
+    const tags = (formData.get('tags') as string)?.split(',').map(t => t.trim()).filter(Boolean) || [];
+
+    // Dimensions
+    const frameWidth = parseFloat(formData.get('frameWidth') as string) || undefined;
+    const lensWidth = parseFloat(formData.get('lensWidth') as string) || undefined;
+    const lensHeight = parseFloat(formData.get('lensHeight') as string) || undefined;
+    const bridgeWidth = parseFloat(formData.get('bridgeWidth') as string) || undefined;
+    const templeLength = parseFloat(formData.get('templeLength') as string) || undefined;
+    const weightBg = parseFloat(formData.get('weightBg') as string) || undefined;
+
+    // Specs
+    const frameMaterial = formData.get('frameMaterial') as string;
+    const lensMaterial = (formData.get('lensMaterial') as string) || 'Polycarbonate';
+    const uvProtection = (formData.get('uvProtection') as string) || null;
+    const glassShapeRaw = formData.get('glassShape') as string | null;
+    const glassShape = glassShapeRaw?.trim() || null;
+
+    // Dynamic Product Features
+    const isPolarized = formData.get('isPolarized') === 'on';
+    const isUVProtection = formData.get('isUVProtection') === 'on';
+    const isHydrophobic = formData.get('isHydrophobic') === 'on';
+    const isAntiScratch = formData.get('isAntiScratch') === 'on';
+    const isBioBased = formData.get('isBioBased') === 'on';
+    const warranty = (formData.get('warranty') as string) || '1.5 Years Warranty';
+    const customFeaturesRaw = formData.get('customFeatures') as string;
+    const customFeatures = customFeaturesRaw?.split(',').map(f => f.trim()).filter(Boolean) || [];
+
+    // Product Highlights
+    const showHighlights = formData.get('showHighlights') === 'on';
+    const highlightCount = parseInt(formData.get('highlightCount') as string) || 0;
+    const highlightsData: Array<{ title: string; description: string; imageUrl: string; order: number }> = [];
+    for (let i = 0; i < highlightCount; i++) {
+      const title = formData.get(`highlight-${i}-title`) as string;
+      const descriptionH = formData.get(`highlight-${i}-description`) as string;
+      const imageUrl = formData.get(`highlight-${i}-image`) as string;
+      if (title && descriptionH) {
+        highlightsData.push({ title, description: descriptionH, imageUrl: imageUrl || '', order: i });
+      }
+    }
+
+    // Check for slug conflict (if changed)
+    if (slug !== existing.slug) {
+      const slugConflict = await prisma.prescriptionGlasses.findUnique({
+        where: { slug },
+        select: { id: true },
+      });
+      if (slugConflict) {
+        return { error: `A prescription glasses product with the slug "${slug}" already exists.` };
+      }
+    }
+
+    // Update prescription glasses (excluding variants - they need separate handling if needed)
+    await prisma.prescriptionGlasses.update({
+      where: { id: validatedId.data },
+      data: {
+        name,
+        slug,
+        brand,
+        description,
+        basePrice,
+        discountPct,
+        cashbackAmount,
+        linkedProductId,
+        useSharedStock: linkedProductId ? useSharedStock : false,
+        gender: genders,
+        tags,
+        frameWidth,
+        lensWidth,
+        lensHeight,
+        bridgeWidth,
+        templeLength,
+        weightBg,
+        frameMaterial,
+        lensMaterial,
+        uvProtection,
+        glassShape,
+        // Dynamic Product Features
+        isPolarized,
+        isUVProtection,
+        isHydrophobic,
+        isAntiScratch,
+        isBioBased,
+        warranty,
+        customFeatures,
+        showHighlights,
+      },
+    });
+
+    // Handle highlights update (delete and recreate)
+    await prisma.prescriptionHighlight.deleteMany({
+      where: { prescriptionGlassesId: validatedId.data },
+    });
+
+    if (showHighlights && highlightsData.length > 0) {
+      await prisma.prescriptionHighlight.createMany({
+        data: highlightsData.map(h => ({
+          prescriptionGlassesId: validatedId.data,
+          title: h.title,
+          description: h.description,
+          imageUrl: h.imageUrl,
+          order: h.order,
+        })),
+      });
+    }
+
+    revalidatePath('/shop/prescription-glasses');
+    revalidatePath('/admin/prescription-glasses');
+    revalidatePath(`/shop/${slug}`);
+
+    return { success: true };
+  });
+}

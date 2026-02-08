@@ -11,7 +11,7 @@ import Image from "next/image";
 interface ImageUploaderProps {
   value?: string;
   onChange: (url: string) => void;
-  folder?: "products" | "categories" | "hero" | "instagram" | "iconic" | "prescription-glasses" | "gift-banners" | "shapes" | "lens-images" | "other";
+  folder?: "products" | "categories" | "hero" | "instagram" | "iconic" | "prescription-glasses" | "gift-banners" | "shapes" | "lens-images" | "split-banners" | "other";
   label?: string;
   description?: string;
   accept?: string;
@@ -83,7 +83,7 @@ export function ImageUploader({
       // Update the value with S3 URL
       onChange(result.url);
       setPreview(result.url);
-      
+
       toast({
         title: "Image uploaded",
         description: "Image has been uploaded to S3 successfully.",
@@ -92,7 +92,7 @@ export function ImageUploader({
       console.error("Error uploading image:", error);
       setUploadError(error.message || "Failed to upload image");
       setPreview(null);
-      
+
       toast({
         title: "Upload failed",
         description: error.message || "Failed to upload image. Please try again.",

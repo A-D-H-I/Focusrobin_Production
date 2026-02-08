@@ -5,6 +5,7 @@ import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { verifyCredentials } from "@/app/actions/auth";
+import { authConfig } from "./auth.config";
 
 // Get environment variables with fallbacks
 const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
@@ -66,7 +67,7 @@ if (facebookClientId && facebookClientSecret) {
     if (facebookClientId.length < 10 || facebookClientSecret.length < 10) {
       throw new Error("Facebook credentials appear to be invalid (too short)");
     }
-    
+
     providers.push(
       Facebook({
         clientId: facebookClientId,
@@ -81,7 +82,7 @@ if (facebookClientId && facebookClientSecret) {
           // Facebook may not return an email for some users
           // Generate a fallback email using their Facebook ID
           const email = profile.email || `${profile.id}@facebook.placeholder.com`;
-          
+
           return {
             id: profile.id,
             name: profile.name,
@@ -130,6 +131,7 @@ providers.push(
 );
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   adapter: PrismaAdapter(prisma) as any,
   secret: authSecret,
   trustHost: true, // Required for NextAuth v5 - allows dynamic host detection
@@ -168,7 +170,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             let wallet = await (prisma as any).wallet.findUnique({
               where: { userId: dbUser.id },
             });
-            
+
             if (!wallet) {
               // Create wallet if it doesn't exist
               wallet = await (prisma as any).wallet.create({
@@ -191,8 +193,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 where: { key: 'welcome_bonus_amount' },
               });
 
-              const welcomeBonusAmount = welcomeBonusSetting 
-                ? parseFloat(welcomeBonusSetting.value) || 0 
+              const welcomeBonusAmount = welcomeBonusSetting
+                ? parseFloat(welcomeBonusSetting.value) || 0
                 : 10.00; // Default to €10 if not set
 
               if (welcomeBonusAmount > 0) {
@@ -238,13 +240,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.email = user.email;
         token.name = user.name;
         token.picture = user.image;
-        
+
         // For credentials provider, user.role is already available from verifyCredentials
         if ((user as any).role) {
           token.role = (user as any).role;
           console.log('[JWT] Role from user object:', token.role);
         }
-        
+
         // For OAuth providers or if role is missing, fetch from database
         if (!token.role && user.email) {
           try {
@@ -261,16 +263,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             console.error('Error fetching user role in jwt callback:', error);
           }
         }
-        
+
         // Default to USER if no role found
         if (!token.role) {
           token.role = "USER";
           console.log('[JWT] Default role assigned: USER');
         }
-        
+
         console.log('[JWT] Final token on sign-in:', { id: token.id, email: token.email, role: token.role });
       }
-      
+
       // On session update or refresh, ensure we have the latest role
       if (trigger === "update" && token.email) {
         try {
@@ -286,7 +288,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           console.error('Error refreshing user role in jwt callback:', error);
         }
       }
-      
+
       return token;
     },
     async session({ session, token }: any) {
@@ -297,7 +299,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.email = token.email as string;
         session.user.name = token.name as string;
         session.user.image = token.picture as string;
-        
+
         // Handle role - if not in token (old sessions), fetch from DB
         if (token.role) {
           session.user.role = token.role as string;
@@ -317,9 +319,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         } else {
           session.user.role = "USER";
         }
-        
+
         console.log('[Session] Final session user:', { id: session.user.id, email: session.user.email, role: session.user.role });
-        
+
         // Process welcome bonus for new users (only if needed)
         // This is a fallback in case the signIn callback didn't process it
         if (token.id) {
@@ -338,7 +340,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 let wallet = await (prisma as any).wallet.findUnique({
                   where: { userId: token.id },
                 });
-                
+
                 if (!wallet) {
                   wallet = await (prisma as any).wallet.create({
                     data: { userId: token.id, balance: 0 },
@@ -357,8 +359,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                     where: { key: 'welcome_bonus_amount' },
                   });
 
-                  const welcomeBonusAmount = welcomeBonusSetting 
-                    ? parseFloat(welcomeBonusSetting.value) || 0 
+                  const welcomeBonusAmount = welcomeBonusSetting
+                    ? parseFloat(welcomeBonusSetting.value) || 0
                     : 10.00;
 
                   if (welcomeBonusAmount > 0) {

@@ -22,13 +22,13 @@ function isPrescriptionDataEqual(data1: any, data2: any): boolean {
   if (!data1 && !data2) return true;
   // One is null/undefined, other is not
   if (!data1 || !data2) return false;
-  
+
   // Deep comparison using sorted JSON stringify
   const normalize = (obj: any): string => {
     if (obj === null || obj === undefined) return 'null';
     if (typeof obj !== 'object') return JSON.stringify(obj);
     if (Array.isArray(obj)) return JSON.stringify(obj.map(normalize));
-    
+
     // Sort object keys and stringify
     const sorted = Object.keys(obj).sort().reduce((acc: any, key: string) => {
       acc[key] = obj[key];
@@ -36,165 +36,166 @@ function isPrescriptionDataEqual(data1: any, data2: any): boolean {
     }, {});
     return JSON.stringify(sorted, Object.keys(sorted).sort());
   };
-  
+
   return normalize(data1) === normalize(data2);
 }
 
 export async function addToCart(productSlugOrId: string, variantSkuOrId: string, quantity: number = 1, prescriptionData?: any) {
   console.log('[SERVER] addToCart called:', { productSlugOrId, variantSkuOrId, quantity, hasPrescription: !!prescriptionData });
-  
+  console.log('[SERVER] Action ID validation check pass');
+
   try {
     return await safeAction(async () => {
-    console.log('[SERVER] Inside safeAction, getting auth...');
-    const { session } = await requireAuth();
-    console.log('[SERVER] Auth successful, user:', session.user.id);
-    
-    // Rate limit cart operations
-    const rateLimitResult = rateLimit(
-      getIdentifier(null, session.user.id, "cart"),
-      "CART_OPERATIONS"
-    );
-    if (!rateLimitResult.success) {
-      return { error: `Too many requests. Please try again in ${rateLimitResult.retryAfter} seconds.` };
-    }
+      console.log('[SERVER] Inside safeAction, getting auth...');
+      const { session } = await requireAuth();
+      console.log('[SERVER] Auth successful, user:', session.user.id);
 
-    // Validate input
-    const validatedInput = addToCartSchema.safeParse({ productSlugOrId, variantSkuOrId, quantity });
-    if (!validatedInput.success) {
-      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
-    }
+      // Rate limit cart operations
+      const rateLimitResult = rateLimit(
+        getIdentifier(null, session.user.id, "cart"),
+        "CART_OPERATIONS"
+      );
+      if (!rateLimitResult.success) {
+        return { error: `Too many requests. Please try again in ${rateLimitResult.retryAfter} seconds.` };
+      }
 
-    const { productSlugOrId: slug, variantSkuOrId: variantId, quantity: qty } = validatedInput.data;
+      // Validate input
+      const validatedInput = addToCartSchema.safeParse({ productSlugOrId, variantSkuOrId, quantity });
+      if (!validatedInput.success) {
+        return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
+      }
 
-    // Find product by slug or ID (include stock in variant)
-    let product = await prisma.product.findUnique({
-      where: { slug },
-      include: {
-        ProductVariant: {
-          select: { id: true, sku: true, stock: true },
-        },
-      },
-    });
+      const { productSlugOrId: slug, variantSkuOrId: variantId, quantity: qty } = validatedInput.data;
 
-    if (!product) {
-      product = await prisma.product.findUnique({
-        where: { id: slug },
+      // Find product by slug or ID (include stock in variant)
+      let product = await prisma.product.findUnique({
+        where: { slug },
         include: {
           ProductVariant: {
             select: { id: true, sku: true, stock: true },
           },
         },
       });
-    }
 
-    if (!product) {
-      return { error: "Product not found" };
-    }
-
-    const actualProductId = product.id;
-
-    // Find variant by SKU or ID
-    const variant = product.ProductVariant.find(
-      (v) => v.sku === variantId || v.id === variantId
-    );
-
-    if (!variant) {
-      return { error: "Product variant not found" };
-    }
-
-    const actualVariantId = variant.id;
-    
-    // Check stock before adding to cart (prevent adding if fully sold out)
-    const stock = variant.stock !== null && variant.stock !== undefined ? Number(variant.stock) : null;
-    if (stock === 0) {
-      return { error: "This product is currently out of stock and cannot be added to cart." };
-    }
-
-    // Get or create user's cart (IDOR protected - uses session.user.id)
-    let cart = await prisma.cart.findUnique({
-      where: { userId: session.user.id },
-    });
-
-    if (!cart) {
-      cart = await prisma.cart.create({
-        data: { userId: session.user.id },
-      });
-    }
-
-    // Check if item already exists in cart with same product, variant, and prescription
-    // Since we removed the unique constraint, we need to manually check for duplicates
-    const existingItems = await prisma.cartItem.findMany({
-      where: {
-        cartId: cart.id,
-        productId: actualProductId,
-        variantId: actualVariantId,
-      },
-    });
-    
-    // Find matching item based on prescription data
-    const existingItem = existingItems.find(item => {
-      if (prescriptionData) {
-        const itemPrescriptionData = item.prescriptionData as any;
-        return itemPrescriptionData && isPrescriptionDataEqual(itemPrescriptionData, prescriptionData);
-      } else {
-        // No prescription - match items without prescription
-        return !item.prescriptionData;
+      if (!product) {
+        product = await prisma.product.findUnique({
+          where: { id: slug },
+          include: {
+            ProductVariant: {
+              select: { id: true, sku: true, stock: true },
+            },
+          },
+        });
       }
-    });
 
-    if (existingItem) {
-      // Same prescription (or both no prescription), update quantity
-      console.log('[SERVER] Updating existing cart item quantity');
-      const updated = await prisma.cartItem.update({
-        where: { id: existingItem.id },
-        data: { quantity: Math.min(existingItem.quantity + qty, 99) },
-      });
-      console.log('[SERVER] Updated cart item:', updated.id, 'new quantity:', updated.quantity);
-    } else {
-      // No matching item found, create new one
-      console.log('[SERVER] Creating new cart item with prescriptionData:', !!prescriptionData);
-      if (prescriptionData) {
-        console.log('[SERVER] Prescription data keys:', Object.keys(prescriptionData));
+      if (!product) {
+        return { error: "Product not found" };
       }
-      const created = await prisma.cartItem.create({
-        data: {
+
+      const actualProductId = product.id;
+
+      // Find variant by SKU or ID
+      const variant = product.ProductVariant.find(
+        (v) => v.sku === variantId || v.id === variantId
+      );
+
+      if (!variant) {
+        return { error: "Product variant not found" };
+      }
+
+      const actualVariantId = variant.id;
+
+      // Check stock before adding to cart (prevent adding if fully sold out)
+      const stock = variant.stock !== null && variant.stock !== undefined ? Number(variant.stock) : null;
+      if (stock === 0) {
+        return { error: "This product is currently out of stock and cannot be added to cart." };
+      }
+
+      // Get or create user's cart (IDOR protected - uses session.user.id)
+      let cart = await prisma.cart.findUnique({
+        where: { userId: session.user.id },
+      });
+
+      if (!cart) {
+        cart = await prisma.cart.create({
+          data: { userId: session.user.id },
+        });
+      }
+
+      // Check if item already exists in cart with same product, variant, and prescription
+      // Since we removed the unique constraint, we need to manually check for duplicates
+      const existingItems = await prisma.cartItem.findMany({
+        where: {
           cartId: cart.id,
           productId: actualProductId,
           variantId: actualVariantId,
-          quantity: qty,
-          prescriptionData: prescriptionData || null,
         },
       });
-      console.log('[SERVER] Created cart item:', {
-        id: created.id,
-        productId: created.productId,
-        variantId: created.variantId,
-        quantity: created.quantity,
-        hasPrescriptionData: !!created.prescriptionData,
-      });
-    }
 
-    // Verify the item was saved correctly by fetching it back
-    const verifyCart = await prisma.cart.findUnique({
-      where: { userId: session.user.id },
-      select: {
-        items: {
-          select: {
-            id: true,
-            prescriptionData: true,
+      // Find matching item based on prescription data
+      const existingItem = existingItems.find(item => {
+        if (prescriptionData) {
+          const itemPrescriptionData = item.prescriptionData as any;
+          return itemPrescriptionData && isPrescriptionDataEqual(itemPrescriptionData, prescriptionData);
+        } else {
+          // No prescription - match items without prescription
+          return !item.prescriptionData;
+        }
+      });
+
+      if (existingItem) {
+        // Same prescription (or both no prescription), update quantity
+        console.log('[SERVER] Updating existing cart item quantity');
+        const updated = await prisma.cartItem.update({
+          where: { id: existingItem.id },
+          data: { quantity: Math.min(existingItem.quantity + qty, 99) },
+        });
+        console.log('[SERVER] Updated cart item:', updated.id, 'new quantity:', updated.quantity);
+      } else {
+        // No matching item found, create new one
+        console.log('[SERVER] Creating new cart item with prescriptionData:', !!prescriptionData);
+        if (prescriptionData) {
+          console.log('[SERVER] Prescription data keys:', Object.keys(prescriptionData));
+        }
+        const created = await prisma.cartItem.create({
+          data: {
+            cartId: cart.id,
+            productId: actualProductId,
+            variantId: actualVariantId,
+            quantity: qty,
+            prescriptionData: prescriptionData || null,
+          },
+        });
+        console.log('[SERVER] Created cart item:', {
+          id: created.id,
+          productId: created.productId,
+          variantId: created.variantId,
+          quantity: created.quantity,
+          hasPrescriptionData: !!created.prescriptionData,
+        });
+      }
+
+      // Verify the item was saved correctly by fetching it back
+      const verifyCart = await prisma.cart.findUnique({
+        where: { userId: session.user.id },
+        select: {
+          items: {
+            select: {
+              id: true,
+              prescriptionData: true,
+            }
           }
         }
-      }
-    });
-    console.log('[SERVER] Verification - Cart items after save:', verifyCart?.items.map(i => ({
-      id: i.id,
-      hasPrescription: !!i.prescriptionData,
-    })));
+      });
+      console.log('[SERVER] Verification - Cart items after save:', verifyCart?.items.map(i => ({
+        id: i.id,
+        hasPrescription: !!i.prescriptionData,
+      })));
 
-    console.log('[SERVER] Cart item saved, revalidating path...');
-    revalidatePath("/cart");
-    console.log('[SERVER] Returning success');
-    return { success: true };
+      console.log('[SERVER] Cart item saved, revalidating path...');
+      revalidatePath("/cart");
+      console.log('[SERVER] Returning success');
+      return { success: true };
     });
   } catch (outerError) {
     console.error('[SERVER] Outer error in addToCart:', outerError);
@@ -206,11 +207,11 @@ export async function removeFromCart(productSlugOrId: string, variantSkuOrId: st
   return safeAction(async () => {
     const { session } = await requireAuth();
 
-    console.log('[SERVER] removeFromCart called:', { 
-      productSlugOrId, 
-      variantSkuOrId, 
+    console.log('[SERVER] removeFromCart called:', {
+      productSlugOrId,
+      variantSkuOrId,
       hasPrescription: !!prescriptionData,
-      prescriptionData 
+      prescriptionData
     });
 
     // Validate input
@@ -262,7 +263,7 @@ export async function removeFromCart(productSlugOrId: string, variantSkuOrId: st
     const item = cart.items.find((i) => {
       const productMatch = i.productId === product!.id && i.variantId === variant.id;
       if (!productMatch) return false;
-      
+
       // Match prescription data using deep comparison
       if (prescriptionData !== undefined) {
         if (prescriptionData) {
@@ -273,12 +274,12 @@ export async function removeFromCart(productSlugOrId: string, variantSkuOrId: st
           return !i.prescriptionData;
         }
       }
-      
+
       // If no prescription data argument provided, match the first item (backward compatibility)
       // But prioritize items without prescription data
       return !i.prescriptionData;
     });
-    
+
     if (!item) {
       console.error('[SERVER] Item not found in cart. Available items:', cart.items.map(i => ({
         productId: i.productId,
@@ -302,11 +303,11 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
   return safeAction(async () => {
     const { session } = await requireAuth();
 
-    console.log('[SERVER] updateCartItemQuantity called:', { 
-      productSlugOrId, 
-      variantSkuOrId, 
+    console.log('[SERVER] updateCartItemQuantity called:', {
+      productSlugOrId,
+      variantSkuOrId,
       quantity,
-      hasPrescription: !!prescriptionData 
+      hasPrescription: !!prescriptionData
     });
 
     // Validate input
@@ -358,7 +359,7 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
     const item = cart.items.find((i) => {
       const productMatch = i.productId === product!.id && i.variantId === variant.id;
       if (!productMatch) return false;
-      
+
       // Match prescription data using deep comparison
       if (prescriptionData !== undefined) {
         if (prescriptionData) {
@@ -369,12 +370,12 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
           return !i.prescriptionData;
         }
       }
-      
+
       // If no prescription data argument provided, match the first item (backward compatibility)
       // But prioritize items without prescription data
       return !i.prescriptionData;
     });
-    
+
     if (!item) {
       console.error('[SERVER] Item not found in cart. Available items:', cart.items.map(i => ({
         productId: i.productId,
@@ -397,7 +398,7 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
 
 export async function getCart() {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return { items: [] };
   }
@@ -475,9 +476,9 @@ export async function getCart() {
     }
 
     console.log('[getCart] Found cart with', cart.items.length, 'items');
-    console.log('[getCart] Items:', cart.items.map(i => ({ 
-      id: i.id, 
-      productId: i.productId, 
+    console.log('[getCart] Items:', cart.items.map(i => ({
+      id: i.id,
+      productId: i.productId,
       hasPrescription: !!i.prescriptionData,
       prescriptionDataType: typeof i.prescriptionData
     })));
@@ -509,7 +510,7 @@ export async function getCart() {
 
 export async function getCartOld() {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return { items: [], total: 0 };
   }
@@ -619,7 +620,7 @@ export async function toggleWishlist(productSlugOrId: string) {
 
 export async function getWishlist() {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return { items: [] };
   }
@@ -666,7 +667,7 @@ export async function getWishlist() {
 
 export async function isInWishlist(productSlugOrId: string) {
   const session = await auth();
-  
+
   if (!session?.user?.id) {
     return false;
   }
@@ -1101,15 +1102,15 @@ export async function deleteMyAccount() {
       });
     } catch (archiveError: any) {
       console.error("Error archiving user data:", archiveError);
-      
+
       if (archiveError?.code === 'P2001' || archiveError?.message?.includes('model') || archiveError?.message?.includes('DeletedUser') || archiveError?.message?.includes('does not exist')) {
-        return { 
-          error: "Database schema not updated. Please run 'npx prisma generate' and restart the server. Account was NOT deleted." 
+        return {
+          error: "Database schema not updated. Please run 'npx prisma generate' and restart the server. Account was NOT deleted."
         };
       }
-      
-      return { 
-        error: `Failed to archive user data: ${archiveError?.message || 'Unknown error'}. Account was NOT deleted to prevent data loss.` 
+
+      return {
+        error: `Failed to archive user data: ${archiveError?.message || 'Unknown error'}. Account was NOT deleted to prevent data loss.`
       };
     }
 

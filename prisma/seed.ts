@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting Seeding...');
-  
+
   // Delete in order respecting foreign key constraints
   // Delete records that reference other records first
   await prisma.review.deleteMany();
@@ -23,7 +23,7 @@ async function main() {
   await prisma.wallet.deleteMany();
   await prisma.address.deleteMany();
   await prisma.user.deleteMany();
-  
+
   // CurrencyRate might not exist if migration hasn't run yet
   try {
     await prisma.currencyRate.deleteMany();
@@ -39,7 +39,7 @@ async function main() {
   const currencyRates = [
     // Euro Zone (all use EUR)
     { code: 'EUR', rate: 1.0, symbol: '€', name: 'Euro' },
-    
+
     // Non-Euro European Countries
     { code: 'BGN', rate: 1.96, symbol: 'лв', name: 'Bulgarian Lev' },
     { code: 'CZK', rate: 25.21, symbol: 'Kč', name: 'Czech Koruna' },
@@ -51,7 +51,7 @@ async function main() {
     { code: 'SEK', rate: 11.42, symbol: 'kr', name: 'Swedish Krona' },
     { code: 'NOK', rate: 11.78, symbol: 'kr', name: 'Norwegian Krone' },
     { code: 'CHF', rate: 0.94, symbol: 'Fr', name: 'Swiss Franc' },
-    
+
     // Additional currencies
     { code: 'USD', rate: 1.08, symbol: '$', name: 'US Dollar' },
     { code: 'GBP', rate: 0.86, symbol: '£', name: 'British Pound' },
@@ -119,6 +119,57 @@ async function main() {
   await prisma.review.create({
     data: { productId: product1.id, userId: user1.id, rating: 5, title: 'Love clarity!', comment: 'Great design.', images: ['/images/reviews/u1.jpg'] },
   });
+
+  // Seed Prescription Pricing (Simplified Bundles)
+  console.log('👓 Seeding Prescription Pricing...');
+
+  // Clear existing pricing tables
+  await prisma.prescriptionLensPrice.deleteMany();
+  await prisma.prescriptionTintFee.deleteMany();
+  await prisma.prescriptionEdgingFee.deleteMany();
+  await prisma.prescriptionProfit.deleteMany();
+
+  // 1. Seed Lens Bundles (Price per single lens = Bundle Price / 2)
+  // We use standard dummy values for index/coating as they are bundled now
+  const lensBundles = [
+    { type: "BASIC", price: 14.50 }, // 29.00 pair
+    { type: "BLUE_FILTER", price: 17.50 }, // 35.00 pair
+    { type: "PHOTOCHROMIC", price: 24.50 }, // 49.00 pair
+    { type: "SUNGLASSES_TINT", price: 22.50 }, // 45.00 pair
+    { type: "SUNGLASSES_GRADIENT", price: 27.50 }, // 55.00 pair
+  ];
+
+  for (const bundle of lensBundles) {
+    await prisma.prescriptionLensPrice.create({
+      data: {
+        lensType: bundle.type,
+        lensIndex: "1.50", // Default
+        coating: "HMC", // Default
+        price: bundle.price,
+      },
+    });
+  }
+
+  // 2. Seed generic Edging Fee (included in bundle price really, but keeping record)
+  // User sheet says "Edging (avg) € / order : 7.50" (BOD cost)
+  // But strictly our bundle price includes it. We'll seed 0 to avoid double adding if logic changes,
+  // or we can seed 7.50 and handle logic in app. 
+  // Let's seed 0.00 since our new logic uses Fixed Bundle Price.
+  const frameTypes = ["FULL_FRAME", "NYLON_FRAME", "RIMLESS_PRESSING", "RIMLESS_INDIVIDUAL", "LINDBERG_COMPLEX"];
+  for (const ft of frameTypes) {
+    await prisma.prescriptionEdgingFee.create({
+      data: { frameType: ft, price: 0.00 },
+    });
+  }
+
+  // 3. Seed Tint Fees (Bundled => 0 extra fee)
+  await prisma.prescriptionTintFee.create({ data: { tintType: "FULL_TINT_CATALOG", price: 0.00 } });
+  await prisma.prescriptionTintFee.create({ data: { tintType: "GRADIENT", price: 0.00 } });
+
+  // 4. Seed Profit (Bundled => 0 extra explicit profit, it's inside the price)
+  await prisma.prescriptionProfit.create({ data: { profit: 0.00 } });
+
+  console.log('✅ Prescription Pricing seeded!');
 
   console.log('✅ Seeding Complete!');
 }

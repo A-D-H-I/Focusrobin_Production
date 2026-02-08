@@ -12,17 +12,31 @@ export interface AvailableColor {
  * Get all available frame colors from products
  * Returns unique colors with their hex codes and product counts
  * Shows all colors regardless of stock (for display purposes)
+ * @param type 'sunglasses' | 'eyeglasses' - Product type to fetch colors for
  */
-export async function getAvailableFrameColors(): Promise<AvailableColor[]> {
+export async function getAvailableFrameColors(type: 'sunglasses' | 'eyeglasses' = 'sunglasses'): Promise<AvailableColor[]> {
   try {
-    // Fetch all variants (including those with 0 stock for display)
-    const variants = await prisma.productVariant.findMany({
-      select: {
-        colorName: true,
-        colorHex: true,
-        stock: true,
-      },
-    });
+    let variants;
+
+    if (type === 'eyeglasses') {
+      // Fetch prescription glasses variants
+      variants = await prisma.prescriptionGlassesVariant.findMany({
+        select: {
+          colorName: true,
+          colorHex: true,
+          stock: true,
+        },
+      });
+    } else {
+      // Fetch sunglasses variants (default)
+      variants = await prisma.productVariant.findMany({
+        select: {
+          colorName: true,
+          colorHex: true,
+          stock: true,
+        },
+      });
+    }
 
     // Group by both colorName AND colorHex to show distinct colors
     // Use a composite key: "colorName|colorHex" to ensure uniqueness
@@ -32,7 +46,7 @@ export async function getAvailableFrameColors(): Promise<AvailableColor[]> {
       const normalizedHex = variant.colorHex.toLowerCase().trim();
       const normalizedName = variant.colorName.trim();
       const key = `${normalizedName}|${normalizedHex}`;
-      
+
       if (colorMap.has(key)) {
         const existing = colorMap.get(key)!;
         existing.count += 1;

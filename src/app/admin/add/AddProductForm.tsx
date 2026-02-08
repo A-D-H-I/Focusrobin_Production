@@ -48,6 +48,33 @@ export function AddProductForm() {
     },
   ]);
 
+  // Dynamic Features State
+  const [isPolarized, setIsPolarized] = useState(false);
+  const [isUVProtection, setIsUVProtection] = useState(false);
+  const [isHydrophobic, setIsHydrophobic] = useState(false);
+  const [isAntiScratch, setIsAntiScratch] = useState(false);
+  const [isBioBased, setIsBioBased] = useState(false);
+  const [warranty, setWarranty] = useState('2 Years Warranty');
+  const [customFeatures, setCustomFeatures] = useState('');
+
+  // Product Highlights State
+  const [showHighlights, setShowHighlights] = useState(false);
+  const [highlights, setHighlights] = useState<Array<{ title: string; description: string; imageUrl: string }>>([]);
+
+  const addHighlight = () => {
+    setHighlights([...highlights, { title: '', description: '', imageUrl: '' }]);
+  };
+
+  const removeHighlight = (index: number) => {
+    setHighlights(highlights.filter((_, i) => i !== index));
+  };
+
+  const updateHighlight = (index: number, field: 'title' | 'description' | 'imageUrl', value: string) => {
+    const updated = [...highlights];
+    updated[index] = { ...updated[index], [field]: value };
+    setHighlights(updated);
+  };
+
   // Calculate discounted price
   const calculateDiscountedPrice = () => {
     if (!basePrice || !discountPct) return '';
@@ -114,6 +141,17 @@ export function AddProductForm() {
     formData.set('genderCount', genders.length.toString());
     formData.set('discountPct', discountPct || '0');
 
+    // Add dynamic feature flags
+    if (isPolarized) formData.append('isPolarized', 'on');
+    if (isUVProtection) formData.append('isUVProtection', 'on');
+    if (isHydrophobic) formData.append('isHydrophobic', 'on');
+    if (isAntiScratch) formData.append('isAntiScratch', 'on');
+    if (isBioBased) formData.append('isBioBased', 'on');
+
+    // Add custom features and warranty
+    formData.append('warranty', warranty);
+    formData.append('customFeatures', customFeatures);
+
     // Add variant count
     formData.append('variantCount', variants.length.toString());
 
@@ -140,6 +178,16 @@ export function AddProductForm() {
       if (variant.asset_gallery) {
         formData.append(`variant-${index}-asset_gallery`, variant.asset_gallery);
       }
+    });
+
+    // Add Product Highlights
+    if (showHighlights) formData.append('showHighlights', 'on');
+    formData.append('highlightCount', highlights.length.toString());
+
+    highlights.forEach((highlight, index) => {
+      formData.append(`highlight-${index}-title`, highlight.title);
+      formData.append(`highlight-${index}-description`, highlight.description);
+      formData.append(`highlight-${index}-image`, highlight.imageUrl);
     });
 
     const result = await createProduct(formData);
@@ -176,13 +224,19 @@ export function AddProductForm() {
               <Input id="name" name="name" required placeholder="e.g., The Horizon" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug *</Label>
-              <Input id="slug" name="slug" required placeholder="e.g., the-horizon" />
+              <Label htmlFor="slug">Slug (URL-friendly)</Label>
+              <Input id="slug" name="slug" placeholder="cool-sunglasses" required />
+              <p className="text-xs text-muted-foreground">Will be auto-generated from name if left empty.</p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="brand">Brand</Label>
+            <Input id="brand" name="brand" placeholder="FocusRobin" defaultValue="FocusRobin" />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="description">Description (Markdown supported)</Label>
             <Textarea
               id="description"
               name="description"
@@ -229,9 +283,9 @@ export function AddProductForm() {
                       className="text-sm font-normal cursor-pointer"
                     >
                       {genderOption === Gender.MEN ? 'Men' :
-                       genderOption === Gender.WOMEN ? 'Women' :
-                       genderOption === Gender.UNISEX ? 'Unisex' :
-                       genderOption === Gender.KIDS ? 'Kids' : genderOption}
+                        genderOption === Gender.WOMEN ? 'Women' :
+                          genderOption === Gender.UNISEX ? 'Unisex' :
+                            genderOption === Gender.KIDS ? 'Kids' : genderOption}
                     </Label>
                   </div>
                 ))}
@@ -416,12 +470,86 @@ export function AddProductForm() {
                 placeholder="e.g., Cat Eye, Rectangle, Round"
               />
               <p className="text-xs text-muted-foreground">
-                Optional. Enter the glass shape (e.g., Cat Eye, Rectangle, Round, Aviator). 
+                Optional. Enter the glass shape (e.g., Cat Eye, Rectangle, Round, Aviator).
                 The shape will be automatically created in <Link href="/admin/shapes" className="text-primary hover:underline" target="_blank">Shape Management</Link> where you can add an image for the mega menu.
               </p>
             </div>
           </div>
-          
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
+            <div className="space-y-3">
+              <Label>Product Features</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isPolarized"
+                    checked={isPolarized}
+                    onCheckedChange={(c) => setIsPolarized(!!c)}
+                  />
+                  <Label htmlFor="isPolarized" className="font-normal cursor-pointer">Polarized</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isUVProtection"
+                    checked={isUVProtection}
+                    onCheckedChange={(c) => setIsUVProtection(!!c)}
+                  />
+                  <Label htmlFor="isUVProtection" className="font-normal cursor-pointer">UV Protection</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isHydrophobic"
+                    checked={isHydrophobic}
+                    onCheckedChange={(c) => setIsHydrophobic(!!c)}
+                  />
+                  <Label htmlFor="isHydrophobic" className="font-normal cursor-pointer">Hydrophobic</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isAntiScratch"
+                    checked={isAntiScratch}
+                    onCheckedChange={(c) => setIsAntiScratch(!!c)}
+                  />
+                  <Label htmlFor="isAntiScratch" className="font-normal cursor-pointer">Anti-Scratch</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isBioBased"
+                    checked={isBioBased}
+                    onCheckedChange={(c) => setIsBioBased(!!c)}
+                  />
+                  <Label htmlFor="isBioBased" className="font-normal cursor-pointer">Bio Based</Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="warranty">Warranty</Label>
+                  <Input
+                    id="warranty"
+                    name="warranty"
+                    value={warranty}
+                    onChange={(e) => setWarranty(e.target.value)}
+                    placeholder="e.g., 2 Years Warranty"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customFeatures">Custom Features (comma-separated)</Label>
+                  <Input
+                    id="customFeatures"
+                    name="customFeatures"
+                    value={customFeatures}
+                    onChange={(e) => setCustomFeatures(e.target.value)}
+                    placeholder="e.g., Handmade in Italy, Limited Edition"
+                  />
+                  <p className="text-xs text-muted-foreground">Additional features to display as tags.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </CardContent>
       </Card>
 

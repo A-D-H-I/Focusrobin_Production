@@ -15,6 +15,9 @@ import { Logo } from "@/components/Landing/logo";
 import PromotionalBanner from "@/components/Landing/promotional-banner";
 import LanguageSwitcher from "@/components/ui/LanguageSwitcher";
 import CurrencySwitcher from "@/components/ui/CurrencySwitcher";
+import { getAvailableFrameColors, type AvailableColor } from "@/app/actions/getAvailableColors";
+import { getAvailableGlassShapes, type AvailableGlassShape } from "@/app/actions/getAvailableGlassShapes";
+import { getAvailableBrands, type AvailableBrand } from "@/app/actions/getAvailableBrands";
 import ShopMegaMenu from "@/components/Landing/shop-mega-menu";
 import TranslatableText from "@/components/ui/TranslatableText";
 import { supportedLanguages } from "@/lib/languageData";
@@ -50,46 +53,150 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isShopMenuOpen, setIsShopMenuOpen] = useState(false);
-  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
-  const sidebarSearchInputRef = useRef<HTMLInputElement>(null);
-  const shopMenuRef = useRef<HTMLDivElement>(null);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const [isSunglassesMenuOpen, setIsSunglassesMenuOpen] = useState(false);
+  const [isEyeglassesMenuOpen, setIsEyeglassesMenuOpen] = useState(false);
+  const [mobileSunglassesOpen, setMobileSunglassesOpen] = useState(false);
+  const [mobileEyeglassesOpen, setMobileEyeglassesOpen] = useState(false);
 
-  // Close shop menu when sidebar closes
-  useEffect(() => {
-    if (!isSidebarOpen) {
-      setIsShopMenuOpen(false);
-    }
-  }, [isSidebarOpen]);
+  // Data for mega menus
+  const [sunglassesColors, setSunglassesColors] = useState<AvailableColor[]>([]);
+  const [sunglassesShapes, setSunglassesShapes] = useState<AvailableGlassShape[]>([]);
+  const [sunglassesBrands, setSunglassesBrands] = useState<AvailableBrand[]>([]);
+  const [eyeglassesColors, setEyeglassesColors] = useState<AvailableColor[]>([]);
+  const [eyeglassesShapes, setEyeglassesShapes] = useState<AvailableGlassShape[]>([]);
+  const [eyeglassesBrands, setEyeglassesBrands] = useState<AvailableBrand[]>([]);
 
-  // Handle click outside for shop menu on desktop
+  // Fetch mega menu data on mount
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        isShopMenuOpen &&
-        shopMenuRef.current &&
-        !shopMenuRef.current.contains(event.target as Node) &&
-        window.innerWidth >= 1280
-      ) {
-        setIsShopMenuOpen(false);
+    async function fetchMenuData() {
+      try {
+        const [
+          sgColors,
+          sgShapes,
+          sgBrands,
+          egColors,
+          egShapes,
+          egBrands
+        ] = await Promise.all([
+          getAvailableFrameColors('sunglasses'),
+          getAvailableGlassShapes('sunglasses'),
+          getAvailableBrands('sunglasses'),
+          getAvailableFrameColors('eyeglasses'),
+          getAvailableGlassShapes('eyeglasses'),
+          getAvailableBrands('eyeglasses')
+        ]);
+
+        setSunglassesColors(sgColors);
+        setSunglassesShapes(sgShapes);
+        setSunglassesBrands(sgBrands);
+        setEyeglassesColors(egColors);
+        setEyeglassesShapes(egShapes);
+        setEyeglassesBrands(egBrands);
+      } catch (error) {
+        console.error("Error fetching menu data:", error);
       }
     }
 
-    if (isShopMenuOpen) {
+    fetchMenuData();
+  }, []);
+
+  // Refs
+  const sunglassesMenuRef = useRef<HTMLDivElement>(null);
+  const eyeglassesMenuRef = useRef<HTMLDivElement>(null);
+  const sidebarSearchInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Search State
+  const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+
+  const [navbarSettings, setNavbarSettings] = useState<{
+    iconColorNotScrolled: string;
+    logoColorNotScrolled: string;
+  } | null>(null);
+
+  // Timer for closing mega menus with delay
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const startCloseMenuTimer = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
+      setIsSunglassesMenuOpen(false);
+      setIsEyeglassesMenuOpen(false);
+    }, 300); // 300ms delay to allow moving between link and menu
+  };
+
+  const stopCloseMenuTimer = () => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
+  };
+
+  const handleLinkEnter = (menu: 'sunglasses' | 'eyeglasses') => {
+    stopCloseMenuTimer();
+    if (window.innerWidth >= 1280) {
+      if (menu === 'sunglasses') {
+        setIsSunglassesMenuOpen(true);
+        setIsEyeglassesMenuOpen(false);
+      } else {
+        setIsEyeglassesMenuOpen(true);
+        setIsSunglassesMenuOpen(false);
+      }
+    }
+  };
+
+  // Close menus when sidebar closes
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      setIsSunglassesMenuOpen(false);
+      setIsEyeglassesMenuOpen(false);
+    }
+  }, [isSidebarOpen]);
+
+  // Handle click outside for menus on desktop
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (window.innerWidth >= 1280) {
+        const target = event.target as HTMLElement;
+
+        // If the click is on an anchor tag or inside one, let it navigate - don't close
+        if (target.tagName === 'A' || target.closest('a')) {
+          return;
+        }
+
+        // Also check if click is inside a mega menu (z-[110] elements)
+        const clickedElement = document.elementFromPoint(event.clientX, event.clientY);
+        if (clickedElement && clickedElement.closest('[class*="z-[110]"]')) {
+          return;
+        }
+
+        if (
+          isSunglassesMenuOpen &&
+          sunglassesMenuRef.current &&
+          !sunglassesMenuRef.current.contains(event.target as Node)
+        ) {
+          setIsSunglassesMenuOpen(false);
+        }
+        if (
+          isEyeglassesMenuOpen &&
+          eyeglassesMenuRef.current &&
+          !eyeglassesMenuRef.current.contains(event.target as Node)
+        ) {
+          setIsEyeglassesMenuOpen(false);
+        }
+      }
+    }
+
+    if (isSunglassesMenuOpen || isEyeglassesMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isShopMenuOpen]);
-  const [navbarSettings, setNavbarSettings] = useState<{
-    iconColorNotScrolled: string;
-    logoColorNotScrolled: string;
-  } | null>(null);
+  }, [isSunglassesMenuOpen, isEyeglassesMenuOpen]);
 
   // Load navbar settings
   useEffect(() => {
@@ -328,8 +435,8 @@ export default function Header() {
   };
 
   const navLinks = [
-    { href: "/shop", label: "Shop" },
-    { href: "/about", label: "About" },
+    { href: "/shop", label: "Sunglasses" },
+    { href: "/shop/prescription-glasses", label: "Eyeglasses" },
     { href: "/contact", label: "Contact" },
   ];
 
@@ -379,27 +486,22 @@ export default function Header() {
             {/* Center Section - Navigation Links - Centered between logo and right section */}
             <nav className="flex items-center justify-center gap-8 z-20 flex-1">
               {/* Shop Link with Mega Menu */}
+              {/* Sunglasses Link with Mega Menu */}
               <div
-                ref={shopMenuRef}
+                ref={sunglassesMenuRef}
                 className="relative"
-                onMouseEnter={() => {
-                  if (window.innerWidth >= 1280) {
-                    setIsShopMenuOpen(true);
-                  }
-                }}
-                onMouseLeave={() => {
-                  // Don't close immediately - let the menu handle its own close with delay
-                }}
+                onMouseEnter={() => handleLinkEnter('sunglasses')}
+                onMouseLeave={startCloseMenuTimer}
               >
                 <Link
                   href="/shop"
                   onClick={() => {
-                    setIsShopMenuOpen(false);
+                    setIsSunglassesMenuOpen(false);
                   }}
                   className={cn(
                     "text-sm font-bold whitespace-nowrap cursor-pointer py-2 px-2 relative bg-transparent border-none block",
                     "after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-brand-teal after:transition-all after:duration-300 hover:after:w-full",
-                    isSidebarOpen || isScrolled
+                    (isSidebarOpen || isScrolled)
                       ? 'text-brand-blue hover:text-brand-teal'
                       : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
                         ? 'text-white hover:text-brand-teal'
@@ -412,66 +514,77 @@ export default function Header() {
                     : undefined
                   }
                 >
-                  <TranslatableText text="Shop" />
+                  <TranslatableText text="Sunglasses" />
                 </Link>
-                <ShopMegaMenu
-                  isOpen={isShopMenuOpen}
-                  onClose={() => setIsShopMenuOpen(false)}
-                  isScrolled={isScrolled}
-                />
-              </div>
+
+
+              </div >
+
+              {/* Eyeglasses Link with Mega Menu */}
+              < div
+                ref={eyeglassesMenuRef}
+                className="relative"
+                onMouseEnter={() => handleLinkEnter('eyeglasses')}
+                onMouseLeave={startCloseMenuTimer}
+              >
+                <Link
+                  href="/shop/prescription-glasses"
+                  onClick={() => {
+                    setIsEyeglassesMenuOpen(false);
+                  }}
+                  className={cn(
+                    "text-sm font-bold whitespace-nowrap cursor-pointer py-2 px-2 relative bg-transparent border-none block",
+                    "after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-brand-teal after:transition-all after:duration-300 hover:after:w-full",
+                    (isSidebarOpen || isScrolled)
+                      ? 'text-brand-blue hover:text-brand-teal'
+                      : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                        ? 'text-white hover:text-brand-teal'
+                        : navbarSettings?.iconColorNotScrolled === 'black'
+                          ? 'text-black hover:text-brand-teal'
+                          : 'text-brand-blue hover:text-brand-teal'
+                  )}
+                  style={!isScrolled && !isSidebarOpen && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                    ? { color: navbarSettings.iconColorNotScrolled }
+                    : undefined
+                  }
+                >
+                  <TranslatableText text="Eyeglasses" />
+                </Link>
+
+              </div >
 
               {/* About Link */}
-              <Link
-                href="/about"
-                prefetch={true}
-                className={cn(
-                  "text-sm font-bold whitespace-nowrap py-2 px-2 relative",
-                  "after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-brand-teal after:transition-all after:duration-300 hover:after:w-full",
-                  isSidebarOpen || isScrolled
-                    ? 'text-brand-blue hover:text-brand-teal'
-                    : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                      ? 'text-white hover:text-brand-teal'
-                      : navbarSettings?.iconColorNotScrolled === 'black'
-                        ? 'text-black hover:text-brand-teal'
-                        : 'text-brand-blue hover:text-brand-teal'
-                )}
-                style={!isScrolled && !isSidebarOpen && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
-                  ? { color: navbarSettings.iconColorNotScrolled }
-                  : undefined
-                }
-              >
-                <TranslatableText text="About" />
-              </Link>
+
 
               {/* Contact Link */}
-              <Link
+              < Link
                 href="/contact"
                 prefetch={true}
-                className={cn(
-                  "text-sm font-bold whitespace-nowrap py-2 px-2 relative",
-                  "after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-brand-teal after:transition-all after:duration-300 hover:after:w-full",
-                  isSidebarOpen || isScrolled
-                    ? 'text-brand-blue hover:text-brand-teal'
-                    : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                      ? 'text-white hover:text-brand-teal'
-                      : navbarSettings?.iconColorNotScrolled === 'black'
-                        ? 'text-black hover:text-brand-teal'
-                        : 'text-brand-blue hover:text-brand-teal'
-                )}
+                className={
+                  cn(
+                    "text-sm font-bold whitespace-nowrap py-2 px-2 relative",
+                    "after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-0 after:bg-brand-teal after:transition-all after:duration-300 hover:after:w-full",
+                    isSidebarOpen || isScrolled
+                      ? 'text-brand-blue hover:text-brand-teal'
+                      : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                        ? 'text-white hover:text-brand-teal'
+                        : navbarSettings?.iconColorNotScrolled === 'black'
+                          ? 'text-black hover:text-brand-teal'
+                          : 'text-brand-blue hover:text-brand-teal'
+                  )}
                 style={!isScrolled && !isSidebarOpen && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
                   ? { color: navbarSettings.iconColorNotScrolled }
                   : undefined
                 }
               >
                 <TranslatableText text="Contact" />
-              </Link>
-            </nav>
+              </Link >
+            </nav >
 
             {/* Right Section - Search, Language, Currency, Icons */}
-            <div className="flex justify-end items-center space-x-2 xl:space-x-4 z-10 flex-1">
+            < div className="flex justify-end items-center space-x-3 xl:space-x-5 z-10 flex-1" >
               {/* Search Input with Suggestions */}
-              <div ref={searchContainerRef} className="relative hidden xl:block">
+              < div ref={searchContainerRef} className="relative hidden xl:block" >
                 <form onSubmit={handleSearch} className="relative">
                   <Search
                     className={cn(
@@ -538,87 +651,91 @@ export default function Header() {
                 </form>
 
                 {/* Search Suggestions Dropdown */}
-                {showSuggestions && (searchSuggestions.length > 0 || isLoadingSuggestions) && (
-                  <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-                    {isLoadingSuggestions ? (
-                      <div className="p-4 text-center text-muted-foreground">
-                        <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
-                        <p className="text-sm">Searching...</p>
-                      </div>
-                    ) : searchSuggestions.length > 0 ? (
-                      <div className="py-2">
-                        {searchSuggestions.map((suggestion) => (
-                          <button
-                            key={suggestion.id}
-                            onClick={() => handleSuggestionClick(suggestion.slug)}
-                            className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
-                          >
-                            {suggestion.image && (
-                              <div className="relative w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-muted">
-                                <Image
-                                  src={suggestion.image}
-                                  alt={suggestion.name}
-                                  fill
-                                  className="object-cover"
-                                  sizes="48px"
-                                />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-foreground truncate">{suggestion.name}</p>
-                              {suggestion.category && (
-                                <p className="text-xs text-muted-foreground">{suggestion.category}</p>
-                              )}
-                              <p className="text-sm font-semibold text-brand-blue mt-0.5">
-                                €{suggestion.price.toFixed(2)}
-                              </p>
-                            </div>
-                          </button>
-                        ))}
-                        <div className="border-t border-border pt-2">
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleSearch(e as any);
-                            }}
-                            className="w-full px-4 py-2 text-sm font-medium text-brand-teal hover:bg-muted/50 transition-colors text-left"
-                          >
-                            View all results for "{searchQuery}"
-                          </button>
+                {
+                  showSuggestions && (searchSuggestions.length > 0 || isLoadingSuggestions) && (
+                    <div className="absolute top-full left-0 mt-1 w-80 bg-white border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                      {isLoadingSuggestions ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                          <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                          <p className="text-sm">Searching...</p>
                         </div>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-              </div>
+                      ) : searchSuggestions.length > 0 ? (
+                        <div className="py-2">
+                          {searchSuggestions.map((suggestion) => (
+                            <button
+                              key={suggestion.id}
+                              onClick={() => handleSuggestionClick(suggestion.slug)}
+                              className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                            >
+                              {suggestion.image && (
+                                <div className="relative w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-muted">
+                                  <Image
+                                    src={suggestion.image}
+                                    alt={suggestion.name}
+                                    fill
+                                    className="object-cover"
+                                    sizes="48px"
+                                  />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-foreground truncate">{suggestion.name}</p>
+                                {suggestion.category && (
+                                  <p className="text-xs text-muted-foreground">{suggestion.category}</p>
+                                )}
+                                <p className="text-sm font-semibold text-brand-blue mt-0.5">
+                                  €{suggestion.price.toFixed(2)}
+                                </p>
+                              </div>
+                            </button>
+                          ))}
+                          <div className="border-t border-border pt-2">
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleSearch(e as any);
+                              }}
+                              className="w-full px-4 py-2 text-sm font-medium text-brand-teal hover:bg-muted/50 transition-colors text-left"
+                            >
+                              View all results for "{searchQuery}"
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )
+                }
+              </div >
 
               {/* Search Button for smaller screens */}
-              <Button
+              < Button
                 variant="ghost"
                 size="icon"
-                className={cn(
-                  "xl:hidden h-7 w-7 transition-colors duration-300",
-                  isSidebarOpen
-                    ? 'text-brand-blue hover:bg-accent hover:text-brand-blue'
-                    : isScrolled
+                className={
+                  cn(
+                    "xl:hidden h-7 w-7 transition-colors duration-300",
+                    isSidebarOpen
                       ? 'text-brand-blue hover:bg-accent hover:text-brand-blue'
-                      : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                        ? 'text-white hover:bg-white/10 hover:text-white'
-                        : navbarSettings.iconColorNotScrolled === 'black'
-                          ? 'text-black hover:bg-black/10 hover:text-black'
-                          : ''
-                )}
-                style={isSidebarOpen
-                  ? undefined
-                  : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
-                    ? { color: navbarSettings.iconColorNotScrolled }
-                    : undefined)
+                      : isScrolled
+                        ? 'text-brand-blue hover:bg-accent hover:text-brand-blue'
+                        : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                          ? 'text-white hover:bg-white/10 hover:text-white'
+                          : navbarSettings.iconColorNotScrolled === 'black'
+                            ? 'text-black hover:bg-black/10 hover:text-black'
+                            : ''
+                  )}
+                style={
+                  isSidebarOpen
+                    ? undefined
+                    : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                      ? { color: navbarSettings.iconColorNotScrolled }
+                      : undefined)
                 }
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
               >
                 <Search className="h-2.5 w-2.5" />
                 <span className="sr-only">Search</span>
-              </Button>
+              </Button >
 
               <div
                 className={cn(
@@ -692,7 +809,7 @@ export default function Header() {
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "h-7 w-7 transition-colors duration-300 relative",
+                    "h-8 w-8 transition-colors duration-300 relative",
                     isSidebarOpen
                       ? 'text-brand-blue hover:bg-accent hover:text-brand-blue'
                       : isScrolled
@@ -710,7 +827,7 @@ export default function Header() {
                       : undefined)
                   }
                 >
-                  <Heart className="h-3.5 w-3.5" />
+                  <Heart className="h-4 w-4" />
                   {wishlistItems.length > 0 && (
                     <span className="absolute -top-1 -right-1 h-4 w-4 bg-[#F56278] rounded-full border-2 border-white"></span>
                   )}
@@ -723,7 +840,7 @@ export default function Header() {
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    "h-7 w-7 transition-colors duration-300 relative",
+                    "h-8 w-8 transition-colors duration-300 relative",
                     isSidebarOpen
                       ? 'text-brand-blue hover:bg-accent hover:text-brand-blue'
                       : isScrolled
@@ -741,7 +858,7 @@ export default function Header() {
                       : undefined)
                   }
                 >
-                  <ShoppingCart className="h-3.5 w-3.5" />
+                  <ShoppingCart className="h-4 w-4" />
                   {getCartItemCount() > 0 && (
                     <span className="absolute -top-1 -right-1 h-4 w-4 bg-[#F56278] rounded-full border-2 border-white"></span>
                   )}
@@ -753,131 +870,134 @@ export default function Header() {
                 isScrolled={isScrolled || isSidebarOpen}
                 iconColorNotScrolled={navbarSettings?.iconColorNotScrolled}
               />
-            </div>
+            </div >
 
             {/* Search Input for smaller desktop screens */}
-            {isSearchOpen && (
-              <div className={cn(
-                "hidden xl:block absolute top-full left-0 right-0 w-full p-4 backdrop-blur-sm border-b z-50",
-                isSidebarOpen
-                  ? "bg-[#EFFAFA]/95"
-                  : "bg-background/95"
-              )}>
-                <div className="container mx-auto px-4 sm:px-6">
-                  <div className="relative max-w-md mx-auto">
-                    <form onSubmit={handleSearch} className="relative">
-                      <Search className={cn(
-                        "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors duration-300",
-                        isSidebarOpen
-                          ? 'text-brand-blue'
-                          : isScrolled
-                            ? 'text-muted-foreground'
-                            : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
-                              ? 'text-white'
-                              : navbarSettings.iconColorNotScrolled === 'black'
-                                ? 'text-black'
-                                : ''
-                      )}
-                        style={isSidebarOpen
-                          ? undefined
-                          : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
-                            ? { color: navbarSettings.iconColorNotScrolled }
-                            : undefined)
-                        } />
-                      <Input
-                        type="search"
-                        placeholder="Search..."
-                        value={searchQuery}
-                        onChange={(e) => {
-                          setSearchQuery(e.target.value);
-                          if (e.target.value.trim().length >= 2) {
-                            setShowSuggestions(true);
-                          } else {
-                            setShowSuggestions(false);
-                          }
-                        }}
-                        onFocus={() => {
-                          if (searchQuery.trim().length >= 2 && searchSuggestions.length > 0) {
-                            setShowSuggestions(true);
-                          }
-                        }}
-                        className="pl-9 pr-4 h-9 w-full"
-                        autoFocus
-                      />
-                    </form>
+            {
+              isSearchOpen && (
+                <div className={cn(
+                  "hidden xl:block absolute top-full left-0 right-0 w-full p-4 backdrop-blur-sm border-b z-50",
+                  isSidebarOpen
+                    ? "bg-[#EFFAFA]/95"
+                    : "bg-background/95"
+                )}>
+                  <div className="container mx-auto px-4 sm:px-6">
+                    <div className="relative max-w-md mx-auto">
+                      <form onSubmit={handleSearch} className="relative">
+                        <Search className={cn(
+                          "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors duration-300",
+                          isSidebarOpen
+                            ? 'text-brand-blue'
+                            : isScrolled
+                              ? 'text-muted-foreground'
+                              : navbarSettings?.iconColorNotScrolled === 'white' || !navbarSettings
+                                ? 'text-white'
+                                : navbarSettings.iconColorNotScrolled === 'black'
+                                  ? 'text-black'
+                                  : ''
+                        )}
+                          style={isSidebarOpen
+                            ? undefined
+                            : (!isScrolled && navbarSettings && navbarSettings.iconColorNotScrolled !== 'white' && navbarSettings.iconColorNotScrolled !== 'black'
+                              ? { color: navbarSettings.iconColorNotScrolled }
+                              : undefined)
+                          } />
+                        <Input
+                          type="search"
+                          placeholder="Search..."
+                          value={searchQuery}
+                          onChange={(e) => {
+                            setSearchQuery(e.target.value);
+                            if (e.target.value.trim().length >= 2) {
+                              setShowSuggestions(true);
+                            } else {
+                              setShowSuggestions(false);
+                            }
+                          }}
+                          onFocus={() => {
+                            if (searchQuery.trim().length >= 2 && searchSuggestions.length > 0) {
+                              setShowSuggestions(true);
+                            }
+                          }}
+                          className="pl-9 pr-4 h-9 w-full"
+                          autoFocus
+                        />
+                      </form>
 
-                    {/* Search Suggestions Dropdown */}
-                    {showSuggestions && (searchSuggestions.length > 0 || isLoadingSuggestions) && (
-                      <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
-                        {isLoadingSuggestions ? (
-                          <div className="p-4 text-center text-muted-foreground">
-                            <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
-                            <p className="text-sm">Searching...</p>
-                          </div>
-                        ) : searchSuggestions.length > 0 ? (
-                          <div className="py-2">
-                            {searchSuggestions.map((suggestion) => (
-                              <button
-                                key={suggestion.id}
-                                onClick={() => handleSuggestionClick(suggestion.slug)}
-                                className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
-                              >
-                                {suggestion.image && (
-                                  <div className="relative w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-muted">
-                                    <Image
-                                      src={suggestion.image}
-                                      alt={suggestion.name}
-                                      fill
-                                      className="object-cover"
-                                      sizes="48px"
-                                    />
-                                  </div>
-                                )}
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-foreground truncate">{suggestion.name}</p>
-                                  {suggestion.category && (
-                                    <p className="text-xs text-muted-foreground">{suggestion.category}</p>
-                                  )}
-                                  <p className="text-sm font-semibold text-brand-blue mt-0.5">
-                                    €{suggestion.price.toFixed(2)}
-                                  </p>
-                                </div>
-                              </button>
-                            ))}
-                            <div className="border-t border-border pt-2">
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleSearch(e as any);
-                                }}
-                                className="w-full px-4 py-2 text-sm font-medium text-brand-teal hover:bg-muted/50 transition-colors text-left"
-                              >
-                                View all results for "{searchQuery}"
-                              </button>
+                      {/* Search Suggestions Dropdown */}
+                      {showSuggestions && (searchSuggestions.length > 0 || isLoadingSuggestions) && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                          {isLoadingSuggestions ? (
+                            <div className="p-4 text-center text-muted-foreground">
+                              <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                              <p className="text-sm">Searching...</p>
                             </div>
-                          </div>
-                        ) : null}
-                      </div>
-                    )}
+                          ) : searchSuggestions.length > 0 ? (
+                            <div className="py-2">
+                              {searchSuggestions.map((suggestion) => (
+                                <button
+                                  key={suggestion.id}
+                                  onClick={() => handleSuggestionClick(suggestion.slug)}
+                                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-muted/50 transition-colors text-left"
+                                >
+                                  {suggestion.image && (
+                                    <div className="relative w-12 h-12 flex-shrink-0 rounded overflow-hidden bg-muted">
+                                      <Image
+                                        src={suggestion.image}
+                                        alt={suggestion.name}
+                                        fill
+                                        className="object-cover"
+                                        sizes="48px"
+                                      />
+                                    </div>
+                                  )}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-foreground truncate">{suggestion.name}</p>
+                                    {suggestion.category && (
+                                      <p className="text-xs text-muted-foreground">{suggestion.category}</p>
+                                    )}
+                                    <p className="text-sm font-semibold text-brand-blue mt-0.5">
+                                      €{suggestion.price.toFixed(2)}
+                                    </p>
+                                  </div>
+                                </button>
+                              ))}
+                              <div className="border-t border-border pt-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    handleSearch(e as any);
+                                  }}
+                                  className="w-full px-4 py-2 text-sm font-medium text-brand-teal hover:bg-muted/50 transition-colors text-left"
+                                >
+                                  View all results for "{searchQuery}"
+                                </button>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )
+            }
+          </div >
 
           {/* Mobile/Tablet Layout (below xl) */}
-          <div
-            className={cn(
-              "xl:hidden flex items-center justify-between w-full transition-all duration-300 px-2 sm:px-4",
-              isSidebarOpen
-                ? "h-14 sm:h-16"
-                : !isHomePage
-                  ? "h-16 sm:h-20"
-                  : (isScrolled ? "h-16 sm:h-20" : "h-20 sm:h-24")
-            )}
+          < div
+            className={
+              cn(
+                "xl:hidden flex items-center justify-between w-full transition-all duration-300 px-2 sm:px-4",
+                isSidebarOpen
+                  ? "h-14 sm:h-16"
+                  : !isHomePage
+                    ? "h-16 sm:h-20"
+                    : (isScrolled ? "h-16 sm:h-20" : "h-20 sm:h-24")
+              )}
           >
             {/* Mobile Logo */}
-            <div className="flex-shrink-0 min-w-[100px] sm:min-w-[120px] md:min-w-[140px]">
+            < div className="flex-shrink-0 min-w-[100px] sm:min-w-[120px] md:min-w-[140px]" >
               <Logo
                 className={cn(
                   "transition-all duration-300 max-h-7 sm:max-h-8",
@@ -885,12 +1005,12 @@ export default function Header() {
                 )}
                 logoColor={isSidebarOpen ? undefined : (!isScrolled && navbarSettings ? navbarSettings.logoColorNotScrolled : undefined)}
               />
-            </div>
+            </div >
 
             {/* Mobile Right Icons */}
-            <div className="flex items-center gap-1 sm:gap-2">
+            < div className="flex items-center gap-1 sm:gap-2" >
               {/* Right Icons for Mobile/Tablet - Account, Cart, Wishlist */}
-              <Link href="/wishlist" prefetch={true} className="xl:hidden">
+              < Link href="/wishlist" prefetch={true} className="xl:hidden" >
                 <Button
                   variant="ghost"
                   size="icon"
@@ -919,7 +1039,7 @@ export default function Header() {
                   )}
                   <span className="sr-only">Wishlist</span>
                 </Button>
-              </Link>
+              </Link >
 
               <Link href="/cart" prefetch={true} className="xl:hidden">
                 <Button
@@ -1167,7 +1287,7 @@ export default function Header() {
                     {/* Navigation Links - Chillax font, text-2xl, bold, with dividers */}
                     <nav className="flex flex-col flex-1 overflow-y-auto">
                       {navLinks.map((link, index) => {
-                        if (link.label === "Shop") {
+                        if (link.label === "Sunglasses") {
                           return (
                             <div key={link.href + link.label}>
                               {index > 0 && (
@@ -1178,17 +1298,17 @@ export default function Header() {
                                   type="button"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setIsShopMenuOpen(prev => !prev);
+                                    setMobileSunglassesOpen(prev => !prev);
                                   }}
                                   className="font-body text-2xl font-bold hover:text-primary active:text-primary transition-colors text-foreground py-2 flex-shrink-0 w-full text-left flex items-center justify-between cursor-pointer relative z-10 touch-manipulation select-none"
                                   style={{ WebkitTapHighlightColor: 'transparent' }}
                                 >
                                   <span><TranslatableText text={link.label} /></span>
                                   <span className="text-lg select-none ml-2 pointer-events-none">
-                                    {isShopMenuOpen ? '−' : '+'}
+                                    {mobileSunglassesOpen ? '−' : '+'}
                                   </span>
                                 </button>
-                                {isShopMenuOpen && (
+                                {mobileSunglassesOpen && (
                                   <div className="pl-4 space-y-2 border-l-2 border-gray-200">
                                     <Link href="/shop" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
                                       e.stopPropagation();
@@ -1232,6 +1352,71 @@ export default function Header() {
                             </div>
                           );
                         }
+                        if (link.label === "Eyeglasses") {
+                          return (
+                            <div key={link.href + link.label}>
+                              {index > 0 && (
+                                <div className="border-t border-gray-200 my-3"></div>
+                              )}
+                              <div className="space-y-2">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setMobileEyeglassesOpen(prev => !prev);
+                                  }}
+                                  className="font-body text-2xl font-bold hover:text-primary active:text-primary transition-colors text-foreground py-2 flex-shrink-0 w-full text-left flex items-center justify-between cursor-pointer relative z-10 touch-manipulation select-none"
+                                  style={{ WebkitTapHighlightColor: 'transparent' }}
+                                >
+                                  <span><TranslatableText text={link.label} /></span>
+                                  <span className="text-lg select-none ml-2 pointer-events-none">
+                                    {mobileEyeglassesOpen ? '−' : '+'}
+                                  </span>
+                                </button>
+                                {mobileEyeglassesOpen && (
+                                  <div className="pl-4 space-y-2 border-l-2 border-gray-200">
+                                    <Link href="/shop/prescription-glasses" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsSidebarOpen(false);
+                                    }}>
+                                      <TranslatableText text="All Eyeglasses" />
+                                    </Link>
+                                    <Link href="/shop/prescription-glasses/women" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsSidebarOpen(false);
+                                    }}>
+                                      <TranslatableText text="Women's" />
+                                    </Link>
+                                    <Link href="/shop/prescription-glasses/men" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsSidebarOpen(false);
+                                    }}>
+                                      <TranslatableText text="Men's" />
+                                    </Link>
+                                    <Link href="/shop/prescription-glasses/kids" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsSidebarOpen(false);
+                                    }}>
+                                      <TranslatableText text="Kids" />
+                                    </Link>
+                                    <Link href="/shop/prescription-glasses?filter=bestsellers" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsSidebarOpen(false);
+                                    }}>
+                                      <TranslatableText text="Best Sellers" />
+                                    </Link>
+                                    <Link href="/shop/prescription-glasses?filter=new-arrivals" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsSidebarOpen(false);
+                                    }}>
+                                      <TranslatableText text="New Arrivals" />
+                                    </Link>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
                         return (
                           <div key={link.href + link.label}>
                             {index > 0 && (
@@ -1251,10 +1436,34 @@ export default function Header() {
                   </div>
                 </SheetContent>
               </Sheet>
-            </div>
-          </div>
-        </div>
-      </header>
+            </div >
+          </div >
+        </div >
+
+        {/* Mega Menus Rendered Here for proper positioning */}
+        <ShopMegaMenu
+          isOpen={isSunglassesMenuOpen}
+          onClose={() => setIsSunglassesMenuOpen(false)}
+          isScrolled={isScrolled}
+          type="sunglasses"
+          initialColors={sunglassesColors}
+          initialShapes={sunglassesShapes}
+          initialBrands={sunglassesBrands}
+          onMouseEnter={stopCloseMenuTimer}
+          onMouseLeave={startCloseMenuTimer}
+        />
+        <ShopMegaMenu
+          isOpen={isEyeglassesMenuOpen}
+          onClose={() => setIsEyeglassesMenuOpen(false)}
+          isScrolled={isScrolled}
+          type="eyeglasses"
+          initialColors={eyeglassesColors}
+          initialShapes={eyeglassesShapes}
+          initialBrands={eyeglassesBrands}
+          onMouseEnter={stopCloseMenuTimer}
+          onMouseLeave={startCloseMenuTimer}
+        />
+      </header >
     </>
   );
 }

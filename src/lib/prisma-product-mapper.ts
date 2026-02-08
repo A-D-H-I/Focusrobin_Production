@@ -31,10 +31,10 @@ function convertGoogleDriveLink(url: string): string {
  */
 function normalizeImageUrl(url: string): string {
   if (!url) return '';
-  
+
   // If it's already a relative path starting with /, return as is
   if (url.startsWith('/')) return url;
-  
+
   // If it's already a full URL (http/https), check for Google Drive links
   if (url.startsWith('http://') || url.startsWith('https://')) {
     if (url.includes('drive.google.com')) {
@@ -42,7 +42,7 @@ function normalizeImageUrl(url: string): string {
     }
     return url;
   }
-  
+
   // Handle Windows absolute paths
   // Convert G:\Dev\...\public\image.jpg to /image.jpg
   // Or C:\...\public\images\product.jpg to /images/product.jpg
@@ -51,14 +51,14 @@ function normalizeImageUrl(url: string): string {
     // Normalize path separators and ensure it starts with /
     return '/' + publicPathMatch[1].replace(/\\/g, '/');
   }
-  
+
   // If it doesn't match any pattern, try to extract just the filename
   // and assume it's in the root of public folder
   const filenameMatch = url.match(/[\\/]([^\\/]+\.(jpg|jpeg|png|gif|webp|svg|glb))$/i);
   if (filenameMatch) {
     return '/' + filenameMatch[1];
   }
-  
+
   // Fallback: return as is (might be a relative path without leading /)
   return url.startsWith('./') ? url.slice(1) : '/' + url;
 }
@@ -70,6 +70,7 @@ type ProductWithRelations = Prisma.ProductGetPayload<{
         ProductAsset: true;
       };
     };
+    highlights: true;
   };
 }>;
 
@@ -95,15 +96,15 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
   // Get the primary image for each variant
   const variants: ProductColorVariant[] = prismaProduct.ProductVariant.map((variant) => {
     // Find primary image (first GALLERY image or first asset)
-    const primaryAsset = variant.ProductAsset.find((asset) => asset.isPrimary) 
+    const primaryAsset = variant.ProductAsset.find((asset) => asset.isPrimary)
       || variant.ProductAsset.find((asset) => asset.type === 'GALLERY')
       || variant.ProductAsset[0];
-    
+
     // Get gallery images for the main image array
     const galleryImages = variant.ProductAsset
       .filter((asset) => asset.type === 'GALLERY')
       .map((asset) => normalizeImageUrl(asset.url));
-    
+
     // Get hover image for tilted view
     const hoverAsset = variant.ProductAsset.find((asset) => asset.type === 'HOVER');
     const hoverImage = hoverAsset ? normalizeImageUrl(hoverAsset.url) : (galleryImages[1] || galleryImages[0] || '');
@@ -135,9 +136,9 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
   const basePrice = prismaProduct.basePrice != null ? Number(prismaProduct.basePrice) : 0;
   const discountPct = prismaProduct.discountPct || 0;
   const hasDiscount = discountPct > 0;
-  
+
   const originalPrice = `€${basePrice.toFixed(2)}`;
-  const discountedPrice = hasDiscount 
+  const discountedPrice = hasDiscount
     ? basePrice * (1 - discountPct / 100)
     : basePrice;
   const finalPrice = `€${discountedPrice.toFixed(2)}`;
@@ -163,14 +164,14 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     price: finalPrice, // Final price after discount
     originalPrice: hasDiscount ? originalPrice : undefined, // Original price if discounted
     discountPct: hasDiscount ? discountPct : undefined, // Discount percentage if applicable
-    cashback: prismaProduct.cashbackAmount && Number(prismaProduct.cashbackAmount) > 0 
-      ? `€${Number(prismaProduct.cashbackAmount).toFixed(2)}` 
+    cashback: prismaProduct.cashbackAmount && Number(prismaProduct.cashbackAmount) > 0
+      ? `€${Number(prismaProduct.cashbackAmount).toFixed(2)}`
       : undefined, // Cashback amount in Euros (only if > 0)
     variants,
-    categories: Array.isArray(prismaProduct.gender) 
+    categories: Array.isArray(prismaProduct.gender)
       ? prismaProduct.gender.map(g => g === 'MEN' ? 'Men' : g === 'WOMEN' ? 'Women' : g === 'KIDS' ? 'Kids' : 'Unisex')
       : ['Unisex'],
-    warranty: '2 Years', // Default warranty
+    warranty: prismaProduct.warranty || '2 Years Warranty',
     description: prismaProduct.description,
     lensMaterial: prismaProduct.lensMaterial || 'Polycarbonate', // From database
     frameMaterial: prismaProduct.frameMaterial,
@@ -189,8 +190,23 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     lensHeight: prismaProduct.lensHeight != null ? Number(prismaProduct.lensHeight) : 0,
     bridgeWidth: prismaProduct.bridgeWidth != null ? Number(prismaProduct.bridgeWidth) : 0,
     templeLength: prismaProduct.templeLength != null ? Number(prismaProduct.templeLength) : 0,
+    // Dynamic Product Features
+    isPolarized: prismaProduct.isPolarized,
+    isUVProtection: prismaProduct.isUVProtection,
+    isHydrophobic: prismaProduct.isHydrophobic,
+    isAntiScratch: prismaProduct.isAntiScratch,
+    isBioBased: prismaProduct.isBioBased,
+    customFeatures: prismaProduct.customFeatures || [],
+    // Product Highlights
+    showHighlights: prismaProduct.showHighlights || false,
+    highlights: prismaProduct.highlights ? prismaProduct.highlights.map(h => ({
+      id: h.id,
+      title: h.title,
+      description: h.description,
+      imageUrl: normalizeImageUrl(h.imageUrl),
+      order: h.order
+    })).sort((a, b) => (a.order || 0) - (b.order || 0)) : [],
   };
 }
 
 export type { ProductWithRelations, ProductWithReviews };
-

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireAuth, safeAction } from "@/lib/security";
-import type { FullPrescriptionData } from "@/app/shop/[slug]/prescription/PrescriptionFlow";
+import type { FullPrescriptionData } from "@/types/prescription";
 
 /**
  * Save prescription data for logged-in user
@@ -165,6 +165,8 @@ export async function getUserPrescription(productSlug: string) {
       hasTwoPDs: prescription.hasTwoPDs,
       hasPrism: prescription.hasPrism,
       prescriptionImageUrl: prescription.prescriptionImageUrl || undefined,
+      prescriptionPdfUrl: undefined, // Not stored in DB model yet, strictly
+      isPdfMode: false, // Default to false as not stored in DB model
       // NOTE: Lens configuration is NOT loaded from database - it's product-specific
       // Lens config should be loaded from localStorage/sessionStorage per product
       // Only frameType is loaded (for edging fee calculation, but will be auto-detected per product)

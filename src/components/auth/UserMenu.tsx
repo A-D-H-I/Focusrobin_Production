@@ -38,7 +38,7 @@ export default function UserMenu({ isScrolled = false, iconColorNotScrolled }: U
     setIsLoading(true);
     try {
       // Use current origin to ensure redirect works with ngrok
-      const callbackUrl = typeof window !== 'undefined' 
+      const callbackUrl = typeof window !== 'undefined'
         ? `${window.location.origin}/`
         : "/";
       await signOut({ callbackUrl });
@@ -59,7 +59,7 @@ export default function UserMenu({ isScrolled = false, iconColorNotScrolled }: U
     // Determine button styling based on scroll state and navbar settings
     const isWhite = iconColorNotScrolled === 'white' || (!iconColorNotScrolled && !isScrolled);
     const isBlack = iconColorNotScrolled === 'black';
-    
+
     return (
       <Button
         onClick={handleSignIn}
@@ -71,17 +71,17 @@ export default function UserMenu({ isScrolled = false, iconColorNotScrolled }: U
           isScrolled
             ? "border-brand-blue text-brand-blue hover:bg-accent hover:text-brand-blue"
             : isWhite
-            ? "bg-white text-brand-blue hover:bg-white/90 border-white"
-            : isBlack
-            ? "bg-black text-white hover:bg-black/90 border-black"
-            : "bg-white text-brand-blue hover:bg-white/90 border-white"
+              ? "bg-white text-brand-blue hover:bg-white/90 border-white"
+              : isBlack
+                ? "bg-black text-white hover:bg-black/90 border-black"
+                : "bg-white text-brand-blue hover:bg-white/90 border-white"
         )}
         style={!isScrolled && iconColorNotScrolled && iconColorNotScrolled !== 'white' && iconColorNotScrolled !== 'black'
           ? {
-              backgroundColor: iconColorNotScrolled,
-              color: '#0d9488', // brand-blue for contrast
-              borderColor: iconColorNotScrolled,
-            }
+            backgroundColor: iconColorNotScrolled,
+            color: '#0d9488', // brand-blue for contrast
+            borderColor: iconColorNotScrolled,
+          }
           : undefined
         }
       >
@@ -127,21 +127,21 @@ export default function UserMenu({ isScrolled = false, iconColorNotScrolled }: U
   return (
     <DropdownMenu onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
-        <Button 
+        <Button
           ref={triggerRef}
           onPointerDown={handlePointerDown}
-          variant="ghost" 
-          size="sm" 
-          className="relative h-9 w-9 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none [&[data-no-focus]]:focus:ring-0 [&[data-no-focus]]:focus:outline-none"
+          variant="ghost"
+          size="sm"
+          className="relative h-8 w-8 rounded-full focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:outline-none [&[data-no-focus]]:focus:ring-0 [&[data-no-focus]]:focus:outline-none"
         >
-          <Avatar className="h-9 w-9">
+          <Avatar className="h-8 w-8">
             <AvatarImage src={user.image || undefined} alt={user.name || "User"} />
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent 
-        align="end" 
+      <DropdownMenuContent
+        align="end"
         className="w-56 z-[110]"
         sideOffset={8}
         alignOffset={-8}

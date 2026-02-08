@@ -1,5 +1,10 @@
-import { auth } from "./src/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "./src/auth.config";
 import { NextResponse } from "next/server";
+
+// Initialize auth for middleware (Edge Runtime)
+// This avoids importing Prisma keys or Node.js modules
+const { auth } = NextAuth(authConfig);
 import type { NextRequest } from "next/server";
 import { generateCSRFToken } from "./src/lib/csrf";
 
@@ -58,13 +63,13 @@ function getClientIP(request: NextRequest): string {
 async function addSecurityHeaders(response: NextResponse, setCsrfCookie: boolean = false): Promise<NextResponse> {
   // Skip security headers in development for network access compatibility
   const isDev = process.env.NODE_ENV === 'development';
-  
+
   if (!isDev) {
     Object.entries(SECURITY_HEADERS).forEach(([key, value]) => {
       response.headers.set(key, value);
     });
   }
-  
+
   // Set CSRF token cookie for forms (only on page requests)
   if (setCsrfCookie) {
     const csrfToken = await generateCSRFToken();
@@ -76,7 +81,7 @@ async function addSecurityHeaders(response: NextResponse, setCsrfCookie: boolean
       maxAge: 60 * 60, // 1 hour
     });
   }
-  
+
   return response;
 }
 
@@ -119,12 +124,12 @@ function isValidSession(session: any): session is { user: { id: string; role?: s
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const clientIP = getClientIP(request);
-  
+
   // Debug: Log all admin route requests
   if (pathname.startsWith("/admin")) {
     console.log(`[Middleware] Processing admin route: ${pathname}`);
   }
-  
+
   // === IP Blocking Check (First line of defense) ===
   // Check against cached blocked IPs (full check happens at action level)
   if (blockedIPsCache.has(clientIP)) {
@@ -136,26 +141,26 @@ export async function middleware(request: NextRequest) {
   }
 
   // === API Route Protection ===
-  
+
   // Allow NextAuth API routes to pass through (required for auth to work)
   if (pathname.startsWith("/api/auth")) {
     const response = NextResponse.next();
     return addSecurityHeaders(response);
   }
-  
+
   // Security API routes - admin only
   if (pathname.startsWith("/api/security") && !pathname.endsWith("/health")) {
     const session = await auth();
-    
+
     if (!session || !session.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
-    
+
     const userRole = (session.user as any)?.role;
     if (userRole !== "ADMIN") {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
-    
+
     const response = NextResponse.next();
     return await addSecurityHeaders(response);
   }
@@ -163,16 +168,16 @@ export async function middleware(request: NextRequest) {
   // Protect admin API routes
   if (pathname.startsWith("/api/admin")) {
     const session = await auth();
-    
+
     if (!session || !session.user) {
       return await forbidden(request, "Authentication required");
     }
-    
+
     const userRole = (session.user as any)?.role;
     if (userRole !== "ADMIN") {
       return await forbidden(request, "Admin access required");
     }
-    
+
     const response = NextResponse.next();
     return await addSecurityHeaders(response);
   }
@@ -181,9 +186,9 @@ export async function middleware(request: NextRequest) {
   // This applies to ALL routes starting with /admin (including /admin/custom-shop-pages, /admin/add, etc.)
   if (pathname.startsWith("/admin")) {
     console.log(`[Security] Checking admin route: ${pathname}`);
-    
+
     const session = await auth();
-    
+
     console.log(`[Security] Session check result:`, {
       hasSession: !!session,
       hasUser: !!session?.user,

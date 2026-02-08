@@ -11,20 +11,36 @@ export interface AvailableGlassShape {
 /**
  * Get all available glass shapes from products
  * Returns unique glass shapes with their product counts
+ * @param type 'sunglasses' | 'eyeglasses' - Product type to fetch shapes for
  */
-export async function getAvailableGlassShapes(): Promise<AvailableGlassShape[]> {
+export async function getAvailableGlassShapes(type: 'sunglasses' | 'eyeglasses' = 'sunglasses'): Promise<AvailableGlassShape[]> {
   try {
-    // Fetch all products with glassShape
-    const products = await prisma.product.findMany({
-      where: {
-        glassShape: {
-          not: null,
+    let products;
+    if (type === 'eyeglasses') {
+      // Fetch prescription glasses shapes
+      products = await prisma.prescriptionGlasses.findMany({
+        where: {
+          glassShape: {
+            not: null,
+          }
         },
-      },
-      select: {
-        glassShape: true,
-      },
-    });
+        select: {
+          glassShape: true,
+        },
+      });
+    } else {
+      // Fetch sunglasses shapes (default)
+      products = await prisma.product.findMany({
+        where: {
+          glassShape: {
+            not: null,
+          }
+        },
+        select: {
+          glassShape: true,
+        },
+      });
+    }
 
     // Group by glassShape to count occurrences
     const shapeMap = new Map<string, number>();

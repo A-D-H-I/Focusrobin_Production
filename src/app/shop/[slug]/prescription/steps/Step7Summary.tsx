@@ -9,11 +9,10 @@ import {
   FRAME_TYPE_LABELS,
 } from "@/lib/pricing/rx167";
 import {
-  LENS_TYPE_LABELS,
-  COATING_LABELS,
-  type TintType,
+  LENS_BUNDLE_LABELS,
+  type LensBundle,
 } from "@/lib/lensPricing";
-import type { PrescriptionData, RxConfigData, FullPrescriptionData } from "../PrescriptionFlow";
+import type { PrescriptionData, RxConfigData, FullPrescriptionData } from "@/types/prescription";
 import { useSession } from "next-auth/react";
 import { getUserPrescription } from "@/app/actions/prescription";
 
@@ -292,51 +291,26 @@ export default function Step7Summary({
         </div>
         <div className="p-4 space-y-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Lens Type:</span>
-            <span className="font-medium">{LENS_TYPE_LABELS[rxConfig.lensType]}</span>
+            <span className="text-muted-foreground">Lens Package:</span>
+            <span className="font-medium">{LENS_BUNDLE_LABELS[rxConfig.lensBundle]}</span>
           </div>
-          {rxConfig.lensIndex && (
+
+          {/* Color for Photochromic */}
+          {rxConfig.lensBundle === "PHOTOCHROMIC" && rxConfig.photochromicColor && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Lens Index:</span>
-              <span className="font-medium">{rxConfig.lensIndex}</span>
-            </div>
-          )}
-          {rxConfig.lensType === "PHOTOCHROMIC_SOLIS" && rxConfig.photochromicColor && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Photochromic Color:</span>
+              <span className="text-muted-foreground">Color:</span>
               <span className="font-medium">{rxConfig.photochromicColor}</span>
             </div>
           )}
-          {rxConfig.lensType === "POLARIZED_NUPOLAR" && rxConfig.polarizedColor && (
+
+          {/* Color for Sunglasses */}
+          {(rxConfig.lensBundle === "SUNGLASSES_TINT" || rxConfig.lensBundle === "SUNGLASSES_GRADIENT") && rxConfig.tintColor && (
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Polarized Color:</span>
-              <span className="font-medium">{rxConfig.polarizedColor}</span>
+              <span className="text-muted-foreground">Tint Color:</span>
+              <span className="font-medium">{rxConfig.tintColor}</span>
             </div>
           )}
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Coating:</span>
-            <span className="font-medium">{COATING_LABELS[rxConfig.coating]}</span>
-          </div>
-          {rxConfig.lensType === "TINTED" && rxConfig.tintType && (
-            <>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tint:</span>
-                <span className="font-medium">
-                  {rxConfig.tintType === "FULL_TINT_CATALOG" ? "Full Tint (Catalog)" : "Gradient Tint"}
-                </span>
-              </div>
-              {rxConfig.tintColor && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tint Color:</span>
-                  <span className="font-medium">
-                    {rxConfig.tintColor}
-                    {rxConfig.tintType === "FULL_TINT_CATALOG" && rxConfig.tintShadePercent && ` ${rxConfig.tintShadePercent}%`}
-                    {rxConfig.tintType === "GRADIENT" && rxConfig.tintRecipe && ` (${rxConfig.tintRecipe})`}
-                  </span>
-                </div>
-              )}
-            </>
-          )}
+
           <div className="flex justify-between">
             <span className="text-muted-foreground">Frame Type:</span>
             <span className="font-medium">{FRAME_TYPE_LABELS[rxConfig.frameType]}</span>

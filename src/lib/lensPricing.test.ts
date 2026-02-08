@@ -10,6 +10,9 @@ import {
   getBasePairPrice,
   getCoatingDeltaPair,
   normalizeSelection,
+  BUNDLE_BOD_MAPPING,
+  LENS_TYPE_LABELS,
+  COATING_LABELS,
   type LensSelection,
 } from './lensPricing';
 
@@ -37,24 +40,42 @@ describe('lensPricing', () => {
   });
 
   describe('getAllowedCoatings', () => {
-    it('should return UC and BLUE_PRO for CLEAR', () => {
+    // Updated to match new coating logic: BASIC uses HMC, not UC
+    it('should return HMC and BLUE420_SHMC for CLEAR (AR coatings only)', () => {
       const coatings = getAllowedCoatings('CLEAR');
-      expect(coatings).toEqual(['UC', 'BLUE_PRO']);
+      expect(coatings).toEqual(['HMC', 'BLUE420_SHMC']);
     });
 
-    it('should return only SERICUM_UV for TINTED (no BLUE_PRO)', () => {
+    it('should return TINT_UV_PACKAGE for TINTED (neutral internal label)', () => {
       const coatings = getAllowedCoatings('TINTED');
-      expect(coatings).toEqual(['SERICUM_UV']);
+      expect(coatings).toEqual(['TINT_UV_PACKAGE']);
     });
 
-    it('should return SERICUM_UV and BLUE_PRO for PHOTOCHROMIC_SOLIS', () => {
+    it('should return CLARUS_II_INSIDE for GRADIENT', () => {
+      const coatings = getAllowedCoatings('GRADIENT');
+      expect(coatings).toEqual(['CLARUS_II_INSIDE']);
+    });
+
+    it('should return HMC for PHOTOCHROMIC (Organic Foto uses HMC)', () => {
+      const coatings = getAllowedCoatings('PHOTOCHROMIC');
+      expect(coatings).toEqual(['HMC']);
+    });
+
+    // Legacy alias support
+    it('should return HMC for PHOTOCHROMIC_SOLIS (legacy alias)', () => {
       const coatings = getAllowedCoatings('PHOTOCHROMIC_SOLIS');
-      expect(coatings).toEqual(['SERICUM_UV', 'BLUE_PRO']);
+      expect(coatings).toEqual(['HMC']);
     });
 
-    it('should return only SERICUM_UV for POLARIZED_NUPOLAR (no BLUE_PRO)', () => {
+    it('should return only SERICUM_UV for POLARIZED_NUPOLAR', () => {
       const coatings = getAllowedCoatings('POLARIZED_NUPOLAR');
       expect(coatings).toEqual(['SERICUM_UV']);
+    });
+
+    it('should default to HMC (AR Multicoat), NOT UC', () => {
+      const coatings = getAllowedCoatings('UNKNOWN_TYPE');
+      expect(coatings).toEqual(['HMC']);
+      expect(coatings).not.toContain('UC');
     });
   });
 
@@ -181,14 +202,15 @@ describe('lensPricing', () => {
       expect(normalized.coating).toBe('SERICUM_UV');
     });
 
-    it('should auto-correct CLEAR + SERICUM_UV to UC', () => {
+    it('should auto-correct CLEAR + SERICUM_UV to HMC (first allowed)', () => {
       const selection: LensSelection = {
         lensType: 'CLEAR',
         lensIndex: '1.67',
+        lensBundle: 'BASIC',
         coating: 'SERICUM_UV', // Invalid for CLEAR
       };
       const normalized = normalizeSelection(selection);
-      expect(normalized.coating).toBe('UC'); // First allowed coating
+      expect(normalized.coating).toBe('HMC'); // First allowed coating (AR Multicoat)
     });
 
     it('should clear tint fields for non-TINTED lens types', () => {
@@ -251,6 +273,43 @@ describe('lensPricing', () => {
     it('should return correct from price for POLARIZED_NUPOLAR 1.67 (with profit)', () => {
       // SERICUM_UV base €129.24 + €15 profit = €144.24
       expect(getFromPricePair('POLARIZED_NUPOLAR', '1.67')).toBe(144.24);
+    });
+  });
+
+  // ============================================================================
+  // REGRESSION TESTS: Bundle Mapping Assertions
+  // These tests ensure bundles map to correct Bod products
+  // ============================================================================
+  describe('Bundle Mapping Regression Tests', () => {
+    it('BASIC bundle must NOT map to UC (must use HMC)', () => {
+      const basicMapping = BUNDLE_BOD_MAPPING.BASIC;
+      expect(basicMapping.coating).toBe('HMC');
+      expect(basicMapping.coating).not.toBe('UC');
+      expect(basicMapping.techCode).toBe('HMC_STANDARD_AR');
+    });
+
+    it('BLUE_FILTER bundle must map to BLUE420_SHMC', () => {
+      const blueMapping = BUNDLE_BOD_MAPPING.BLUE_FILTER;
+      expect(blueMapping.coating).toBe('BLUE420_SHMC');
+      expect(blueMapping.techCode).toBe('BLUE420_SHMC');
+    });
+
+    it('PHOTOCHROMIC bundle must NOT reference SOLIS in product name', () => {
+      const photoMapping = BUNDLE_BOD_MAPPING.PHOTOCHROMIC;
+      expect(photoMapping.bodProduct.toLowerCase()).not.toContain('solis');
+      expect(photoMapping.techCode).toBe('PHOTO_HMC');
+    });
+
+    it('PHOTOCHROMIC label must say Organic Foto, not Solis', () => {
+      const photoLabel = LENS_TYPE_LABELS.PHOTOCHROMIC;
+      expect(photoLabel).toContain('Organic Foto');
+      expect(photoLabel.toLowerCase()).not.toContain('solis');
+    });
+
+    it('UC coating label must say "no AR", not "standard AR"', () => {
+      const ucLabel = COATING_LABELS.UC;
+      expect(ucLabel.toLowerCase()).toContain('no ar');
+      expect(ucLabel.toLowerCase()).not.toContain('standard ar');
     });
   });
 });

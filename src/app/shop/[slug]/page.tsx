@@ -72,6 +72,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
           ProductAsset: true,
         },
       },
+      highlights: true,
     },
   })) as any;
 
@@ -145,9 +146,10 @@ const RelatedProducts = dynamic(() => import("@/components/shop/related-products
   loading: () => <div className="h-64 bg-muted animate-pulse rounded-lg" />,
 });
 
-export default async function ShopSlugPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ShopSlugPage({ params, searchParams }: { params: Promise<{ slug: string }>, searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   // Await params (required in Next.js 15)
   const { slug } = await params;
+  const searchParamsValue = await searchParams;
 
   // Decode the slug
   const decodedSlug = decodeURIComponent(slug);
@@ -194,6 +196,25 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
       } catch (error) {
         console.error('Error fetching products for custom shop page:', error);
       }
+    }
+
+    // Filter by price range (after fetching, since we need to calculate final price)
+    const minPriceParam = searchParamsValue.minPrice as string | undefined;
+    const maxPriceParam = searchParamsValue.maxPrice as string | undefined;
+
+    if (minPriceParam || maxPriceParam) {
+      const minPrice = minPriceParam ? parseFloat(minPriceParam) : undefined;
+      const maxPrice = maxPriceParam ? parseFloat(maxPriceParam) : undefined;
+
+      prismaProducts = prismaProducts.filter((product: any) => {
+        const basePrice = Number(product.basePrice);
+        const discountPct = product.discountPct || 0;
+        const finalPrice = basePrice * (1 - discountPct / 100);
+
+        if (minPrice !== undefined && finalPrice < minPrice) return false;
+        if (maxPrice !== undefined && finalPrice > maxPrice) return false;
+        return true;
+      });
     }
 
     // Map Prisma products to frontend Product type
@@ -278,6 +299,7 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
           ProductAsset: true,
         },
       },
+      highlights: true,
     },
   })) as any;
 
@@ -292,8 +314,225 @@ export default async function ShopSlugPage({ params }: { params: Promise<{ slug:
             ProductAsset: true,
           },
         },
+        highlights: true,
       },
     })) as any;
+  }
+
+  // Check PrescriptionGlasses if not found in Products
+  let isPrescription = false;
+  if (!prismaProduct) {
+    const prescriptionGlass = await prisma.prescriptionGlasses.findUnique({
+      where: { slug: decodedSlug },
+      include: {
+        PrescriptionGlassesVariant: {
+          include: {
+            PrescriptionGlassesAsset: true
+          }
+        },
+        Category: true,
+        highlights: true
+      }
+    });
+
+    if (prescriptionGlass) {
+      isPrescription = true;
+      // Map to compatible structure for mapper or custom mapping
+      // The mapper expects specific structure. 
+      // Let's manually map it here to avoid complex mapper changes if possible, or cast it.
+      // Actually, easiest is to ensure `mapPrismaProductToProduct` handles it or we map it to `Product` interface here.
+      // However, `mapPrismaProductToProduct` takes `any`. Let's see if we can just pass it if structure allows.
+      // Structure differs (PrescriptionGlassesVariant vs ProductVariant).
+      // We need a separate mapper or inline mapping.
+
+      // Inline mapping to conform to what current page expects (which is a `any` object passed to `mapPrismaProductToProduct` 
+      // OR we just map it directly to `Product` interface object `product`.
+
+      // Let's skip `mapPrismaProductToProduct` for this case and build `product` object directly.
+      // But `prismaProduct` variable is used later. 
+      // Let's set `prismaProduct` to null and handle `product` creation in a branch.
+    }
+
+    if (prescriptionGlass) {
+      // We found it in prescription glasses. 
+      // We need to construct the `product` object directly because `prismaProduct` logic below assumes Product model structure.
+
+      // We will handle this by creating a `product` object here and skipping the default mapping logic.
+      // Refactoring control flow:
+
+      const variants = prescriptionGlass.PrescriptionGlassesVariant.map((v: any) => {
+        const assets = v.PrescriptionGlassesAsset;
+        const thumbnail = assets.find((a: any) => a.type === 'GALLERY' && a.isPrimary)?.url || assets.find((a: any) => a.type === 'GALLERY')?.url || '';
+        const tilted = assets.find((a: any) => a.type === 'HOVER')?.url || '';
+        const nobg = assets.find((a: any) => a.type === 'NO_BG')?.url;
+        const tryOn = assets.find((a: any) => a.type === 'TRY_ON_2D')?.url;
+        const images = assets.filter((a: any) => a.type === 'GALLERY').map((a: any) => a.url);
+
+        return {
+          name: v.name,
+          hex: v.colorHex,
+          sku: v.sku,
+          stock: v.stock,
+          thumbnail: normalizeImageUrl(thumbnail),
+          tilted: normalizeImageUrl(tilted),
+          nobg: nobg ? normalizeImageUrl(nobg) : undefined,
+          images: images.map(normalizeImageUrl),
+          tryOn: tryOn ? normalizeImageUrl(tryOn) : undefined,
+        };
+      });
+
+      const price = Number(prescriptionGlass.basePrice) * (1 - (prescriptionGlass.discountPct || 0) / 100);
+
+      const product = {
+        id: prescriptionGlass.id,
+        slug: prescriptionGlass.slug,
+        name: prescriptionGlass.name,
+        price: price.toFixed(2),
+        originalPrice: prescriptionGlass.discountPct ? Number(prescriptionGlass.basePrice).toFixed(2) : undefined,
+        discountPct: prescriptionGlass.discountPct || 0,
+        cashback: Number(prescriptionGlass.cashbackAmount).toFixed(2),
+        variants: variants,
+        categories: [prescriptionGlass.Category.name],
+        description: prescriptionGlass.description || "",
+        lensMaterial: prescriptionGlass.lensMaterial || "Polycarbonate",
+        frameMaterial: prescriptionGlass.frameMaterial,
+        uvProtection: prescriptionGlass.uvProtection || "UV400",
+        averageRating: prescriptionGlass.averageRating,
+        reviewCount: prescriptionGlass.reviewCount,
+        size: {
+          lensWidth: prescriptionGlass.lensWidth.toString(),
+          bridge: prescriptionGlass.bridgeWidth.toString(),
+          temple: prescriptionGlass.templeLength.toString()
+        },
+        weight: prescriptionGlass.weightBg,
+        frameWidth: prescriptionGlass.frameWidth,
+        lensWidth: prescriptionGlass.lensWidth,
+        lensHeight: prescriptionGlass.lensHeight,
+        bridgeWidth: prescriptionGlass.bridgeWidth,
+        templeLength: prescriptionGlass.templeLength,
+        // Dynamic Product Features - use actual DB values
+        isUVProtection: prescriptionGlass.isUVProtection ?? true,
+        isPolarized: prescriptionGlass.isPolarized ?? true,
+        isHydrophobic: prescriptionGlass.isHydrophobic ?? true,
+        isAntiScratch: prescriptionGlass.isAntiScratch ?? false,
+        isBioBased: prescriptionGlass.isBioBased ?? true,
+        warranty: prescriptionGlass.warranty ?? "1.5 Years Warranty",
+        customFeatures: prescriptionGlass.customFeatures ?? ["hand made", "Fast Delivery"],
+        // Product Highlights
+        showHighlights: prescriptionGlass.showHighlights ?? false,
+        highlights: (prescriptionGlass.highlights || []).map((h: any) => ({
+          id: h.id,
+          title: h.title,
+          description: h.description,
+          imageUrl: h.imageUrl,
+          order: h.order,
+        })).sort((a: any, b: any) => a.order - b.order),
+      };
+
+      // Structured Data
+      const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
+      const productImages = product.variants.flatMap(v => v.images || [v.thumbnail]).filter(Boolean);
+      const allImages = productImages.length > 0
+        ? productImages.map(img => {
+          const normalized = normalizeImageUrl(img);
+          return normalized.startsWith('http') ? normalized : `https://focusrobin.lt${normalized}`;
+        })
+        : ['https://focusrobin.lt/Symbol Wide Primary light (Teal).svg'];
+
+      const basePriceVal = Number(product.price.replace(/[^\d.]/g, '')) || 0;
+
+      const productSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: product.name,
+        description: product.description || `${product.name} - Premium sunglasses by FocusRobin`,
+        image: allImages,
+        brand: {
+          '@type': 'Brand',
+          name: 'FocusRobin',
+        },
+        ...(basePriceVal > 0 && {
+          offers: {
+            '@type': 'Offer',
+            url: `https://focusrobin.lt/shop/${slug}`,
+            priceCurrency: 'EUR',
+            price: basePriceVal.toFixed(2),
+            availability: product.variants.some(v => (v.stock ?? 0) > 0)
+              ? 'https://schema.org/InStock'
+              : 'https://schema.org/OutOfStock',
+            seller: {
+              '@type': 'Organization',
+              name: 'FocusRobin',
+            },
+          },
+        }),
+      };
+
+      const breadcrumbSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: 'https://focusrobin.lt',
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Shop',
+            item: 'https://focusrobin.lt/shop',
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: product.name,
+            item: `https://focusrobin.lt/shop/${slug}`,
+          },
+        ],
+      };
+
+      return (
+        <div className="min-h-screen overflow-x-hidden">
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+          />
+          <Header />
+          <main className="pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background overflow-x-hidden">
+            <div className="container mx-auto px-4 py-8 overflow-x-hidden">
+              <Breadcrumb className="mb-8">
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink href="/">Home</BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink href="/shop">Shop</BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{product.name}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+
+            <ProductPageContent
+              product={product}
+              reviews={[]} // Fetch reviews if needed, passing empty for now or duplicate logic
+              relatedProducts={[]} // Verify if we want related products
+            />
+          </main>
+          <Footer />
+        </div>
+      );
+    }
   }
 
   // Handle 404 if product not found

@@ -12,6 +12,8 @@ import ValuePropsSection from '@/components/Landing/value-props-section.tsx';
 import LensFeatureSection from '@/components/Landing/lens-feature-section.tsx';
 import InstagramFeedSection from '@/components/Landing/instagram-feed-section.tsx';
 import Footer from '@/components/Landing/footer.tsx';
+import SplitBannerSection from '@/components/Landing/split-banner-section';
+import FaqSection from '@/components/Landing/faq-section';
 import { prisma } from '@/lib/prisma';
 import { mapPrismaProductToProduct } from '@/lib/prisma-product-mapper';
 import { getProductsByGlassShape } from '@/app/actions/getProductsByGlassShape';
@@ -23,7 +25,7 @@ export const revalidate = 60;
 export async function generateMetadata(): Promise<Metadata> {
   const title = 'FocusRobin - Premium Sunglasses & Prescription Glasses Lithuania | Best Eyewear Shop';
   const description = "FocusRobin Lithuania - Shop premium polarized sunglasses and prescription glasses online. UV400 protection, designer eyewear with fast delivery to Vilnius, Kaunas, Klaipėda and EU. Buy FocusRobin sunglasses today!";
-  
+
   return {
     title,
     description,
@@ -78,14 +80,14 @@ export default async function Home() {
 
     // Map Prisma products to frontend Product type
     products = prismaProducts.map(mapPrismaProductToProduct);
-    
+
     // Debug log
     if (products.length === 0) {
       console.log('No unique design products found. Checking if any products exist...');
       const allProducts = await prisma.product.count();
       const uniqueDesignCount = await prisma.product.count({ where: { isUniqueDesign: true } });
       console.log(`Total products: ${allProducts}, Unique design products: ${uniqueDesignCount}`);
-      
+
       // Fallback: If no unique designs selected, show recent products
       if (uniqueDesignCount === 0 && allProducts > 0) {
         console.log('No unique designs selected. Showing recent products as fallback.');
@@ -107,9 +109,9 @@ export default async function Home() {
     }
   } catch (error: any) {
     // If schema fields don't exist (migration not run), fall back to recent products
-    if (error?.message?.includes("Unknown column") || 
-        error?.message?.includes("does not exist") ||
-        error?.code === "P2001") {
+    if (error?.message?.includes("Unknown column") ||
+      error?.message?.includes("does not exist") ||
+      error?.code === "P2001") {
       console.warn('Database migration not run yet. Fetching recent products instead.');
       try {
         const prismaProducts = (await prisma.product.findMany({
@@ -132,7 +134,7 @@ export default async function Home() {
       }
     } else {
       console.error('Error fetching unique design products:', error);
-    products = [];
+      products = [];
     }
   }
 
@@ -158,14 +160,14 @@ export default async function Home() {
 
     // Map Prisma products to frontend Product type
     products3D = prismaProducts.map(mapPrismaProductToProduct);
-    
+
     // Debug log
     if (products3D.length === 0) {
       console.log('No newly added products found. Checking if any products exist...');
       const allProducts = await prisma.product.count();
       const newlyAddedCount = await prisma.product.count({ where: { isNewlyAdded: true } });
       console.log(`Total products: ${allProducts}, Newly added products: ${newlyAddedCount}`);
-      
+
       // Fallback: If no newly added products selected, show recent products
       if (newlyAddedCount === 0 && allProducts > 0) {
         console.log('No newly added products selected. Showing recent products as fallback.');
@@ -187,9 +189,9 @@ export default async function Home() {
     }
   } catch (error: any) {
     // If schema fields don't exist (migration not run), fall back to recent products
-    if (error?.message?.includes("Unknown column") || 
-        error?.message?.includes("does not exist") ||
-        error?.code === "P2001") {
+    if (error?.message?.includes("Unknown column") ||
+      error?.message?.includes("does not exist") ||
+      error?.code === "P2001") {
       console.warn('Database migration not run yet. Fetching recent products instead.');
       try {
         const prismaProducts = (await prisma.product.findMany({
@@ -212,7 +214,7 @@ export default async function Home() {
       }
     } else {
       console.error('Error fetching newly added products:', error);
-    products3D = [];
+      products3D = [];
     }
   }
 
@@ -313,6 +315,27 @@ export default async function Home() {
     console.error('Error fetching gift for loved ones banner:', error);
   }
 
+  // Fetch Split Banner (Eyeglasses/Sunglasses)
+  let splitBanner: any = null;
+  try {
+    // @ts-ignore
+    if (prisma.splitBanner && typeof prisma.splitBanner.findUnique === 'function') {
+      // @ts-ignore
+      splitBanner = await prisma.splitBanner.findUnique({
+        where: { sectionKey: 'eyeglasses' },
+      });
+      // Fallback if not found by key, try finding first active
+      if (!splitBanner) {
+        // @ts-ignore
+        splitBanner = await prisma.splitBanner.findFirst({
+          where: { isActive: true },
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching split banner:', error);
+  }
+
   // Structured data for Organization with enhanced SEO
   const organizationSchema = {
     '@context': 'https://schema.org',
@@ -410,8 +433,11 @@ export default async function Home() {
         {/* Screen-reader-only H1 for SEO */}
         <h1 className="sr-only">FocusRobin - Premium Sunglasses & Prescription Glasses Lithuania | Buy Eyewear Online</h1>
         {heroImages.length > 0 && <HeroSection heroData={heroImages} />}
-        
+
         <BestsellersCarousel products={products} />
+        {/* NEW Split Banner */}
+        {splitBanner && <SplitBannerSection banner={splitBanner} />}
+
         {categoryImages.length > 0 && <GiftCategoriesSection categoryImages={categoryImages} />}
         {/* 3D Products Section - New Arrivals */}
         {products3D.length > 0 && <Products3DSection products={products3D} />}
@@ -425,58 +451,8 @@ export default async function Home() {
           <LensFeatureSection />
           {/* {iconicImage && <IconicSection iconicImage={iconicImage} />} */}
           {instagramImages.length > 0 && <InstagramFeedSection instagramImages={instagramImages} />}
-          
-          {/* SEO Content Block - English */}
-          <section className="container mx-auto px-4 py-8 max-w-4xl">
-            <div className="prose prose-sm max-w-none text-muted-foreground text-center">
-              <h2 className="text-lg font-headline text-foreground mb-4">
-                FocusRobin - Your Trusted Eyewear Shop in Lithuania
-              </h2>
-              <p className="mb-4">
-                Welcome to <strong>FocusRobin</strong>, Lithuania&apos;s premier online destination for premium 
-                <strong> sunglasses</strong> and <strong>prescription glasses</strong>. We offer a curated 
-                collection of designer eyewear featuring <strong>UV400 protection</strong> and 
-                <strong> polarized lenses</strong> for superior clarity and eye protection.
-              </p>
-              <p className="mb-4">
-                Whether you&apos;re looking for <strong>sunglasses in Vilnius</strong>, <strong>prescription 
-                glasses in Kaunas</strong>, or <strong>designer eyewear in Klaipėda</strong>, FocusRobin 
-                delivers premium quality directly to your door. Enjoy <strong>fast delivery across Lithuania</strong> 
-                and the entire EU/Schengen area.
-              </p>
-              <p className="text-xs">
-                Buy FocusRobin sunglasses online | Premium prescription glasses Lithuania | 
-                Best eyewear shop Vilnius | Polarized sunglasses EU delivery | 
-                Designer glasses Kaunas | UV400 sunglasses Klaipėda
-              </p>
-            </div>
-          </section>
-          
-          {/* Lithuanian SEO Content Block */}
-          <section lang="lt" className="container mx-auto px-4 py-8 max-w-4xl border-t border-border">
-            <div className="prose prose-sm max-w-none text-muted-foreground text-center">
-              <h2 className="text-lg font-headline text-foreground mb-4">
-                FocusRobin - Saulės Akiniai ir Korekciniai Akiniai Lietuvoje
-              </h2>
-              <p className="mb-4">
-                <strong>FocusRobin</strong> siūlo kokybiškus <strong>saulės akinius</strong> ir 
-                <strong> korekcinius akinius</strong>, suprojektuotus Lietuvoje. Mūsų kolekcijoje rasite 
-                <strong> polarizuotus saulės akinius</strong> su UV apsauga ir stilingus akinius su dioptrijomis, 
-                tinkamus tiek vyrams, tiek moterims.
-              </p>
-              <p className="mb-4">
-                Pristatome greitai į <strong>Vilnių</strong>, <strong>Kauną</strong>, <strong>Klaipėdą</strong>, 
-                <strong> Šiaulius</strong>, <strong>Panevėžį</strong> ir visą EU/Schengen zoną. 
-                <strong> Saulės akiniai internetu</strong> ir <strong>korekciniai akiniai internetu</strong> – 
-                patogus būdas rasti stilingus akinius, kurie puikiai tinka jūsų stiliui.
-              </p>
-              <p className="text-xs">
-                Saulės akiniai Vilnius | Korekciniai akiniai Kaunas | Akiniai su dioptrijomis | 
-                Polarizuoti akiniai | Optika internetu | Akiniai vyrams ir moterims | 
-                FocusRobin Lietuva | Pigūs kokybiški akiniai
-              </p>
-            </div>
-          </section>
+
+          <FaqSection />
         </div>
       </main>
       <Footer />

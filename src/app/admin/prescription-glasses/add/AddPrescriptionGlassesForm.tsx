@@ -37,6 +37,20 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
   const [basePrice, setBasePrice] = useState<string>('');
   const [discountPct, setDiscountPct] = useState<string>('0');
   const [cashbackAmount, setCashbackAmount] = useState<string>('0');
+
+  // Dynamic Product Features
+  const [isPolarized, setIsPolarized] = useState(true);
+  const [isUVProtection, setIsUVProtection] = useState(true);
+  const [isHydrophobic, setIsHydrophobic] = useState(true);
+  const [isAntiScratch, setIsAntiScratch] = useState(false);
+  const [isBioBased, setIsBioBased] = useState(true);
+  const [warranty, setWarranty] = useState('1.5 Years Warranty');
+  const [customFeatures, setCustomFeatures] = useState('hand made, Fast Delivery');
+
+  // Product Highlights
+  const [showHighlights, setShowHighlights] = useState(false);
+  const [highlights, setHighlights] = useState<Array<{ title: string; description: string; imageUrl: string }>>([]);
+
   const [variants, setVariants] = useState<VariantData[]>([
     {
       name: '',
@@ -153,6 +167,24 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
       }
     });
 
+    // Add dynamic feature flags
+    if (isPolarized) formData.append('isPolarized', 'on');
+    if (isUVProtection) formData.append('isUVProtection', 'on');
+    if (isHydrophobic) formData.append('isHydrophobic', 'on');
+    if (isAntiScratch) formData.append('isAntiScratch', 'on');
+    if (isBioBased) formData.append('isBioBased', 'on');
+    formData.append('warranty', warranty);
+    formData.append('customFeatures', customFeatures);
+
+    // Add highlights
+    if (showHighlights) formData.append('showHighlights', 'on');
+    formData.append('highlightCount', highlights.length.toString());
+    highlights.forEach((highlight, index) => {
+      formData.append(`highlight-${index}-title`, highlight.title);
+      formData.append(`highlight-${index}-description`, highlight.description);
+      formData.append(`highlight-${index}-image`, highlight.imageUrl);
+    });
+
     const result = await createPrescriptionGlasses(formData);
 
     if (result.error) {
@@ -187,9 +219,15 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
               <Input id="name" name="name" required placeholder="e.g., The Horizon" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="slug">Slug *</Label>
-              <Input id="slug" name="slug" required placeholder="e.g., the-horizon" />
+              <Label htmlFor="slug">Slug (URL-friendly)</Label>
+              <Input id="slug" name="slug" placeholder="cool-glasses" required />
+              <p className="text-xs text-muted-foreground">Will be auto-generated from name if left empty.</p>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="brand">Brand</Label>
+            <Input id="brand" name="brand" placeholder="FocusRobin" defaultValue="FocusRobin" />
           </div>
 
           <div className="space-y-2">
@@ -300,9 +338,9 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
                       className="text-sm font-normal cursor-pointer"
                     >
                       {genderOption === Gender.MEN ? 'Men' :
-                       genderOption === Gender.WOMEN ? 'Women' :
-                       genderOption === Gender.UNISEX ? 'Unisex' :
-                       genderOption === Gender.KIDS ? 'Kids' : genderOption}
+                        genderOption === Gender.WOMEN ? 'Women' :
+                          genderOption === Gender.UNISEX ? 'Unisex' :
+                            genderOption === Gender.KIDS ? 'Kids' : genderOption}
                     </Label>
                   </div>
                 ))}
@@ -492,6 +530,177 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
             </div>
           </div>
         </CardContent>
+      </Card>
+
+      {/* Section: Dynamic Product Features */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Product Features</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isPolarized"
+                checked={isPolarized}
+                onCheckedChange={(checked) => setIsPolarized(checked === true)}
+              />
+              <Label htmlFor="isPolarized" className="cursor-pointer">Polarized Lenses</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isUVProtection"
+                checked={isUVProtection}
+                onCheckedChange={(checked) => setIsUVProtection(checked === true)}
+              />
+              <Label htmlFor="isUVProtection" className="cursor-pointer">100% UV Protection</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isHydrophobic"
+                checked={isHydrophobic}
+                onCheckedChange={(checked) => setIsHydrophobic(checked === true)}
+              />
+              <Label htmlFor="isHydrophobic" className="cursor-pointer">Superhydrophobic</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isAntiScratch"
+                checked={isAntiScratch}
+                onCheckedChange={(checked) => setIsAntiScratch(checked === true)}
+              />
+              <Label htmlFor="isAntiScratch" className="cursor-pointer">Anti-Scratch Coating</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="isBioBased"
+                checked={isBioBased}
+                onCheckedChange={(checked) => setIsBioBased(checked === true)}
+              />
+              <Label htmlFor="isBioBased" className="cursor-pointer">Bio-based Material</Label>
+            </div>
+          </div>
+
+          <Separator className="my-4" />
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="warranty">Warranty</Label>
+              <Input
+                id="warranty"
+                value={warranty}
+                onChange={(e) => setWarranty(e.target.value)}
+                placeholder="e.g., 1.5 Years Warranty"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="customFeatures">Custom Features (comma-separated)</Label>
+              <Input
+                id="customFeatures"
+                value={customFeatures}
+                onChange={(e) => setCustomFeatures(e.target.value)}
+                placeholder="e.g., hand made, Fast Delivery"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Section: Product Highlights */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <CardTitle>Product Highlights</CardTitle>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="showHighlights"
+                  checked={showHighlights}
+                  onCheckedChange={(checked) => setShowHighlights(checked === true)}
+                />
+                <Label htmlFor="showHighlights" className="text-sm cursor-pointer">Enable Highlights Section</Label>
+              </div>
+            </div>
+            {showHighlights && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setHighlights([...highlights, { title: '', description: '', imageUrl: '' }])}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Highlight
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        {showHighlights && (
+          <CardContent className="space-y-4">
+            {highlights.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No highlights added. Click "Add Highlight" to get started.</p>
+            ) : (
+              highlights.map((highlight, index) => (
+                <div key={index} className="space-y-4 rounded-lg border p-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold">Highlight {index + 1}</h4>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setHighlights(highlights.filter((_, i) => i !== index))}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label>Title *</Label>
+                      <Input
+                        value={highlight.title}
+                        onChange={(e) => {
+                          const updated = [...highlights];
+                          updated[index].title = e.target.value;
+                          setHighlights(updated);
+                        }}
+                        placeholder="e.g., Lightweight Design"
+                        required={showHighlights}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Description *</Label>
+                      <Input
+                        value={highlight.description}
+                        onChange={(e) => {
+                          const updated = [...highlights];
+                          updated[index].description = e.target.value;
+                          setHighlights(updated);
+                        }}
+                        placeholder="e.g., Weighs only 24g for all-day comfort"
+                        required={showHighlights}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <ImageUploader
+                      value={highlight.imageUrl}
+                      onChange={(url) => {
+                        const updated = [...highlights];
+                        updated[index].imageUrl = url;
+                        setHighlights(updated);
+                      }}
+                      folder="other"
+                      label="Highlight Image"
+                      description="Image displaying the feature."
+                      accept="image/*"
+                    />
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        )}
       </Card>
 
       {/* Section 4: Variants */}

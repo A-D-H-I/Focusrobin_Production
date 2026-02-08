@@ -18,8 +18,8 @@ const valueProps = [
   },
   {
     icon: ShieldCheck,
-    title: "1-Year Warranty",
-    description: "Every pair of FocusRobin sunglasses and prescription glasses comes with a comprehensive 1-year warranty. Shop with confidence.",
+    title: "2-Year Warranty",
+    description: "Every pair of FocusRobin sunglasses and prescription glasses comes with a comprehensive 2-year warranty. Shop with confidence.",
   },
 ];
 
@@ -36,7 +36,7 @@ function ValuePropItem({ prop, index }: { prop: typeof valueProps[0]; index: num
         "flex flex-col items-center text-center p-6 transition-all duration-700 ease-in-out",
         inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"
       )}
-      style={{ 
+      style={{
         transitionDelay: `${index * 200}ms`,
         willChange: "transform, opacity",
         transform: "translateZ(0)",

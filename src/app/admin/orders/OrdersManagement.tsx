@@ -42,7 +42,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatDistanceToNow } from "date-fns";
 import Image from "next/image";
 import Link from "next/link";
-import { LENS_TYPE_LABELS, COATING_LABELS } from "@/lib/lensPricing";
+import { LENS_TYPE_LABELS, COATING_LABELS, LENS_BUNDLE_LABELS, LensBundle, getFriendlyLensDescription } from "@/lib/lensPricing";
 import { FRAME_TYPE_LABELS } from "@/lib/pricing/rx167";
 import { getDeliveryTime } from "@/lib/delivery-time";
 
@@ -268,7 +268,7 @@ export default function OrdersManagement({
     setIsLoading(true);
     try {
       const result = await getAllOrders();
-      if (result.success && result.orders) {
+      if ('success' in result && result.success && result.orders) {
         setOrders(result.orders);
       }
     } catch (error) {
@@ -283,7 +283,7 @@ export default function OrdersManagement({
       orderId,
       newStatus as any
     );
-    if (result.success) {
+    if ('success' in result && result.success) {
       await loadOrders();
       if (selectedOrder?.id === orderId) {
         const updatedOrder = orders.find((o) => o.id === orderId);
@@ -292,7 +292,7 @@ export default function OrdersManagement({
         }
       }
     } else {
-      alert(result.error || "Failed to update order status");
+      alert((result as any).error || "Failed to update order status");
     }
   };
 
@@ -304,7 +304,7 @@ export default function OrdersManagement({
       orderId,
       newPaymentStatus as any
     );
-    if (result.success) {
+    if ('success' in result && result.success) {
       await loadOrders();
       if (selectedOrder?.id === orderId) {
         const updatedOrder = orders.find((o) => o.id === orderId);
@@ -313,7 +313,7 @@ export default function OrdersManagement({
         }
       }
     } else {
-      alert(result.error || "Failed to update payment status");
+      alert((result as any).error || "Failed to update payment status");
     }
   };
 
@@ -740,7 +740,7 @@ export default function OrdersManagement({
                               selectedOrder.trackingNumber || undefined,
                               undefined
                             );
-                            if (result.success) {
+                            if ('success' in result && result.success) {
                               await loadOrders();
                               const updatedOrder = orders.find((o) => o.id === selectedOrder.id);
                               if (updatedOrder) {
@@ -748,7 +748,7 @@ export default function OrdersManagement({
                               }
                               alert('Tracking number updated successfully');
                             } else {
-                              alert(result.error || 'Failed to update tracking number');
+                              alert((result as any).error || 'Failed to update tracking number');
                             }
                           }}
                           variant="outline"
@@ -781,7 +781,7 @@ export default function OrdersManagement({
                               undefined,
                               selectedOrder.trackingMessage || undefined
                             );
-                            if (result.success) {
+                            if ('success' in result && result.success) {
                               await loadOrders();
                               const updatedOrder = orders.find((o) => o.id === selectedOrder.id);
                               if (updatedOrder) {
@@ -789,7 +789,7 @@ export default function OrdersManagement({
                               }
                               alert('Tracking message updated successfully');
                             } else {
-                              alert(result.error || 'Failed to update tracking message');
+                              alert((result as any).error || 'Failed to update tracking message');
                             }
                           }}
                           variant="outline"
@@ -979,8 +979,12 @@ export default function OrdersManagement({
                                   <h5 className="text-sm font-semibold text-blue-800 mb-2">Lens Configuration</h5>
                                   <div className="grid grid-cols-2 gap-2 text-sm">
                                     <div>
-                                      <span className="font-medium text-blue-700">Lens Type:</span>{' '}
-                                      <span>{LENS_TYPE_LABELS[prescription.rxConfig.lensType as keyof typeof LENS_TYPE_LABELS] || prescription.rxConfig.lensType}</span>
+                                      <span className="font-medium text-blue-700">Lens Option:</span>{' '}
+                                      {prescription.rxConfig.lensBundle ? (
+                                        <span>{getFriendlyLensDescription(prescription.rxConfig)}</span>
+                                      ) : (
+                                        <span>{LENS_TYPE_LABELS[prescription.rxConfig.lensType as keyof typeof LENS_TYPE_LABELS] || prescription.rxConfig.lensType}</span>
+                                      )}
                                     </div>
                                     {prescription.rxConfig.lensIndex && (
                                       <div>
@@ -988,15 +992,17 @@ export default function OrdersManagement({
                                         <span>{prescription.rxConfig.lensIndex}</span>
                                       </div>
                                     )}
-                                    <div>
-                                      <span className="font-medium text-blue-700">Coating:</span>{' '}
-                                      <span>{COATING_LABELS[prescription.rxConfig.coating as keyof typeof COATING_LABELS] || prescription.rxConfig.coating}</span>
-                                    </div>
+                                    {prescription.rxConfig.coating && (
+                                      <div>
+                                        <span className="font-medium text-blue-700">Coating:</span>{' '}
+                                        <span>{COATING_LABELS[prescription.rxConfig.coating as keyof typeof COATING_LABELS] || prescription.rxConfig.coating}</span>
+                                      </div>
+                                    )}
                                     <div>
                                       <span className="font-medium text-blue-700">Frame Type:</span>{' '}
                                       <span>{FRAME_TYPE_LABELS[prescription.rxConfig.frameType as keyof typeof FRAME_TYPE_LABELS] || prescription.rxConfig.frameType}</span>
                                     </div>
-                                    {prescription.rxConfig.lensType === "TINTED" && prescription.rxConfig.tintType && (
+                                    {(prescription.rxConfig.lensType === "TINTED" || prescription.rxConfig.lensBundle === "SUNGLASSES_TINT" || prescription.rxConfig.lensBundle === "SUNGLASSES_GRADIENT") && (
                                       <>
                                         <div>
                                           <span className="font-medium text-blue-700">Tint Type:</span>{' '}

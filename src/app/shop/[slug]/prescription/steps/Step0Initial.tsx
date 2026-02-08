@@ -1,9 +1,9 @@
-    "use client";
+"use client";
 
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Glasses } from "lucide-react";
 import type { Product } from "@/lib/productData";
-import type { PrescriptionData, RxConfigData } from "../PrescriptionFlow";
+import type { PrescriptionData, RxConfigData } from "@/types/prescription";
 import {
   type RxPriceResult,
 } from "@/lib/pricing/rx167";
@@ -20,10 +20,10 @@ interface Step0InitialProps {
   onChooseLens?: () => void;
 }
 
-export default function Step0Initial({ 
-  product, 
-  priceInEur, 
-  formatPrice, 
+export default function Step0Initial({
+  product,
+  priceInEur,
+  formatPrice,
   onAddPrescription,
   prescriptionData,
   rxConfig,
@@ -33,12 +33,12 @@ export default function Step0Initial({
 }: Step0InitialProps) {
   // Check if we have actual prescription data (not defaults)
   // Must have PD filled (required field) to be considered a valid prescription
-  const hasPrescription = prescriptionData && 
-    prescriptionData.od && 
+  const hasPrescription = prescriptionData &&
+    prescriptionData.od &&
     prescriptionData.os &&
     // Check if PD is filled (required field)
     ((prescriptionData.pd && prescriptionData.pd !== "") ||
-     (prescriptionData.hasTwoPDs && prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== ""));
+      (prescriptionData.hasTwoPDs && prescriptionData.pdOd && prescriptionData.pdOd !== "" && prescriptionData.pdOs && prescriptionData.pdOs !== ""));
 
   return (
     <div className="space-y-6">
@@ -56,7 +56,7 @@ export default function Step0Initial({
                 Prescription Added
               </h3>
             </div>
-            
+
             {/* Main Prescription Table */}
             <table className="w-full">
               <thead>
@@ -90,7 +90,7 @@ export default function Step0Initial({
                 <span className="text-xs sm:text-sm font-medium break-words">
                   {prescriptionData.hasTwoPDs ? (
                     <>
-                      OD: {prescriptionData.pdOd && prescriptionData.pdOd !== "" ? `${prescriptionData.pdOd} mm` : "N/A"} | 
+                      OD: {prescriptionData.pdOd && prescriptionData.pdOd !== "" ? `${prescriptionData.pdOd} mm` : "N/A"} |
                       OS: {prescriptionData.pdOs && prescriptionData.pdOs !== "" ? `${prescriptionData.pdOs} mm` : "N/A"}
                     </>
                   ) : (
@@ -120,46 +120,46 @@ export default function Step0Initial({
                     <tr className="border-b">
                       <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OD (Right)</td>
                       <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                        {prescriptionData.od.prismHorizontal && prescriptionData.od.prismHorizontal !== "0.00" 
-                          ? prescriptionData.od.prismHorizontal 
+                        {prescriptionData.od.prismHorizontal && prescriptionData.od.prismHorizontal !== "0.00"
+                          ? prescriptionData.od.prismHorizontal
                           : "-"}
                       </td>
                       <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                        {prescriptionData.od.prismHorizontalBase && prescriptionData.od.prismHorizontalBase !== "" 
-                          ? prescriptionData.od.prismHorizontalBase 
+                        {prescriptionData.od.prismHorizontalBase && prescriptionData.od.prismHorizontalBase !== ""
+                          ? prescriptionData.od.prismHorizontalBase
                           : "-"}
                       </td>
                       <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                        {prescriptionData.od.prismVertical && prescriptionData.od.prismVertical !== "0.00" 
-                          ? prescriptionData.od.prismVertical 
+                        {prescriptionData.od.prismVertical && prescriptionData.od.prismVertical !== "0.00"
+                          ? prescriptionData.od.prismVertical
                           : "-"}
                       </td>
                       <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                        {prescriptionData.od.prismVerticalBase && prescriptionData.od.prismVerticalBase !== "" 
-                          ? prescriptionData.od.prismVerticalBase 
+                        {prescriptionData.od.prismVerticalBase && prescriptionData.od.prismVerticalBase !== ""
+                          ? prescriptionData.od.prismVerticalBase
                           : "-"}
                       </td>
                     </tr>
                     <tr>
                       <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OS (Left)</td>
                       <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                        {prescriptionData.os.prismHorizontal && prescriptionData.os.prismHorizontal !== "0.00" 
-                          ? prescriptionData.os.prismHorizontal 
+                        {prescriptionData.os.prismHorizontal && prescriptionData.os.prismHorizontal !== "0.00"
+                          ? prescriptionData.os.prismHorizontal
                           : "-"}
                       </td>
                       <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                        {prescriptionData.os.prismHorizontalBase && prescriptionData.os.prismHorizontalBase !== "" 
-                          ? prescriptionData.os.prismHorizontalBase 
+                        {prescriptionData.os.prismHorizontalBase && prescriptionData.os.prismHorizontalBase !== ""
+                          ? prescriptionData.os.prismHorizontalBase
                           : "-"}
                       </td>
                       <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                        {prescriptionData.os.prismVertical && prescriptionData.os.prismVertical !== "0.00" 
-                          ? prescriptionData.os.prismVertical 
+                        {prescriptionData.os.prismVertical && prescriptionData.os.prismVertical !== "0.00"
+                          ? prescriptionData.os.prismVertical
                           : "-"}
                       </td>
                       <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                        {prescriptionData.os.prismVerticalBase && prescriptionData.os.prismVerticalBase !== "" 
-                          ? prescriptionData.os.prismVerticalBase 
+                        {prescriptionData.os.prismVerticalBase && prescriptionData.os.prismVerticalBase !== ""
+                          ? prescriptionData.os.prismVerticalBase
                           : "-"}
                       </td>
                     </tr>
@@ -180,11 +180,11 @@ export default function Step0Initial({
               <Edit className="mr-2 h-5 w-5" />
               Edit Prescription
             </Button>
-            
+
             <Button
               size="lg"
               className="h-12 w-full text-base font-semibold"
-              onClick={onChooseLens || (() => {})}
+              onClick={onChooseLens || (() => { })}
             >
               Choose Lens Options
             </Button>

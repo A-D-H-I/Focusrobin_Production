@@ -12,7 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Settings, X, Cookie } from 'lucide-react';
+import { Settings, Cookie } from 'lucide-react';
 import Link from 'next/link';
 
 export function CookieConsentBanner() {
@@ -47,7 +47,8 @@ export function CookieConsentBanner() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border shadow-lg">
-      <div className="container mx-auto px-4 py-4 sm:py-6">
+
+      <div className="container mx-auto px-4 pl-12 py-4 sm:py-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex-1 space-y-2">
             <div className="flex items-center gap-2">
@@ -57,7 +58,7 @@ export function CookieConsentBanner() {
               </h3>
             </div>
             <p className="text-sm text-muted-foreground">
-              We use cookies to enhance your browsing experience, analyze site traffic, and personalize content. 
+              We use cookies to enhance your browsing experience, analyze site traffic, and personalize content.
               By clicking "Accept All", you consent to our use of cookies. You can manage your preferences or learn more in our{' '}
               <Link href="/privacy" className="text-primary hover:underline font-medium">
                 Privacy Policy
@@ -65,7 +66,7 @@ export function CookieConsentBanner() {
               .
             </p>
           </div>
-          
+
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <Button
               variant="outline"
@@ -76,14 +77,7 @@ export function CookieConsentBanner() {
               <Settings className="h-4 w-4 mr-2" />
               Customize
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={rejectAll}
-              className="w-full sm:w-auto"
-            >
-              Reject All
-            </Button>
+            {/* Reject All button removed */}
             <Button
               size="sm"
               onClick={acceptAll}
@@ -104,7 +98,7 @@ export function CookieConsentBanner() {
               Manage your cookie preferences. You can enable or disable different types of cookies below.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-6 py-4">
             {/* Necessary Cookies */}
             <div className="space-y-3">

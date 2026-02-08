@@ -1,6 +1,7 @@
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "binary"
+  provider      = "prisma-client-js"
+  engineType    = "library"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -31,6 +32,7 @@ model Product {
   id                        String                @id @default(cuid())
   name                      String
   slug                      String                @unique
+  brand                     String                @default("FocusRobin")
   description               String?
   basePrice                 Decimal               @db.Decimal(10, 2)
   discountPct               Int?                  @default(0)
@@ -54,6 +56,18 @@ model Product {
   reviewCount               Int                   @default(0)
   isNewlyAdded              Boolean               @default(false) // For "Newly Added Products" section
   isUniqueDesign            Boolean               @default(false) // For "Unique Designs" section (formerly Best Sellers)
+  // Dynamic Product Features
+  isPolarized               Boolean               @default(false)
+  isUVProtection            Boolean               @default(false)
+  isHydrophobic             Boolean               @default(false)
+  isAntiScratch             Boolean               @default(false)
+  isBioBased                Boolean               @default(false)
+  // Product Highlights Section
+  showHighlights            Boolean               @default(false)
+  highlights                ProductHighlight[]
+  // Custom Features & Warranty
+  warranty                  String                @default("2 Years Warranty")
+  customFeatures            String[]              @default([])
   categoryId                String
   createdAt                 DateTime              @default(now())
   updatedAt                 DateTime              @updatedAt
@@ -72,6 +86,7 @@ model PrescriptionGlasses {
   id                         String                       @id @default(cuid())
   name                       String
   slug                       String                       @unique
+  brand                      String                       @default("FocusRobin")
   description                String?
   basePrice                  Decimal                      @db.Decimal(10, 2)
   discountPct                Int?                         @default(0)
@@ -94,6 +109,18 @@ model PrescriptionGlasses {
   reviewCount                Int                          @default(0)
   isNewlyAdded               Boolean                      @default(false)
   isUniqueDesign             Boolean                      @default(false)
+  // Dynamic Product Features
+  isPolarized                Boolean                      @default(false)
+  isUVProtection             Boolean                      @default(false)
+  isHydrophobic              Boolean                      @default(false)
+  isAntiScratch              Boolean                      @default(false)
+  isBioBased                 Boolean                      @default(false)
+  // Product Highlights Section
+  showHighlights             Boolean                      @default(false)
+  highlights                 PrescriptionHighlight[]
+  // Custom Features & Warranty
+  warranty                   String                       @default("1.5 Years Warranty")
+  customFeatures             String[]                     @default([])
   categoryId                 String
   createdAt                  DateTime                     @default(now())
   updatedAt                  DateTime                     @updatedAt
@@ -101,6 +128,18 @@ model PrescriptionGlasses {
   Category                   Category                     @relation(fields: [categoryId], references: [id])
   PrescriptionGlassesVariant PrescriptionGlassesVariant[]
   PrescriptionGlassesOffer   PrescriptionGlassesOffer?
+}
+
+// Highlights for Prescription Glasses
+model PrescriptionHighlight {
+  id                    String              @id @default(cuid())
+  prescriptionGlassesId String
+  title                 String
+  description           String
+  imageUrl              String
+  order                 Int                 @default(0)
+  createdAt             DateTime            @default(now())
+  PrescriptionGlasses   PrescriptionGlasses @relation(fields: [prescriptionGlassesId], references: [id], onDelete: Cascade)
 }
 
 model PrescriptionGlassesVariant {
@@ -165,6 +204,20 @@ model ProductVariant {
   updatedAt    DateTime       @updatedAt
   ProductAsset ProductAsset[]
   Product      Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model ProductHighlight {
+  id          String   @id @default(cuid())
+  productId   String
+  title       String
+  description String
+  imageUrl    String
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  Product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
 }
 
 model Review {
@@ -476,6 +529,17 @@ model ScrollingBanner {
 }
 
 model ShopBanner {
+  id        String   @id @default(cuid())
+  category  String   @unique // "MEN", "WOMEN", "KIDS", "UNISEX"
+  imageUrl  String
+  alt       String
+  link      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PrescriptionShopBanner {
   id        String   @id @default(cuid())
   category  String   @unique // "MEN", "WOMEN", "KIDS", "UNISEX"
   imageUrl  String
@@ -847,5 +911,29 @@ model PrescriptionProfit {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+
   @@unique([isActive])
 }
+
+model SplitBanner {
+  id                   String   @id @default(cuid())
+  sectionKey           String   @unique // "eyeglasses", "sunglasses"
+  title                String
+  leftImageUrl         String
+  leftLink             String
+  leftButtonText       String
+  rightImageUrl        String
+  rightLink            String
+  rightButtonText      String
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model LensBundlePrice {
+  id        String   @id @default(cuid())
+  bundleId  String   @unique // e.g., "BASIC", "BLUE_FILTER"
+  price     Decimal  @db.Decimal(10, 2)
+  updatedAt DateTime @updatedAt
+}
+

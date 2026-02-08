@@ -2,17 +2,20 @@ import Image from "next/image";
 import Link from "next/link";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
 
+import { cn } from "@/lib/utils";
+
 interface CategoryBannerProps {
   title: string;
   imageSrc: string;
   description?: string;
   link?: string;
   alt?: string;
+  className?: string;
 }
 
-export default function CategoryBanner({ title, imageSrc, description, link, alt }: CategoryBannerProps) {
+export default function CategoryBanner({ title, imageSrc, description, link, alt, className }: CategoryBannerProps) {
   const normalizedImageSrc = normalizeImageUrl(imageSrc);
-  
+
   const bannerContent = (
     <>
       <Image
@@ -39,7 +42,7 @@ export default function CategoryBanner({ title, imageSrc, description, link, alt
   );
 
   const bannerWrapper = (
-    <div className="relative w-full h-[300px] md:h-[400px] lg:h-[500px] overflow-hidden mt-[105px] sm:mt-[105px]">
+    <div className={cn("relative w-full h-[300px] md:h-[400px] lg:h-[500px] overflow-hidden mt-[105px] sm:mt-[105px]", className)}>
       {bannerContent}
     </div>
   );

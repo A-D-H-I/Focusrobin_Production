@@ -37,6 +37,10 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
   );
   const [basePrice, setBasePrice] = useState<string>(Number(product.basePrice).toString());
   const [discountPct, setDiscountPct] = useState<string>((product.discountPct || 0).toString());
+
+  // Brand
+  const [brand, setBrand] = useState<string>(product.brand || 'FocusRobin');
+
   const [cashbackAmount, setCashbackAmount] = useState<string>((product.cashbackAmount ? Number(product.cashbackAmount).toString() : '0'));
   const [variants, setVariants] = useState<VariantData[]>(() => {
     // Initialize variants from product data
@@ -47,7 +51,7 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
       const tryonAsset = assets.find((a: any) => a.type === 'TRY_ON_2D');
       const hoverAsset = assets.find((a: any) => a.type === 'HOVER');
       const galleryAssets = assets.filter((a: any) => a.type === 'GALLERY').map((a: any) => a.url);
-      
+
       return {
         id: variant.id,
         name: variant.name,
@@ -76,6 +80,40 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
       asset_gallery: '',
     }];
   });
+
+
+  // Dynamic Features State
+  const [isPolarized, setIsPolarized] = useState(!!product.isPolarized);
+  const [isUVProtection, setIsUVProtection] = useState(!!product.isUVProtection);
+  const [isHydrophobic, setIsHydrophobic] = useState(!!product.isHydrophobic);
+  const [isAntiScratch, setIsAntiScratch] = useState(!!product.isAntiScratch);
+  const [isBioBased, setIsBioBased] = useState(!!product.isBioBased);
+  const [warranty, setWarranty] = useState(product.warranty || '2 Years Warranty');
+  const [customFeatures, setCustomFeatures] = useState(Array.isArray(product.customFeatures) ? product.customFeatures.join(', ') : '');
+
+  // Product Highlights State
+  const [showHighlights, setShowHighlights] = useState(!!product.showHighlights);
+  const [highlights, setHighlights] = useState<Array<{ title: string; description: string; imageUrl: string }>>(() => {
+    return product.highlights?.map((h: any) => ({
+      title: h.title,
+      description: h.description,
+      imageUrl: h.imageUrl
+    })) || [];
+  });
+
+  const addHighlight = () => {
+    setHighlights([...highlights, { title: '', description: '', imageUrl: '' }]);
+  };
+
+  const removeHighlight = (index: number) => {
+    setHighlights(highlights.filter((_, i) => i !== index));
+  };
+
+  const updateHighlight = (index: number, field: 'title' | 'description' | 'imageUrl', value: string) => {
+    const updated = [...highlights];
+    updated[index] = { ...updated[index], [field]: value };
+    setHighlights(updated);
+  };
 
   // Calculate discounted price
   const calculateDiscountedPrice = () => {
@@ -143,6 +181,18 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
     });
     formData.set('genderCount', genders.length.toString());
     formData.set('discountPct', discountPct || '0');
+    formData.set('brand', brand);
+
+    // Add dynamic feature flags
+    if (isPolarized) formData.append('isPolarized', 'on');
+    if (isUVProtection) formData.append('isUVProtection', 'on');
+    if (isHydrophobic) formData.append('isHydrophobic', 'on');
+    if (isAntiScratch) formData.append('isAntiScratch', 'on');
+    if (isBioBased) formData.append('isBioBased', 'on');
+
+    // Add custom features and warranty
+    formData.append('warranty', warranty);
+    formData.append('customFeatures', customFeatures);
 
     // Add variant count
     formData.append('variantCount', variants.length.toString());
@@ -173,6 +223,16 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
       if (variant.asset_gallery) {
         formData.append(`variant-${index}-asset_gallery`, variant.asset_gallery);
       }
+    });
+
+    // Add Product Highlights
+    if (showHighlights) formData.append('showHighlights', 'on');
+    formData.append('highlightCount', highlights.length.toString());
+
+    highlights.forEach((highlight, index) => {
+      formData.append(`highlight-${index}-title`, highlight.title);
+      formData.append(`highlight-${index}-description`, highlight.description);
+      formData.append(`highlight-${index}-image`, highlight.imageUrl);
     });
 
     const result = await updateProduct(productId, formData);
@@ -211,6 +271,16 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
             <div className="space-y-2">
               <Label htmlFor="slug">Slug *</Label>
               <Input id="slug" name="slug" required defaultValue={product.slug} placeholder="e.g., the-horizon" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="brand">Brand</Label>
+              <Input
+                id="brand"
+                name="brand"
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                placeholder="FocusRobin"
+              />
             </div>
           </div>
 
@@ -260,9 +330,9 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
                       className="text-sm font-normal cursor-pointer"
                     >
                       {genderOption === Gender.MEN ? 'Men' :
-                       genderOption === Gender.WOMEN ? 'Women' :
-                       genderOption === Gender.UNISEX ? 'Unisex' :
-                       genderOption === Gender.KIDS ? 'Kids' : genderOption}
+                        genderOption === Gender.WOMEN ? 'Women' :
+                          genderOption === Gender.UNISEX ? 'Unisex' :
+                            genderOption === Gender.KIDS ? 'Kids' : genderOption}
                     </Label>
                   </div>
                 ))}
@@ -462,11 +532,173 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
               </p>
             </div>
           </div>
-          
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mt-4">
+            <div className="space-y-3">
+              <Label>Product Features</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isPolarized"
+                    checked={isPolarized}
+                    onCheckedChange={(c) => setIsPolarized(!!c)}
+                  />
+                  <Label htmlFor="isPolarized" className="font-normal cursor-pointer">Polarized</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isUVProtection"
+                    checked={isUVProtection}
+                    onCheckedChange={(c) => setIsUVProtection(!!c)}
+                  />
+                  <Label htmlFor="isUVProtection" className="font-normal cursor-pointer">UV Protection</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isHydrophobic"
+                    checked={isHydrophobic}
+                    onCheckedChange={(c) => setIsHydrophobic(!!c)}
+                  />
+                  <Label htmlFor="isHydrophobic" className="font-normal cursor-pointer">Hydrophobic</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isAntiScratch"
+                    checked={isAntiScratch}
+                    onCheckedChange={(c) => setIsAntiScratch(!!c)}
+                  />
+                  <Label htmlFor="isAntiScratch" className="font-normal cursor-pointer">Anti-Scratch</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="isBioBased"
+                    checked={isBioBased}
+                    onCheckedChange={(c) => setIsBioBased(!!c)}
+                  />
+                  <Label htmlFor="isBioBased" className="font-normal cursor-pointer">Bio Based</Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="warranty">Warranty</Label>
+                  <Input
+                    id="warranty"
+                    name="warranty"
+                    value={warranty}
+                    onChange={(e) => setWarranty(e.target.value)}
+                    placeholder="e.g., 2 Years Warranty"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customFeatures">Custom Features (comma-separated)</Label>
+                  <Input
+                    id="customFeatures"
+                    name="customFeatures"
+                    value={customFeatures}
+                    onChange={(e) => setCustomFeatures(e.target.value)}
+                    placeholder="e.g., Handmade in Italy, Limited Edition"
+                  />
+                  <p className="text-xs text-muted-foreground">Additional features to display as tags.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </CardContent>
       </Card>
 
+      {/* Section: Product Highlights */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <CardTitle>Product Highlights</CardTitle>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="showHighlights"
+                  checked={showHighlights}
+                  onCheckedChange={(c) => setShowHighlights(!!c)}
+                />
+                <Label htmlFor="showHighlights" className="font-normal cursor-pointer">Enable Highlights Section</Label>
+              </div>
+            </div>
+            {showHighlights && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={addHighlight}
+                className="gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Add Highlight
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+        {showHighlights && (
+          <CardContent className="space-y-6">
+            {highlights.map((highlight, index) => (
+              <div key={index} className="space-y-4 rounded-lg border p-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">Highlight {index + 1}</h3>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeHighlight(index)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Title *</Label>
+                    <Input
+                      value={highlight.title}
+                      onChange={(e) => updateHighlight(index, 'title', e.target.value)}
+                      placeholder="e.g., Lightweight Design"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Description *</Label>
+                    <Input
+                      value={highlight.description}
+                      onChange={(e) => updateHighlight(index, 'description', e.target.value)}
+                      placeholder="e.g., Made from aerospace-grade titanium."
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <ImageUploader
+                      value={highlight.imageUrl}
+                      onChange={(url) => updateHighlight(index, 'imageUrl', url)}
+                      folder="other"
+                      label="Highlight Image"
+                      description="Image displaying the feature."
+                      accept="image/*"
+                    />
+                  </div>
+                </div>
+                {index < highlights.length - 1 && <Separator className="mt-4" />}
+              </div>
+            ))}
+            {highlights.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No highlights added. Click "Add Highlight" to create one.
+              </div>
+            )}
+          </CardContent>
+        )}
+      </Card>
+
       {/* Section 4: Variants */}
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">

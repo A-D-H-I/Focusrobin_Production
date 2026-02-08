@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Minus, Plus, Sun, Shield, Droplet, Star, Heart, Camera, CheckCircle2, Eye, ShoppingCart, Truck } from "lucide-react";
+import { Minus, Plus, Sun, Shield, Droplet, Star, Heart, Camera, CheckCircle2, Eye, ShoppingCart, Truck, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Product, ProductColorVariant } from "@/lib/productData";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
@@ -19,12 +20,7 @@ type ProductPurchaseFormProps = {
   selectedVariant?: ProductColorVariant;
 };
 
-const lensFeatures = [
-  { icon: Sun, text: "100% UV Protection" },
-  { icon: Eye, text: "Polarized lenses" },
-  { icon: Shield, text: "Antiscratch coating" },
-  { icon: Droplet, text: "Superhydrophobic" },
-];
+
 
 export default function ProductPurchaseForm({ product, onVariantChange, selectedVariant: externalSelectedVariant }: ProductPurchaseFormProps) {
   const router = useRouter();
@@ -33,12 +29,22 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   const selectedVariant = externalSelectedVariant || internalSelectedVariant;
   const [quantity, setQuantity] = useState(1);
   const [prescriptionData, setPrescriptionData] = useState<any>(null);
-  
+
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
   const { formatPrice, parseEurPrice } = usePrice();
   const [isWishlisted, setIsWishlisted] = useState(false);
+
+  // Dynamic features based on product properties
+  const dynamicFeatures = [
+    ...(product.isUVProtection ? [{ icon: Sun, text: "100% UV Protection" }] : []),
+    ...(product.isPolarized ? [{ icon: Eye, text: "Polarized lenses" }] : []),
+    ...(product.isAntiScratch ? [{ icon: Shield, text: "Antiscratch coating" }] : []),
+    ...(product.isHydrophobic ? [{ icon: Droplet, text: "Superhydrophobic" }] : []),
+    ...(product.isBioBased ? [{ icon: Leaf, text: "Bio-based Material" }] : []),
+    ...(product.customFeatures?.map(feature => ({ icon: Star, text: feature })) || []),
+  ];
 
   // Load prescription data from sessionStorage
   useEffect(() => {
@@ -66,26 +72,26 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
     };
 
     window.addEventListener('prescription-saved', handlePrescriptionSaved);
-    
+
     const handleFocus = () => {
       loadPrescriptionData();
     };
-    
+
     window.addEventListener('focus', handleFocus);
-    
+
     return () => {
       window.removeEventListener('prescription-saved', handlePrescriptionSaved);
       window.removeEventListener('focus', handleFocus);
     };
   }, [product.id]);
-  
+
   // Check wishlist status when variant changes
   useEffect(() => {
     if (selectedVariant) {
       setIsWishlisted(isInWishlist(product.id, selectedVariant.hex));
     }
   }, [product.id, selectedVariant, isInWishlist]);
-  
+
   // Parse EUR prices from product
   const priceInEur = parseEurPrice(product.price);
   const originalPriceInEur = product.originalPrice ? parseEurPrice(product.originalPrice) : null;
@@ -147,7 +153,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       });
       return;
     }
-    
+
     if (selectedVariant.stock !== undefined) {
       if (selectedVariant.stock === 0) {
         toast({
@@ -166,7 +172,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
         return;
       }
     }
-    
+
     addToCart(product, selectedVariant, quantity);
     toast({
       title: "Added to cart",
@@ -238,14 +244,14 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       <div className="flex items-center gap-2">
         <div className="flex gap-0.5">
           {[...Array(5)].map((_, i) => (
-            <Star 
-              key={i} 
+            <Star
+              key={i}
               className={cn(
-                "h-4 w-4", 
-                i < Math.round(product.averageRating || 4) 
-                  ? "text-yellow-400 fill-yellow-400" 
+                "h-4 w-4",
+                i < Math.round(product.averageRating || 4)
+                  ? "text-yellow-400 fill-yellow-400"
                   : "text-gray-300"
-              )} 
+              )}
             />
           ))}
         </div>
@@ -261,15 +267,15 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             <TranslatableText text="Color" />: {selectedVariant?.name || 'Default'}
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 p-1">
           {product.variants.map((variant, idx) => (
             <button
               key={`color-${idx}-${variant.name}`}
               onClick={() => handleColorSelect(variant)}
               className={cn(
                 "w-8 h-8 rounded-full border-2 transition-all",
-                selectedColor === variant.hex 
-                  ? "border-foreground scale-110 shadow-md ring-1 ring-offset-1 ring-primary/50" 
+                selectedColor === variant.hex
+                  ? "border-foreground scale-110 shadow-md ring-1 ring-offset-1 ring-primary/50"
                   : "border-border hover:border-muted-foreground hover:scale-105"
               )}
               style={{ backgroundColor: variant.hex }}
@@ -282,7 +288,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       {/* Features Grid - Combined with Warranty and Fast Delivery */}
       <div className="rounded-lg border bg-muted/30 p-2.5 sm:p-3 overflow-hidden">
         <div className="grid grid-cols-2 gap-2">
-          {lensFeatures.map((feature, index) => (
+          {dynamicFeatures.map((feature, index) => (
             <div key={index} className="flex items-center gap-1.5 min-w-0 overflow-hidden">
               <feature.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
               <span className="text-xs sm:text-sm text-foreground/80 truncate">{feature.text}</span>
@@ -291,7 +297,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
           {/* Warranty */}
           <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
             <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-foreground/80 truncate">3 Years Warranty</span>
+            <span className="text-xs sm:text-sm text-foreground/80 truncate">{product.warranty || "2 Years Warranty"}</span>
           </div>
           {/* Fast Delivery */}
           <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
@@ -330,7 +336,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             </Button>
           </div>
         </div>
-        
+
         {/* Stock Status */}
         {isOutOfStock && (
           <span className="text-sm font-medium text-destructive"><TranslatableText text="Out of Stock" /></span>
@@ -349,8 +355,8 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       <div className="space-y-2 overflow-hidden">
         {/* Virtual Try-On and Add to Cart - Two buttons in a row */}
         <div className="grid grid-cols-2 gap-2">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className="h-10 text-sm border overflow-hidden"
             onClick={handleTryOn}
           >
@@ -358,7 +364,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             <span className="truncate"><TranslatableText text="Virtual Try-On" /></span>
           </Button>
 
-          <Button 
+          <Button
             className="h-10 text-sm font-semibold overflow-hidden"
             disabled={isOutOfStock}
             onClick={handleAddToCart}
@@ -369,7 +375,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             </span>
           </Button>
         </div>
-        
+
         {/* Prescription Section - Show always, but disable if out of stock */}
         {prescriptionData ? (
           <div className="space-y-2">
@@ -389,7 +395,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
                   Remove
                 </Button>
               </div>
-              
+
               <div className="space-y-2 text-sm overflow-x-hidden">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
@@ -405,24 +411,24 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
                     </p>
                   </div>
                 </div>
-                
+
                 <div>
                   <p className="font-medium text-muted-foreground mb-0.5 text-sm">PD (Pupillary Distance)</p>
                   <p className="text-foreground text-sm">{prescriptionData.pd} mm</p>
                 </div>
-                
+
                 {prescriptionData.rxConfig && (
                   <div className="pt-1.5 border-t space-y-0.5">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground text-sm">Lens Type:</span>
                       <span className="font-medium text-sm">
-                        {prescriptionData.rxConfig.lensType === 'CLEAR' 
-                          ? 'Clear' 
+                        {prescriptionData.rxConfig.lensType === 'CLEAR'
+                          ? 'Clear'
                           : prescriptionData.rxConfig.lensType === 'TINTED'
-                          ? 'Tinted'
-                          : prescriptionData.rxConfig.lensType === 'PHOTOCHROMIC_SOLIS'
-                          ? 'Photochromic (Solis II)'
-                          : 'Polarized (NuPolar)'}
+                            ? 'Tinted'
+                            : prescriptionData.rxConfig.lensType === 'PHOTOCHROMIC_SOLIS'
+                              ? 'Photochromic (Solis II)'
+                              : 'Polarized (NuPolar)'}
                       </span>
                     </div>
                     {prescriptionData.rxConfig.lensIndex && (
@@ -435,8 +441,8 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
                       <span className="text-muted-foreground text-sm">Coating:</span>
                       <span className="font-medium text-sm">
                         {prescriptionData.rxConfig.coating === 'UC' ? 'Uncoated (UC)' :
-                         prescriptionData.rxConfig.coating === 'SERICUM_UV' ? 'UV Protection' :
-                         'Blue PRO'}
+                          prescriptionData.rxConfig.coating === 'SERICUM_UV' ? 'UV Protection' :
+                            'Blue PRO'}
                       </span>
                     </div>
                     {prescriptionData.rxConfig.lensType === 'TINTED' && prescriptionData.rxConfig.tintType && (
@@ -464,7 +470,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
                     )}
                   </div>
                 )}
-                
+
                 {prescriptionData.rxPriceBreakdown && (
                   <div className="pt-1.5 border-t">
                     <div className="flex justify-between items-center">
@@ -480,43 +486,43 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
                 )}
               </div>
             </div>
-            
+
             <Button
               variant="outline"
               className="w-full h-10 text-base"
-              onClick={() => {
-                router.push(`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
-              }}
               disabled={isOutOfStock}
+              asChild
             >
-              Edit Prescription
+              <Link href={`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`}>
+                Edit Prescription
+              </Link>
             </Button>
-            
+
             <Button
               className="w-full h-10 text-base"
-              onClick={() => {
-                router.push(`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}&step=3`);
-              }}
               disabled={isOutOfStock}
+              asChild
             >
-              Change Lens Options
+              <Link href={`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}&step=3`}>
+                Change Lens Options
+              </Link>
             </Button>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-2">
             <Button
               className="h-10 text-sm font-semibold overflow-hidden"
-              onClick={() => {
-                router.push(`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
-              }}
               disabled={isOutOfStock}
+              asChild
             >
-              <Plus className="w-4 h-4 mr-1.5 flex-shrink-0" />
-              <span className="truncate">Add Prescription</span>
+              <Link href={`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`}>
+                <Plus className="w-4 h-4 mr-1.5 flex-shrink-0" />
+                <span className="truncate">Add Prescription</span>
+              </Link>
             </Button>
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               className={cn("h-10 text-sm overflow-hidden", isWishlisted && "border-primary")}
               onClick={handleWishlist}
             >
@@ -525,10 +531,10 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             </Button>
           </div>
         )}
-        
+
         {prescriptionData && (
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             className={cn("w-full h-10 text-sm overflow-hidden", isWishlisted && "border-primary")}
             onClick={handleWishlist}
           >
@@ -537,7 +543,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
           </Button>
         )}
       </div>
-      
+
       {/* Shipping Info */}
       <p className="text-xs sm:text-sm text-muted-foreground">
         Designed in Lithuania. Fast delivery across EU/Schengen.

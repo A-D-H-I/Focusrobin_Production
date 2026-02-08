@@ -42,4 +42,24 @@ export interface Product {
   lensHeight?: number;
   bridgeWidth?: number;
   templeLength?: number;
+  // Dynamic Product Features
+  isPolarized?: boolean;
+  isUVProtection?: boolean;
+  isHydrophobic?: boolean;
+  isAntiScratch?: boolean;
+  isBioBased?: boolean;
+
+  customFeatures?: string[];
+
+  // Product Highlights
+  showHighlights?: boolean;
+  highlights?: ProductHighlight[];
+}
+
+export interface ProductHighlight {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  order?: number;
 }

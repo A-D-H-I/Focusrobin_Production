@@ -9,6 +9,11 @@ import type { Prisma } from "@prisma/client";
 import { unstable_noStore as noStore } from 'next/cache';
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
 import { getPriceRange } from "@/app/actions/getPriceRange";
+import { getAvailableGlassShapes } from "@/app/actions/getAvailableGlassShapes";
+import { getAvailableGenderCounts } from "@/app/actions/getAvailableGenderCounts";
+import { getAvailableMaterials } from "@/app/actions/getAvailableMaterials";
+import { getAvailableFrameColors } from "@/app/actions/getAvailableColors";
+import { getAvailableBrands, type AvailableBrand } from "@/app/actions/getAvailableBrands";
 
 // Force dynamic rendering to ensure filters work properly
 export const dynamic = 'force-dynamic';
@@ -86,6 +91,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const genderFilter = params.gender as string | string[] | undefined;
   const glassShapeFilter = params.glassShape as string | string[] | undefined;
   const materialFilter = params.material as string | string[] | undefined;
+  const brandFilter = params.brand as string | string[] | undefined;
   const colorFilters = params.color as string | string[] | undefined; // New multi-color filter
   const minPriceParam = params.minPrice as string | undefined;
   const maxPriceParam = params.maxPrice as string | undefined;
@@ -170,6 +176,29 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           OR: normalizedMaterials.map((material) => ({
             frameMaterial: {
               equals: material,
+              mode: 'insensitive' as Prisma.QueryMode,
+            },
+          })),
+        });
+      }
+    }
+  }
+
+  // Filter by brand if provided
+  if (brandFilter) {
+    const brands = Array.isArray(brandFilter) ? brandFilter : [brandFilter];
+    if (brands.length > 0) {
+      const normalizedBrands = brands.map(brand => decodeURIComponent(brand).trim());
+      if (normalizedBrands.length === 1) {
+        whereClause.brand = {
+          equals: normalizedBrands[0],
+          mode: 'insensitive' as Prisma.QueryMode,
+        };
+      } else {
+        andConditions.push({
+          OR: normalizedBrands.map((brand) => ({
+            brand: {
+              equals: brand,
               mode: 'insensitive' as Prisma.QueryMode,
             },
           })),
@@ -326,21 +355,41 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     }
   }
 
-  // Fetch products from database
-  let prismaProducts = (await prisma.product.findMany({
-    where: whereClause,
-    include: {
-      Category: true, // Include Category for search
-      ProductVariant: {
-        include: {
-          ProductAsset: true,
+  // Fetch products and filters in parallel
+  const [
+    prismaProductsResult,
+    priceRange,
+    glassShapes,
+    genderCounts,
+    materials,
+    colors,
+    sgBrands
+  ] = await Promise.all([
+    prisma.product.findMany({
+      where: whereClause,
+      include: {
+        Category: true, // Include Category for search
+        ProductVariant: {
+          include: {
+            ProductAsset: true,
+          },
         },
       },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  } as any)) as any;
+      orderBy: {
+        createdAt: 'desc',
+      },
+    }),
+    getPriceRange(),
+    getAvailableGlassShapes(),
+    getAvailableGenderCounts(),
+    getAvailableMaterials(),
+    getAvailableFrameColors(),
+    getAvailableBrands('sunglasses'),
+  ]);
+
+  const brands = sgBrands;
+
+  let prismaProducts = prismaProductsResult as any;
 
   // Filter by price range (after fetching, since we need to calculate final price)
   if (minPriceParam || maxPriceParam) {
@@ -458,7 +507,12 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           products={products}
           title={pageTitle}
           searchQuery={searchQuery}
-          priceRange={await getPriceRange()}
+          priceRange={priceRange}
+          glassShapes={glassShapes}
+          genderCounts={genderCounts}
+          materials={materials}
+          colors={colors}
+          brands={brands}
         />
 
         {/* Lithuanian SEO Content Block */}

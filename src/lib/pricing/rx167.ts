@@ -1,12 +1,16 @@
 // Rx Lens Pricing Module for Mono RX 1.67 Lenses
 // Based on BOD Lenses Price List 2025 CSV (auto-generated)
+//
+// ⚠️ NOTE: This module is for LEGACY/FUTURE use only.
+// The main checkout flow uses BUNDLE_PRICES from lensPricing.ts (bundle-only pricing).
+// This module is NOT invoked in the current checkout flow.
 
 // Import pricing functions from database (sync version)
-import { 
-  getLensPriceFromDBSync, 
+import {
+  getLensPriceFromDBSync,
   getTintFeeFromDBSync,
   getEdgingFeeFromDBSync,
-  getFixedProfitFromDBSync 
+  getFixedProfitFromDBSync
 } from './syncDbPricing';
 
 export type Coating = "UC" | "BLUE_PRO";
@@ -20,15 +24,20 @@ export type FrameType =
   | "LINDBERG_COMPLEX";
 
 // Display labels for UI
+// NOTE: PHOTOCHROMIC_SOLIS is a legacy internal key - we sell Organic Foto, not Solis
 export const LENS_CATEGORY_LABELS: Record<LensCategory, string> = {
   CLEAR_OR_TINT: "Clear / Tinted",
-  PHOTOCHROMIC_SOLIS: "Standard Photochromic (Solis II)",
+  PHOTOCHROMIC_SOLIS: "Photochromic (Organic Foto)", // Renamed from "Solis II"
   POLARIZED_NUPOLAR: "Polarized (NuPolar)",
 };
 
+/**
+ * COATING_LABELS for rx167 module (legacy/future use)
+ * NOTE: UC = Uncoated (NO AR), not "standard AR"
+ */
 export const COATING_LABELS: Record<Coating, string> = {
-  UC: "Uncoated (UC)",
-  BLUE_PRO: "Blue PRO (Blue-light protective AR)",
+  UC: "Uncoated (no AR)",
+  BLUE_PRO: "Blue PRO (Blue-light protective AR)", // Legacy - use BLUE420_SHMC in bundles
 };
 
 export const TINT_TYPE_LABELS: Record<TintType, string> = {
@@ -185,7 +194,7 @@ export function calculateRxTotal(input: RxPriceInput): RxPriceResult {
   // Tint only applies to CLEAR_OR_TINT category
   // Force NONE for other categories
   const effectiveTintType = lensCategory === "CLEAR_OR_TINT" ? tintType : "NONE";
-  
+
   // Tint pricing is per PAIR (not per lens)
   const tintPairAddOn = PRICES.tinting[effectiveTintType];
 
@@ -247,10 +256,10 @@ export function getLensDescription(
   lensColor?: string
 ): string {
   const parts: string[] = [];
-  
+
   parts.push(LENS_CATEGORY_LABELS[lensCategory]);
   parts.push(COATING_LABELS[coating]);
-  
+
   if (lensCategory === "CLEAR_OR_TINT" && tintType && tintType !== "NONE") {
     parts.push(TINT_TYPE_LABELS[tintType]);
     if (tintColor) {
@@ -263,14 +272,14 @@ export function getLensDescription(
       }
     }
   }
-  
+
   if (lensCategory === "PHOTOCHROMIC_SOLIS" && lensColor) {
     parts.push(`Color: ${lensColor}`);
   }
-  
+
   if (lensCategory === "POLARIZED_NUPOLAR" && lensColor) {
     parts.push(`Color: ${lensColor}`);
   }
-  
+
   return parts.join(" • ");
 }

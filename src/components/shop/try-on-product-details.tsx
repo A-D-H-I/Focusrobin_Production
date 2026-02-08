@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Sun, ParkingCircle, Shield, Droplet, Star, Heart, ShoppingCart, CheckCircle2 } from "lucide-react";
+import { Minus, Plus, Sun, Shield, Droplet, Star, Heart, ShoppingCart, CheckCircle2, Eye, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -21,12 +21,7 @@ interface TryOnProductDetailsProps {
   className?: string;
 }
 
-const lensFeatures = [
-  { icon: Sun, text: "100% UV Protection" },
-  { icon: ParkingCircle, text: "Polarized lenses" },
-  { icon: Shield, text: "Antiscratch coating" },
-  { icon: Droplet, text: "Superhydrophobic" },
-];
+
 
 export default function TryOnProductDetails({
   product,
@@ -40,12 +35,22 @@ export default function TryOnProductDetails({
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
   const { formatPrice, parseEurPrice } = usePrice();
-  
+
   const priceInEur = parseEurPrice(product.price);
   const originalPriceInEur = product.originalPrice ? parseEurPrice(product.originalPrice) : null;
   const cashbackInEur = product.cashback ? parseEurPrice(product.cashback) : null;
-  
+
   const isWishlisted = isInWishlist(product.id, selectedVariant.hex);
+
+  // Dynamic features based on product properties
+  const dynamicFeatures = [
+    ...(product.isUVProtection ? [{ icon: Sun, text: "100% UV Protection" }] : []),
+    ...(product.isPolarized ? [{ icon: Eye, text: "Polarized lenses" }] : []),
+    ...(product.isAntiScratch ? [{ icon: Shield, text: "Antiscratch coating" }] : []),
+    ...(product.isHydrophobic ? [{ icon: Droplet, text: "Superhydrophobic" }] : []),
+    ...(product.isBioBased ? [{ icon: Leaf, text: "Bio-based Material" }] : []),
+    ...(product.customFeatures?.map(feature => ({ icon: Star, text: feature })) || []),
+  ];
 
   // Update quantity when variant changes
   useEffect(() => {
@@ -88,7 +93,7 @@ export default function TryOnProductDetails({
         return;
       }
     }
-    
+
     addToCart(product, selectedVariant, quantity);
     toast({
       title: "Added to cart",
@@ -116,7 +121,7 @@ export default function TryOnProductDetails({
     <div className={cn("space-y-3", className)}>
       {/* Product Name */}
       <div>
-        <Link 
+        <Link
           href={`/shop/${encodeURIComponent(product.slug || product.id)}`}
           className="text-xs text-teal-primary font-medium uppercase tracking-wide hover:underline"
         >
@@ -176,7 +181,7 @@ export default function TryOnProductDetails({
         <h3 className="text-sm font-semibold mb-2">
           Color: <span className="font-normal text-muted-foreground">{selectedVariant.name}</span>
         </h3>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap p-1">
           {product.variants.map((variant, idx) => (
             <button
               key={`color-${idx}-${variant.name}`}
@@ -197,7 +202,7 @@ export default function TryOnProductDetails({
       {/* Lens Features */}
       <div className="rounded border bg-muted/50 p-2">
         <div className="grid grid-cols-1 gap-1">
-          {lensFeatures.slice(0, 2).map((feature) => (
+          {dynamicFeatures.map((feature) => (
             <div key={feature.text} className="flex items-center gap-2">
               <feature.icon className="h-3.5 w-3.5 text-primary flex-shrink-0" />
               <span className="text-xs text-foreground/80 font-medium">{feature.text}</span>
@@ -210,7 +215,7 @@ export default function TryOnProductDetails({
       <div className="rounded border bg-muted/50 p-2">
         <div className="flex items-center justify-center gap-1.5">
           <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-          <span className="text-xs font-semibold text-foreground">3 Years Warranty</span>
+          <span className="text-xs font-semibold text-foreground">{product.warranty || "2 Years Warranty"}</span>
         </div>
       </div>
 
@@ -249,8 +254,8 @@ export default function TryOnProductDetails({
               selectedVariant.stock === 0
                 ? "text-destructive"
                 : selectedVariant.stock <= 3
-                ? "text-orange-600"
-                : "text-amber-600"
+                  ? "text-orange-600"
+                  : "text-amber-600"
             )}
           >
             {selectedVariant.stock === 0 ? "Out" : `${selectedVariant.stock} left`}

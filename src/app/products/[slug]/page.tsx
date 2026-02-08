@@ -34,7 +34,7 @@ function getOGImageUrl(productImage?: string): string {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
-  
+
   const prismaProduct = (await prisma.product.findUnique({
     where: { slug: decodedSlug },
     include: {
@@ -43,6 +43,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
           ProductAsset: true,
         },
       },
+      highlights: true,
     },
   })) as any;
 
@@ -56,7 +57,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const product = mapPrismaProductToProduct(prismaProduct);
   const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
   const ogImage = getOGImageUrl(productImage);
-  
+
   // Build SEO-optimized description
   let description = `Buy ${product.name} from FocusRobin Lithuania.`;
   if (product.uvProtection && product.uvProtection.includes('UV')) {
@@ -66,10 +67,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (product.description) {
     description += ` ${product.description.substring(0, 100)}`;
   }
-  
+
   // Build SEO-optimized title
   const seoTitle = `${product.name} | FocusRobin Sunglasses Lithuania`;
-  
+
   // Keywords for product pages
   const productKeywords = [
     `${product.name}`,
@@ -120,10 +121,10 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   // Await params (required in Next.js 15)
   const { slug } = await params;
-  
+
   // Decode the slug in case it's URL-encoded (handles spaces and special characters)
   const decodedSlug = decodeURIComponent(slug);
-  
+
   // Fetch product by slug from database (primary lookup)
   let prismaProduct = (await prisma.product.findUnique({
     where: { slug: decodedSlug },
@@ -133,6 +134,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           ProductAsset: true,
         },
       },
+      highlights: true,
     },
   })) as any;
 
@@ -147,6 +149,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             ProductAsset: true,
           },
         },
+        highlights: true,
       },
     })) as any;
   }
@@ -169,8 +172,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // Fetch reviews explicitly by productId to ensure we get all reviews
   // This is more reliable than relying on the relation
   const productReviews = await prisma.review.findMany({
-    where: { 
-      productId: prismaProduct.id 
+    where: {
+      productId: prismaProduct.id
     },
     include: {
       User: {
@@ -218,11 +221,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   // Build structured data
   const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
   const productImages = product.variants.flatMap(v => v.images || [v.thumbnail]).filter(Boolean);
-  const allImages = productImages.length > 0 
+  const allImages = productImages.length > 0
     ? productImages.map(img => {
-        const normalized = normalizeImageUrl(img);
-        return normalized.startsWith('http') ? normalized : `https://focusrobin.lt${normalized}`;
-      })
+      const normalized = normalizeImageUrl(img);
+      return normalized.startsWith('http') ? normalized : `https://focusrobin.lt${normalized}`;
+    })
     : ['https://focusrobin.lt/Symbol Wide Primary light (Teal).svg'];
 
   // Calculate price - TODO: Use actual price from product data if available
@@ -320,10 +323,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
-          
+
           {/* Main Product Content */}
-          <ProductPageContent 
-            product={product} 
+          <ProductPageContent
+            product={product}
             reviews={reviews}
             relatedProducts={relatedProducts}
           />

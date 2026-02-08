@@ -7,6 +7,12 @@ import ShopPageClient from "../ShopPageClient";
 import CategoryBanner from "@/components/shop/category-banner";
 import { Gender } from "@prisma/client";
 
+import { getPriceRange } from "@/app/actions/getPriceRange";
+import { getAvailableGlassShapes } from "@/app/actions/getAvailableGlassShapes";
+import { getAvailableGenderCounts } from "@/app/actions/getAvailableGenderCounts";
+import { getAvailableMaterials } from "@/app/actions/getAvailableMaterials";
+import { getAvailableFrameColors } from "@/app/actions/getAvailableColors";
+
 export const metadata: Metadata = {
   title: 'Men\'s Sunglasses & Eyewear',
   description: 'Shop premium men\'s sunglasses and eyewear at FocusRobin. Polarized lenses, UV400 protection, stylish frames designed in Lithuania. Fast shipping to Vilnius, Kaunas, and EU. Akiniai vyrams.',
@@ -39,10 +45,12 @@ interface MenShopPageProps {
 export default async function MenShopPage({ searchParams }: MenShopPageProps) {
   // Await searchParams (required in Next.js 15)
   const params = await searchParams;
-  
+
   // Get color filter from URL
   const colorFilter = params.color as string | undefined;
   const colorHex = colorFilter ? decodeURIComponent(colorFilter) : undefined;
+  const minPriceParam = params.minPrice as string | undefined;
+  const maxPriceParam = params.maxPrice as string | undefined;
 
   // Build where clause
   const whereClause: any = {
@@ -53,10 +61,10 @@ export default async function MenShopPage({ searchParams }: MenShopPageProps) {
 
   // Filter by frame color if provided
   if (colorHex) {
-    const normalizedColorHex = colorHex.startsWith('#') 
-      ? colorHex.toLowerCase() 
+    const normalizedColorHex = colorHex.startsWith('#')
+      ? colorHex.toLowerCase()
       : `#${colorHex.toLowerCase()}`;
-    
+
     whereClause.ProductVariant = {
       some: {
         colorHex: normalizedColorHex,
@@ -67,20 +75,52 @@ export default async function MenShopPage({ searchParams }: MenShopPageProps) {
     };
   }
 
-  // Fetch products filtered by MEN gender
-  const prismaProducts = (await prisma.product.findMany({
-    where: whereClause,
-    include: {
-      ProductVariant: {
-        include: {
-          ProductAsset: true,
+  // Fetch products and filters in parallel
+  const [
+    prismaProductsResult,
+    priceRange,
+    glassShapes,
+    genderCounts,
+    materials,
+    colors
+  ] = await Promise.all([
+    prisma.product.findMany({
+      where: whereClause,
+      include: {
+        ProductVariant: {
+          include: {
+            ProductAsset: true,
+          },
         },
       },
-    },
-    orderBy: {
-      createdAt: 'desc',
-    },
-  } as any)) as any;
+      orderBy: {
+        createdAt: 'desc',
+      },
+    }),
+    getPriceRange(),
+    getAvailableGlassShapes(),
+    getAvailableGenderCounts(),
+    getAvailableMaterials(),
+    getAvailableFrameColors(),
+  ]);
+
+  let prismaProducts = prismaProductsResult as any;
+
+  // Filter by price range (after fetching, since we need to calculate final price)
+  if (minPriceParam || maxPriceParam) {
+    const minPrice = minPriceParam ? parseFloat(minPriceParam) : undefined;
+    const maxPrice = maxPriceParam ? parseFloat(maxPriceParam) : undefined;
+
+    prismaProducts = prismaProducts.filter((product: any) => {
+      const basePrice = Number(product.basePrice);
+      const discountPct = product.discountPct || 0;
+      const finalPrice = basePrice * (1 - discountPct / 100);
+
+      if (minPrice !== undefined && finalPrice < minPrice) return false;
+      if (maxPrice !== undefined && finalPrice > maxPrice) return false;
+      return true;
+    });
+  }
 
   // Map Prisma products to frontend Product type
   const products = prismaProducts.map(mapPrismaProductToProduct);
@@ -117,7 +157,14 @@ export default async function MenShopPage({ searchParams }: MenShopPageProps) {
           alt={bannerAlt}
           link={bannerLink}
         />
-        <ShopPageClient products={products} />
+        <ShopPageClient
+          products={products}
+          priceRange={priceRange}
+          glassShapes={glassShapes}
+          genderCounts={genderCounts}
+          materials={materials}
+          colors={colors}
+        />
       </main>
       <Footer />
     </div>

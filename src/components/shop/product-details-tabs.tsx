@@ -18,144 +18,153 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
   return (
     <Tabs defaultValue="details" className="w-full">
       <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 h-auto">
-        <TabsTrigger value="details"><TranslatableText text="Product Details" /></TabsTrigger>
+        <TabsTrigger value="details"><TranslatableText text="Specifications" /></TabsTrigger>
+        <TabsTrigger value="description"><TranslatableText text="Description" /></TabsTrigger>
         <TabsTrigger value="shipping"><TranslatableText text="Shipping & Returns" /></TabsTrigger>
-        <TabsTrigger value="story"><TranslatableText text="Design Story" /></TabsTrigger>
       </TabsList>
-      
+
       <TabsContent value="details" className="py-4 sm:py-8 px-2">
         <div className="space-y-6 sm:space-y-8">
-            <ProductDimensions 
-              dimensions={{
-                frameWidth: product.frameWidth,
-                lensWidth: product.lensWidth,
-                lensHeight: product.lensHeight,
-                bridgeWidth: product.bridgeWidth,
-                templeLength: product.templeLength,
-              }}
-            />
-            <div>
-                <h3 className="text-brand-h3 font-headline text-foreground mb-4 text-center"><TranslatableText text="Specifications" /></h3>
-                <div className="overflow-x-auto">
-                    <Table>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Color" /></TableCell>
-                                <TableCell className="text-center border text-sm sm:text-base">
-                                  {currentVariant?.name || 'N/A'}
-                                </TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Frame Material" /></TableCell>
-                                <TableCell className="text-center border text-sm sm:text-base">
-                                  {product.frameMaterial || 'N/A'}
-                                </TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Lens Material" /></TableCell>
-                                <TableCell className="text-center border text-sm sm:text-base">
-                                  {product.lensMaterial || 'N/A'}
-                                </TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="UV Protection Level" /></TableCell>
-                                <TableCell className="text-center border text-sm sm:text-base">
-                                  {product.uvProtection || 'N/A'}
-                                </TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Frame Weight" /></TableCell>
-                                <TableCell className="text-center border text-sm sm:text-base">
-                                  {product.weight ? `${product.weight}g` : 'N/A'}
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </div>
+
+          <ProductDimensions
+            dimensions={{
+              frameWidth: product.frameWidth,
+              lensWidth: Number(product.size.lensWidth),
+              lensHeight: product.lensHeight,
+              bridgeWidth: product.bridgeWidth,
+              templeLength: product.templeLength,
+            }}
+          />
+          <div>
+            <h3 className="text-brand-h3 font-headline text-foreground mb-4 text-center"><TranslatableText text="Specifications" /></h3>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Color" /></TableCell>
+                    <TableCell className="text-center border text-sm sm:text-base">
+                      {currentVariant?.name || 'N/A'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Frame Material" /></TableCell>
+                    <TableCell className="text-center border text-sm sm:text-base">
+                      {product.frameMaterial || 'N/A'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Lens Material" /></TableCell>
+                    <TableCell className="text-center border text-sm sm:text-base">
+                      {product.lensMaterial || 'N/A'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="UV Protection Level" /></TableCell>
+                    <TableCell className="text-center border text-sm sm:text-base">
+                      {product.uvProtection || 'N/A'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Frame Weight" /></TableCell>
+                    <TableCell className="text-center border text-sm sm:text-base">
+                      {product.weight ? `${product.weight}g` : 'N/A'}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
+          </div>
+        </div>
+      </TabsContent>
+
+      <TabsContent value="description" className="py-4 sm:py-8 px-2">
+        <div className="space-y-6 sm:space-y-8">
+          {product.description ? (
+            <div className="prose max-w-none text-foreground/80">
+              <h3 className="text-brand-h3 font-headline text-foreground mb-4"><TranslatableText text="Description" /></h3>
+              <p>{product.description}</p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center"><TranslatableText text="No description available." /></p>
+          )}
         </div>
       </TabsContent>
 
       <TabsContent value="shipping" className="py-4 sm:py-8 px-2">
         <div className="prose max-w-none text-foreground/80 space-y-6">
-            <div>
-              <h3 className="text-brand-h3 font-headline text-foreground mb-4"><TranslatableText text="Shipping Policy" /></h3>
-              <p className="text-sm sm:text-base mb-4"><TranslatableText text="We offer free standard shipping on all orders. Expedited shipping options are available at checkout." /></p>
-              
-              <h4 className="text-lg font-semibold text-foreground mt-6 mb-3"><TranslatableText text="Estimated Delivery Times" /></h4>
-              
-              <div className="mb-4">
-                <h5 className="text-base font-semibold text-foreground mb-2"><TranslatableText text="Prescription Glasses" /></h5>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="font-medium text-center border text-sm sm:text-base">Country</TableHead>
-                        <TableHead className="font-medium text-center border text-sm sm:text-base">Standard Shipping</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="text-center border text-sm sm:text-base">Lithuania</TableCell>
-                        <TableCell className="text-center border text-sm sm:text-base">4-7 days</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="text-center border text-sm sm:text-base">Other Countries</TableCell>
-                        <TableCell className="text-center border text-sm sm:text-base">9-14 days</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
+          <div>
+            <h3 className="text-brand-h3 font-headline text-foreground mb-4"><TranslatableText text="Shipping Policy" /></h3>
+            <p className="text-sm sm:text-base mb-4"><TranslatableText text="We offer free standard shipping on all orders. Expedited shipping options are available at checkout." /></p>
 
-              <div className="mb-4">
-                <h5 className="text-base font-semibold text-foreground mb-2"><TranslatableText text="Sunglasses (Non-Prescription)" /></h5>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="font-medium text-center border text-sm sm:text-base">Country</TableHead>
-                        <TableHead className="font-medium text-center border text-sm sm:text-base">Standard Shipping</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="text-center border text-sm sm:text-base">Lithuania</TableCell>
-                        <TableCell className="text-center border text-sm sm:text-base">2-4 days</TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="text-center border text-sm sm:text-base">Other Countries</TableCell>
-                        <TableCell className="text-center border text-sm sm:text-base">4-7 days</TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
+            <h4 className="text-lg font-semibold text-foreground mt-6 mb-3"><TranslatableText text="Estimated Delivery Times" /></h4>
 
-              <p className="text-xs sm:text-sm text-muted-foreground mt-3">
-                <strong>Note:</strong> If your order contains both prescription glasses and sunglasses, the delivery time will be calculated based on prescription glasses (longer delivery time) as all items ship together.
-              </p>
+            <div className="mb-4">
+              <h5 className="text-base font-semibold text-foreground mb-2"><TranslatableText text="Prescription Glasses" /></h5>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="font-medium text-center border text-sm sm:text-base">Country</TableHead>
+                      <TableHead className="font-medium text-center border text-sm sm:text-base">Standard Shipping</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="text-center border text-sm sm:text-base">Lithuania</TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">4-7 days</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-center border text-sm sm:text-base">Other Countries</TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">9-14 days</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
             </div>
 
-            <div>
-              <h3 className="text-brand-h3 font-headline text-foreground mb-4">Returns Policy</h3>
-              <p className="text-sm sm:text-base mb-3">
-                We accept returns and exchanges only if there is a defect from our side or an error in the order. 
-                Returns must be initiated within 14 days of purchase and frames must be in their original condition with all packaging and accessories.
-              </p>
-              <p className="text-sm sm:text-base">
-                <strong>Eligible for return:</strong> Manufacturing defects, damaged items received, wrong item shipped, or items not matching the description.
-              </p>
+            <div className="mb-4">
+              <h5 className="text-base font-semibold text-foreground mb-2"><TranslatableText text="Sunglasses (Non-Prescription)" /></h5>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="font-medium text-center border text-sm sm:text-base">Country</TableHead>
+                      <TableHead className="font-medium text-center border text-sm sm:text-base">Standard Shipping</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="text-center border text-sm sm:text-base">Lithuania</TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">2-4 days</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-center border text-sm sm:text-base">Other Countries</TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">4-7 days</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
             </div>
+
+            <p className="text-xs sm:text-sm text-muted-foreground mt-3">
+              <strong>Note:</strong> If your order contains both prescription glasses and sunglasses, the delivery time will be calculated based on prescription glasses (longer delivery time) as all items ship together.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-brand-h3 font-headline text-foreground mb-4">Returns Policy</h3>
+            <p className="text-sm sm:text-base mb-3">
+              We accept returns and exchanges only if there is a defect from our side or an error in the order.
+              Returns must be initiated within 14 days of purchase and frames must be in their original condition with all packaging and accessories.
+            </p>
+            <p className="text-sm sm:text-base">
+              <strong>Eligible for return:</strong> Manufacturing defects, damaged items received, wrong item shipped, or items not matching the description.
+            </p>
+          </div>
         </div>
       </TabsContent>
 
-      <TabsContent value="story" className="py-4 sm:py-8 px-2">
-        <div className="prose max-w-none text-foreground/80">
-            <h3 className="text-brand-h3 font-headline text-foreground mb-4">Behind the Design</h3>
-            <p className="text-sm sm:text-base">The '{product.name}' is inspired by the fusion of classic mid-century aesthetics and modern architectural lines. Our designers aimed to create a frame that feels both timeless and contemporary. Each pair is meticulously handcrafted from premium Italian acetate and lightweight metal, ensuring a perfect balance of style, comfort, and durability for the discerning individual.</p>
-        </div>
-      </TabsContent>
+
     </Tabs>
   );
 }

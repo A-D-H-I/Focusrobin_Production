@@ -47,6 +47,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
+# Install OpenSSL (required for Prisma)
+RUN apk add --no-cache openssl
+
 # Copy necessary files from builder
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
@@ -55,8 +58,13 @@ COPY --from=builder /app/prisma ./prisma
 # Copy Google credentials file if it exists (for translation API)
 COPY --from=builder /app/google-credentials.json* ./
 
+# Install Prisma CLI globally to run migrations (pin version to match package.json)
+RUN npm install -g prisma@5.22.0
+
 # Set correct permissions
 RUN chown -R nextjs:nodejs /app
+# Allow nextjs user to write to global node_modules (required for Prisma engine download/execution)
+RUN chown -R nextjs:nodejs /usr/local/lib/node_modules
 
 USER nextjs
 
@@ -65,6 +73,9 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Start the application
-CMD ["node", "server.js"]
+# Copy startup script with execution permissions
+COPY --chmod=755 start.sh ./
+
+# Start the application using startup script
+CMD ["./start.sh"]
 

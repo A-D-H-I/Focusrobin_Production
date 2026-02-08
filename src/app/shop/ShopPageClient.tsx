@@ -22,15 +22,38 @@ import {
 import FilterSidebar from "@/components/shop/filter-sidebar";
 import ProductGrid from "@/components/shop/product-grid";
 import type { Product } from "@/lib/productData";
+import { type AvailableGlassShape } from "@/app/actions/getAvailableGlassShapes";
+import { type GenderCount } from "@/app/actions/getAvailableGenderCounts";
+import { type AvailableMaterial } from "@/app/actions/getAvailableMaterials";
+import { type AvailableColor } from "@/app/actions/getAvailableColors";
+import { type AvailableBrand } from "@/app/actions/getAvailableBrands";
+import { type PriceRange } from "@/app/actions/getPriceRange";
 
 interface ShopPageClientProps {
   products: Product[];
   title?: string;
   searchQuery?: string;
-  priceRange?: { min: number; max: number };
+  priceRange: PriceRange;
+  glassShapes: AvailableGlassShape[];
+  genderCounts: GenderCount[];
+  materials: AvailableMaterial[];
+
+  colors: AvailableColor[];
+  brands: AvailableBrand[];
 }
 
-export default function ShopPageClient({ products, title = "All Products", searchQuery, priceRange }: ShopPageClientProps) {
+export default function ShopPageClient({
+  products,
+  title = "All Products",
+  searchQuery,
+  priceRange,
+  glassShapes,
+  genderCounts,
+  materials,
+
+  colors,
+  brands
+}: ShopPageClientProps) {
   const searchParams = useSearchParams();
   const [filtersApplied, setFiltersApplied] = useState(0);
   const [sortBy, setSortBy] = useState<string>("recommend");
@@ -40,6 +63,7 @@ export default function ShopPageClient({ products, title = "All Products", searc
     let count = 0;
     if (searchParams.get('gender')) count += searchParams.getAll('gender').length;
     if (searchParams.get('color')) count += searchParams.getAll('color').length;
+    if (searchParams.get('brand')) count += searchParams.getAll('brand').length;
     if (searchParams.get('filter')) count += 1;
     if (searchParams.get('glassShape')) count += searchParams.getAll('glassShape').length;
     if (searchParams.get('material')) count += searchParams.getAll('material').length;
@@ -56,6 +80,8 @@ export default function ShopPageClient({ products, title = "All Products", searc
     const numericStr = priceStr.replace(/[€$,\s]/g, '');
     return parseFloat(numericStr) || 0;
   };
+
+
 
   // Sort products based on selected option
   const sortedProducts = useMemo(() => {
@@ -102,7 +128,15 @@ export default function ShopPageClient({ products, title = "All Products", searc
           <div className="sticky top-32">
             <div className="max-h-[calc(100vh-10rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
               <Suspense fallback={<div className="text-muted-foreground">Loading filters...</div>}>
-                <FilterSidebar initialPriceRange={priceRange} />
+                <FilterSidebar
+                  priceRange={priceRange}
+                  glassShapes={glassShapes}
+                  genderCounts={genderCounts}
+                  materials={materials}
+
+                  colors={colors}
+                  brands={brands}
+                />
               </Suspense>
             </div>
           </div>
@@ -177,7 +211,15 @@ export default function ShopPageClient({ products, title = "All Products", searc
                   <ScrollArea className="h-[calc(100%-4rem)]">
                     <div className="p-6">
                       <Suspense fallback={<div className="text-muted-foreground">Loading filters...</div>}>
-                        <FilterSidebar initialPriceRange={priceRange} />
+                        <FilterSidebar
+                          priceRange={priceRange}
+                          glassShapes={glassShapes}
+                          genderCounts={genderCounts}
+                          materials={materials}
+
+                          colors={colors}
+                          brands={brands}
+                        />
                       </Suspense>
                     </div>
                   </ScrollArea>

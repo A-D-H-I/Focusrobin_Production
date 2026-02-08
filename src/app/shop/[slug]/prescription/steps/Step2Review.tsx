@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Eye } from "lucide-react";
-import type { PrescriptionData } from "../PrescriptionFlow";
+import type { PrescriptionData } from "@/types/prescription";
 import { type RxPriceResult } from "@/lib/pricing/rx167";
 
 interface Step2ReviewProps {
@@ -121,7 +121,7 @@ export default function Step2Review({
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Horizontal</p>
                       <p className="font-mono font-semibold">
-                        {prescriptionData.od.prismHorizontal || "0.00"} 
+                        {prescriptionData.od.prismHorizontal || "0.00"}
                         {prescriptionData.od.prismHorizontalBase && ` ${prescriptionData.od.prismHorizontalBase}`}
                       </p>
                     </div>

@@ -136,9 +136,9 @@ export default function ShopByShapes({ shapes }: ShopByShapesProps) {
                         {shapeItem.imageUrl ? (
                           <>
                             <motion.div
-                              className="relative w-full h-full overflow-hidden"
+                              className="relative w-full h-full overflow-hidden flex items-center justify-center bg-slate-50"
                               animate={{
-                                scale: hoveredId === shapeItem.shape ? 1.6 : 1.7,
+                                scale: 1,
                               }}
                               transition={{ duration: 0.6, ease: "easeOut" }}
                             >
@@ -146,9 +146,8 @@ export default function ShopByShapes({ shapes }: ShopByShapesProps) {
                                 src={normalizeImageUrl(shapeItem.imageUrl)}
                                 alt={shapeItem.shape}
                                 fill
-                                className="object-cover"
+                                className="object-contain p-4"
                                 sizes="(max-width: 768px) 300px, 350px"
-                                style={{ objectPosition: "70% 40%" }}
                               />
                             </motion.div>
 

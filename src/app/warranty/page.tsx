@@ -7,7 +7,7 @@ import TranslatableText from "@/components/ui/TranslatableText";
 
 export const metadata: Metadata = {
   title: 'Terms of Warranty | FocusRobin',
-  description: 'FocusRobin offers a 3-year warranty on all sunglasses and prescription glasses. Coverage for manufacturing defects, lens replacement, and frame repairs. Garantija ir remontas.',
+  description: 'FocusRobin offers a 2-year warranty on all sunglasses and prescription glasses. Coverage for manufacturing defects, lens replacement, and frame repairs. Garantija ir remontas.',
   keywords: [
     'sunglasses warranty',
     'prescription glasses warranty',
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     'FocusRobin warranty',
     'lens replacement',
     'frame repairs',
-    '3 year warranty',
+    '2 year warranty',
     'garantija',
     'akinių remontas',
   ],
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     url: 'https://focusrobin.lt/warranty',
     siteName: 'FocusRobin',
     title: 'Terms of Warranty | FocusRobin Lithuania',
-    description: 'FocusRobin offers a 3-year warranty on sunglasses and prescription glasses. Coverage for manufacturing defects and repairs.',
+    description: 'FocusRobin offers a 2-year warranty on sunglasses and prescription glasses. Coverage for manufacturing defects and repairs.',
   },
 };
 
@@ -93,15 +93,15 @@ export default function WarrantyPage() {
               <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                 <div className="flex-shrink-0">
                   <div className="w-24 h-24 rounded-full bg-gradient-to-br from-brand-teal to-brand-blue flex items-center justify-center shadow-lg">
-                    <span className="text-4xl font-bold text-white">3</span>
+                    <span className="text-4xl font-bold text-white">2</span>
                   </div>
                 </div>
                 <div className="flex-1 text-center md:text-left">
                   <h2 className="text-3xl font-headline text-brand-blue mb-3">
-                    <TranslatableText text="3-Year Warranty on All Products" />
+                    <TranslatableText text="2-Year Warranty on All Products" />
                   </h2>
                   <p className="text-lg text-brand-blue/80 leading-relaxed">
-                    <TranslatableText text="Every pair of FocusRobin sunglasses and prescription glasses comes with our comprehensive 3-year warranty against manufacturing defects. We stand behind the quality of our products and your satisfaction." />
+                    <TranslatableText text="Every pair of FocusRobin sunglasses and prescription glasses comes with our comprehensive 2-year warranty against manufacturing defects. We stand behind the quality of our products and your satisfaction." />
                   </p>
                 </div>
               </div>
@@ -151,7 +151,7 @@ export default function WarrantyPage() {
                   </div>
                   <div className="space-y-4">
                     <p className="text-brand-blue/80 leading-relaxed">
-                      <TranslatableText text="FocusRobin provides a" /> <strong className="text-brand-blue"><TranslatableText text="3-year warranty" /></strong> <TranslatableText text="from the date of purchase on all sunglasses and prescription glasses purchased directly from focusrobin.lt. The warranty period begins on the date shown on your order confirmation email or invoice." />
+                      <TranslatableText text="FocusRobin provides a" /> <strong className="text-brand-blue"><TranslatableText text="2-year warranty" /></strong> <TranslatableText text="from the date of purchase on all sunglasses and prescription glasses purchased directly from focusrobin.lt. The warranty period begins on the date shown on your order confirmation email or invoice." />
                     </p>
                     <div className="bg-brand-teal/10 border border-brand-teal/20 rounded-lg p-4">
                       <p className="text-brand-blue/80 text-sm">
@@ -176,7 +176,7 @@ export default function WarrantyPage() {
                   <p className="text-brand-blue/80 leading-relaxed mb-6">
                     <TranslatableText text="Our warranty covers defects in materials and workmanship under normal use, including:" />
                   </p>
-                  
+
                   <div className="grid gap-4">
                     {[
                       {
@@ -232,7 +232,7 @@ export default function WarrantyPage() {
                   <p className="text-brand-blue/80 leading-relaxed mb-6">
                     <TranslatableText text="The warranty does not cover damage resulting from:" />
                   </p>
-                  
+
                   <div className="grid gap-4">
                     {[
                       {
@@ -287,7 +287,7 @@ export default function WarrantyPage() {
                   </div>
                   <div className="bg-gradient-to-br from-brand-teal/5 to-brand-blue/5 border border-brand-teal/20 rounded-lg p-6">
                     <p className="text-brand-blue/80 leading-relaxed mb-4">
-                      <TranslatableText text="Prescription lenses are covered under the same 3-year warranty for manufacturing defects. However, please note that changes to your prescription are not covered." />
+                      <TranslatableText text="Prescription lenses are covered under the same 2-year warranty for manufacturing defects. However, please note that changes to your prescription are not covered." />
                     </p>
                     <div className="bg-white/50 rounded-lg p-4 border border-brand-teal/20">
                       <p className="text-brand-blue/80 text-sm">
@@ -312,7 +312,7 @@ export default function WarrantyPage() {
                   <p className="text-brand-blue/80 leading-relaxed mb-6">
                     <TranslatableText text="To make a warranty claim, please follow these steps:" />
                   </p>
-                  
+
                   <div className="space-y-4">
                     {[
                       {
@@ -369,7 +369,7 @@ export default function WarrantyPage() {
                   <p className="text-brand-blue/80 leading-relaxed mb-6">
                     <TranslatableText text="Upon verification of a valid warranty claim, FocusRobin will, at our discretion:" />
                   </p>
-                  
+
                   <div className="grid md:grid-cols-2 gap-4">
                     {[
                       { title: 'Replace', desc: 'Provide a replacement product of equal value', icon: Package },

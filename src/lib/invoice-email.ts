@@ -4,6 +4,7 @@ import { Resend } from "resend";
 import { InvoiceData } from "./invoice";
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { generatePrescriptionPDF, PrescriptionPDFData } from './prescription-pdf';
+import { getFriendlyLensDescription } from '@/lib/lensPricing';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import sharp from 'sharp';
@@ -237,11 +238,12 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
   });
 
   // Items rows with alternating colors
+  // Items rows with alternating colors
   yPos = tableHeaderY - tableHeaderHeight - 25;
   invoiceData.items.forEach((item, index) => {
     const isEven = index % 2 === 0;
     const rowColor = isEven ? lightGray : whiteColor;
-    const rowHeight = 25;
+    const rowHeight = 35; // Increased height for 2 lines
 
     // Draw row background
     page.drawRectangle({
@@ -255,29 +257,49 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     // Item number
     page.drawText((index + 1).toString(), {
       x: 60,
-      y: yPos - 18,
+      y: yPos - 20,
       size: 10,
       font: helvetica,
       color: blackColor,
     });
 
-    // Description with color and SKU (truncate if too long)
     const colorText = item.variant ? ` - ${item.variant}` : '';
     const skuText = item.sku ? ` (${item.sku})` : '';
-    const fullDescription = `${item.name}${colorText}${skuText}`;
-    const description = fullDescription.length > 40 ? fullDescription.substring(0, 40) + '...' : fullDescription;
-    page.drawText(description, {
+
+    // Line 1: Product Name + Variant + SKU
+    const mainDescription = `${item.name}${colorText}${skuText}`;
+    const displayMain = mainDescription.length > 45 ? mainDescription.substring(0, 45) + '...' : mainDescription;
+
+    page.drawText(displayMain, {
       x: 120,
-      y: yPos - 18,
+      y: yPos - 14,
       size: 10,
-      font: helvetica,
-      color: blackColor,
+      font: helveticaBold,
+      color: blackColor
     });
+
+    // Line 2: Lens Info (if applicable)
+    if (item.hasPrescription && item.prescriptionData?.rxConfig?.lensBundle) {
+      const lensDesc = getFriendlyLensDescription(item.prescriptionData.rxConfig);
+      if (lensDesc) {
+        // Prepend "Prescription: "
+        const fullLensDesc = `Prescription: ${lensDesc}`;
+        // Shorten lens desc if needed
+        const displayLens = fullLensDesc.length > 65 ? fullLensDesc.substring(0, 65) + '...' : fullLensDesc;
+        page.drawText(displayLens, {
+          x: 120,
+          y: yPos - 26,
+          size: 9, // Smaller font for detail
+          font: helvetica,
+          color: rgb(0.3, 0.3, 0.3), // Dark gray
+        });
+      }
+    }
 
     // Price
     page.drawText(`${invoiceData.currency} ${item.price.toFixed(2)}`, {
       x: 350,
-      y: yPos - 18,
+      y: yPos - 20,
       size: 10,
       font: helvetica,
       color: blackColor,
@@ -286,7 +308,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     // Quantity
     page.drawText(item.quantity.toString(), {
       x: 420,
-      y: yPos - 18,
+      y: yPos - 20,
       size: 10,
       font: helvetica,
       color: blackColor,
@@ -295,7 +317,7 @@ async function generateCombinedPDF(invoiceData: InvoiceData): Promise<Buffer> {
     // Total
     page.drawText(`${invoiceData.currency} ${item.total.toFixed(2)}`, {
       x: 480,
-      y: yPos - 18,
+      y: yPos - 20,
       size: 10,
       font: helvetica,
       color: blackColor,

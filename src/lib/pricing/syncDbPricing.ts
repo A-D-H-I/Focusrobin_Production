@@ -13,45 +13,48 @@ import { prisma } from "@/lib/prisma";
 // DEFAULT PRICING VALUES (from PDF - used when DB not loaded yet)
 // ============================================================================
 
-// Prices per SINGLE lens from Prescription Glasses Pricing Breakdown PDF
+// Prices per SINGLE lens from Excel Sheet (Stock lenses)
 const DEFAULT_LENS_PRICES: Record<string, number> = {
-  // CLEAR lenses
-  "CLEAR-1.56-UC": 8.49,
-  "CLEAR-1.56-BLUE_PRO": 14.49,
-  "CLEAR-1.56-SERICUM_UV": 14.49,
-  "CLEAR-1.60-UC": 16.98,
-  "CLEAR-1.60-BLUE_PRO": 22.98,
-  "CLEAR-1.60-SERICUM_UV": 22.98,
-  "CLEAR-1.67-UC": 25.07,
-  "CLEAR-1.67-BLUE_PRO": 31.07,
-  "CLEAR-1.67-SERICUM_UV": 31.07,
-  // TINTED lenses (same base as CLEAR)
-  "TINTED-1.56-UC": 8.49,
-  "TINTED-1.56-BLUE_PRO": 14.49,
-  "TINTED-1.56-SERICUM_UV": 14.49,
-  "TINTED-1.60-UC": 16.98,
-  "TINTED-1.60-BLUE_PRO": 22.98,
-  "TINTED-1.60-SERICUM_UV": 22.98,
-  "TINTED-1.67-UC": 25.07,
-  "TINTED-1.67-BLUE_PRO": 31.07,
-  "TINTED-1.67-SERICUM_UV": 31.07,
-  // PHOTOCHROMIC_SOLIS lenses
-  "PHOTOCHROMIC_SOLIS-1.56-UC": 13.53,
-  "PHOTOCHROMIC_SOLIS-1.56-BLUE_PRO": 19.53,
-  "PHOTOCHROMIC_SOLIS-1.56-SERICUM_UV": 19.53,
-  "PHOTOCHROMIC_SOLIS-1.60-UC": 24.66,
-  "PHOTOCHROMIC_SOLIS-1.60-BLUE_PRO": 30.66,
-  "PHOTOCHROMIC_SOLIS-1.60-SERICUM_UV": 30.66,
-  "PHOTOCHROMIC_SOLIS-1.67-UC": 32.90,
-  "PHOTOCHROMIC_SOLIS-1.67-BLUE_PRO": 38.90,
-  "PHOTOCHROMIC_SOLIS-1.67-SERICUM_UV": 38.90,
-  // POLARIZED_NUPOLAR lenses (no 1.56)
-  "POLARIZED_NUPOLAR-1.60-UC": 35.98,
-  "POLARIZED_NUPOLAR-1.60-BLUE_PRO": 41.98,
-  "POLARIZED_NUPOLAR-1.60-SERICUM_UV": 41.98,
-  "POLARIZED_NUPOLAR-1.67-UC": 58.62,
-  "POLARIZED_NUPOLAR-1.67-BLUE_PRO": 64.62,
-  "POLARIZED_NUPOLAR-1.67-SERICUM_UV": 64.62,
+  // Simple Stock (NANO BASIC)
+  "SIMPLE_STOCK-1.50-UC": 0.74,
+  "SIMPLE_STOCK-1.50-HC": 1.32, // Hardcoated
+  "SIMPLE_STOCK-1.50-HMC": 1.86, // AR-Multicoated
+  "SIMPLE_STOCK-1.56-HMC": 3.20, // +2.25 to +4.00 range logic handled elsewhere? Sheet says +2.25 iki
+  "SIMPLE_STOCK-1.60-HMC": 3.96, // 0 to +2
+  // Note: 1.60 HMC also has 5.28 for +2.25 range, but we stick to base for now?
+  // Or should we assume standard range?
+
+  // Blue 420 (NANO BLUE 420)
+  "BLUE_420-1.56-SHMC": 3.30,
+  "BLUE_420-1.60-SHMC": 6.16,
+  "BLUE_420-1.67-SHMC": 10.56,
+
+  // Nano Blue Line
+  "NANO_BLUE-1.50-SHMC": 3.96, // Assuming SHMC as standard coating if not specified, sheet says "Nano Organic Blue Line 1.50"
+  "NANO_BLUE-1.60-SHMC": 6.16,
+  "NANO_BLUE-1.67-SHMC": 7.70,
+
+  // Nano Longus
+  "NANO_LONGUS-1.50-SHMC": 3.96,
+  "NANO_LONGUS-1.60-SHMC": 6.16, // 0 to +2
+  "NANO_LONGUS-1.67-SHMC": 7.70,
+  "NANO_LONGUS-1.74-SHMC": 25.00,
+
+  // Nano Achromatic
+  "NANO_ACHROMATIC-1.60-SHMC": 6.16,
+
+  // Nano Solis (Photochromic)
+  "NANO_SOLIS-1.50-SHMC": 10.56,
+  "NANO_SOLIS-1.60-SHMC": 21.03,
+
+  // Nano Transitions GEN S
+  "NANO_TRANSITIONS-1.50-SHMC": 15.01,
+  "NANO_TRANSITIONS-1.60-SHMC": 28.41,
+  "NANO_TRANSITIONS-1.67-SHMC": 38.07,
+
+  // Nano Tinting Stock
+  "NANO_TINTING-1.50-UC": 5.00, // "Full tinting UC (without coating)"
+  "NANO_TINTING-1.60-UC": 7.50, // "Full tinting 1/2 Longus" - assuming standard
 };
 
 // Tint fees per PAIR
@@ -190,7 +193,7 @@ function ensurePricingLoaded(): typeof pricingCache {
   }
 
   const now = Date.now();
-  
+
   // If cache is stale or not loaded from DB yet, trigger async load
   if (!pricingCache.isLoaded || (now - pricingCache.lastUpdated) > CACHE_TTL) {
     if (!loadPromise && typeof window === 'undefined') {
@@ -218,7 +221,7 @@ export function getLensPriceFromDBSync(
   const cache = ensurePricingLoaded()!;
   const key = `${lensType}-${lensIndex}-${coating}`;
   const price = cache.lensPrices.get(key);
-  
+
   if (price === undefined) {
     // Try default
     const defaultPrice = DEFAULT_LENS_PRICES[key];
@@ -228,7 +231,7 @@ export function getLensPriceFromDBSync(
     console.error(`[syncDbPricing] Price not found for ${key}`);
     return 0;
   }
-  
+
   return price;
 }
 
@@ -239,7 +242,7 @@ export function getLensPriceFromDBSync(
 export function getTintFeeFromDBSync(tintType: string): number {
   const cache = ensurePricingLoaded()!;
   const fee = cache.tintFees.get(tintType);
-  
+
   if (fee === undefined) {
     // Try default
     const defaultFee = DEFAULT_TINT_FEES[tintType];
@@ -249,7 +252,7 @@ export function getTintFeeFromDBSync(tintType: string): number {
     console.error(`[syncDbPricing] Tint fee not found for ${tintType}`);
     return 0;
   }
-  
+
   return fee;
 }
 
@@ -260,7 +263,7 @@ export function getTintFeeFromDBSync(tintType: string): number {
 export function getEdgingFeeFromDBSync(frameType: string): number {
   const cache = ensurePricingLoaded()!;
   const fee = cache.edgingFees.get(frameType);
-  
+
   if (fee === undefined) {
     // Try default
     const defaultFee = DEFAULT_EDGING_FEES[frameType];
@@ -270,7 +273,7 @@ export function getEdgingFeeFromDBSync(frameType: string): number {
     console.error(`[syncDbPricing] Edging fee not found for ${frameType}`);
     return 0;
   }
-  
+
   return fee;
 }
 

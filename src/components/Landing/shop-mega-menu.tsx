@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { getAvailableFrameColors, type AvailableColor } from "@/app/actions/getAvailableColors";
 import { getAvailableGlassShapes, type AvailableGlassShape } from "@/app/actions/getAvailableGlassShapes";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import { getAvailableBrands, type AvailableBrand } from "@/app/actions/getAvailableBrands";
 import TranslatableText from "@/components/ui/TranslatableText";
 
 interface ShopMegaMenuProps {
@@ -14,6 +16,12 @@ interface ShopMegaMenuProps {
   onClose: () => void;
   className?: string;
   isScrolled?: boolean;
+  type: 'sunglasses' | 'eyeglasses';
+  initialColors?: AvailableColor[];
+  initialShapes?: AvailableGlassShape[];
+  initialBrands?: AvailableBrand[];
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 }
 
 // Map shape names to icons
@@ -30,93 +38,126 @@ function getShapeIcon(shapeName: string): string {
     "aviator": "aviator",
     "browline": "browline",
     "oval": "oval",
+    "oval-shape": "oval",
+    "oval shape": "oval",
   };
   return iconMap[normalized] || "round"; // Default to round if not found
 }
 
 export default function ShopMegaMenu(props: ShopMegaMenuProps) {
-  const { isOpen, onClose, className, isScrolled = false } = props;
+  const { isOpen, onClose, className, type, isScrolled = false, initialColors, initialShapes, initialBrands, onMouseEnter, onMouseLeave } = props;
+  const router = useRouter();
   const menuRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [availableColors, setAvailableColors] = useState<AvailableColor[]>([]);
-  const [isLoadingColors, setIsLoadingColors] = useState(true);
-  const [availableShapes, setAvailableShapes] = useState<AvailableGlassShape[]>([]);
-  const [isLoadingShapes, setIsLoadingShapes] = useState(true);
+  const isNavigatingRef = useRef(false);
+  const [availableShapes, setAvailableShapes] = useState<AvailableGlassShape[]>(initialShapes || []);
+  const [isLoadingShapes, setIsLoadingShapes] = useState(!initialShapes);
+  const [availableColors, setAvailableColors] = useState<AvailableColor[]>(initialColors || []);
+  const [isLoadingColors, setIsLoadingColors] = useState(!initialColors);
+  const [availableBrands, setAvailableBrands] = useState<AvailableBrand[]>(initialBrands || []);
+  const [isLoadingBrands, setIsLoadingBrands] = useState(!initialBrands);
+
+  const baseUrl = type === 'eyeglasses' ? '/shop/prescription-glasses' : '/shop';
+  const title = type === 'eyeglasses' ? 'Eyeglasses' : 'Sunglasses';
+
+  // Navigation handler - set flag to prevent mouseLeave from interfering
+  const handleNavigate = useCallback((href: string) => {
+    isNavigatingRef.current = true;
+    router.push(href);
+  }, [router]);
+
+  useEffect(() => {
+    if (initialColors) {
+      setAvailableColors(initialColors);
+      setIsLoadingColors(false);
+    }
+  }, [initialColors]);
+
+  useEffect(() => {
+    if (initialShapes) {
+      setAvailableShapes(initialShapes);
+      setIsLoadingShapes(false);
+    }
+  }, [initialShapes]);
+
+  useEffect(() => {
+    if (initialBrands) {
+      setAvailableBrands(initialBrands);
+      setIsLoadingBrands(false);
+    }
+  }, [initialBrands]);
 
   useEffect(function fetchColors() {
+    if (initialColors) return;
+
     if (isOpen && availableColors.length === 0) {
       setIsLoadingColors(true);
-      getAvailableFrameColors()
-        .then(function(colors) {
+      getAvailableFrameColors(type)
+        .then(function (colors) {
           setAvailableColors(colors);
           setIsLoadingColors(false);
         })
-        .catch(function(error) {
+        .catch(function (error) {
           console.error("Error fetching available colors:", error);
           setIsLoadingColors(false);
         });
     }
-  }, [isOpen, availableColors.length]);
+  }, [isOpen, availableColors.length, type, initialColors]);
 
   useEffect(function fetchShapes() {
+    if (initialShapes) return;
+
     if (isOpen && availableShapes.length === 0) {
       setIsLoadingShapes(true);
-      getAvailableGlassShapes()
-        .then(function(shapes) {
+      getAvailableGlassShapes(type)
+        .then(function (shapes) {
           setAvailableShapes(shapes);
           setIsLoadingShapes(false);
         })
-        .catch(function(error) {
+        .catch(function (error) {
           console.error("Error fetching available shapes:", error);
           setIsLoadingShapes(false);
         });
     }
-  }, [isOpen, availableShapes.length]);
+  }, [isOpen, availableShapes.length, type, initialShapes]);
 
-  useEffect(function handleClickOutside() {
-    function handler(event: MouseEvent | TouchEvent) {
-      const target = event.target as HTMLElement;
-      
-      // Don't close if clicking on a link or inside a link
-      if (target && (target.tagName === 'A' || target.closest('a'))) {
-        // Let the link's onClick handler manage closing the menu
-        return;
-      }
-      
-      // Only close if clicking outside the menu
-      if (menuRef.current && !menuRef.current.contains(target as Node)) {
-        onClose();
-      }
+  useEffect(function fetchBrands() {
+    if (initialBrands) return;
+
+    if (isOpen && availableBrands.length === 0) {
+      setIsLoadingBrands(true);
+      getAvailableBrands(type)
+        .then(function (brands) {
+          setAvailableBrands(brands);
+          setIsLoadingBrands(false);
+        })
+        .catch(function (error) {
+          console.error("Error fetching available brands:", error);
+          setIsLoadingBrands(false);
+        });
     }
-    if (isOpen) {
-      // Use click event (not capture phase) to allow link clicks to process first
-      document.addEventListener("click", handler);
-      document.addEventListener("touchstart", handler);
-    }
-    return function() {
-      document.removeEventListener("click", handler);
-      document.removeEventListener("touchstart", handler);
-    };
-  }, [isOpen, onClose]);
+  }, [isOpen, availableBrands.length, type, initialBrands]);
 
   function handleMouseLeave() {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
+    // Don't trigger close if we're navigating
+    if (isNavigatingRef.current) {
+      return;
     }
-    timeoutRef.current = setTimeout(function() {
-      onClose();
-    }, 300);
+    if (onMouseLeave) {
+      onMouseLeave();
+    }
   }
 
   function handleMouseEnter() {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+    // Reset navigating flag when mouse enters
+    isNavigatingRef.current = false;
+    if (onMouseEnter) {
+      onMouseEnter();
     }
   }
 
   useEffect(function cleanup() {
-    return function() {
+    return function () {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
@@ -131,53 +172,80 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
   }
 
   return (
-    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 sm:mt-4 z-[110] w-[min(calc(100vw-2rem),90vw)] max-w-5xl">
-      <div
-        className="absolute -top-4 left-1/2 -translate-x-1/2 w-full h-4 z-[109]"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      />
+    <div
+      className="absolute left-0 top-full mt-2 sm:mt-4 z-[110] w-full flex justify-center"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div
         ref={menuRef}
         className={cn(
           "w-full bg-white shadow-2xl rounded-lg border border-gray-200",
-          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 p-4 sm:p-6 lg:p-8",
+          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 p-4 sm:p-6 lg:p-8",
           "max-h-[80vh] overflow-y-auto",
           "scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent",
           className
         )}
-        onMouseLeave={handleMouseLeave}
-        onMouseEnter={handleMouseEnter}
       >
         <div className="space-y-4">
-          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text="Shop" /></h3>
+          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text={title} /></h3>
           <div className="space-y-2 sm:space-y-3">
-            <Link href="/shop" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-              <TranslatableText text="All Sunglasses" />
+            <Link href={baseUrl} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+              <TranslatableText text={`All ${title}`} />
             </Link>
-            <Link href="/shop/women" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-              <TranslatableText text="Women's Sunglasses" />
+            <Link href={`${baseUrl}/women`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+              <TranslatableText text={`Women's ${title}`} />
             </Link>
-            <Link href="/shop/men" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-              <TranslatableText text="Men's Sunglasses" />
+            <Link href={`${baseUrl}/men`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+              <TranslatableText text={`Men's ${title}`} />
             </Link>
-            <Link href="/shop/kids" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-              <TranslatableText text="Kids Sunglasses" />
+            <Link href={`${baseUrl}/kids`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+              <TranslatableText text={`Kids ${type === 'eyeglasses' ? 'Eyeglasses' : 'Sunglasses'}`} />
             </Link>
-            <Link href="/shop?filter=bestsellers" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
+            <Link href={`${baseUrl}/unisex`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+              <TranslatableText text={`Unisex ${title}`} />
+            </Link>
+            <Link href={`${baseUrl}?filter=bestsellers`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
               <TranslatableText text="Best Sellers" />
             </Link>
-            <Link href="/shop?filter=new-arrivals" className="block text-black hover:text-primary transition-colors text-xs sm:text-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
+            <Link href={`${baseUrl}/new-arrivals`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
               <TranslatableText text="New Arrivals" />
             </Link>
           </div>
         </div>
 
+
+        <div className="space-y-4">
+          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text="Shop by Brand" /></h3>
+          {isLoadingBrands ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map(function (i) {
+                return <div key={i} className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />;
+              })}
+            </div>
+          ) : availableBrands.length === 0 ? (
+            <p className="text-xs sm:text-sm text-gray-500"><TranslatableText text="No brands available" /></p>
+          ) : (
+            <div className="space-y-2">
+              {availableBrands.map(function (brandData, index) {
+                return (
+                  <Link
+                    key={brandData.brand + "-" + index}
+                    href={`${baseUrl}?filter=${encodeURIComponent(brandData.brand)}`} // Using 'filter' as generic search/filter param or maybe just 'search' logic handles it if I add brand to search/filter logic
+                    className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer"
+                  >
+                    <TranslatableText text={brandData.brand} />
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <div className="space-y-4">
           <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text="Shop by Frame Color" /></h3>
           {isLoadingColors ? (
             <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-3 gap-2 sm:gap-3">
-              {[1, 2, 3, 4, 5, 6].map(function(i) {
+              {[1, 2, 3, 4, 5, 6].map(function (i) {
                 return <div key={i} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-gray-300 bg-gray-200 animate-pulse" />;
               })}
             </div>
@@ -185,15 +253,14 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
             <p className="text-xs sm:text-sm text-gray-500"><TranslatableText text="No colors available" /></p>
           ) : (
             <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-3 gap-2 sm:gap-3">
-              {availableColors.map(function(color, index) {
+              {availableColors.map(function (color, index) {
                 const colorHex = color.colorHex.startsWith("#") ? color.colorHex : "#" + color.colorHex;
                 const isWhite = colorHex.toLowerCase() === "#ffffff" || colorHex.toLowerCase() === "#fff";
                 return (
                   <Link
                     key={color.colorHex + "-" + index}
-                    href={"/shop?color=" + encodeURIComponent(colorHex)}
-                    className="group relative flex justify-center"
-                    onClick={(e) => { e.stopPropagation(); onClose(); }}
+                    href={`${baseUrl}?color=${encodeURIComponent(colorHex)}`}
+                    className="group relative flex justify-center cursor-pointer"
                     title={color.colorName}
                   >
                     <div
@@ -210,11 +277,12 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
           )}
         </div>
 
+
         <div className="space-y-4">
           <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text="Shop by Shape" /></h3>
           {isLoadingShapes ? (
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
-              {[1, 2, 3, 4, 5, 6].map(function(i) {
+              {[1, 2, 3, 4, 5, 6].map(function (i) {
                 return <div key={i} className="h-16 sm:h-20 bg-gray-200 rounded-lg animate-pulse" />;
               })}
             </div>
@@ -222,16 +290,15 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
             <p className="text-xs sm:text-sm text-gray-500"><TranslatableText text="No shapes available" /></p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
-              {availableShapes.map(function(shapeData, index) {
+              {availableShapes.map(function (shapeData, index) {
                 const shapeIcon = getShapeIcon(shapeData.shape);
                 const hasImage = shapeData.imageUrl && shapeData.imageUrl.trim() !== '';
-                
+
                 return (
                   <Link
                     key={shapeData.shape + "-" + index}
-                    href={"/shop?shape=" + encodeURIComponent(shapeData.shape.toLowerCase().replace(/\s+/g, "-"))}
-                    className="group flex flex-col items-center p-2 sm:p-3 bg-[#F5F5DC] rounded-lg hover:bg-[#E8E8D0] transition-colors"
-                    onClick={(e) => { e.stopPropagation(); onClose(); }}
+                    href={`${baseUrl}?glassShape=${encodeURIComponent(shapeData.shape.toLowerCase().replace(/\s+/g, "-"))}`}
+                    className="group flex flex-col items-center p-2 sm:p-3 bg-[#F5F5DC] rounded-lg hover:bg-[#E8E8D0] transition-colors cursor-pointer"
                   >
                     <div className="w-10 h-6 sm:w-12 sm:h-8 mb-1 sm:mb-2 flex items-center justify-center relative">
                       {hasImage ? (

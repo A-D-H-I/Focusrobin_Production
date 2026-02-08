@@ -1,4 +1,4 @@
-import type {Metadata, Viewport} from 'next';
+import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import { Toaster } from "@/components/ui/toaster";
 import SessionProvider from "@/components/providers/SessionProvider";
@@ -224,13 +224,13 @@ export default function RootLayout({
                   <CartProvider>
                     <WishlistProvider>
                       {children}
-                    <Toaster />
-                    <SupportChat />
-                    <ScrollbarWidthSetter />
-                    <PreventSelectScrollLock />
-                    <OverflowDetector />
-                    <LayoutShiftDebugger />
-                    <CookieConsentBanner />
+                      <Toaster />
+                      <SupportChat />
+                      <ScrollbarWidthSetter />
+                      <PreventSelectScrollLock />
+                      <OverflowDetector />
+                      <LayoutShiftDebugger />
+                      <CookieConsentBanner />
                     </WishlistProvider>
                   </CartProvider>
                 </CurrencyProvider>

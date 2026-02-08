@@ -1,3 +1,4 @@
+import { getBundlePrices } from "@/app/actions/bundlePricing";
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Header from "@/components/Landing/header";
@@ -17,7 +18,7 @@ import {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
-  
+
   return {
     title: 'Enter Prescription | FocusRobin',
     description: 'Enter your prescription details for your sunglasses',
@@ -27,7 +28,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 export default async function PrescriptionPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const decodedSlug = decodeURIComponent(slug);
-  
+
   // Fetch product by slug from database (primary lookup)
   let prismaProduct = (await prisma.product.findUnique({
     where: { slug: decodedSlug },
@@ -68,7 +69,7 @@ export default async function PrescriptionPage({ params }: { params: Promise<{ s
   // Use the actual slug from the product (not the URL parameter)
   // This ensures we always use the proper slug, even if the URL used an ID
   const productSlug = prismaProduct.slug || slug;
-  
+
   // If product was found by ID but has a slug, redirect to proper slug URL
   if (foundById && prismaProduct.slug && prismaProduct.slug !== decodedSlug) {
     const { redirect } = await import('next/navigation');
@@ -82,6 +83,10 @@ export default async function PrescriptionPage({ params }: { params: Promise<{ s
   const lensBaseImageUrl = prismaProduct.lensBaseImageUrl || null;
   const lensMaskImageUrl = prismaProduct.lensMaskImageUrl || null;
   const lensBackgroundImageUrl = prismaProduct.lensBackgroundImageUrl || null;
+
+  // Fetch dynamic bundle prices
+  const bundlePricesResult = await getBundlePrices();
+  const bundlePrices = bundlePricesResult.success ? bundlePricesResult.data : undefined;
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -108,12 +113,13 @@ export default async function PrescriptionPage({ params }: { params: Promise<{ s
             </BreadcrumbList>
           </Breadcrumb>
 
-          <PrescriptionPageClient 
-            product={product} 
+          <PrescriptionPageClient
+            product={product}
             productSlug={productSlug}
             lensBaseImageUrl={lensBaseImageUrl}
             lensMaskImageUrl={lensMaskImageUrl}
             lensBackgroundImageUrl={lensBackgroundImageUrl}
+            bundlePrices={bundlePrices}
           />
         </div>
       </main>
@@ -121,4 +127,3 @@ export default async function PrescriptionPage({ params }: { params: Promise<{ s
     </div>
   );
 }
-

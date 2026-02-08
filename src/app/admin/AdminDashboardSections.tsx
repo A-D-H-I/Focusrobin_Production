@@ -267,13 +267,29 @@ export function AdminDashboardSections() {
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <ImageIcon className="h-5 w-5 text-primary" />
-                      <CardTitle>Shop Banners</CardTitle>
+                      <CardTitle>Shop Banners (Sunglasses)</CardTitle>
                     </div>
-                    <CardDescription>Manage banners for shop category pages</CardDescription>
+                    <CardDescription>Manage banners for sunglasses category pages</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Link href="/admin/shop-banners">
                       <Button variant="outline" className="w-full">Manage Shop Banners</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Prescription Shop Banners Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Prescription Shop Banners</CardTitle>
+                    </div>
+                    <CardDescription>Manage banners for prescription category pages</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/prescription-shop-banners">
+                      <Button variant="outline" className="w-full">Manage Prescription Banners</Button>
                     </Link>
                   </CardContent>
                 </Card>
@@ -306,6 +322,22 @@ export function AdminDashboardSections() {
                   <CardContent>
                     <Link href="/admin/gift-for-loved-ones-banner">
                       <Button variant="outline" className="w-full">Manage Banner</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+
+                {/* Split Banner (Eyeglasses/Sunglasses) Card */}
+                <Card className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <ImageIcon className="h-5 w-5 text-primary" />
+                      <CardTitle>Split Banner</CardTitle>
+                    </div>
+                    <CardDescription>Manage Eyeglasses vs Sunglasses side-by-side banner</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href="/admin/split-banners">
+                      <Button variant="outline" className="w-full">Manage Split Banner</Button>
                     </Link>
                   </CardContent>
                 </Card>

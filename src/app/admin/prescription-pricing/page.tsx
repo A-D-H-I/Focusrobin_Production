@@ -1,4 +1,5 @@
 import { getPrescriptionPricing } from "@/app/actions/prescriptionPricing";
+import { getBundlePrices } from "@/app/actions/bundlePricing";
 import PrescriptionPricingManagement from "./PrescriptionPricingManagement";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -6,28 +7,33 @@ import { AlertCircle } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function PrescriptionPricingPage() {
-  const result = await getPrescriptionPricing();
-  
-  if (!result.success) {
+  const [legacyResult, bundleResult] = await Promise.all([
+    getPrescriptionPricing(),
+    getBundlePrices(),
+  ]);
+
+  if (!legacyResult.success) {
     return (
       <div className="container mx-auto py-8 px-4">
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error Loading Pricing Data</AlertTitle>
           <AlertDescription>
-            {result.error || "Failed to load prescription pricing data. Please try again."}
+            {legacyResult.error || "Failed to load prescription pricing data."}
           </AlertDescription>
         </Alert>
       </div>
     );
   }
 
-  const pricingData = result.data || {
+  const pricingData = legacyResult.data || {
     lensPrices: [],
     tintFees: [],
     edgingFees: [],
     profit: null,
   };
+
+  const bundlePrices = bundleResult.success ? bundleResult.data : {};
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -37,7 +43,7 @@ export default async function PrescriptionPricingPage() {
           Manage lens prices, tint fees, edging fees, and profit margin based on BOD Lenses Price List 2025
         </p>
       </div>
-      <PrescriptionPricingManagement initialData={pricingData} />
+      <PrescriptionPricingManagement initialData={pricingData} initialBundlePrices={bundlePrices} />
     </div>
   );
 }

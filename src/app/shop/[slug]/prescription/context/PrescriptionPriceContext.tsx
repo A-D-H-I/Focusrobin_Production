@@ -2,7 +2,9 @@
 
 import { createContext, useContext, useState, ReactNode } from "react";
 import type { RxPriceResult } from "@/lib/pricing/rx167";
-import type { PrescriptionData, RxConfigData } from "../PrescriptionFlow";
+import type { PrescriptionData, RxConfigData } from "@/types/prescription";
+
+import { BUNDLE_PRICES } from "@/lib/lensPricing";
 
 interface PrescriptionPriceContextType {
   rxPriceResult: RxPriceResult | null;
@@ -11,6 +13,7 @@ interface PrescriptionPriceContextType {
   prescriptionData: PrescriptionData | null;
   rxConfig: RxConfigData | null;
   currentStep: number;
+  bundlePrices: Record<string, number>;
   setPriceData: (data: {
     rxPriceResult: RxPriceResult | null;
     framePrice: number;
@@ -23,13 +26,16 @@ interface PrescriptionPriceContextType {
 
 const PrescriptionPriceContext = createContext<PrescriptionPriceContextType | undefined>(undefined);
 
-export function PrescriptionPriceProvider({ children }: { children: ReactNode }) {
+export function PrescriptionPriceProvider({ children, initialBundlePrices }: { children: ReactNode; initialBundlePrices?: Record<string, number> }) {
   const [rxPriceResult, setRxPriceResult] = useState<RxPriceResult | null>(null);
   const [framePrice, setFramePrice] = useState<number>(0);
   const [formatPrice, setFormatPrice] = useState<((price: number) => string) | null>(null);
   const [prescriptionData, setPrescriptionDataState] = useState<PrescriptionData | null>(null);
   const [rxConfig, setRxConfigState] = useState<RxConfigData | null>(null);
   const [currentStep, setCurrentStep] = useState<number>(0);
+
+  // Initialize with passed props or default constant
+  const bundlePrices = initialBundlePrices || BUNDLE_PRICES;
 
   const setPriceData = (data: {
     rxPriceResult: RxPriceResult | null;
@@ -63,6 +69,7 @@ export function PrescriptionPriceProvider({ children }: { children: ReactNode })
         prescriptionData,
         rxConfig,
         currentStep,
+        bundlePrices,
         setPriceData,
       }}
     >

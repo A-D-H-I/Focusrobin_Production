@@ -13,20 +13,15 @@ import { getUserPrescription } from "@/app/actions/prescription";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/hooks/use-toast";
 import {
-  LENS_TYPE_LABELS,
-  COATING_LABELS,
-  type LensSelection,
-  normalizeSelection,
-  calculateLensPairTotal,
+  LENS_BUNDLE_LABELS,
+  getBundlePrice,
 } from "@/lib/lensPricing";
 import {
   FRAME_TYPE_LABELS,
-  calculateRxTotal,
   FIXED_PROFIT,
-  PRICES,
 } from "@/lib/pricing/rx167";
 import { detectFrameType } from "@/lib/pricing/detectFrameType";
-import type { FullPrescriptionData, RxConfigData } from "../PrescriptionFlow";
+import type { FullPrescriptionData, RxConfigData } from "@/types/prescription";
 
 interface PrescriptionConfirmationContentProps {
   product: Product;
@@ -57,35 +52,17 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
       return prescriptionData.rxPriceBreakdown;
     }
 
-    // Otherwise, calculate it from rxConfig
-    // Convert RxConfigData to LensSelection for pricing
-    const lensSelection: LensSelection = normalizeSelection({
-      lensType: rxConfig.lensType,
-      lensIndex: rxConfig.lensIndex,
-      coating: rxConfig.coating,
-      tintType: rxConfig.tintType,
-      tintColor: rxConfig.tintColor,
-      tintShade: rxConfig.tintShadePercent,
-      tintRecipe: rxConfig.tintRecipe,
-      photochromicColor: rxConfig.photochromicColor,
-      polarizedColor: rxConfig.polarizedColor,
-    });
+    // Otherwise, calculate it from rxConfig (Fallback)
+    const bundlePrice = getBundlePrice(rxConfig.lensBundle);
 
-    // Calculate lens pair price (includes profit and edging fee)
-    const basePrice = calculateLensPairTotal(lensSelection);
-    // Get edging fee based on frame type
-    const edgingFee = PRICES.edging[rxConfig.frameType] || 0;
-    // Incorporate profit and edging fee into lens price (both hidden from customer)
-    const lensPairPrice = basePrice + FIXED_PROFIT + edgingFee;
-
-    // Calculate totals with profit and edging fee already in lens price
-    const rxRetailNet = lensPairPrice;
+    // Calculate totals
+    const rxRetailNet = bundlePrice;
     const totalNet = framePrice + rxRetailNet;
 
     return {
-      lensesPair: lensPairPrice, // Includes profit + edging fee
-      edgingFee: 0, // Not shown to customer (included in lensesPair)
-      profit: FIXED_PROFIT,
+      lensesPair: bundlePrice,
+      edgingFee: 0,
+      profit: 0, // Bundled price logic
       rxRetailNet,
       totalNet,
     };
@@ -182,15 +159,13 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           }
         }
 
-        // If still no rxConfig, use defaults (don't redirect - let user see confirmation with defaults)
+        // If still no rxConfig, default to Basic
         if (loadedData && !loadedData.rxConfig) {
           const detectedFrameType = detectFrameType(product);
           loadedData = {
             ...loadedData,
             rxConfig: {
-              lensType: "CLEAR",
-              lensIndex: "1.56",
-              coating: "UC",
+              lensBundle: "BASIC",
               frameType: detectedFrameType,
             },
           };
@@ -201,11 +176,6 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           // No prescription data, redirect to product page
           router.push(`/shop/${productSlug}`);
           return;
-        }
-
-        // Calculate price breakdown if missing
-        if (!loadedData.rxPriceBreakdown && loadedData.rxConfig) {
-          // Price breakdown will be calculated in useMemo
         }
 
         setPrescriptionData(loadedData);
@@ -261,31 +231,22 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
       return;
     }
 
-    // Prevent multiple clicks
-    if (isAddingToCart) {
-      return;
-    }
+    if (isAddingToCart) return;
 
     setIsAddingToCart(true);
     try {
-      // Prepare prescription data for cart in a standardized format
-      // This format works for both database storage and frontend display
       const cartPrescriptionData = {
         rxValues: {
-          // OD (Right Eye)
           odSph: prescriptionData.od.sph,
           odCyl: prescriptionData.od.cyl,
           odAxis: prescriptionData.od.axis,
-          // OS (Left Eye)
           osSph: prescriptionData.os.sph,
           osCyl: prescriptionData.os.cyl,
           osAxis: prescriptionData.os.axis,
-          // PD
           pd: prescriptionData.pd,
           pdOd: prescriptionData.pdOd,
           pdOs: prescriptionData.pdOs,
           hasTwoPDs: prescriptionData.hasTwoPDs,
-          // Prism
           hasPrism: hasPrism,
           odPrismHorizontal: prescriptionData.od.prismHorizontal,
           odPrismHorizontalBase: prescriptionData.od.prismHorizontalBase,
@@ -295,40 +256,21 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           osPrismHorizontalBase: prescriptionData.os.prismHorizontalBase,
           osPrismVertical: prescriptionData.os.prismVertical,
           osPrismVerticalBase: prescriptionData.os.prismVerticalBase,
-          // Prescription image/PDF if uploaded
           prescriptionImageUrl: prescriptionData.prescriptionImageUrl,
           prescriptionPdfUrl: prescriptionData.prescriptionPdfUrl,
           isPdfMode: prescriptionData.isPdfMode || false,
         },
         rxConfig: rxConfig,
-        // IMPORTANT: Always include price breakdown - this ensures cart has correct price
         rxPriceBreakdown: priceBreakdown || undefined,
       };
 
-      console.log('[CONFIRMATION] Adding to cart:', {
-        productId: product.id,
-        productSlug: product.slug,
-        productName: product.name,
-        variantName: selectedVariant.name,
-        variantSku: selectedVariant.sku,
-        variantHex: selectedVariant.hex,
-        hasPrescription: true,
-        prescriptionData: cartPrescriptionData,
-      });
-
-      // Await the addToCart function to ensure it completes
-      // Don't await refreshCart - it will happen in the background
       await addToCart(product, selectedVariant, 1, cartPrescriptionData);
 
-      console.log('[CONFIRMATION] addToCart completed');
-
-      // Show toast
       toast({
         title: "Added to cart",
         description: `${product.name} with prescription has been added to your cart.`,
       });
 
-      // Save rxConfig back to sessionStorage before navigating (for when user navigates back)
       if (typeof window !== 'undefined' && prescriptionData?.rxConfig) {
         const sessionKey = `prescription_${productSlug}`;
         const fullData: FullPrescriptionData = {
@@ -337,24 +279,20 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           rxPriceBreakdown: priceBreakdown || undefined,
         };
         sessionStorage.setItem(sessionKey, JSON.stringify(fullData));
-        console.log('[CONFIRMATION] Saved prescription data to sessionStorage before navigating to cart');
       }
 
-      // Navigate immediately - use window.location for reliable navigation
-      // This prevents React state updates from interfering with navigation
       if (typeof window !== 'undefined') {
         window.location.href = '/cart';
       }
     } catch (error) {
       console.error('[CONFIRMATION] Error adding to cart:', error);
-      setIsAddingToCart(false); // Reset on error so user can try again
+      setIsAddingToCart(false);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to add item to cart. Please try again.",
         variant: "destructive",
       });
     }
-    // Note: Don't reset isAddingToCart in finally - we're navigating away
   };
 
   return (
@@ -379,19 +317,21 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
             {rxConfig && (
               <>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Lens Type:</span>
-                  <span className="font-medium">{LENS_TYPE_LABELS[rxConfig.lensType]}</span>
+                  <span className="text-muted-foreground">Lens Package:</span>
+                  <span className="font-medium">{LENS_BUNDLE_LABELS[rxConfig.lensBundle]}</span>
                 </div>
-                {rxConfig.lensIndex && (
+                {rxConfig.photochromicColor && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Lens Index:</span>
-                    <span className="font-medium">{rxConfig.lensIndex}</span>
+                    <span className="text-muted-foreground">Color:</span>
+                    <span className="font-medium">{rxConfig.photochromicColor}</span>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Coating:</span>
-                  <span className="font-medium">{COATING_LABELS[rxConfig.coating]}</span>
-                </div>
+                {rxConfig.tintColor && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Tint Color:</span>
+                    <span className="font-medium">{rxConfig.tintColor}</span>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -429,13 +369,11 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
             </div>
           </div>
 
-          {/* Prescription Details - Conditional: PDF Mode vs Manual Entry */}
+          {/* Prescription Details */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Prescription Details</h3>
 
-            {/* Check for PDF Mode */}
             {prescriptionData.isPdfMode && prescriptionData.prescriptionPdfUrl ? (
-              // PDF Mode - Show PDF uploaded message
               <div className="border rounded-lg p-4">
                 <div className="flex items-center gap-4">
                   <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-full">
@@ -444,26 +382,22 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
                   <div className="flex-1">
                     <p className="font-semibold text-blue-800 dark:text-blue-200">Prescription PDF Uploaded</p>
                     <p className="text-sm text-blue-600 dark:text-blue-400">
-                      Your prescription document will be sent directly to our lens manufacturer
+                      Document will be sent to lens manufacturer
                     </p>
                   </div>
                 </div>
-                {prescriptionData.prescriptionPdfUrl && (
-                  <a
-                    href={prescriptionData.prescriptionPdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-3"
-                  >
-                    <Download className="h-4 w-4" />
-                    View uploaded prescription
-                  </a>
-                )}
+                <a
+                  href={prescriptionData.prescriptionPdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-primary hover:underline mt-3"
+                >
+                  <Download className="h-4 w-4" />
+                  View uploaded prescription
+                </a>
               </div>
             ) : (
-              // Manual Entry Mode - Show prescription values table
               <div className="border rounded-lg bg-muted/30">
-                {/* Main Prescription Table */}
                 <table className="w-full">
                   <thead>
                     <tr className="bg-muted/50 border-b">
@@ -488,91 +422,20 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
                     </tr>
                   </tbody>
                 </table>
-
-                {/* PD Section */}
                 <div className="p-3 sm:p-4 border-t">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                     <span className="text-xs sm:text-sm font-medium text-muted-foreground">PD (Pupillary Distance)</span>
                     <span className="text-xs sm:text-sm font-medium break-words">
                       {prescriptionData.hasTwoPDs ? (
                         <>
-                          OD: {prescriptionData.pdOd && prescriptionData.pdOd !== "" ? `${prescriptionData.pdOd} mm` : "N/A"} |
-                          OS: {prescriptionData.pdOs && prescriptionData.pdOs !== "" ? `${prescriptionData.pdOs} mm` : "N/A"}
+                          OD: {prescriptionData.pdOd || "N/A"} mm | OS: {prescriptionData.pdOs || "N/A"} mm
                         </>
                       ) : (
-                        <>
-                          {prescriptionData.pd && prescriptionData.pd !== "" ? `${prescriptionData.pd} mm` : "Not set"}
-                        </>
+                        <>{prescriptionData.pd} mm</>
                       )}
                     </span>
                   </div>
                 </div>
-
-                {/* Prism Section - Show if hasPrism is true */}
-                {hasPrism && (
-                  <div className="p-3 sm:p-4 border-t">
-                    <h4 className="text-xs sm:text-sm font-semibold mb-2 sm:mb-3">Prism Correction</h4>
-                    <table className="w-full text-xs sm:text-sm">
-                      <thead>
-                        <tr className="bg-muted/50 border-b">
-                          <th className="p-1.5 sm:p-2 text-left text-[10px] sm:text-xs font-medium">Eye</th>
-                          <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">H. Prism</th>
-                          <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">Base</th>
-                          <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">V. Prism</th>
-                          <th className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs font-medium">Base</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b">
-                          <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OD (Right)</td>
-                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                            {prescriptionData.od.prismHorizontal && prescriptionData.od.prismHorizontal !== "0.00"
-                              ? prescriptionData.od.prismHorizontal
-                              : "-"}
-                          </td>
-                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                            {prescriptionData.od.prismHorizontalBase && prescriptionData.od.prismHorizontalBase !== ""
-                              ? prescriptionData.od.prismHorizontalBase
-                              : "-"}
-                          </td>
-                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                            {prescriptionData.od.prismVertical && prescriptionData.od.prismVertical !== "0.00"
-                              ? prescriptionData.od.prismVertical
-                              : "-"}
-                          </td>
-                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                            {prescriptionData.od.prismVerticalBase && prescriptionData.od.prismVerticalBase !== ""
-                              ? prescriptionData.od.prismVerticalBase
-                              : "-"}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td className="p-1.5 sm:p-2 font-medium text-[10px] sm:text-xs">OS (Left)</td>
-                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                            {prescriptionData.os.prismHorizontal && prescriptionData.os.prismHorizontal !== "0.00"
-                              ? prescriptionData.os.prismHorizontal
-                              : "-"}
-                          </td>
-                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                            {prescriptionData.os.prismHorizontalBase && prescriptionData.os.prismHorizontalBase !== ""
-                              ? prescriptionData.os.prismHorizontalBase
-                              : "-"}
-                          </td>
-                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                            {prescriptionData.os.prismVertical && prescriptionData.os.prismVertical !== "0.00"
-                              ? prescriptionData.os.prismVertical
-                              : "-"}
-                          </td>
-                          <td className="p-1.5 sm:p-2 text-center text-[10px] sm:text-xs">
-                            {prescriptionData.os.prismVerticalBase && prescriptionData.os.prismVerticalBase !== ""
-                              ? prescriptionData.os.prismVerticalBase
-                              : "-"}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -581,52 +444,21 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           {rxConfig && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Lens Configuration</h3>
-
               <div className="border rounded-lg p-4 space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Lens Type:</span>
-                  <span className="font-medium">{LENS_TYPE_LABELS[rxConfig.lensType]}</span>
+                  <span className="text-muted-foreground">Lens Package:</span>
+                  <span className="font-medium">{LENS_BUNDLE_LABELS[rxConfig.lensBundle]}</span>
                 </div>
-                {rxConfig.lensIndex && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Lens Index:</span>
-                    <span className="font-medium">{rxConfig.lensIndex}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Coating:</span>
-                  <span className="font-medium">{COATING_LABELS[rxConfig.coating]}</span>
-                </div>
-                {rxConfig.lensType === "TINTED" && rxConfig.tintType && (
-                  <>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Tint:</span>
-                      <span className="font-medium">
-                        {rxConfig.tintType === "FULL_TINT_CATALOG" ? "Full Tint (Catalog)" : "Gradient Tint"}
-                      </span>
-                    </div>
-                    {rxConfig.tintColor && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Tint Color:</span>
-                        <span className="font-medium">
-                          {rxConfig.tintColor}
-                          {rxConfig.tintType === "FULL_TINT_CATALOG" && rxConfig.tintShadePercent && ` ${rxConfig.tintShadePercent}%`}
-                          {rxConfig.tintType === "GRADIENT" && rxConfig.tintRecipe && ` (${rxConfig.tintRecipe})`}
-                        </span>
-                      </div>
-                    )}
-                  </>
-                )}
                 {rxConfig.photochromicColor && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Photochromic Color:</span>
                     <span className="font-medium">{rxConfig.photochromicColor}</span>
                   </div>
                 )}
-                {rxConfig.polarizedColor && (
+                {rxConfig.tintColor && (
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Polarized Color:</span>
-                    <span className="font-medium">{rxConfig.polarizedColor}</span>
+                    <span className="text-muted-foreground">Tint Color:</span>
+                    <span className="font-medium">{rxConfig.tintColor}</span>
                   </div>
                 )}
                 <div className="flex justify-between text-sm">
@@ -641,7 +473,6 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
           {priceBreakdown && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">Price Breakdown</h3>
-
               <div className="border rounded-lg p-4 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span>Frame</span>
@@ -666,7 +497,6 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
             </div>
           )}
 
-          {/* Action Buttons */}
           <div className="pt-4 border-t space-y-3">
             <Button
               onClick={handleAddToCart}
