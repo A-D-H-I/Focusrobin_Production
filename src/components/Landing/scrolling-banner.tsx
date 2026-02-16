@@ -42,10 +42,10 @@ function parseBoldText(text: string): (string | React.ReactElement)[] {
 
 export default function ScrollingBanner({ banners }: ScrollingBannerProps) {
   // Get all active banner texts, or use default
-  const bannerTexts = banners && banners.length > 0 
+  const bannerTexts = banners && banners.length > 0
     ? banners.map(b => b.text)
-    : ["BUY 1, GET 1 FREE ON ALL GLASSES! CODE: XMAS2X1"];
-  
+    : [];
+
   // Create a sequence where all offers are shown together, then repeated
   // Example: [Offer1, Offer2, Offer3, Offer1, Offer2, Offer3, ...]
   // This ensures all offers are visible in the scrolling banner
@@ -57,11 +57,15 @@ export default function ScrollingBanner({ banners }: ScrollingBannerProps) {
     });
   }
 
+  if (bannerTexts.length === 0) {
+    return null;
+  }
+
   return (
     <div className="bg-brand-blue text-white py-3 sm:py-4 overflow-hidden relative">
       <div className="flex animate-scroll whitespace-nowrap">
         {textSequence.map((item, index) => (
-          <span 
+          <span
             key={`first-${index}`}
             className="text-sm sm:text-base font-bold uppercase tracking-wide inline-block mr-12"
           >
@@ -70,7 +74,7 @@ export default function ScrollingBanner({ banners }: ScrollingBannerProps) {
         ))}
         {/* Duplicate for seamless loop */}
         {textSequence.map((item, index) => (
-          <span 
+          <span
             key={`second-${index}`}
             className="text-sm sm:text-base font-bold uppercase tracking-wide inline-block mr-12"
           >

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { prisma } from "@/lib/prisma";
 import { mapPrismaProductToProduct } from "@/lib/prisma-product-mapper";
@@ -73,6 +72,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
         },
       },
       highlights: true,
+      Category: true,
     },
   })) as any;
 
@@ -188,6 +188,7 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
                 ProductAsset: true,
               },
             },
+            Category: true,
           },
           orderBy: {
             createdAt: 'desc',
@@ -228,7 +229,6 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
 
     return (
       <div className="flex flex-col min-h-screen">
-        <Header />
         <main className="flex-grow bg-background">
           {/* Banner */}
           <CategoryBanner
@@ -275,6 +275,11 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
                   products={products}
                   title={customPage.name}
                   priceRange={await getPriceRange()}
+                  glassShapes={[]}
+                  genderCounts={[]}
+                  materials={[]}
+                  colors={[]}
+                  brands={[]}
                 />
               ) : (
                 <div className="text-center py-16">
@@ -315,6 +320,7 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
           },
         },
         highlights: true,
+        Category: true,
       },
     })) as any;
   }
@@ -387,10 +393,13 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
         id: prescriptionGlass.id,
         slug: prescriptionGlass.slug,
         name: prescriptionGlass.name,
+        productType: 'eyeglasses' as const,
         price: price.toFixed(2),
         originalPrice: prescriptionGlass.discountPct ? Number(prescriptionGlass.basePrice).toFixed(2) : undefined,
         discountPct: prescriptionGlass.discountPct || 0,
-        cashback: Number(prescriptionGlass.cashbackAmount).toFixed(2),
+        cashback: prescriptionGlass.cashbackAmount && Number(prescriptionGlass.cashbackAmount) > 0
+          ? Number(prescriptionGlass.cashbackAmount).toFixed(2)
+          : undefined,
         variants: variants,
         categories: [prescriptionGlass.Category.name],
         description: prescriptionGlass.description || "",
@@ -503,7 +512,6 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
           />
-          <Header />
           <main className="pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background overflow-x-hidden">
             <div className="container mx-auto px-4 py-8 overflow-x-hidden">
               <Breadcrumb className="mb-8">
@@ -587,6 +595,8 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
           ProductAsset: true,
         },
       },
+      Category: true,
+      highlights: true,
     },
     take: 8,
     orderBy: {
@@ -678,7 +688,6 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <Header />
       <main className="pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background overflow-x-hidden">
         <div className="container mx-auto px-4 py-8 overflow-x-hidden">
           <Breadcrumb className="mb-8">

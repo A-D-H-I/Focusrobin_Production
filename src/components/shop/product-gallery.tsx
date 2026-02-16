@@ -175,10 +175,10 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
                   alt={product.name}
                   fill
                   priority
+                  fetchPriority="high"
                   className="object-contain"
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  quality={90}
-                  unoptimized
+                  quality={85}
                 />
               </div>
             ) : (

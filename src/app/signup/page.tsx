@@ -2,12 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Chrome, Facebook, Loader2, ShoppingBag, Eye, EyeOff } from "lucide-react";
+import { Chrome, Facebook, Loader2, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { registerUser } from "@/app/actions/auth";
@@ -29,11 +26,11 @@ export default function SignupPage() {
     setSuccess(null);
 
     const formData = new FormData(e.currentTarget);
-    
+
     // Check if passwords match
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
-    
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       setIsLoading(false);
@@ -42,7 +39,7 @@ export default function SignupPage() {
 
     try {
       const result = await registerUser(formData);
-      
+
       if (result.success) {
         setSuccess(result.message || "Verification code sent to your email!");
         // Track CompleteRegistration event with Meta Pixel
@@ -93,210 +90,170 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-teal-50 via-white to-blue-50">
-      <div className="w-full max-w-md">
-        {/* Logo and Brand */}
-        <div className="text-center mb-8">
-          <h1 className="text-brand-h1 font-headline text-teal-600 mb-4">Create Account</h1>
-          <Link href="/" className="inline-flex items-center gap-2 text-3xl font-bold text-teal-600 hover:text-teal-700 transition-colors">
-            <ShoppingBag className="h-8 w-8" />
-            FocusRobin
-          </Link>
-          <p className="mt-2 text-muted-foreground">
-            Create your account
-          </p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
+      <div className="w-full max-w-md space-y-8">
+        {/* Heading */}
+        <h1 className="text-3xl font-semibold text-center text-gray-900">
+          Create your account
+        </h1>
 
-        <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur">
-          <CardHeader className="space-y-1 text-center pb-4">
-            <CardTitle className="text-2xl font-bold">Sign up</CardTitle>
-            <CardDescription>
-              Choose your preferred sign up method
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Error Message */}
-            {error && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-                {error}
-              </div>
+        {/* Error Message */}
+        {error && (
+          <div className="p-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg">
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Success Message */}
+        {success && (
+          <div className="p-4 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg">
+            <p>{success}</p>
+          </div>
+        )}
+
+        {/* Email/Password Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Input
+              id="name"
+              name="name"
+              type="text"
+              placeholder="Full name"
+              required
+              disabled={isLoading}
+              className="h-12 text-base rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="Enter your email"
+              required
+              disabled={isLoading}
+              className="h-12 text-base rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Create a password"
+                required
+                minLength={6}
+                disabled={isLoading}
+                className="h-12 text-base pr-12 rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors p-1"
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 pl-1">
+              Must be at least 6 characters
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Input
+              id="confirmPassword"
+              name="confirmPassword"
+              type={showPassword ? "text" : "password"}
+              placeholder="Confirm password"
+              required
+              minLength={6}
+              disabled={isLoading}
+              className="h-12 text-base rounded-lg border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            />
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full h-12 text-base font-medium bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            disabled={isLoading || isGoogleLoading || isFacebookLoading}
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                Creating account...
+              </>
+            ) : (
+              "Create account"
             )}
+          </Button>
+        </form>
 
-            {/* Success Message */}
-            {success && (
-              <div className="p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md">
-                {success}
-              </div>
-            )}
-
-            {/* OAuth Providers */}
-            <div className="space-y-3">
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full h-12 text-base font-semibold gap-3 hover:bg-gray-50 transition-all"
-                onClick={handleGoogleSignIn}
-                disabled={isLoading || isGoogleLoading || isFacebookLoading}
-              >
-                {isGoogleLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Chrome className="h-5 w-5" />
-                )}
-                {isGoogleLoading ? "Connecting..." : "Continue with Google"}
-              </Button>
-
-              <Button
-                variant="outline"
-                size="lg"
-                className="w-full h-12 text-base font-semibold gap-3 bg-[#1877F2] hover:bg-[#166FE5] text-white border-[#1877F2] hover:border-[#166FE5] transition-all"
-                onClick={handleFacebookSignIn}
-                disabled={isLoading || isGoogleLoading || isFacebookLoading}
-              >
-                {isFacebookLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Facebook className="h-5 w-5 fill-current" />
-                )}
-                {isFacebookLoading ? "Connecting..." : "Continue with Facebook"}
-              </Button>
-            </div>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-muted-foreground">
-                  Or sign up with email
-                </span>
-              </div>
-            </div>
-
-            {/* Email/Password Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  type="text"
-                  placeholder="John Doe"
-                  required
-                  disabled={isLoading}
-                  className="h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  required
-                  disabled={isLoading}
-                  className="h-11"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                    disabled={isLoading}
-                    className="h-11 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Must be at least 6 characters
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  required
-                  minLength={6}
-                  disabled={isLoading}
-                  className="h-11"
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full h-12 text-base font-semibold bg-teal-600 hover:bg-teal-700"
-                disabled={isLoading || isGoogleLoading || isFacebookLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    Creating account...
-                  </>
-                ) : (
-                  "Create account"
-                )}
-              </Button>
-            </form>
-
-            {/* Privacy Notice */}
-            <div className="text-center text-xs text-muted-foreground space-y-2 pt-2">
-              <p>
-                By continuing, you agree to our{" "}
-                <Link href="/terms" className="underline hover:text-foreground">
-                  Terms of Service
-                </Link>{" "}
-                and{" "}
-                <Link href="/privacy" className="underline hover:text-foreground">
-                  Privacy Policy
-                </Link>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sign In Link */}
-        <div className="text-center mt-6">
-          <p className="text-sm text-muted-foreground">
-            Already have an account?{" "}
-            <Link 
-              href="/login" 
-              className="text-teal-600 hover:text-teal-700 font-semibold transition-colors"
-            >
-              Sign in
+        {/* Privacy Notice */}
+        <div className="text-center text-xs text-gray-500">
+          <p>
+            By continuing, you agree to our{" "}
+            <Link href="/terms" className="underline hover:text-gray-700">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline hover:text-gray-700">
+              Privacy Policy
             </Link>
           </p>
         </div>
 
-        {/* Back to Home */}
-        <div className="text-center mt-4">
-          <Link 
-            href="/" 
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1"
+        {/* Sign In Link */}
+        <div className="text-center">
+          <p className="text-sm text-gray-600">
+            Already have an account?{" "}
+            <Link
+              href="/login"
+              className="text-blue-600 hover:text-blue-700 font-medium transition-colors"
+            >
+              Log in
+            </Link>
+          </p>
+        </div>
+
+        {/* Social Login Buttons */}
+        <div className="space-y-3 pt-4">
+          <Button
+            type="button"
+            onClick={handleFacebookSignIn}
+            disabled={isLoading || isGoogleLoading || isFacebookLoading}
+            className="w-full h-12 text-base font-medium bg-black hover:bg-gray-900 text-white rounded-lg transition-colors flex items-center justify-center gap-3"
           >
-            ← Back to home
-          </Link>
+            {isFacebookLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <Facebook className="h-5 w-5 fill-white" />
+                Sign up with Facebook
+              </>
+            )}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleGoogleSignIn}
+            disabled={isLoading || isGoogleLoading || isFacebookLoading}
+            className="w-full h-12 text-base font-medium bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 rounded-lg transition-colors flex items-center justify-center gap-3"
+          >
+            {isGoogleLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <>
+                <Chrome className="h-5 w-5" />
+                Sign up with Google
+              </>
+            )}
+          </Button>
         </div>
       </div>
     </div>
   );
 }
-

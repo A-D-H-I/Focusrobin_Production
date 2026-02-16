@@ -12,7 +12,7 @@ const reviewSchema = z.object({
   rating: z.number().int().min(1).max(5),
   title: z.string().trim().max(200),
   comment: z.string().trim().max(2000),
-  images: z.array(z.string().url()).max(5).optional().default([]),
+  images: z.array(z.string().min(1)).max(5).optional().default([]),
 });
 
 const idSchema = z.string().min(1).max(30);

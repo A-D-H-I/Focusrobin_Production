@@ -23,56 +23,56 @@ export default function Footer() {
       {/* Features Banner */}
       <div className="bg-secondary border-b border-border py-4 sm:py-5 md:py-6">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 md:gap-6 lg:gap-8">
             {/* 14 Day Return */}
-            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1">
-              <div className="flex-shrink-0 mt-0.5 sm:mt-0">
+            <div className="flex items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1 overflow-hidden">
+              <div className="flex-shrink-0">
                 <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6 text-brand-blue" />
               </div>
-              <div className="min-w-0 flex-1 sm:flex-none">
-                <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight break-words">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight">
                   <TranslatableText text="Return in 14 Days" />
                 </p>
-                <Link href="/returns" className="text-[10px] sm:text-[11px] text-muted-foreground hover:text-brand-blue transition-colors block mt-0.5 sm:mt-1">
+                <Link href="/returns" className="text-[10px] sm:text-[11px] text-muted-foreground hover:text-brand-blue transition-colors block mt-0.5">
                   <TranslatableText text="(Terms & Refunds)" />
                 </Link>
               </div>
             </div>
 
             {/* 100% Secure Payment */}
-            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1">
-              <div className="flex-shrink-0 mt-0.5 sm:mt-0">
+            <div className="flex items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1 overflow-hidden">
+              <div className="flex-shrink-0">
                 <Lock className="h-5 w-5 sm:h-6 sm:w-6 text-brand-blue" />
               </div>
-              <div className="min-w-0 flex-1 sm:flex-none">
-                <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight break-words">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight">
                   <TranslatableText text="100% Secure Payment" />
                 </p>
               </div>
             </div>
 
-            {/* 3 Year Warranty */}
-            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1">
-              <div className="flex-shrink-0 mt-0.5 sm:mt-0">
+            {/* 2 Year Warranty */}
+            <div className="flex items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1 overflow-hidden">
+              <div className="flex-shrink-0">
                 <ShieldCheck className="h-5 w-5 sm:h-6 sm:w-6 text-brand-blue" />
               </div>
-              <div className="min-w-0 flex-1 sm:flex-none">
-                <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight break-words">
-                  <TranslatableText text="2 Year Warranty" />
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight">
+                  <TranslatableText text="2 Year Warranty for FocusRobin Glasses" />
                 </p>
               </div>
             </div>
 
             {/* Free Delivery */}
-            <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1">
-              <div className="flex-shrink-0 mt-0.5 sm:mt-0">
+            <div className="flex items-center gap-2.5 sm:gap-3 justify-center sm:justify-start py-1 overflow-hidden">
+              <div className="flex-shrink-0">
                 <Truck className="h-5 w-5 sm:h-6 sm:w-6 text-brand-blue" />
               </div>
-              <div className="min-w-0 flex-1 sm:flex-none">
-                <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight break-words">
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight">
                   <TranslatableText text="Free Delivery" />
                 </p>
-                <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-tight break-words mt-0.5">
+                <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-tight mt-0.5">
                   <TranslatableText text="Within 2 days in Lithuania" />
                 </p>
               </div>
@@ -108,7 +108,11 @@ export default function Footer() {
                 >
                   <FaFacebook className="h-6 w-6 hover:text-primary transition-colors" />
                 </Link>
+
               </div>
+              <p className="mt-6 text-sm text-muted-foreground">
+                <TranslatableText text="Chemijos St. 27C-62, LT-51332 Kaunas" />
+              </p>
             </div>
 
             <div>
@@ -200,6 +204,6 @@ export default function Footer() {
           </div>
         </div>
       </div>
-    </footer>
+    </footer >
   );
 }

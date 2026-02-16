@@ -17,11 +17,13 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 import { Gender } from '@prisma/client';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ImageUploader } from '@/components/admin/ImageUploader';
 import { GalleryImageUploader } from '@/components/admin/GalleryImageUploader';
+import { getColorFamilyList } from '@/app/actions/getAvailableColorFamilies';
+import { AddColorFamilyDialog } from '@/components/admin/AddColorFamilyDialog';
 
 interface EditProductFormProps {
   product: any; // Prisma product with variants and assets
@@ -41,6 +43,21 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
   // Brand
   const [brand, setBrand] = useState<string>(product.brand || 'FocusRobin');
 
+  // Color Families State
+  const [colorFamilies, setColorFamilies] = useState<Array<{ name: string, hex: string }>>([]);
+
+  useEffect(() => {
+    const fetchFamilies = async () => {
+      const families = await getColorFamilyList();
+      setColorFamilies(families);
+    };
+    fetchFamilies();
+  }, []);
+
+  const handleNewColorFamily = (newFamily: any) => {
+    setColorFamilies(prev => [...prev, newFamily].sort((a, b) => a.name.localeCompare(b.name)));
+  };
+
   const [cashbackAmount, setCashbackAmount] = useState<string>((product.cashbackAmount ? Number(product.cashbackAmount).toString() : '0'));
   const [variants, setVariants] = useState<VariantData[]>(() => {
     // Initialize variants from product data
@@ -58,6 +75,8 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
         sku: variant.sku,
         colorName: variant.colorName,
         colorHex: variant.colorHex,
+        colorFamily: variant.colorFamily || '',
+        textureImageUrl: variant.textureImageUrl || '',
         lensColor: variant.lensColor,
         stock: variant.stock,
         asset_nobg: nobgAsset?.url || '',
@@ -71,6 +90,8 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
       sku: '',
       colorName: '',
       colorHex: '#000000',
+      colorFamily: '',
+      textureImageUrl: '',
       lensColor: '',
       stock: 0,
       asset_nobg: '',
@@ -135,6 +156,8 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
         sku: '',
         colorName: '',
         colorHex: '#000000',
+        colorFamily: '',
+        textureImageUrl: '',
         lensColor: '',
         stock: 0,
         asset_nobg: '',
@@ -206,6 +229,8 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
       formData.append(`variant-${index}-sku`, variant.sku);
       formData.append(`variant-${index}-colorName`, variant.colorName);
       formData.append(`variant-${index}-colorHex`, variant.colorHex);
+      formData.append(`variant-${index}-colorFamily`, variant.colorFamily || '');
+      formData.append(`variant-${index}-textureImageUrl`, variant.textureImageUrl || '');
       formData.append(`variant-${index}-lensColor`, variant.lensColor);
       formData.append(`variant-${index}-stock`, variant.stock.toString());
       if (variant.asset_nobg) {
@@ -783,6 +808,49 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor={`variant-${index}-colorFamily`}>Color Family</Label>
+                    <AddColorFamilyDialog onSuccess={handleNewColorFamily} />
+                  </div>
+                  <Select
+                    value={variant.colorFamily || ''}
+                    onValueChange={(val) => updateVariant(index, 'colorFamily', val)}
+                  >
+                    <SelectTrigger id={`variant-${index}-colorFamily`}>
+                      <SelectValue placeholder="Select a color family" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {colorFamilies.map((family) => (
+                        <SelectItem key={family.name} value={family.name}>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-4 h-4 rounded-full border border-gray-200"
+                              style={{ background: family.hex }}
+                            />
+                            {family.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+
+
+
+                  <p className="text-xs text-muted-foreground">
+                    Broad color group for filtering (e.g., &quot;Blue&quot; for Navy, Sky Blue, etc.)
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <ImageUploader
+                    value={variant.textureImageUrl || ''}
+                    onChange={(url) => updateVariant(index, 'textureImageUrl', url)}
+                    folder="color-families"
+                    label="Texture / Pattern Image"
+                    description="Optional. Upload a texture image for non-solid colors (e.g., Tortoise)."
+                    accept="image/*"
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor={`variant-${index}-lensColor`}>Lens Color *</Label>
                   <Input
                     id={`variant-${index}-lensColor`}
@@ -803,6 +871,8 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
                     placeholder="50"
                   />
                 </div>
+
+
               </div>
 
               {/* Assets Configuration Section */}

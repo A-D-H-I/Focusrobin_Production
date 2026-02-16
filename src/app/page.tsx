@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
-import Header from '@/components/Landing/header.tsx';
 import HeroSection from '@/components/Landing/hero-section.tsx';
 // import IconicSection from '@/components/Landing/iconic-section.tsx';
 import ShopByShapes from '@/components/Landing/shop-by-shapes.tsx';
+import ShopByBrands from '@/components/Landing/shop-by-brands.tsx';
 import GiftCategoriesSection from '@/components/Landing/gift-categories-section.tsx';
 import GiftBannerSection from '@/components/Landing/gift-banner-section.tsx';
 import GiftForLovedOnesBanner from '@/components/Landing/gift-for-loved-ones-banner.tsx';
@@ -285,6 +285,22 @@ export default async function Home() {
     console.error('Error fetching products by glass shape:', error);
   }
 
+  // Fetch brands for Shop By Brands section
+  let brandsData: any[] = [];
+  try {
+    brandsData = await prisma.brand.findMany({
+      where: { isActive: true },
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
+      select: {
+        name: true,
+        imageUrl: true,
+        landingImageUrl: true,
+      },
+    });
+  } catch (error) {
+    console.error('Error fetching brands:', error);
+  }
+
   // Fetch active gift banner from database
   let giftBanner: any = null;
   try {
@@ -428,7 +444,6 @@ export default async function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
       />
-      <Header />
       <main className="flex-grow" style={{ minHeight: 0 }}>
         {/* Screen-reader-only H1 for SEO */}
         <h1 className="sr-only">FocusRobin - Premium Sunglasses & Prescription Glasses Lithuania | Buy Eyewear Online</h1>
@@ -443,6 +458,8 @@ export default async function Home() {
         {products3D.length > 0 && <Products3DSection products={products3D} />}
         {/* Gift for Loved Ones Banner - Always show below best sellers */}
         <GiftForLovedOnesBanner bannerData={giftForLovedOnesBanner} />
+        {/* Shop By Brands Section */}
+        {brandsData.length > 0 && <ShopByBrands brands={brandsData} />}
         {/* Shop By Shapes Section */}
         {shapesData.length > 0 && <ShopByShapes shapes={shapesData} />}
         {giftBanner && <GiftBannerSection giftBanner={giftBanner} />}

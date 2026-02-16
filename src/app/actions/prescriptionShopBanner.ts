@@ -8,7 +8,7 @@ import { z } from "zod";
 // Validation schemas
 const shopBannerSchema = z.object({
     category: z.string().trim().min(1).max(50),
-    imageUrl: z.string().url().max(2048),
+    imageUrl: z.string().min(1).max(2048),
     alt: z.string().trim().min(1).max(200),
     link: z.string().trim().max(500).optional().default(''),
     isActive: z.boolean().optional().default(false),

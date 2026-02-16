@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/context/CartContext";
 import { useCurrency } from "@/context/CurrencyContext";
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -97,7 +96,6 @@ export default function CartPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-white">
-      <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-24 sm:pb-16">
         <div className="container mx-auto px-4 sm:px-6">
           <h1 className="text-brand-h1 font-headline text-brand-blue mb-8 text-center">

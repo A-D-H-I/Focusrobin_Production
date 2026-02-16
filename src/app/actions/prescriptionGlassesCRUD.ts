@@ -5,6 +5,23 @@ import { Gender, AssetType } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin, safeAction } from "@/lib/security";
 import { z } from "zod";
+import { deleteFromS3 } from '@/lib/s3';
+
+/**
+ * Extract S3 object key from URL
+ */
+function getKeyFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    // Handle full URL: https://bucket.s3.region.amazonaws.com/folder/key
+    const urlObj = new URL(url);
+    // Pathname starts with /, remove it to get the key
+    return urlObj.pathname.substring(1);
+  } catch (e) {
+    // If it's already a key or invalid URL, return as is (safer to try deleting)
+    return url;
+  }
+}
 
 export interface PrescriptionGlassesVariantData {
   id?: string;
@@ -75,7 +92,9 @@ export async function createPrescriptionGlasses(formData: FormData) {
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '')
       .replace(/-+/g, '-')
+      .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
+    const brand = (formData.get('brand') as string) || 'FocusRobin';
     const descriptionRaw = formData.get('description') as string | null;
     const description = descriptionRaw?.trim() || null;
     const basePrice = parseFloat(formData.get('basePrice') as string);
@@ -103,12 +122,12 @@ export async function createPrescriptionGlasses(formData: FormData) {
     const tags = (formData.get('tags') as string)?.split(',').map(t => t.trim()).filter(Boolean) || [];
 
     // Dimensions
-    const frameWidth = parseFloat(formData.get('frameWidth') as string) || undefined;
-    const lensWidth = parseFloat(formData.get('lensWidth') as string) || undefined;
-    const lensHeight = parseFloat(formData.get('lensHeight') as string) || undefined;
-    const bridgeWidth = parseFloat(formData.get('bridgeWidth') as string) || undefined;
-    const templeLength = parseFloat(formData.get('templeLength') as string) || undefined;
-    const weightBg = parseFloat(formData.get('weightBg') as string) || undefined;
+    const frameWidth = parseFloat(formData.get('frameWidth') as string) || 0;
+    const lensWidth = parseFloat(formData.get('lensWidth') as string) || 0;
+    const lensHeight = parseFloat(formData.get('lensHeight') as string) || 0;
+    const bridgeWidth = parseFloat(formData.get('bridgeWidth') as string) || 0;
+    const templeLength = parseFloat(formData.get('templeLength') as string) || 0;
+    const weightBg = parseFloat(formData.get('weightBg') as string) || 0;
 
     // Specs
     const frameMaterial = formData.get('frameMaterial') as string;
@@ -401,6 +420,47 @@ export async function deletePrescriptionGlasses(id: string) {
       return { error: "Invalid prescription glasses ID" };
     }
 
+    // Check if exists and fetch images
+    // @ts-ignore
+    const existing = await prisma.prescriptionGlasses.findUnique({
+      where: { id: validatedId.data },
+      include: {
+        highlights: true,
+        PrescriptionGlassesVariant: {
+          include: {
+            PrescriptionGlassesAsset: true
+          }
+        }
+      }
+    });
+
+    if (existing) {
+      // 1. Delete Highlight Images
+      if (existing.highlights && existing.highlights.length > 0) {
+        for (const highlight of existing.highlights) {
+          if (highlight.imageUrl) {
+            const key = getKeyFromUrl(highlight.imageUrl);
+            if (key) await deleteFromS3(key);
+          }
+        }
+      }
+
+      // 2. Delete Variant Asset Images
+      if (existing.PrescriptionGlassesVariant && existing.PrescriptionGlassesVariant.length > 0) {
+        for (const variant of existing.PrescriptionGlassesVariant) {
+          if (variant.PrescriptionGlassesAsset && variant.PrescriptionGlassesAsset.length > 0) {
+            for (const asset of variant.PrescriptionGlassesAsset) {
+              if (asset.url) {
+                const key = getKeyFromUrl(asset.url);
+                if (key) await deleteFromS3(key);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // @ts-ignore
     await prisma.prescriptionGlasses.delete({
       where: { id: validatedId.data },
     });
@@ -429,7 +489,7 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
     // Check if exists
     const existing = await prisma.prescriptionGlasses.findUnique({
       where: { id: validatedId.data },
-      select: { id: true, slug: true },
+      select: { id: true, slug: true, highlights: true },
     });
 
     if (!existing) {
@@ -560,6 +620,19 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
     });
 
     // Handle highlights update (delete and recreate)
+    // First delete OLD highlight images from S3 if they are not reused
+    if (existing.highlights && existing.highlights.length > 0) {
+      for (const highlight of existing.highlights) {
+        // Check if this image URL is being reused in the new highlights data
+        const isReused = highlightsData.some(h => h.imageUrl === highlight.imageUrl);
+        if (highlight.imageUrl && !isReused) {
+          const key = getKeyFromUrl(highlight.imageUrl);
+          if (key) await deleteFromS3(key);
+        }
+      }
+    }
+
+    // @ts-ignore
     await prisma.prescriptionHighlight.deleteMany({
       where: { prescriptionGlassesId: validatedId.data },
     });

@@ -7,8 +7,8 @@ import { z } from "zod";
 
 // Validation schemas
 const bannerSchema = z.object({
-  imageUrl: z.string().url().max(2048),
-  mobileTabletImageUrl: z.string().url().max(2048).optional().nullable(),
+  imageUrl: z.string().min(1).max(2048),
+  mobileTabletImageUrl: z.string().min(1).max(2048).optional().nullable(),
   isActive: z.boolean().optional().default(false),
 });
 
@@ -37,10 +37,10 @@ export async function createGiftForLovedOnesBanner(formData: FormData) {
     const isActive = formData.get('isActive') === 'true';
 
     // Validate input
-    const validatedInput = bannerSchema.safeParse({ 
-      imageUrl, 
+    const validatedInput = bannerSchema.safeParse({
+      imageUrl,
       mobileTabletImageUrl,
-      isActive 
+      isActive
     });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
@@ -86,10 +86,10 @@ export async function updateGiftForLovedOnesBanner(formData: FormData) {
     const isActive = formData.get('isActive') === 'true';
 
     // Validate input
-    const validatedInput = bannerSchema.safeParse({ 
-      imageUrl, 
+    const validatedInput = bannerSchema.safeParse({
+      imageUrl,
       mobileTabletImageUrl,
-      isActive 
+      isActive
     });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };

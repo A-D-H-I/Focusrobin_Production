@@ -29,6 +29,8 @@ const ALLOWED_FOLDERS = [
   "shapes",
   "lens-images",
   "split-banners",
+  "brands",
+  "color-families",
   "other",
 ];
 

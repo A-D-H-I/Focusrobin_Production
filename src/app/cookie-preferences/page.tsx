@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { useCookieConsent } from '@/context/CookieConsentContext';
 import { Button } from '@/components/ui/button';
@@ -57,7 +56,6 @@ export default function CookiePreferencesPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         <div className="max-w-4xl mx-auto py-12 px-4">
           <div className="flex items-center gap-3 mb-6">

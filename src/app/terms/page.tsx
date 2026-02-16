@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import Link from "next/link";
 import { FileText, User, ShoppingBag, Truck, Shield, Scale, Mail, AlertCircle, CheckCircle2, Package, CreditCard, Users } from 'lucide-react';
@@ -27,7 +26,6 @@ export default function TermsPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-white">
-      <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-brand-blue/5 via-brand-teal/5 to-brand-blue/5 border-b border-brand-blue/10">

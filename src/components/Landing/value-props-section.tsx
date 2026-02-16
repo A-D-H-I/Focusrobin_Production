@@ -19,7 +19,7 @@ const valueProps = [
   {
     icon: ShieldCheck,
     title: "2-Year Warranty",
-    description: "Every pair of FocusRobin sunglasses and prescription glasses comes with a comprehensive 2-year warranty. Shop with confidence.",
+    description: "FocusRobin glasses and prescription lenses come with a 2-year warranty. Warranty for other brand frames varies — check the product description for details.",
   },
 ];
 

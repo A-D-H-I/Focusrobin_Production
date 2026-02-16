@@ -11,7 +11,7 @@ import Image from "next/image";
 interface ImageUploaderProps {
   value?: string;
   onChange: (url: string) => void;
-  folder?: "products" | "categories" | "hero" | "instagram" | "iconic" | "prescription-glasses" | "gift-banners" | "shapes" | "lens-images" | "split-banners" | "other";
+  folder?: "products" | "categories" | "hero" | "instagram" | "iconic" | "prescription-glasses" | "gift-banners" | "shapes" | "lens-images" | "split-banners" | "brands" | "color-families" | "other";
   label?: string;
   description?: string;
   accept?: string;

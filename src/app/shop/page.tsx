@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { prisma } from "@/lib/prisma";
 import { mapPrismaProductToProduct } from "@/lib/prisma-product-mapper";
@@ -209,57 +208,72 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   // Filter by frame color(s) if provided (before AND combination)
   const colorHexes: string[] = [];
+  const colorFamilies: string[] = [];
+
+  // Helper to process color input
+  const processColor = (val: string) => {
+    const decoded = decodeURIComponent(val).trim();
+    if (decoded.startsWith('#')) {
+      // It's a hex code
+      const normalized = decoded.toLowerCase();
+      if (!colorHexes.includes(normalized)) colorHexes.push(normalized);
+    } else {
+      // It's likely a color family name (e.g. "Blue", "Tortoise")
+      // Check if it's a valid hex without # (e.g. "000000")
+      const isHex = /^[0-9A-Fa-f]{6}$/i.test(decoded);
+      if (isHex) {
+        const normalized = `#${decoded.toLowerCase()}`;
+        if (!colorHexes.includes(normalized)) colorHexes.push(normalized);
+      } else {
+        // It's a family name
+        if (!colorFamilies.includes(decoded)) colorFamilies.push(decoded);
+      }
+    }
+  };
 
   // Handle legacy single color filter
-  if (legacyColorHex) {
-    const normalized = legacyColorHex.startsWith('#')
-      ? legacyColorHex.toLowerCase()
-      : `#${legacyColorHex.toLowerCase()}`;
-    colorHexes.push(normalized);
+  if (colorFilter) {
+    if (Array.isArray(colorFilter)) {
+      colorFilter.forEach(processColor);
+    } else {
+      processColor(colorFilter);
+    }
   }
 
   // Handle new multi-color filter
-  if (colorFilters && Array.isArray(colorFilters)) {
-    colorFilters.forEach((colorHex) => {
-      const normalized = colorHex.startsWith('#')
-        ? colorHex.toLowerCase()
-        : `#${colorHex.toLowerCase()}`;
-      if (!colorHexes.includes(normalized)) {
-        colorHexes.push(normalized);
-      }
-    });
-  } else if (colorFilters && typeof colorFilters === 'string') {
-    const normalized = colorFilters.startsWith('#')
-      ? colorFilters.toLowerCase()
-      : `#${colorFilters.toLowerCase()}`;
-    if (!colorHexes.includes(normalized)) {
-      colorHexes.push(normalized);
+  if (colorFilters) {
+    if (Array.isArray(colorFilters)) {
+      colorFilters.forEach(processColor);
+    } else {
+      processColor(colorFilters);
     }
   }
 
-  if (colorHexes.length > 0) {
-    if (colorHexes.length === 1) {
-      whereClause.ProductVariant = {
-        some: {
-          colorHex: colorHexes[0],
-          stock: {
-            gt: 0,
-          },
-        },
-      };
-    } else {
-      // Multiple colors - need to use OR
-      whereClause.ProductVariant = {
-        some: {
-          OR: colorHexes.map((hex) => ({
-            colorHex: hex,
-            stock: {
-              gt: 0,
-            },
-          })),
-        },
-      };
+  if (colorHexes.length > 0 || colorFamilies.length > 0) {
+    const colorConditions: any[] = [];
+
+    if (colorHexes.length > 0) {
+      colorConditions.push(...colorHexes.map(hex => ({
+        colorHex: hex,
+        stock: { gt: 0 }
+      })));
     }
+
+    if (colorFamilies.length > 0) {
+      colorConditions.push(...colorFamilies.map(family => ({
+        colorFamily: {
+          equals: family,
+          mode: 'insensitive' as Prisma.QueryMode
+        },
+        stock: { gt: 0 }
+      })));
+    }
+
+    whereClause.ProductVariant = {
+      some: {
+        OR: colorConditions
+      }
+    };
   }
 
   // Add search condition if provided
@@ -453,7 +467,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   // Build JSON-LD structured data for CollectionPage with ItemList
   const baseUrl = 'https://focusrobin.lt';
-  const itemListElement = products.map((product, index) => {
+  const itemListElement = products.map((product: any, index: number) => {
     const prismaProduct = prismaProducts[index];
     const productSlug = prismaProduct?.slug || '';
     const productUrl = `${baseUrl}/shop/${productSlug}`;
@@ -501,7 +515,6 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionPageSchema) }}
       />
-      <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background overflow-x-hidden">
         <ShopPageClient
           products={products}

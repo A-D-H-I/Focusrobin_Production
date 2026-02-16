@@ -1,4 +1,3 @@
-import Header from '@/components/Landing/header';
 import Footer from '@/components/Landing/footer';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
@@ -14,7 +13,7 @@ export default async function AdminLayout({
 }) {
   // Defense in depth: Check auth at layout level (middleware should catch this first)
   const session = await auth();
-  
+
   if (!session || !session.user) {
     redirect('/');
   }
@@ -26,7 +25,7 @@ export default async function AdminLayout({
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
+
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         {children}
       </main>

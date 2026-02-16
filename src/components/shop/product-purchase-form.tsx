@@ -46,6 +46,9 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
     ...(product.customFeatures?.map(feature => ({ icon: Star, text: feature })) || []),
   ];
 
+  // Check if product is sunglasses (prescription option is not available for sunglasses)
+  const isSunglasses = product.productType === 'sunglasses';
+
   // Load prescription data from sessionStorage
   useEffect(() => {
     const loadPrescriptionData = () => {
@@ -233,7 +236,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             )}
           </>
         )}
-        {cashbackInEur && cashbackInEur > 0 && (
+        {cashbackInEur !== null && cashbackInEur > 0 && (
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-sm px-2 py-0 h-6">
             🎁 {formatPrice(cashbackInEur)} cashback
           </Badge>
@@ -273,12 +276,15 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
               key={`color-${idx}-${variant.name}`}
               onClick={() => handleColorSelect(variant)}
               className={cn(
-                "w-8 h-8 rounded-full border-2 transition-all",
+                "w-8 h-8 rounded-full border-2 transition-all bg-cover bg-center",
                 selectedColor === variant.hex
                   ? "border-foreground scale-110 shadow-md ring-1 ring-offset-1 ring-primary/50"
                   : "border-border hover:border-muted-foreground hover:scale-105"
               )}
-              style={{ backgroundColor: variant.hex }}
+              style={{
+                backgroundColor: variant.hex,
+                backgroundImage: variant.textureImageUrl ? `url(${variant.textureImageUrl})` : undefined
+              }}
               title={variant.name}
             />
           ))}
@@ -376,8 +382,8 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
           </Button>
         </div>
 
-        {/* Prescription Section - Show always, but disable if out of stock */}
-        {prescriptionData ? (
+        {/* Prescription Section - Only show for non-sunglasses products */}
+        {!isSunglasses && prescriptionData ? (
           <div className="space-y-2">
             <div className="border rounded-lg p-3 space-y-2 bg-muted/30">
               <div className="flex items-center justify-between">
@@ -508,7 +514,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
               </Link>
             </Button>
           </div>
-        ) : (
+        ) : !isSunglasses ? (
           <div className="grid grid-cols-2 gap-2">
             <Button
               className="h-10 text-sm font-semibold overflow-hidden"
@@ -530,9 +536,21 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
               <span className="truncate">{isWishlisted ? "In Wishlist" : "Wishlist"}</span>
             </Button>
           </div>
+        ) : (
+          /* Sunglasses: show only Wishlist button (no prescription) */
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className={cn("w-full h-10 text-sm overflow-hidden", isWishlisted && "border-primary")}
+              onClick={handleWishlist}
+            >
+              <Heart className={cn("w-4 h-4 mr-1.5 flex-shrink-0", isWishlisted && "fill-red-500 text-red-500")} />
+              <span className="truncate">{isWishlisted ? "In Wishlist" : "Add to Wishlist"}</span>
+            </Button>
+          </div>
         )}
 
-        {prescriptionData && (
+        {!isSunglasses && prescriptionData && (
           <Button
             variant="outline"
             className={cn("w-full h-10 text-sm overflow-hidden", isWishlisted && "border-primary")}

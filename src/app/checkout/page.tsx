@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -715,7 +714,6 @@ export default function CheckoutPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-white">
-      <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
@@ -1044,7 +1042,7 @@ export default function CheckoutPage() {
                                 <CreditCard className="h-6 w-6 text-gray-600" />
                                 <div>
                                   <span className="font-semibold text-brand-blue">Credit/Debit Card</span>
-                                  <p className="text-xs text-muted-foreground">Visa, Mastercard, Amex, and more</p>
+                                  <p className="text-xs text-muted-foreground">Visa, Mastercard, Amex, Google Pay, Apple Pay and more</p>
                                 </div>
                               </div>
                               <div className="ml-auto flex items-center gap-2">

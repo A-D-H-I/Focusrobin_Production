@@ -5,6 +5,23 @@ import { Gender, AssetType } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin, safeAction } from "@/lib/security";
 import { z } from "zod";
+import { deleteFromS3 } from '@/lib/s3';
+
+/**
+ * Extract S3 object key from URL
+ */
+function getKeyFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    // Handle full URL: https://bucket.s3.region.amazonaws.com/folder/key
+    const urlObj = new URL(url);
+    // Pathname starts with /, remove it to get the key
+    return urlObj.pathname.substring(1);
+  } catch (e) {
+    // If it's already a key or invalid URL, return as is (safer to try deleting)
+    return url;
+  }
+}
 
 export interface VariantData {
   id?: string;
@@ -12,6 +29,8 @@ export interface VariantData {
   sku: string;
   colorName: string;
   colorHex: string;
+  colorFamily?: string;
+  textureImageUrl?: string;
   lensColor: string;
   stock: number;
   asset_nobg?: string;
@@ -59,6 +78,8 @@ const variantSchema = z.object({
   sku: z.string().trim().min(1).max(50),
   colorName: z.string().trim().min(1).max(50),
   colorHex: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  colorFamily: z.string().trim().max(50).optional(),
+  textureImageUrl: z.string().max(2048).optional(),
   lensColor: z.string().trim().min(1).max(50),
   stock: z.number().int().nonnegative().max(10000).optional().default(0),
   asset_nobg: z.string().max(2048).optional(),
@@ -230,6 +251,8 @@ export async function updateProduct(productId: string, formData: FormData) {
       const variantSku = formData.get(`variant-${i}-sku`) as string;
       const variantColorName = formData.get(`variant-${i}-colorName`) as string;
       const variantColorHex = formData.get(`variant-${i}-colorHex`) as string;
+      const variantColorFamily = (formData.get(`variant-${i}-colorFamily`) as string)?.trim() || undefined;
+      const variantTextureImageUrl = (formData.get(`variant-${i}-textureImageUrl`) as string)?.trim() || undefined;
       const variantLensColor = formData.get(`variant-${i}-lensColor`) as string;
       const variantStock = parseInt(formData.get(`variant-${i}-stock`) as string) || 0;
       const asset_nobg = formData.get(`variant-${i}-asset_nobg`) as string;
@@ -245,6 +268,8 @@ export async function updateProduct(productId: string, formData: FormData) {
         sku: variantSku,
         colorName: variantColorName,
         colorHex: variantColorHex,
+        colorFamily: variantColorFamily,
+        textureImageUrl: variantTextureImageUrl,
         lensColor: variantLensColor,
         stock: variantStock,
         asset_nobg: asset_nobg || undefined,
@@ -266,7 +291,10 @@ export async function updateProduct(productId: string, formData: FormData) {
     // Check if product exists
     const existingProduct = await prisma.product.findUnique({
       where: { id: validatedProductId.data },
-      include: { ProductVariant: { select: { id: true, sku: true } } },
+      include: {
+        ProductVariant: { select: { id: true, sku: true } },
+        highlights: true
+      },
     });
 
     if (!existingProduct) {
@@ -327,9 +355,58 @@ export async function updateProduct(productId: string, formData: FormData) {
 
     // Delete variants that are no longer in the form
     if (variantsToDelete.length > 0) {
+      // Fetch variants with their assets to clean up S3
+      const deletedVariantsData = await prisma.productVariant.findMany({
+        where: { id: { in: variantsToDelete } },
+        include: { ProductAsset: true }
+      });
+
+      for (const variant of deletedVariantsData) {
+        if (variant.ProductAsset) {
+          for (const asset of variant.ProductAsset) {
+            if (asset.url) {
+              const key = getKeyFromUrl(asset.url);
+              if (key) await deleteFromS3(key);
+            }
+          }
+        }
+      }
+
       await prisma.productVariant.deleteMany({
         where: { id: { in: variantsToDelete } },
       });
+    }
+
+    // Handle Image Deletion for Product Fields
+    if (existingProduct.lensBaseImageUrl && existingProduct.lensBaseImageUrl !== lensBaseImageUrl) {
+      const key = getKeyFromUrl(existingProduct.lensBaseImageUrl);
+      if (key) await deleteFromS3(key);
+    }
+    if (existingProduct.lensMaskImageUrl && existingProduct.lensMaskImageUrl !== lensMaskImageUrl) {
+      const key = getKeyFromUrl(existingProduct.lensMaskImageUrl);
+      if (key) await deleteFromS3(key);
+    }
+    if (existingProduct.lensBackgroundImageUrl && existingProduct.lensBackgroundImageUrl !== lensBackgroundImageUrl) {
+      const key = getKeyFromUrl(existingProduct.lensBackgroundImageUrl);
+      if (key) await deleteFromS3(key);
+    }
+
+    // Handle Highlight Deletion (since we recreate them)
+    // Note: We only delete if we are showing highlights, as the update logic below 
+    // effectively wipes them via deleteMany. Or actually, strictly speaking we should
+    // delete old images if they are not reused. But since we deleteMany, we lose track.
+    // However, highlights might share images? Unlikely for highlights.
+    // Safer to delete all old highlight images since we are replacing the records.
+    if (existingProduct.highlights && existingProduct.highlights.length > 0) {
+      for (const highlight of existingProduct.highlights) {
+        // Check if this image URL is being reused in the new highlights data
+        // If it is reused, we SHOULD NOT delete it from S3.
+        const isReused = highlightsData.some(h => h.imageUrl === highlight.imageUrl);
+        if (highlight.imageUrl && !isReused) {
+          const key = getKeyFromUrl(highlight.imageUrl);
+          if (key) await deleteFromS3(key);
+        }
+      }
     }
 
     // Update product
@@ -440,7 +517,21 @@ export async function updateProduct(productId: string, formData: FormData) {
     for (const variant of variantsData.filter(v => v.id)) {
       const assets = buildAssets(variant);
 
-      // Delete all existing assets for this variant
+      // Fetch existing assets to delete S3 files
+      const existingAssets = await prisma.productAsset.findMany({
+        where: { variantId: variant.id! }
+      });
+
+      for (const asset of existingAssets) {
+        // Check if this asset URL is reused in the new assets list
+        const isReused = assets.some(a => a.url === asset.url);
+        if (asset.url && !isReused) {
+          const key = getKeyFromUrl(asset.url);
+          if (key) await deleteFromS3(key);
+        }
+      }
+
+      // Delete all existing assets for this variant (database records)
       await prisma.productAsset.deleteMany({
         where: { variantId: variant.id! },
       });
@@ -453,12 +544,14 @@ export async function updateProduct(productId: string, formData: FormData) {
           sku: variant.sku,
           colorName: variant.colorName,
           colorHex: variant.colorHex,
+          colorFamily: variant.colorFamily || null,
+          textureImageUrl: variant.textureImageUrl || null,
           lensColor: variant.lensColor,
           stock: variant.stock,
           ProductAsset: {
             create: assets,
           },
-        },
+        } as any,
       });
     }
 
@@ -473,12 +566,14 @@ export async function updateProduct(productId: string, formData: FormData) {
           sku: variant.sku,
           colorName: variant.colorName,
           colorHex: variant.colorHex,
+          colorFamily: variant.colorFamily || null,
+          textureImageUrl: variant.textureImageUrl || null,
           lensColor: variant.lensColor,
           stock: variant.stock,
           ProductAsset: {
             create: assets,
           },
-        },
+        } as any,
       });
     }
 

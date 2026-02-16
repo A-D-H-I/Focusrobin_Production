@@ -4,13 +4,14 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin, safeAction } from "@/lib/security";
 import { z } from "zod";
+import { deleteFromS3 } from '@/lib/s3';
 
 // Validation schemas
 // For order 0: title, subtitle, ctaText are required
 // For order > 0: title, subtitle, ctaText are optional (not used, but stored for consistency)
 const heroImageSchema = z.object({
-  desktopImageUrl: z.string().url().max(2048),
-  mobileImageUrl: z.string().url().max(2048),
+  desktopImageUrl: z.string().min(1).max(2048),
+  mobileImageUrl: z.string().min(1).max(2048),
   title: z.string().trim().max(200),
   subtitle: z.string().trim().max(500),
   ctaText: z.string().trim().max(100),
@@ -30,6 +31,22 @@ const heroImageSchema = z.object({
 });
 
 const idSchema = z.string().min(1).max(30);
+
+/**
+ * Extract S3 object key from URL
+ */
+function getKeyFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    // Handle full URL: https://bucket.s3.region.amazonaws.com/folder/key
+    const urlObj = new URL(url);
+    // Pathname starts with /, remove it to get the key
+    return urlObj.pathname.substring(1);
+  } catch (e) {
+    // If it's already a key or invalid URL, return as is (safer to try deleting)
+    return url;
+  }
+}
 
 /**
  * Create a hero image (Admin only)
@@ -117,6 +134,25 @@ export async function updateHeroImage(formData: FormData) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
+    // Get existing image to handle deletion
+    // @ts-ignore
+    const currentHero = await prisma.heroImage.findUnique({
+      where: { id: validatedId.data },
+    });
+
+    if (currentHero) {
+      // Delete old desktop image if changed
+      if (currentHero.desktopImageUrl && currentHero.desktopImageUrl !== desktopImageUrl) {
+        const key = getKeyFromUrl(currentHero.desktopImageUrl);
+        if (key) await deleteFromS3(key);
+      }
+      // Delete old mobile image if changed
+      if (currentHero.mobileImageUrl && currentHero.mobileImageUrl !== mobileImageUrl) {
+        const key = getKeyFromUrl(currentHero.mobileImageUrl);
+        if (key) await deleteFromS3(key);
+      }
+    }
+
     // @ts-ignore
     const heroImage = await prisma.heroImage.update({
       where: { id: validatedId.data },
@@ -146,6 +182,24 @@ export async function deleteHeroImage(formData: FormData) {
     const validatedId = idSchema.safeParse(id);
     if (!validatedId.success) {
       return { error: "Invalid hero image ID" };
+    }
+
+    // Get existing image to handle deletion
+    // @ts-ignore
+    const currentHero = await prisma.heroImage.findUnique({
+      where: { id: validatedId.data },
+    });
+
+    if (currentHero) {
+      // Delete images from S3
+      if (currentHero.desktopImageUrl) {
+        const key = getKeyFromUrl(currentHero.desktopImageUrl);
+        if (key) await deleteFromS3(key);
+      }
+      if (currentHero.mobileImageUrl) {
+        const key = getKeyFromUrl(currentHero.mobileImageUrl);
+        if (key) await deleteFromS3(key);
+      }
     }
 
     // @ts-ignore

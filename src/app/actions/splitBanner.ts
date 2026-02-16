@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
+import { deleteFromS3 } from '@/lib/s3';
 
 const SplitBannerSchema = z.object({
     id: z.string().optional(),
@@ -16,6 +17,22 @@ const SplitBannerSchema = z.object({
     rightButtonText: z.string().min(1, "Right button text is required"),
     isActive: z.boolean().default(true),
 });
+
+/**
+ * Extract S3 object key from URL
+ */
+function getKeyFromUrl(url: string | null | undefined): string | null {
+    if (!url) return null;
+    try {
+        // Handle full URL: https://bucket.s3.region.amazonaws.com/folder/key
+        const urlObj = new URL(url);
+        // Pathname starts with /, remove it to get the key
+        return urlObj.pathname.substring(1);
+    } catch (e) {
+        // If it's already a key or invalid URL, return as is (safer to try deleting)
+        return url;
+    }
+}
 
 export async function getSplitBanner(sectionKey: string) {
     try {
@@ -81,6 +98,25 @@ export async function updateSplitBanner(formData: FormData) {
 
         if (!validatedData.id) return { error: 'ID is required for update' };
 
+        // Get existing banner to handle deletion
+        // @ts-ignore
+        const currentBanner = await prisma.splitBanner.findUnique({
+            where: { id: validatedData.id },
+        });
+
+        if (currentBanner) {
+            // Delete old left image if changed
+            if (currentBanner.leftImageUrl && currentBanner.leftImageUrl !== validatedData.leftImageUrl) {
+                const key = getKeyFromUrl(currentBanner.leftImageUrl);
+                if (key) await deleteFromS3(key);
+            }
+            // Delete old right image if changed
+            if (currentBanner.rightImageUrl && currentBanner.rightImageUrl !== validatedData.rightImageUrl) {
+                const key = getKeyFromUrl(currentBanner.rightImageUrl);
+                if (key) await deleteFromS3(key);
+            }
+        }
+
         // @ts-ignore
         await prisma.splitBanner.update({
             where: { id: validatedData.id },
@@ -109,6 +145,24 @@ export async function deleteSplitBanner(formData: FormData) {
     try {
         const id = formData.get('id') as string;
         if (!id) return { error: 'ID is required' };
+
+        // Get existing banner to handle deletion
+        // @ts-ignore
+        const currentBanner = await prisma.splitBanner.findUnique({
+            where: { id },
+        });
+
+        if (currentBanner) {
+            // Delete images from S3
+            if (currentBanner.leftImageUrl) {
+                const key = getKeyFromUrl(currentBanner.leftImageUrl);
+                if (key) await deleteFromS3(key);
+            }
+            if (currentBanner.rightImageUrl) {
+                const key = getKeyFromUrl(currentBanner.rightImageUrl);
+                if (key) await deleteFromS3(key);
+            }
+        }
 
         // @ts-ignore
         await prisma.splitBanner.delete({

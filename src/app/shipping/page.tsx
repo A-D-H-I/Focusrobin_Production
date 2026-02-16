@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 
 export const metadata: Metadata = {
@@ -36,7 +35,6 @@ export default function ShippingPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="max-w-4xl mx-auto py-20 px-4">
           <h1 className="text-brand-h1 font-headline text-brand-blue mb-8">

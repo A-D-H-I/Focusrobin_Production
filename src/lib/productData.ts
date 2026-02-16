@@ -6,6 +6,8 @@ export interface ProductColorVariant {
   name: string;
   hex: string;
   sku?: string; // SKU from database
+  colorFamily?: string | null; // Broad category for filtering
+  textureImageUrl?: string | null; // URL for texture swatch image
   stock?: number; // Available stock quantity
   thumbnail: string; // Thumbnail image (t.jpg)
   tilted: string; // Tilted version for hover
@@ -21,7 +23,8 @@ export interface Product {
   price: string; // Final price (after discount if applicable)
   originalPrice?: string; // Original price before discount
   discountPct?: number; // Discount percentage (0-100)
-  cashback: string;
+  cashback?: string;
+  productType?: 'sunglasses' | 'eyeglasses'; // Determines which DB model the product comes from
   variants: ProductColorVariant[];
   categories: string[];
   warranty: string;
@@ -39,6 +42,7 @@ export interface Product {
   weight?: number; // Weight in grams
   // Dimension fields for ProductDimensions component
   frameWidth?: number;
+  lensWidth?: number;
   lensHeight?: number;
   bridgeWidth?: number;
   templeLength?: number;

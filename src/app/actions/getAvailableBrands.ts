@@ -5,11 +5,12 @@ import { prisma } from "@/lib/prisma";
 export interface AvailableBrand {
     brand: string;
     count: number;
+    imageUrl: string | null;
 }
 
 /**
  * Get all available brands from products
- * Returns unique brands with product counts
+ * Returns unique brands with product counts and images from Brand table
  * @param type 'sunglasses' | 'eyeglasses' - Product type to fetch brands for
  */
 export async function getAvailableBrands(type: 'sunglasses' | 'eyeglasses' = 'sunglasses'): Promise<AvailableBrand[]> {
@@ -34,6 +35,21 @@ export async function getAvailableBrands(type: 'sunglasses' | 'eyeglasses' = 'su
             });
         }
 
+        // Fetch brand images from Brand table
+        const brandImages = await prisma.brand.findMany({
+            where: { isActive: true },
+            select: {
+                name: true,
+                imageUrl: true,
+                order: true,
+            },
+            orderBy: [
+                { order: 'asc' },
+                { name: 'asc' },
+            ],
+        });
+        const brandImageMap = new Map(brandImages.map(b => [b.name, { imageUrl: b.imageUrl, order: b.order }]));
+
         const brandMap = new Map<string, number>();
 
         products.forEach((product: any) => {
@@ -46,9 +62,16 @@ export async function getAvailableBrands(type: 'sunglasses' | 'eyeglasses' = 'su
             .map(([brand, count]) => ({
                 brand,
                 count,
+                imageUrl: brandImageMap.get(brand)?.imageUrl || null,
             }))
             .sort((a, b) => {
-                // Sort by count (desc) then name (asc)
+                // First sort by order from Brand table (if exists)
+                const aOrder = brandImageMap.get(a.brand)?.order ?? 999;
+                const bOrder = brandImageMap.get(b.brand)?.order ?? 999;
+                if (aOrder !== bOrder) {
+                    return aOrder - bOrder;
+                }
+                // Then sort by count (desc) then name (asc)
                 if (b.count !== a.count) {
                     return b.count - a.count;
                 }

@@ -41,8 +41,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function Header() {
+interface HeaderProps {
+  initialBanners?: string[];
+}
+
+export default function Header({ initialBanners = [] }: HeaderProps) {
   const pathname = usePathname();
+  // Hide header on auth pages
+  const isAuthPage = ['/login', '/signup', '/forgot-password', '/verify-email'].includes(pathname);
+
+  if (isAuthPage) return null;
+
   const isHomePage = pathname === "/";
   const { data: session } = useSession();
   const [isScrolled, setIsScrolled] = useState(!isHomePage);
@@ -442,12 +451,12 @@ export default function Header() {
 
   return (
     <>
-      <PromotionalBanner />
+      <PromotionalBanner banners={initialBanners} />
       <header
         className={cn(
           "fixed left-0 right-0 z-[100] w-full transition-all duration-300",
-          // Always stay below the scrolling banner which is fixed at top
-          "top-[40px] sm:top-[44px]",
+          // Only apply top offset if there are banners
+          initialBanners.length > 0 ? "top-[40px] sm:top-[44px]" : "top-0",
           "isolate", // Create new stacking context to ensure header stays above everything
           isSidebarOpen
             ? "bg-[#EFFAFA] backdrop-blur-md shadow-sm"
@@ -1346,6 +1355,46 @@ export default function Header() {
                                     }}>
                                       <TranslatableText text="New Arrivals" />
                                     </Link>
+
+                                    {/* Shop By Shape - Sunglasses */}
+                                    <div className="pt-4 pb-1 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                                      <TranslatableText text="Shop by Shape" />
+                                    </div>
+                                    {sunglassesShapes.length > 0 && sunglassesShapes.map((shape) => (
+                                      <Link
+                                        key={shape.shape}
+                                        href={`/shop?glassShape=${encodeURIComponent(shape.shape.toLowerCase().replace(/\s+/g, "-"))}`}
+                                        className="block text-lg hover:text-primary transition-colors text-foreground py-1 pl-2"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setIsSidebarOpen(false);
+                                        }}
+                                      >
+                                        <TranslatableText text={shape.shape} />
+                                      </Link>
+                                    ))}
+
+                                    {/* Shop By Brand - Sunglasses */}
+                                    {sunglassesBrands.length > 0 && (
+                                      <>
+                                        <div className="pt-4 pb-1 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                                          <TranslatableText text="Shop by Brand" />
+                                        </div>
+                                        {sunglassesBrands.map((brand) => (
+                                          <Link
+                                            key={brand.brand}
+                                            href={`/shop?brand=${encodeURIComponent(brand.brand)}`}
+                                            className="block text-lg hover:text-primary transition-colors text-foreground py-1 pl-2"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setIsSidebarOpen(false);
+                                            }}
+                                          >
+                                            <TranslatableText text={brand.brand} />
+                                          </Link>
+                                        ))}
+                                      </>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -1411,6 +1460,46 @@ export default function Header() {
                                     }}>
                                       <TranslatableText text="New Arrivals" />
                                     </Link>
+
+                                    {/* Shop By Shape - Eyeglasses */}
+                                    <div className="pt-4 pb-1 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                                      <TranslatableText text="Shop by Shape" />
+                                    </div>
+                                    {eyeglassesShapes.length > 0 && eyeglassesShapes.map((shape) => (
+                                      <Link
+                                        key={shape.shape}
+                                        href={`/shop/prescription-glasses?glassShape=${encodeURIComponent(shape.shape.toLowerCase().replace(/\s+/g, "-"))}`}
+                                        className="block text-lg hover:text-primary transition-colors text-foreground py-1 pl-2"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setIsSidebarOpen(false);
+                                        }}
+                                      >
+                                        <TranslatableText text={shape.shape} />
+                                      </Link>
+                                    ))}
+
+                                    {/* Shop By Brand - Eyeglasses */}
+                                    {eyeglassesBrands.length > 0 && (
+                                      <>
+                                        <div className="pt-4 pb-1 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                                          <TranslatableText text="Shop by Brand" />
+                                        </div>
+                                        {eyeglassesBrands.map((brand) => (
+                                          <Link
+                                            key={brand.brand}
+                                            href={`/shop/prescription-glasses?brand=${encodeURIComponent(brand.brand)}`}
+                                            className="block text-lg hover:text-primary transition-colors text-foreground py-1 pl-2"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              setIsSidebarOpen(false);
+                                            }}
+                                          >
+                                            <TranslatableText text={brand.brand} />
+                                          </Link>
+                                        ))}
+                                      </>
+                                    )}
                                   </div>
                                 )}
                               </div>

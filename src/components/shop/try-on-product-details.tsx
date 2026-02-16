@@ -148,7 +148,7 @@ export default function TryOnProductDetails({
       </div>
 
       {/* Cashback */}
-      {cashbackInEur && cashbackInEur > 0 && (
+      {cashbackInEur !== null && cashbackInEur > 0 && (
         <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200 px-2 py-0.5 h-5">
           🎁 {formatPrice(cashbackInEur)}
         </Badge>

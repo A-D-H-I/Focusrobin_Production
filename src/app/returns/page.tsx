@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import Link from "next/link";
 import { RotateCcw, Package, CreditCard, Clock, CheckCircle2, AlertCircle, HelpCircle } from 'lucide-react';
@@ -57,7 +56,6 @@ export default function ReturnsPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="max-w-4xl mx-auto py-20 px-4">
           <div className="flex items-center gap-3 mb-8">

@@ -205,11 +205,22 @@ export const metadata: Omit<Metadata, 'viewport'> = {
   },
 };
 
-export default function RootLayout({
+import Header from "@/components/Landing/header";
+import { getScrollingBanners } from "@/app/actions/scrollingBanner";
+
+// ... existing imports ...
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Fetch banners for the header
+  const bannersResult = await getScrollingBanners();
+  const banners = bannersResult.success && bannersResult.banners
+    ? bannersResult.banners.map((b: any) => b.text)
+    : [];
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${chillax.variable} font-body antialiased`}>
@@ -223,6 +234,7 @@ export default function RootLayout({
                 <CurrencyProvider>
                   <CartProvider>
                     <WishlistProvider>
+                      <Header initialBanners={banners} />
                       {children}
                       <Toaster />
                       <SupportChat />

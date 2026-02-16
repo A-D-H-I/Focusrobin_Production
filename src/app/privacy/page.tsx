@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import Link from "next/link";
 import { Shield, Lock, Database, Users, FileText, Mail, AlertCircle, CheckCircle2, Eye, Globe, Clock, FileCheck } from 'lucide-react';
@@ -68,7 +67,6 @@ export default function PrivacyPolicyPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-brand-blue/5 via-brand-teal/5 to-brand-blue/5 border-b border-brand-blue/10">

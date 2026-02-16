@@ -4,10 +4,11 @@ import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
 import { requireAdmin, safeAction } from "@/lib/security";
 import { z } from "zod";
+import { deleteFromS3 } from '@/lib/s3';
 
 // Validation schemas
 const instagramImageSchema = z.object({
-  imageUrl: z.string().url().max(2048),
+  imageUrl: z.string().min(1).max(2048),
   alt: z.string().trim().min(1).max(200),
   link: z.string().url().max(500).optional().default('https://www.instagram.com/'),
   isActive: z.boolean().optional().default(false),
@@ -17,7 +18,23 @@ const instagramImageSchema = z.object({
 const idSchema = z.string().min(1).max(30);
 
 /**
- * Create an instagram image (Admin only)
+ * Extract S3 object key from URL
+ */
+function getKeyFromUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    // Handle full URL: https://bucket.s3.region.amazonaws.com/folder/key
+    const urlObj = new URL(url);
+    // Pathname starts with /, remove it to get the key
+    return urlObj.pathname.substring(1);
+  } catch (e) {
+    // If it's already a key or invalid URL, return as is (safer to try deleting)
+    return url;
+  }
+}
+
+/**
+ * Create a new instagram image (Admin only)
  */
 export async function createInstagramImage(formData: FormData) {
   return safeAction(async () => {
@@ -82,6 +99,20 @@ export async function updateInstagramImage(formData: FormData) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
     }
 
+    // Get existing image to handle deletion
+    // @ts-ignore
+    const currentImage = await prisma.instagramImage.findUnique({
+      where: { id: validatedId.data },
+    });
+
+    if (currentImage) {
+      // Delete old image if changed
+      if (currentImage.imageUrl && currentImage.imageUrl !== imageUrl) {
+        const key = getKeyFromUrl(currentImage.imageUrl);
+        if (key) await deleteFromS3(key);
+      }
+    }
+
     // @ts-ignore
     const instagramImage = await prisma.instagramImage.update({
       where: { id: validatedId.data },
@@ -111,6 +142,20 @@ export async function deleteInstagramImage(formData: FormData) {
     const validatedId = idSchema.safeParse(id);
     if (!validatedId.success) {
       return { error: "Invalid instagram image ID" };
+    }
+
+    // Get existing image to handle deletion
+    // @ts-ignore
+    const currentImage = await prisma.instagramImage.findUnique({
+      where: { id: validatedId.data },
+    });
+
+    if (currentImage) {
+      // Delete image from S3
+      if (currentImage.imageUrl) {
+        const key = getKeyFromUrl(currentImage.imageUrl);
+        if (key) await deleteFromS3(key);
+      }
     }
 
     // @ts-ignore

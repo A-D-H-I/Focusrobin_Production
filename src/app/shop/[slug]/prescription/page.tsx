@@ -1,7 +1,6 @@
 import { getBundlePrices } from "@/app/actions/bundlePricing";
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { prisma } from "@/lib/prisma";
 import { mapPrismaProductToProduct } from "@/lib/prisma-product-mapper";
@@ -90,7 +89,6 @@ export default async function PrescriptionPage({ params }: { params: Promise<{ s
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         <div className="container mx-auto px-4 py-4">
           <Breadcrumb className="mb-4">

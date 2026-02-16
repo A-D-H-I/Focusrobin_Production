@@ -235,9 +235,9 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
                 fill
                 className="object-contain group-hover:scale-105 transition-transform duration-300"
                 sizes="(min-width: 1024px) 50vw, 100vw"
-                quality={90}
+                quality={85}
                 priority
-                unoptimized
+                fetchPriority="high"
               />
             </div>
           </div>
@@ -259,9 +259,8 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
                     fill
                     className="object-contain group-hover:scale-105 transition-transform duration-300"
                     sizes="(min-width: 1024px) 25vw, 50vw"
-                    quality={90}
+                    quality={85}
                     loading="lazy"
-                    unoptimized
                   />
                 </div>
               </div>
@@ -324,9 +323,8 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
                 height={1080}
                 className="w-full h-full object-contain"
                 sizes="100vw"
-                quality={100}
+                quality={90}
                 priority
-                unoptimized
               />
             </div>
           </div>
@@ -360,8 +358,7 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
                         fill
                         className="object-cover"
                         sizes="80px"
-                        quality={75}
-                        unoptimized
+                        quality={60}
                       />
                     </div>
                     {/* Active Indicator */}

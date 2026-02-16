@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import Link from "next/link";
 import { ShieldCheck, Wrench, AlertCircle, CheckCircle2, FileText, Clock, Mail, Package, Eye, Settings, Calendar } from 'lucide-react';
@@ -7,7 +6,7 @@ import TranslatableText from "@/components/ui/TranslatableText";
 
 export const metadata: Metadata = {
   title: 'Terms of Warranty | FocusRobin',
-  description: 'FocusRobin offers a 2-year warranty on all sunglasses and prescription glasses. Coverage for manufacturing defects, lens replacement, and frame repairs. Garantija ir remontas.',
+  description: 'FocusRobin offers a 2-year warranty on FocusRobin glasses and prescription lenses. Warranty for other brand frames varies. Coverage for manufacturing defects, lens replacement, and frame repairs. Garantija ir remontas.',
   keywords: [
     'sunglasses warranty',
     'prescription glasses warranty',
@@ -28,7 +27,7 @@ export const metadata: Metadata = {
     url: 'https://focusrobin.lt/warranty',
     siteName: 'FocusRobin',
     title: 'Terms of Warranty | FocusRobin Lithuania',
-    description: 'FocusRobin offers a 2-year warranty on sunglasses and prescription glasses. Coverage for manufacturing defects and repairs.',
+    description: 'FocusRobin offers a 2-year warranty on FocusRobin glasses and prescription lenses. Warranty for other brand frames varies by brand.',
   },
 };
 
@@ -69,7 +68,6 @@ export default function WarrantyPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
-      <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         {/* Hero Section */}
         <div className="bg-gradient-to-br from-brand-blue/5 via-brand-teal/5 to-brand-blue/5 border-b border-brand-blue/10">
@@ -98,10 +96,10 @@ export default function WarrantyPage() {
                 </div>
                 <div className="flex-1 text-center md:text-left">
                   <h2 className="text-3xl font-headline text-brand-blue mb-3">
-                    <TranslatableText text="2-Year Warranty on All Products" />
+                    <TranslatableText text="2-Year Warranty on FocusRobin Products" />
                   </h2>
                   <p className="text-lg text-brand-blue/80 leading-relaxed">
-                    <TranslatableText text="Every pair of FocusRobin sunglasses and prescription glasses comes with our comprehensive 2-year warranty against manufacturing defects. We stand behind the quality of our products and your satisfaction." />
+                    <TranslatableText text="Every pair of FocusRobin glasses and prescription lenses comes with our comprehensive 2-year warranty against manufacturing defects. Warranty for other brand frames sold on our store varies by brand — please refer to the product description for details." />
                   </p>
                 </div>
               </div>
@@ -151,7 +149,33 @@ export default function WarrantyPage() {
                   </div>
                   <div className="space-y-4">
                     <p className="text-brand-blue/80 leading-relaxed">
-                      <TranslatableText text="FocusRobin provides a" /> <strong className="text-brand-blue"><TranslatableText text="2-year warranty" /></strong> <TranslatableText text="from the date of purchase on all sunglasses and prescription glasses purchased directly from focusrobin.lt. The warranty period begins on the date shown on your order confirmation email or invoice." />
+                      <TranslatableText text="FocusRobin provides the following warranty coverage from the date of purchase on products purchased directly from focusrobin.lt:" />
+                    </p>
+                    <div className="grid gap-3">
+                      <div className="flex items-start gap-3 p-4 bg-brand-teal/5 rounded-lg border border-brand-teal/20">
+                        <CheckCircle2 className="h-5 w-5 text-brand-teal flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-brand-blue font-semibold"><TranslatableText text="FocusRobin Glasses" /></p>
+                          <p className="text-brand-blue/70 text-sm"><TranslatableText text="2-year warranty against manufacturing defects" /></p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-4 bg-brand-teal/5 rounded-lg border border-brand-teal/20">
+                        <CheckCircle2 className="h-5 w-5 text-brand-teal flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-brand-blue font-semibold"><TranslatableText text="Prescription Lenses" /></p>
+                          <p className="text-brand-blue/70 text-sm"><TranslatableText text="2-year warranty against manufacturing defects" /></p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-brand-blue font-semibold"><TranslatableText text="Other Brand Frames" /></p>
+                          <p className="text-brand-blue/70 text-sm"><TranslatableText text="Warranty varies by brand — please check the product description for specific warranty details" /></p>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-brand-blue/70 text-sm">
+                      <TranslatableText text="The warranty period begins on the date shown on your order confirmation email or invoice." />
                     </p>
                     <div className="bg-brand-teal/10 border border-brand-teal/20 rounded-lg p-4">
                       <p className="text-brand-blue/80 text-sm">

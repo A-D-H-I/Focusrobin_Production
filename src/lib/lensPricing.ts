@@ -18,6 +18,7 @@ export type LensBundle =
 
 // For backward compatibility / UI state, we still track some sub-properties
 export type TintColor = "Brown" | "Grey" | "Green";
+export type TintType = "FULL_TINT_CATALOG" | "GRADIENT";
 export type PhotochromicColor = "Brown" | "Grey";
 
 // We no longer expose granular LensIndex/Coating for selection, 
@@ -158,6 +159,22 @@ export const FULL_TINT_SHADES = [85]; // Fixed 85% as per sheet
 // Colors available for specific bundles
 export const PHOTOCHROMIC_COLORS: PhotochromicColor[] = ["Grey", "Brown"];
 export const SUNGLASS_COLORS: TintColor[] = ["Grey", "Brown", "Green"];
+
+// Gradient Tint recipes (fixed recipes per color) - used by Step5TintOptions
+export const GRADIENT_RECIPES: Record<TintColor, string> = {
+  Grey: "30→0",
+  Brown: "50→0",
+  Green: "90→15",
+};
+
+// PRICES object for tint pair pricing - used by Step5TintOptions
+// Maps to rx167 tinting fees via PRICES_167
+export const PRICES = {
+  tintPair: {
+    FULL_TINT_CATALOG: PRICES_167.tinting.FULL_CATALOG,
+    GRADIENT: PRICES_167.tinting.GRADIENT,
+  },
+};
 
 // Legacy Labels for Backward Compatibility
 export const LENS_TYPE_LABELS: Record<string, string> = {

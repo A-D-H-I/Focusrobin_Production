@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { getAvailableFrameColors, type AvailableColor } from "@/app/actions/getAvailableColors";
 import { getAvailableGlassShapes, type AvailableGlassShape } from "@/app/actions/getAvailableGlassShapes";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import { getAvailableColorFamilies } from "@/app/actions/getAvailableColorFamilies";
 import { getAvailableBrands, type AvailableBrand } from "@/app/actions/getAvailableBrands";
 import TranslatableText from "@/components/ui/TranslatableText";
 
@@ -56,6 +57,11 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
   const [isLoadingColors, setIsLoadingColors] = useState(!initialColors);
   const [availableBrands, setAvailableBrands] = useState<AvailableBrand[]>(initialBrands || []);
   const [isLoadingBrands, setIsLoadingBrands] = useState(!initialBrands);
+  const [colorPalette, setColorPalette] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    getAvailableColorFamilies().then(setColorPalette);
+  }, []);
 
   const baseUrl = type === 'eyeglasses' ? '/shop/prescription-glasses' : '/shop';
   const title = type === 'eyeglasses' ? 'Eyeglasses' : 'Sunglasses';
@@ -218,23 +224,43 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
         <div className="space-y-4">
           <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text="Shop by Brand" /></h3>
           {isLoadingBrands ? (
-            <div className="space-y-2">
-              {[1, 2, 3, 4].map(function (i) {
-                return <div key={i} className="h-4 bg-gray-200 rounded w-3/4 animate-pulse" />;
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
+              {[1, 2, 3, 4, 5, 6].map(function (i) {
+                return <div key={i} className="h-16 sm:h-20 bg-gray-200 rounded-lg animate-pulse" />;
               })}
             </div>
           ) : availableBrands.length === 0 ? (
             <p className="text-xs sm:text-sm text-gray-500"><TranslatableText text="No brands available" /></p>
           ) : (
-            <div className="space-y-2">
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
               {availableBrands.map(function (brandData, index) {
+                const hasImage = brandData.imageUrl && brandData.imageUrl.trim() !== '';
+
                 return (
                   <Link
                     key={brandData.brand + "-" + index}
-                    href={`${baseUrl}?filter=${encodeURIComponent(brandData.brand)}`} // Using 'filter' as generic search/filter param or maybe just 'search' logic handles it if I add brand to search/filter logic
-                    className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer"
+                    href={`${baseUrl}?filter=${encodeURIComponent(brandData.brand)}`}
+                    className="group flex flex-col items-center p-2 sm:p-3 bg-[#F5F5DC] rounded-lg hover:bg-[#E8E8D0] transition-colors cursor-pointer"
                   >
-                    <TranslatableText text={brandData.brand} />
+                    <div className="w-10 h-6 sm:w-12 sm:h-8 mb-1 sm:mb-2 flex items-center justify-center relative">
+                      {hasImage ? (
+                        <div className="relative w-full h-full">
+                          <Image
+                            src={normalizeImageUrl(brandData.imageUrl!)}
+                            alt={brandData.brand}
+                            fill
+                            className="object-contain"
+                            sizes="(max-width: 640px) 40px, 48px"
+                          />
+                        </div>
+                      ) : (
+                        // Fallback to text if no image
+                        <span className="text-xs font-medium text-gray-600 truncate max-w-full">
+                          {brandData.brand.substring(0, 2).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] sm:text-xs text-black text-center leading-tight"><TranslatableText text={brandData.brand} /></span>
                   </Link>
                 );
               })}
@@ -254,21 +280,30 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
           ) : (
             <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-3 gap-2 sm:gap-3">
               {availableColors.map(function (color, index) {
-                const colorHex = color.colorHex.startsWith("#") ? color.colorHex : "#" + color.colorHex;
-                const isWhite = colorHex.toLowerCase() === "#ffffff" || colorHex.toLowerCase() === "#fff";
+                const colorFamily = color.colorName; // This is actually the Family Name if grouped
+                const paletteColor = colorPalette[colorFamily] || colorPalette[colorFamily.toLowerCase()];
+
+                // Use palette color if available, otherwise fallback to hex
+                const displayColor = paletteColor || (color.colorHex.startsWith("#") ? color.colorHex : "#" + color.colorHex);
+
+                // Check if it's white/transparent to add border
+                const isLight = colorFamily === 'white' || colorFamily === 'transparent' || displayColor.toLowerCase() === '#ffffff' || displayColor.toLowerCase() === '#fff';
+
                 return (
                   <Link
                     key={color.colorHex + "-" + index}
-                    href={`${baseUrl}?color=${encodeURIComponent(colorHex)}`}
+                    href={`${baseUrl}?color=${encodeURIComponent(color.colorName)}`}
                     className="group relative flex justify-center cursor-pointer"
                     title={color.colorName}
                   >
                     <div
                       className={cn(
                         "w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 transition-all hover:scale-110 hover:border-primary",
-                        isWhite ? "bg-white border-gray-400" : "border-gray-300"
+                        isLight ? "bg-white border-gray-400" : "border-gray-300"
                       )}
-                      style={{ backgroundColor: colorHex }}
+                      style={{
+                        background: displayColor
+                      }}
                     />
                   </Link>
                 );

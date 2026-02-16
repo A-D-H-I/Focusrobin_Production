@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
+import { deleteFromS3 } from '@/lib/s3';
 
 export interface GlassShapeData {
   id?: string;
@@ -10,6 +11,22 @@ export interface GlassShapeData {
   landingImageUrl?: string;
   order?: number;
   isActive?: boolean;
+}
+
+/**
+ * Extract S3 object key from URL
+ */
+function getKeyFromUrl(url: string): string | null {
+  if (!url) return null;
+  try {
+    // Handle full URL: https://bucket.s3.region.amazonaws.com/folder/key
+    const urlObj = new URL(url);
+    // Pathname starts with /, remove it to get the key
+    return urlObj.pathname.substring(1);
+  } catch (e) {
+    // If it's already a key or invalid URL, return as is (safer to try deleting)
+    return url;
+  }
 }
 
 export async function createGlassShape(formData: FormData) {
@@ -83,6 +100,26 @@ export async function updateGlassShape(formData: FormData) {
       return { error: 'A shape with this name already exists' };
     }
 
+    // Get current shape data to check for changed images
+    const currentShape = await prisma.glassShape.findUnique({
+      where: { id },
+    });
+
+    if (!currentShape) {
+      return { error: 'Shape not found' };
+    }
+
+    // Handle Image Deletion from S3 if images changed
+    if (currentShape.imageUrl && currentShape.imageUrl !== imageUrl) {
+      const key = getKeyFromUrl(currentShape.imageUrl);
+      if (key) await deleteFromS3(key);
+    }
+
+    if (currentShape.landingImageUrl && currentShape.landingImageUrl !== landingImageUrl) {
+      const key = getKeyFromUrl(currentShape.landingImageUrl);
+      if (key) await deleteFromS3(key);
+    }
+
     const order = orderStr ? parseInt(orderStr, 10) : 0;
     const isActive = isActiveStr === 'true';
 
@@ -116,9 +153,26 @@ export async function deleteGlassShape(formData: FormData) {
       return { error: 'Shape ID is required' };
     }
 
-    await prisma.glassShape.delete({
+    // Get shape to delete images
+    const shape = await prisma.glassShape.findUnique({
       where: { id },
     });
+
+    if (shape) {
+      // Delete images from S3
+      if (shape.imageUrl) {
+        const key = getKeyFromUrl(shape.imageUrl);
+        if (key) await deleteFromS3(key);
+      }
+      if (shape.landingImageUrl) {
+        const key = getKeyFromUrl(shape.landingImageUrl);
+        if (key) await deleteFromS3(key);
+      }
+
+      await prisma.glassShape.delete({
+        where: { id },
+      });
+    }
 
     revalidatePath('/admin/shapes');
     revalidatePath('/shop');

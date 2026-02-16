@@ -71,6 +71,7 @@ type ProductWithRelations = Prisma.ProductGetPayload<{
       };
     };
     highlights: true;
+    Category: true;
   };
 }>;
 
@@ -123,6 +124,10 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
       name: variant.name,
       hex: variant.colorHex,
       sku: variant.sku,
+      // @ts-ignore
+      colorFamily: variant.colorFamily,
+      // @ts-ignore
+      textureImageUrl: variant.textureImageUrl ? normalizeImageUrl(variant.textureImageUrl) : undefined,
       stock: variant.stock,
       thumbnail: primaryUrl,
       tilted: hoverImage,
@@ -161,6 +166,7 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     id: productId, // Use database ID or slug as fallback
     slug: productSlug, // URL-friendly slug for routing
     name: prismaProduct.name,
+    productType: 'sunglasses', // Products from Product table are sunglasses
     price: finalPrice, // Final price after discount
     originalPrice: hasDiscount ? originalPrice : undefined, // Original price if discounted
     discountPct: hasDiscount ? discountPct : undefined, // Discount percentage if applicable
@@ -168,14 +174,17 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
       ? `€${Number(prismaProduct.cashbackAmount).toFixed(2)}`
       : undefined, // Cashback amount in Euros (only if > 0)
     variants,
-    categories: Array.isArray(prismaProduct.gender)
-      ? prismaProduct.gender.map(g => g === 'MEN' ? 'Men' : g === 'WOMEN' ? 'Women' : g === 'KIDS' ? 'Kids' : 'Unisex')
-      : ['Unisex'],
+    categories: [
+      prismaProduct.Category?.name || 'Unisex',
+      ...(Array.isArray(prismaProduct.gender)
+        ? prismaProduct.gender.map(g => g === 'MEN' ? 'Men' : g === 'WOMEN' ? 'Women' : g === 'KIDS' ? 'Kids' : 'Unisex')
+        : [])
+    ],
     warranty: prismaProduct.warranty || '2 Years Warranty',
-    description: prismaProduct.description,
+    description: prismaProduct.description || '',
     lensMaterial: prismaProduct.lensMaterial || 'Polycarbonate', // From database
-    frameMaterial: prismaProduct.frameMaterial,
-    uvProtection: prismaProduct.uvProtection,
+    frameMaterial: prismaProduct.frameMaterial || 'Unknown',
+    uvProtection: prismaProduct.uvProtection || 'Standard',
     averageRating: prismaProduct.averageRating || undefined,
     reviewCount: prismaProduct.reviewCount || undefined,
     size: {

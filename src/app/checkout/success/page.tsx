@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -533,7 +532,6 @@ export default function CheckoutSuccessPage() {
   if (loading) {
     return (
       <>
-        <Header />
         <main className="min-h-screen bg-background pt-[120px] sm:pt-[124px] xl:pt-[124px]">
           <div className="container mx-auto px-4 py-12">
             <div className="flex flex-col items-center justify-center min-h-[400px]">
@@ -556,7 +554,6 @@ export default function CheckoutSuccessPage() {
 
   return (
     <>
-      <Header />
       <main className="min-h-screen bg-background pt-[120px] sm:pt-[124px] xl:pt-[124px]">
         <div className="container mx-auto px-4 py-12">
           <h1 className="text-brand-h1 font-headline text-brand-blue mb-8 text-center">

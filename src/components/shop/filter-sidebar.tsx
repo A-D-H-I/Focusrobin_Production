@@ -15,6 +15,7 @@ import { type PriceRange } from "@/app/actions/getPriceRange";
 import { type AvailableMaterial } from "@/app/actions/getAvailableMaterials";
 import { type AvailableColor } from "@/app/actions/getAvailableColors";
 import { type AvailableBrand } from "@/app/actions/getAvailableBrands";
+import { getAvailableColorFamilies } from "@/app/actions/getAvailableColorFamilies";
 import TranslatableText from "@/components/ui/TranslatableText";
 
 interface CollapsibleSectionProps {
@@ -105,6 +106,12 @@ export default function FilterSidebar({
   const [pendingMinPrice, setPendingMinPrice] = useState<string>(initialMin.toString());
   const [pendingMaxPrice, setPendingMaxPrice] = useState<string>(initialMax.toString());
 
+  const [colorPalette, setColorPalette] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    getAvailableColorFamilies().then(setColorPalette);
+  }, []);
+
   // Track previous search params to prevent unnecessary updates
   const prevSearchParamsStr = useRef<string>('');
 
@@ -194,13 +201,21 @@ export default function FilterSidebar({
   }, []);
 
   // Handle color filter toggle (updates pending state only)
-  const handleColorToggle = useCallback((colorHex: string) => {
-    const normalizedColor = colorHex.toLowerCase();
+  // We use colorName (Family) as key if it's a family-grouped result, or colorHex?
+  // getAvailableColors returns: colorName (Family), colorHex (Rep), textureImageUrl
+  // If we filter by family, we should push the Family Name (colorName) to URL.
+  // Existing code expects colorHex in params?
+  // Our updated ShopPage logic handles both Hex and Family Name in params.
+  // So we should use colorName (which is Family Name for families) as the value.
+  const handleColorToggle = useCallback((colorValue: string) => {
+    const normalizedColor = colorValue.toLowerCase(); // Hex or Name
     setPendingColors(prev => {
-      if (prev.includes(normalizedColor)) {
-        return prev.filter(c => c !== normalizedColor);
+      // Check if we have this value (case insensitive)
+      const exists = prev.some(c => c.toLowerCase() === normalizedColor);
+      if (exists) {
+        return prev.filter(c => c.toLowerCase() !== normalizedColor);
       } else {
-        return [...prev, normalizedColor];
+        return [...prev, colorValue]; // Keep original case? Logic uses lowercase for check.
       }
     });
   }, []);
@@ -554,23 +569,53 @@ export default function FilterSidebar({
         <CollapsibleSection title="Color" defaultOpen={true}>
           <div className="space-y-3">
             {colors.map((colorData) => {
-              const normalizedColor = colorData.colorHex.toLowerCase();
-              const isChecked = pendingColors.includes(normalizedColor);
+              // We use colorName as the unique ID for filtering if it's a family
+              // But wait, existing logic used colorHex.
+              // If we change to use colorName (Family), we must iterate over colors.
+              // For backward compatibility, if colorData came from getAvailableColors,
+              // colorName is "Blue" (Family) and colorHex is representative.
+
+              // We'll use colorName as the filter value if distinct families are enabled.
+              // Let's assume we want to filter by Name (Family) primarily now.
+              // But we need to support legacy Hex too?
+
+              // Key: use distinct identifier. Name is good for Family.
+              const filterValue = colorData.colorName;
+
+              // Check if selected
+              // pendingColors might contain hexes or names.
+              const isChecked = pendingColors.some(c =>
+                c.toLowerCase() === filterValue.toLowerCase() ||
+                c.toLowerCase() === colorData.colorHex.toLowerCase()
+              );
+
+              // Color family logic
+              const colorFamily = colorData.colorName.toLowerCase();
+              const paletteColor = colorPalette[colorFamily] || colorPalette[colorData.colorName];
+              // prioritize palette, fallback to hex
+              const displayColor = paletteColor || (colorData.colorHex.startsWith("#") ? colorData.colorHex : "#" + colorData.colorHex);
+
+              // Check for light color to add border
+              const isLight = colorFamily === 'white' || colorFamily === 'transparent' || displayColor.toLowerCase() === '#ffffff' || displayColor.toLowerCase() === '#fff';
+
               return (
-                <div key={colorData.colorHex} className="flex items-center space-x-3">
+                <div key={colorData.colorName /* use name as key for family */} className="flex items-center space-x-3">
                   <Checkbox
-                    id={`color-${colorData.colorHex}`}
+                    id={`color-${colorData.colorName}`}
                     checked={isChecked}
-                    onCheckedChange={() => handleColorToggle(colorData.colorHex)}
+                    onCheckedChange={() => handleColorToggle(filterValue)}
                     className="border-muted-foreground/50 data-[state=checked]:bg-teal-primary data-[state=checked]:border-teal-primary"
                   />
                   <Label
-                    htmlFor={`color-${colorData.colorHex}`}
+                    htmlFor={`color-${colorData.colorName}`}
                     className="text-sm font-normal text-foreground/80 cursor-pointer hover:text-foreground transition-colors flex items-center gap-2"
                   >
                     <span
-                      className="w-4 h-4 rounded-full border border-border/50 flex-shrink-0"
-                      style={{ backgroundColor: colorData.colorHex }}
+                      className={cn(
+                        "w-4 h-4 rounded-full flex-shrink-0",
+                        isLight ? "border border-border" : "border border-transparent"
+                      )}
+                      style={{ background: displayColor }}
                       aria-hidden="true"
                     />
                     <span>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPayPalWebhook, getPayPalOrderDetails, capturePayPalOrder } from '@/lib/paypal';
+import { finalizeOrder } from '@/lib/order-fulfillment';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -20,7 +21,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.text();
     const headers: Record<string, string> = {};
-    
+
     // Extract PayPal verification headers
     request.headers.forEach((value, key) => {
       headers[key.toLowerCase()] = value;
@@ -51,7 +52,7 @@ export async function POST(request: Request) {
       case 'CHECKOUT.ORDER.APPROVED': {
         // Customer approved the order, capture the payment
         const paypalOrderId = resource.id;
-        
+
         console.log(`[PayPal Webhook] Order approved: ${paypalOrderId}`);
 
         // Find the order in our database
@@ -68,7 +69,7 @@ export async function POST(request: Request) {
         if (!order.isPaid) {
           try {
             const captureResult = await capturePayPalOrder(paypalOrderId);
-            
+
             if (captureResult.status === 'COMPLETED') {
               await prisma.order.update({
                 where: { id: order.id },
@@ -80,6 +81,9 @@ export async function POST(request: Request) {
                 },
               });
               console.log(`[PayPal Webhook] Order ${order.orderNumber} captured and marked as paid`);
+
+              // Finalize order (Stock, Cart, Cashback, Invoice)
+              await finalizeOrder(order.id);
             }
           } catch (captureError: any) {
             console.error('[PayPal Webhook] Failed to capture order:', captureError);
@@ -114,25 +118,8 @@ export async function POST(request: Request) {
 
           console.log(`[PayPal Webhook] Order ${order.orderNumber} marked as paid via capture webhook`);
 
-          // Update stock and clear cart
-          const orderItems = await prisma.orderItem.findMany({
-            where: { orderId: order.id },
-          });
-
-          for (const item of orderItems) {
-            await prisma.productVariant.update({
-              where: { id: item.variantId },
-              data: {
-                stock: { decrement: item.quantity },
-              },
-            });
-          }
-
-          await prisma.cartItem.deleteMany({
-            where: {
-              Cart: { userId: order.userId },
-            },
-          });
+          // Finalize order (Stock, Cart, Cashback, Invoice)
+          await finalizeOrder(order.id);
         }
 
         return NextResponse.json({ received: true });

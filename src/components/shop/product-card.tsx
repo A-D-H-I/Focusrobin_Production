@@ -239,16 +239,20 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                         "h-5 w-5 rounded-full border-2 transition-all cursor-pointer",
                         selectedVariant?.hex === variant.hex
                           ? "border-teal-primary ring-2 ring-offset-1 ring-teal-primary/50 scale-110"
-                          : "border-border hover:scale-110"
+                          : "border-border hover:scale-110",
+                        variant.textureImageUrl && "bg-cover bg-center"
                       )}
-                      style={{ backgroundColor: variant.hex }}
+                      style={{
+                        backgroundColor: variant.hex,
+                        backgroundImage: variant.textureImageUrl ? `url(${variant.textureImageUrl})` : undefined
+                      }}
                       title={variant.name}
                     />
                   ))}
                 </div>
 
                 {/* Cashback Badge */}
-                {cashbackInEur && cashbackInEur > 0 && (
+                {cashbackInEur !== null && cashbackInEur > 0 && (
                   <div className="mt-3">
                     <Badge variant="outline" className="text-sm sm:text-base md:text-lg bg-green-50 text-green-700 border-green-200">
                       🎁 {formatPrice(cashbackInEur)} cashback
@@ -420,22 +424,26 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                     "h-4 w-4 rounded-full border-2 transition-all cursor-pointer",
                     selectedVariant?.hex === variant.hex
                       ? "border-teal-primary ring-1 ring-offset-1 ring-teal-primary/50 scale-110"
-                      : "border-border hover:scale-110"
+                      : "border-border hover:scale-110",
+                    variant.textureImageUrl && "bg-cover bg-center"
                   )}
-                  style={{ backgroundColor: variant.hex }}
+                  style={{
+                    backgroundColor: variant.hex,
+                    backgroundImage: variant.textureImageUrl ? `url(${variant.textureImageUrl})` : undefined
+                  }}
                   title={variant.name}
                 />
               ))}
             </div>
 
             {/* Cashback Badge */}
-            {cashbackInEur && cashbackInEur > 0 && (
-              <div className="mb-1.5">
-                <Badge variant="outline" className="text-xs sm:text-sm md:text-base bg-green-50 text-green-700 border-green-200 py-0.5 px-1.5">
+            <div className="mb-1.5 flex flex-wrap gap-2">
+              {cashbackInEur !== null && cashbackInEur > 0 && (
+                <Badge variant="outline" className="text-xs sm:text-sm md:text-base bg-green-50 text-green-700 border-green-200 py-0.5 px-1.5 h-6">
                   🎁 {formatPrice(cashbackInEur)} cashback
                 </Badge>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Buttons */}
             <div className="flex flex-col gap-1 mt-auto">

@@ -9,8 +9,8 @@ import { z } from "zod";
 const customShopPageSchema = z.object({
   name: z.string().trim().min(1).max(100),
   slug: z.string().trim().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
-  bannerImage: z.string().url().max(2048),
-  videoUrl: z.string().url().max(2048).optional().or(z.literal('')),
+  bannerImage: z.string().min(1).max(2048),
+  videoUrl: z.string().max(2048).optional().or(z.literal('')),
   description: z.string().trim().max(2000).optional().default(''),
   isVisible: z.boolean().optional().default(false),
   products: z.array(z.string().max(30)).max(100).optional().default([]),
@@ -42,8 +42,8 @@ export async function createCustomShopPage(formData: FormData) {
     const productIds = products ? products.split(',').map(id => id.trim()).filter(id => id) : [];
 
     // Validate input
-    const validatedInput = customShopPageSchema.safeParse({ 
-      name, slug, bannerImage, videoUrl, description, isVisible, products: productIds 
+    const validatedInput = customShopPageSchema.safeParse({
+      name, slug, bannerImage, videoUrl, description, isVisible, products: productIds
     });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
@@ -111,8 +111,8 @@ export async function updateCustomShopPage(formData: FormData) {
     const productIds = products ? products.split(',').map(id => id.trim()).filter(id => id) : [];
 
     // Validate input
-    const validatedInput = customShopPageSchema.safeParse({ 
-      name, slug, bannerImage, videoUrl, description, isVisible, products: productIds 
+    const validatedInput = customShopPageSchema.safeParse({
+      name, slug, bannerImage, videoUrl, description, isVisible, products: productIds
     });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
@@ -153,7 +153,7 @@ export async function deleteCustomShopPage(formData: FormData) {
 
     const id = formData.get('id') as string;
     const slug = formData.get('slug') as string;
-    
+
     const validatedId = idSchema.safeParse(id);
     if (!validatedId.success) {
       return { error: "Invalid custom shop page ID" };

@@ -1,19 +1,29 @@
 generator client {
   provider      = "prisma-client-js"
-  engineType    = "library"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  engineType    = "library"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model ColorFamily {
+  id        String   @id @default(cuid())
+  name      String   @unique // e.g., "Tortoise", "Midnight Blue"
+  hex       String   // Base color code (e.g., #123456)
+  imageUrl  String?  // Optional pattern image for the family swatch
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Category {
   id                  String                @id @default(cuid())
   name                String                @unique
-  Product             Product[]
   PrescriptionGlasses PrescriptionGlasses[]
+  Product             Product[]
 }
 
 model Offer {
@@ -36,7 +46,7 @@ model Product {
   description               String?
   basePrice                 Decimal               @db.Decimal(10, 2)
   discountPct               Int?                  @default(0)
-  cashbackAmount            Decimal?              @default(0) @db.Decimal(10, 2) // Cashback amount in Euros (e.g., 2.00 for €2)
+  cashbackAmount            Decimal?              @default(0) @db.Decimal(10, 2)
   gender                    Gender[]
   tags                      String[]
   frameWidth                Float
@@ -48,40 +58,36 @@ model Product {
   frameMaterial             String
   lensMaterial              String?               @default("Polycarbonate")
   uvProtection              String
-  glassShape                String? // Glass shape (e.g., Cat Eye, Rectangle)
-  lensBaseImageUrl          String? // Base image with transparent lenses (for prescription lens color preview)
-  lensMaskImageUrl          String? // Black/white mask image defining lens areas (for CSS masking)
-  lensBackgroundImageUrl    String? // Optional: Image visible through transparent lenses (scene/pattern behind)
+  glassShape                String?
+  lensBaseImageUrl          String?
+  lensMaskImageUrl          String?
+  lensBackgroundImageUrl    String?
   averageRating             Float                 @default(0)
   reviewCount               Int                   @default(0)
-  isNewlyAdded              Boolean               @default(false) // For "Newly Added Products" section
-  isUniqueDesign            Boolean               @default(false) // For "Unique Designs" section (formerly Best Sellers)
-  // Dynamic Product Features
+  isNewlyAdded              Boolean               @default(false)
+  isUniqueDesign            Boolean               @default(false)
   isPolarized               Boolean               @default(false)
   isUVProtection            Boolean               @default(false)
   isHydrophobic             Boolean               @default(false)
   isAntiScratch             Boolean               @default(false)
   isBioBased                Boolean               @default(false)
-  // Product Highlights Section
   showHighlights            Boolean               @default(false)
-  highlights                ProductHighlight[]
-  // Custom Features & Warranty
   warranty                  String                @default("2 Years Warranty")
   customFeatures            String[]              @default([])
   categoryId                String
   createdAt                 DateTime              @default(now())
   updatedAt                 DateTime              @updatedAt
+  CartItem                  CartItem[]
   Offer                     Offer?
+  OrderItems                OrderItem[]
+  LinkedPrescriptionGlasses PrescriptionGlasses[] @relation("PrescriptionGlassesLinkedProduct")
   Category                  Category              @relation(fields: [categoryId], references: [id])
+  highlights                ProductHighlight[]
   ProductVariant            ProductVariant[]
   Review                    Review[]
-  CartItem                  CartItem[]
   Wishlist                  Wishlist[]
-  OrderItems                OrderItem[]
-  LinkedPrescriptionGlasses PrescriptionGlasses[] @relation("PrescriptionGlassesLinkedProduct") // Prescription glasses that share this product's stock
 }
 
-// Separate table for Prescription Glasses
 model PrescriptionGlasses {
   id                         String                       @id @default(cuid())
   name                       String
@@ -91,8 +97,8 @@ model PrescriptionGlasses {
   basePrice                  Decimal                      @db.Decimal(10, 2)
   discountPct                Int?                         @default(0)
   cashbackAmount             Decimal?                     @default(0) @db.Decimal(10, 2)
-  linkedProductId            String? // Optional link to Product (sunglasses) for shared stock
-  useSharedStock             Boolean                      @default(false) // If true, uses stock from linked Product
+  linkedProductId            String?
+  useSharedStock             Boolean                      @default(false)
   gender                     Gender[]
   tags                       String[]
   frameWidth                 Float
@@ -109,28 +115,24 @@ model PrescriptionGlasses {
   reviewCount                Int                          @default(0)
   isNewlyAdded               Boolean                      @default(false)
   isUniqueDesign             Boolean                      @default(false)
-  // Dynamic Product Features
   isPolarized                Boolean                      @default(false)
   isUVProtection             Boolean                      @default(false)
   isHydrophobic              Boolean                      @default(false)
   isAntiScratch              Boolean                      @default(false)
   isBioBased                 Boolean                      @default(false)
-  // Product Highlights Section
   showHighlights             Boolean                      @default(false)
-  highlights                 PrescriptionHighlight[]
-  // Custom Features & Warranty
   warranty                   String                       @default("1.5 Years Warranty")
   customFeatures             String[]                     @default([])
   categoryId                 String
   createdAt                  DateTime                     @default(now())
   updatedAt                  DateTime                     @updatedAt
-  LinkedProduct              Product?                     @relation("PrescriptionGlassesLinkedProduct", fields: [linkedProductId], references: [id], onDelete: SetNull)
   Category                   Category                     @relation(fields: [categoryId], references: [id])
-  PrescriptionGlassesVariant PrescriptionGlassesVariant[]
+  LinkedProduct              Product?                     @relation("PrescriptionGlassesLinkedProduct", fields: [linkedProductId], references: [id])
   PrescriptionGlassesOffer   PrescriptionGlassesOffer?
+  PrescriptionGlassesVariant PrescriptionGlassesVariant[]
+  highlights                 PrescriptionHighlight[]
 }
 
-// Highlights for Prescription Glasses
 model PrescriptionHighlight {
   id                    String              @id @default(cuid())
   prescriptionGlassesId String
@@ -149,13 +151,15 @@ model PrescriptionGlassesVariant {
   sku                      String                     @unique
   colorName                String
   colorHex                 String
+  colorFamily              String? // Broad category for filtering (e.g., "Blue", "Tortoise")
+  textureImageUrl          String? // URL for texture swatch image
   lensColor                String
   stock                    Int                        @default(0)
   price                    Decimal?                   @db.Decimal(10, 2)
   createdAt                DateTime                   @default(now())
   updatedAt                DateTime                   @updatedAt
-  PrescriptionGlasses      PrescriptionGlasses        @relation(fields: [prescriptionGlassesId], references: [id], onDelete: Cascade)
   PrescriptionGlassesAsset PrescriptionGlassesAsset[]
+  PrescriptionGlasses      PrescriptionGlasses        @relation(fields: [prescriptionGlassesId], references: [id], onDelete: Cascade)
 }
 
 model PrescriptionGlassesAsset {
@@ -197,6 +201,8 @@ model ProductVariant {
   sku          String         @unique
   colorName    String
   colorHex     String
+  colorFamily  String? // Broad category for filtering (e.g., "Blue", "Tortoise")
+  textureImageUrl String? // URL for texture swatch image
   lensColor    String
   stock        Int            @default(0)
   price        Decimal?       @db.Decimal(10, 2)
@@ -225,14 +231,14 @@ model Review {
   rating    Int
   title     String
   comment   String
-  images    String[] // Array of image URLs
+  images    String[]
   productId String?
-  orderId   String? // Link review to order (only delivered orders can be reviewed)
+  orderId   String?
   userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  Product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  Order     Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  Order     Order?   @relation(fields: [orderId], references: [id])
+  Product   Product? @relation(fields: [productId], references: [id])
   User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([productId])
@@ -241,40 +247,39 @@ model Review {
 }
 
 model User {
-  id            String             @id @default(cuid())
-  email         String             @unique
+  id            String            @id @default(cuid())
+  email         String            @unique
   name          String?
-  password      String? // For email/password authentication
+  password      String?
   emailVerified DateTime?
   image         String?
-  role          String             @default("USER")
-  createdAt     DateTime           @default(now())
-  updatedAt     DateTime           @updatedAt
+  role          String            @default("USER")
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
   accounts      Account[]
-  sessions      Session[]
-  cart          Cart?
-  wishlist      Wishlist[]
-  Review        Review[]
-  wallet        Wallet?
   addresses     Address[]
+  cart          Cart?
   chats         Chat[]
   orders        Order[]
-  prescriptions UserPrescription[]
+  Review        Review[]
+  sessions      Session[]
+  prescriptions UserPrescription?
+  wallet        Wallet?
+  wishlist      Wishlist[]
 }
 
-// NextAuth Models
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -297,7 +302,6 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// Cart Models
 model Cart {
   id        String     @id @default(cuid())
   userId    String     @unique
@@ -308,34 +312,29 @@ model Cart {
 }
 
 model CartItem {
-  id              String   @id @default(cuid())
-  cartId          String
-  productId       String
-  variantId       String
-  quantity        Int      @default(1)
-  prescriptionData Json?   // Prescription data if item has prescription lenses
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  Cart            Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  Product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  // Note: Removed unique constraint to allow same product/variant with different prescriptions
-  // Duplicate prevention is handled in application logic
+  id               String   @id @default(cuid())
+  cartId           String
+  productId        String
+  variantId        String
+  quantity         Int      @default(1)
+  prescriptionData Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  Cart             Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  Product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
-// Wishlist Model
 model Wishlist {
   id        String   @id @default(cuid())
   userId    String
   productId String
   createdAt DateTime @default(now())
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   Product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
 }
 
-// Wallet Models
 model Wallet {
   id           String              @id @default(cuid())
   userId       String              @unique
@@ -356,12 +355,6 @@ model WalletTransaction {
   Wallet      Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
 }
 
-enum TransactionType {
-  CREDIT // Money added (cashback, admin credit, refund)
-  DEBIT // Money spent (purchase, admin deduction)
-}
-
-// Address Model
 model Address {
   id           String   @id @default(cuid())
   userId       String
@@ -379,67 +372,54 @@ model Address {
   User         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// User Prescription Model - Stores prescription data and lens configuration
 model UserPrescription {
-  id                String   @id @default(cuid())
-  userId            String   @unique // One prescription per user (shared across all products)
-  // NOTE: productSlug is NOT stored - prescription is shared across all products
-  // Prescription data (OD - Right Eye)
-  odSph             String // Sphere
-  odCyl             String // Cylinder
-  odAxis            String // Axis
-  // Prescription data (OS - Left Eye)
-  osSph             String // Sphere
-  osCyl             String // Cylinder
-  osAxis            String // Axis
-  // PD (Pupillary Distance)
-  pd                String
-  pdOd              String? // Right eye PD (when hasTwoPDs is true)
-  pdOs              String? // Left eye PD (when hasTwoPDs is true)
-  hasTwoPDs         Boolean  @default(false)
-  hasPrism          Boolean  @default(false)
-  // Prism values (OD - Right Eye)
-  odPrismHorizontal String?
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  odSph                 String
+  odCyl                 String
+  odAxis                String
+  osSph                 String
+  osCyl                 String
+  osAxis                String
+  pd                    String
+  pdOd                  String?
+  pdOs                  String?
+  hasTwoPDs             Boolean  @default(false)
+  hasPrism              Boolean  @default(false)
+  odPrismHorizontal     String?
   odPrismHorizontalBase String?
-  odPrismVertical   String?
-  odPrismVerticalBase String?
-  // Prism values (OS - Left Eye)
-  osPrismHorizontal String?
+  odPrismVertical       String?
+  odPrismVerticalBase   String?
+  osPrismHorizontal     String?
   osPrismHorizontalBase String?
-  osPrismVertical   String?
-  osPrismVerticalBase String?
-  // Prescription image
-  prescriptionImageUrl String? // S3 URL for uploaded prescription image
-  // NOTE: Lens configuration and price breakdown are NOT stored here - they are product-specific
-  // and stored in localStorage/sessionStorage per product, not in the database
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  User              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  osPrismVertical       String?
+  osPrismVerticalBase   String?
+  prescriptionImageUrl  String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  User                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
-// Deleted User Archive Model - Stores complete user data before deletion
 model DeletedUser {
   id             String    @id @default(cuid())
-  originalUserId String    @unique // Original user ID before deletion
+  originalUserId String    @unique
   email          String
   name           String?
   image          String?
   role           String
   emailVerified  DateTime?
-  createdAt      DateTime // Original user creation date
+  createdAt      DateTime
   deletedAt      DateTime  @default(now())
-
-  // Store all related data as JSON
-  userData      Json // Complete user object
-  accountsData  Json // All OAuth accounts
-  sessionsData  Json // All sessions
-  cartData      Json? // Cart and cart items
-  wishlistData  Json // All wishlist items
-  walletData    Json? // Wallet and transactions
-  reviewsData   Json // All reviews
-  addressesData Json // All addresses
+  userData       Json
+  accountsData   Json
+  sessionsData   Json
+  cartData       Json?
+  wishlistData   Json
+  walletData     Json?
+  reviewsData    Json
+  addressesData  Json
 }
 
 model HeroImage {
@@ -451,7 +431,7 @@ model HeroImage {
   ctaText         String
   ctaLink         String
   isActive        Boolean  @default(true)
-  order           Int      @default(0) // Order for carousel display
+  order           Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -469,9 +449,9 @@ model InstagramImage {
 
 model CategoryImage {
   id                   String   @id @default(cuid())
-  category             String   @unique // "MEN", "WOMEN", "KIDS"
+  category             String   @unique
   imageUrl             String
-  mobileTabletImageUrl String? // Mobile & Tablet image (optional for backward compatibility)
+  mobileTabletImageUrl String?
   alt                  String
   link                 String
   isActive             Boolean  @default(true)
@@ -482,7 +462,7 @@ model CategoryImage {
 model IconicImage {
   id                   String   @id @default(cuid())
   imageUrl             String
-  mobileTabletImageUrl String? // Mobile & Tablet image (optional for backward compatibility)
+  mobileTabletImageUrl String?
   alt                  String
   isActive             Boolean  @default(true)
   createdAt            DateTime @default(now())
@@ -492,7 +472,7 @@ model IconicImage {
 model PrescriptionGlassesLandingImage {
   id                   String   @id @default(cuid())
   imageUrl             String
-  mobileTabletImageUrl String? // Mobile & Tablet image (optional for backward compatibility)
+  mobileTabletImageUrl String?
   alt                  String
   isActive             Boolean  @default(true)
   createdAt            DateTime @default(now())
@@ -502,7 +482,7 @@ model PrescriptionGlassesLandingImage {
 model GiftBanner {
   id                   String   @id @default(cuid())
   imageUrl             String
-  mobileTabletImageUrl String? // Mobile & Tablet image (optional for backward compatibility)
+  mobileTabletImageUrl String?
   title                String
   subtitle             String?
   link                 String
@@ -514,7 +494,7 @@ model GiftBanner {
 model GiftForLovedOnesBanner {
   id                   String   @id @default(cuid())
   imageUrl             String
-  mobileTabletImageUrl String? // Mobile & Tablet image (optional for backward compatibility)
+  mobileTabletImageUrl String?
   isActive             Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -522,7 +502,7 @@ model GiftForLovedOnesBanner {
 
 model ScrollingBanner {
   id        String   @id @default(cuid())
-  text      String // Banner text to display
+  text      String
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -530,7 +510,7 @@ model ScrollingBanner {
 
 model ShopBanner {
   id        String   @id @default(cuid())
-  category  String   @unique // "MEN", "WOMEN", "KIDS", "UNISEX"
+  category  String   @unique
   imageUrl  String
   alt       String
   link      String?
@@ -541,7 +521,7 @@ model ShopBanner {
 
 model PrescriptionShopBanner {
   id        String   @id @default(cuid())
-  category  String   @unique // "MEN", "WOMEN", "KIDS", "UNISEX"
+  category  String   @unique
   imageUrl  String
   alt       String
   link      String?
@@ -550,22 +530,6 @@ model PrescriptionShopBanner {
   updatedAt DateTime @updatedAt
 }
 
-enum AssetType {
-  GALLERY // Standard photos for the product details slider
-  NO_BG // Transparent background (for Landing Page 3D effect)
-  GLB // 3D Model File (for Live Camera AR)
-  TRY_ON_2D // Front-view photo (for "Upload Photo" Try-On)
-  HOVER // Tilted/Secondary image (for Shop Card hover effect)
-}
-
-enum Gender {
-  MEN
-  WOMEN
-  UNISEX
-  KIDS
-}
-
-// Settings Model for Admin Configuration
 model Settings {
   id        String   @id @default(cuid())
   key       String   @unique
@@ -574,27 +538,25 @@ model Settings {
   updatedAt DateTime @updatedAt
 }
 
-// Navbar Settings Model
 model NavbarSettings {
   id                   String   @id @default(cuid())
-  iconColorNotScrolled String   @default("white") // Color for navbar icons when not scrolled (e.g., "white", "black", "#ffffff")
-  logoColorNotScrolled String   @default("white") // Color for logo when not scrolled (e.g., "white", "black", "#ffffff")
+  iconColorNotScrolled String   @default("white")
+  logoColorNotScrolled String   @default("white")
   isActive             Boolean  @default(true)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 }
 
-// Chat Models
 model Chat {
   id            String        @id @default(cuid())
   userId        String?
-  userEmail     String // Store email for non-authenticated users
-  userName      String? // Store name for non-authenticated users
-  userLanguage  String        @default("en") // User's detected language
+  userEmail     String
+  userName      String?
+  userLanguage  String        @default("en")
   status        ChatStatus    @default(OPEN)
-  forceClosed   Boolean       @default(false) // If true, user cannot reopen this chat
-  forceClosedAt DateTime? // When the chat was force closed
-  forceClosedBy String? // Admin ID who force closed it
+  forceClosed   Boolean       @default(false)
+  forceClosedAt DateTime?
+  forceClosedBy String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   lastMessageAt DateTime      @default(now())
@@ -609,11 +571,11 @@ model Chat {
 
 model UserBlock {
   id           String   @id @default(cuid())
-  userId       String? // If null, blocks by email
-  userEmail    String? // For anonymous users
-  blockedUntil DateTime // Block expires at this time
-  reason       String? // Reason for blocking
-  blockedBy    String // Admin ID who blocked
+  userId       String?
+  userEmail    String?
+  blockedUntil DateTime
+  reason       String?
+  blockedBy    String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -626,9 +588,9 @@ model ChatMessage {
   id             String        @id @default(cuid())
   chatId         String
   sender         MessageSender
-  originalText   String        @db.Text // Original message in sender's language
-  translatedText String        @db.Text // Translated message (to English for admin, to user language for user)
-  language       String // Language code of the original text
+  originalText   String
+  translatedText String
+  language       String
   createdAt      DateTime      @default(now())
   Chat           Chat          @relation(fields: [chatId], references: [id], onDelete: Cascade)
 
@@ -636,19 +598,6 @@ model ChatMessage {
   @@index([createdAt])
 }
 
-enum ChatStatus {
-  OPEN
-  CLOSED
-  PENDING
-  FORCE_CLOSED
-}
-
-enum MessageSender {
-  USER
-  ADMIN
-}
-
-// Contact Form Submissions
 model ContactSubmission {
   id        String   @id @default(cuid())
   firstName String
@@ -656,7 +605,7 @@ model ContactSubmission {
   email     String
   phone     String?
   subject   String
-  message   String   @db.Text
+  message   String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -666,71 +615,57 @@ model ContactSubmission {
   @@index([createdAt])
 }
 
-// Order Models
 model Order {
-  id               String        @id @default(cuid())
-  userId           String
-  orderNumber      String        @unique // Human-readable order number (e.g., ORD-2024-001)
-  status           OrderStatus   @default(PENDING)
-  paymentMethod    String // card, paypal, apple-pay, google-pay, revolut-pay, bank-transfer
-  paymentStatus    PaymentStatus @default(PENDING)
-  subtotal         Decimal       @db.Decimal(10, 2)
-  shipping         Decimal       @default(0) @db.Decimal(10, 2)
-  total            Decimal       @db.Decimal(10, 2)
-  currency         String        @default("EUR")
-  walletAmountUsed Decimal       @default(0) @db.Decimal(10, 2) // Amount deducted from wallet for this order
-  promoCodeId      String? // Promo code used for this order
-  promoDiscount    Decimal       @default(0) @db.Decimal(10, 2) // Discount amount from promo code
-  promoCashback    Decimal       @default(0) @db.Decimal(10, 2) // Cashback amount from promo code
-
-  // Stripe Payment Integration
-  stripeSessionId       String? @unique // Stripe Checkout Session ID
-  stripePaymentIntentId String? // Stripe Payment Intent ID
-  isPaid                Boolean @default(false) // Payment status flag
-
-  // PayPal Payment Integration
-  paypalOrderId   String? @unique // PayPal Order ID
-  paypalCaptureId String? // PayPal Capture ID (for refunds)
-
-  shippingProvider String  @default("DHL") // Omniva for Latvia, Lithuania, Estonia; DHL for others
-  trackingNumber   String? // Tracking number for delivery
-  trackingMessage  String? @db.Text // Admin message/update about tracking
-
-  // Shipping Address
-  shippingName         String
-  shippingPhone        String
-  shippingAddressLine1 String
-  shippingAddressLine2 String?
-  shippingCity         String
-  shippingState        String?
-  shippingPostalCode   String
-  shippingCountry      String  @default("Ireland")
-
-  // Billing Address (can be same as shipping)
-  billingName         String?
-  billingPhone        String?
-  billingAddressLine1 String?
-  billingAddressLine2 String?
-  billingCity         String?
-  billingState        String?
-  billingPostalCode   String?
-  billingCountry      String?
-
-  // Business Purchase Information (optional)
-  isBusinessPurchase  Boolean  @default(false)
-  businessName        String?
-  businessNumber      String?  // Business registration number
-  vatNumber           String?  // VAT/Tax ID
-
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  shippedAt   DateTime?
-  deliveredAt DateTime?
-
-  User      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  PromoCode PromoCode?  @relation(fields: [promoCodeId], references: [id], onDelete: SetNull)
-  items     OrderItem[]
-  Review    Review[] // Reviews for this order
+  id                    String        @id @default(cuid())
+  userId                String
+  orderNumber           String        @unique
+  status                OrderStatus   @default(PENDING)
+  paymentMethod         String
+  paymentStatus         PaymentStatus @default(PENDING)
+  subtotal              Decimal       @db.Decimal(10, 2)
+  shipping              Decimal       @default(0) @db.Decimal(10, 2)
+  total                 Decimal       @db.Decimal(10, 2)
+  currency              String        @default("EUR")
+  walletAmountUsed      Decimal       @default(0) @db.Decimal(10, 2)
+  promoCodeId           String?
+  promoDiscount         Decimal       @default(0) @db.Decimal(10, 2)
+  promoCashback         Decimal       @default(0) @db.Decimal(10, 2)
+  stripeSessionId       String?       @unique
+  stripePaymentIntentId String?
+  isPaid                Boolean       @default(false)
+  paypalOrderId         String?       @unique
+  paypalCaptureId       String?
+  shippingProvider      String        @default("DHL")
+  trackingNumber        String?
+  trackingMessage       String?
+  shippingName          String
+  shippingPhone         String
+  shippingAddressLine1  String
+  shippingAddressLine2  String?
+  shippingCity          String
+  shippingState         String?
+  shippingPostalCode    String
+  shippingCountry       String        @default("Ireland")
+  billingName           String?
+  billingPhone          String?
+  billingAddressLine1   String?
+  billingAddressLine2   String?
+  billingCity           String?
+  billingState          String?
+  billingPostalCode     String?
+  billingCountry        String?
+  isBusinessPurchase    Boolean       @default(false)
+  businessName          String?
+  businessNumber        String?
+  vatNumber             String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  shippedAt             DateTime?
+  deliveredAt           DateTime?
+  PromoCode             PromoCode?    @relation(fields: [promoCodeId], references: [id])
+  User                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items                 OrderItem[]
+  Review                Review[]
 
   @@index([userId])
   @@index([orderNumber])
@@ -739,56 +674,32 @@ model Order {
 }
 
 model OrderItem {
-  id          String  @id @default(cuid())
-  orderId     String
-  productId   String? // Made nullable to allow product deletion while preserving order history
-  variantId   String
-  productName String // Snapshot of product name at time of order
-  variantName String // Snapshot of variant name at time of order
-  sku         String // Snapshot of SKU at time of order
-  quantity    Int
-  price       Decimal @db.Decimal(10, 2) // Price per unit at time of order
-  total       Decimal @db.Decimal(10, 2) // Total for this line item
-  imageUrl    String? // Snapshot of product image at time of order
-
-  // Prescription data (snapshot at time of order) - stored as JSON for flexibility
-  prescriptionData Json? // Contains full prescription details if applicable
-
-  createdAt DateTime @default(now())
-
-  Order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  Product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  id               String   @id @default(cuid())
+  orderId          String
+  productId        String?
+  variantId        String
+  productName      String
+  variantName      String
+  sku              String
+  quantity         Int
+  price            Decimal  @db.Decimal(10, 2)
+  total            Decimal  @db.Decimal(10, 2)
+  imageUrl         String?
+  prescriptionData Json?
+  createdAt        DateTime @default(now())
+  Order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  Product          Product? @relation(fields: [productId], references: [id])
 
   @@index([orderId])
   @@index([productId])
 }
 
-enum OrderStatus {
-  PENDING
-  PAID
-  SHIPPED
-  CANCELLED
-  CONFIRMED // Keep for backward compatibility
-  PROCESSING // Keep for backward compatibility
-  DELIVERED // Keep for backward compatibility
-  REFUNDED // Keep for backward compatibility
-}
-
-enum PaymentStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-  REFUNDED
-}
-
-// Currency Exchange Rates - Cached from external API
 model CurrencyRate {
   id          String   @id @default(cuid())
-  code        String   @unique // Currency code e.g., "USD", "GBP", "EUR"
-  rate        Float // Exchange rate relative to EUR (EUR = 1.0)
-  symbol      String // Currency symbol e.g., "$", "£", "€"
-  name        String // Full currency name e.g., "US Dollar"
+  code        String   @unique
+  rate        Float
+  symbol      String
+  name        String
   lastUpdated DateTime @default(now()) @updatedAt
 
   @@index([code])
@@ -805,26 +716,24 @@ model NewsletterSubscription {
 }
 
 model PromoCode {
-  id                        String    @id @default(cuid())
-  code                      String    @unique // Promo code (e.g., "SUMMER2024")
-  description               String? // Optional description
-  discountPercentage        Decimal?  @db.Decimal(5, 2) // Discount percentage (e.g., 10.00 for 10%)
-  discountAmount            Decimal?  @db.Decimal(10, 2) // Fixed discount amount in EUR
-  cashbackPercentage        Decimal?  @db.Decimal(5, 2) // Cashback percentage (e.g., 5.00 for 5%)
-  isActive                  Boolean   @default(true)
-  startDate                 DateTime  @default(now())
-  endDate                   DateTime? // Optional end date
-  usageLimit                Int? // Maximum number of times this code can be used (null = unlimited)
-  usedCount                 Int       @default(0) // Number of times this code has been used
-  minPurchaseAmount         Decimal?  @db.Decimal(10, 2) // Minimum purchase amount to use this code
-  // Bulk frame discount fields
-  minFrameQuantity          Int? // Minimum number of frames required (e.g., 2, 3)
-  bulkFrameDiscountPercentage Decimal? @db.Decimal(5, 2) // Discount percentage for frames only (e.g., 50.00 for 50%)
-  applyToFramesOnly         Boolean   @default(false) // If true, discount only applies to frames, not prescription glasses
-  createdAt                 DateTime  @default(now())
-  updatedAt                 DateTime  @updatedAt
-
-  Order Order[] // Orders that used this promo code
+  id                          String    @id @default(cuid())
+  code                        String    @unique
+  description                 String?
+  discountPercentage          Decimal?  @db.Decimal(5, 2)
+  discountAmount              Decimal?  @db.Decimal(10, 2)
+  cashbackPercentage          Decimal?  @db.Decimal(5, 2)
+  isActive                    Boolean   @default(true)
+  startDate                   DateTime  @default(now())
+  endDate                     DateTime?
+  usageLimit                  Int?
+  usedCount                   Int       @default(0)
+  minPurchaseAmount           Decimal?  @db.Decimal(10, 2)
+  minFrameQuantity            Int?
+  bulkFrameDiscountPercentage Decimal?  @db.Decimal(5, 2)
+  applyToFramesOnly           Boolean   @default(false)
+  createdAt                   DateTime  @default(now())
+  updatedAt                   DateTime  @updatedAt
+  Order                       Order[]
 
   @@index([code])
   @@index([isActive])
@@ -832,16 +741,30 @@ model PromoCode {
   @@index([endDate])
 }
 
-// Glass Shape with Image Support
 model GlassShape {
-  id        String   @id @default(cuid())
-  name      String   @unique // Shape name (e.g., "Cat Eye", "Rectangle")
-  imageUrl        String?  // Image URL for the shape (uploaded by admin) - for Mega Menu
-  landingImageUrl String?  // Image URL for the Shop By Shapes section (uploaded by admin)
-  order           Int      @default(0) // Display order
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String   @unique
+  imageUrl        String?
+  landingImageUrl String?
+  order           Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([name])
+  @@index([isActive])
+  @@index([order])
+}
+
+model Brand {
+  id              String   @id @default(cuid())
+  name            String   @unique
+  imageUrl        String?
+  landingImageUrl String?
+  order           Int      @default(0)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   @@index([name])
   @@index([isActive])
@@ -850,18 +773,18 @@ model GlassShape {
 
 model PrescriptionLensImage {
   id                String   @id @default(cuid())
-  lensType          String?  // CLEAR, TINTED, PHOTOCHROMIC_SOLIS, POLARIZED_NUPOLAR (optional - can be null for lensIndex/coating images)
-  lensIndex         String?  // 1.56, 1.60, 1.67 (optional - not used in combinations)
-  coating           String?  // UC, BLUE_PRO, SERICUM_UV
-  tintType          String?  // FULL_TINT_CATALOG, GRADIENT (only for TINTED)
-  tintColor         String?  // Brown, Grey, Green (only for TINTED)
-  tintShadePercent  Int?     // 15, 30, 50, 70, 85 (only for FULL_TINT_CATALOG)
-  tintRecipe        String?  // 30->0, 50->0, 90->15 (only for GRADIENT)
-  photochromicColor String?  // Brown, Grey (only for PHOTOCHROMIC_SOLIS)
-  polarizedColor    String?  // Brown, Grey, Green (only for POLARIZED_NUPOLAR)
-  frameType         String?  // FULL_FRAME, NYLON_FRAME, RIMLESS_PRESSING, etc.
-  imageUrl          String   // S3 URL for the preview image
-  isOutdoor         Boolean  @default(false) // Outdoor (darkened) variant
+  lensType          String?
+  lensIndex         String?
+  coating           String?
+  tintType          String?
+  tintColor         String?
+  tintShadePercent  Int?
+  tintRecipe        String?
+  photochromicColor String?
+  polarizedColor    String?
+  frameType         String?
+  imageUrl          String
+  isOutdoor         Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -870,13 +793,12 @@ model PrescriptionLensImage {
   @@index([lensType, coating, isOutdoor])
 }
 
-// Prescription Pricing Models - Store all lens combinations and pricing
 model PrescriptionLensPrice {
   id        String   @id @default(cuid())
-  lensType  String   // CLEAR, TINTED, PHOTOCHROMIC_SOLIS, POLARIZED_NUPOLAR
-  lensIndex String   // 1.56, 1.60, 1.67
-  coating   String   // UC, BLUE_PRO, SERICUM_UV
-  price     Decimal  @db.Decimal(10, 2) // Price per SINGLE lens (EUR)
+  lensType  String
+  lensIndex String
+  coating   String
+  price     Decimal  @db.Decimal(10, 2)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -888,8 +810,8 @@ model PrescriptionLensPrice {
 
 model PrescriptionTintFee {
   id        String   @id @default(cuid())
-  tintType  String   @unique // FULL_TINT_CATALOG, GRADIENT
-  price     Decimal  @db.Decimal(10, 2) // Price per PAIR (EUR)
+  tintType  String   @unique
+  price     Decimal  @db.Decimal(10, 2)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -897,8 +819,8 @@ model PrescriptionTintFee {
 
 model PrescriptionEdgingFee {
   id        String   @id @default(cuid())
-  frameType String   @unique // FULL_FRAME, NYLON_FRAME, RIMLESS_PRESSING, RIMLESS_INDIVIDUAL, LINDBERG_COMPLEX
-  price     Decimal  @db.Decimal(10, 2) // Price per order (EUR)
+  frameType String   @unique
+  price     Decimal  @db.Decimal(10, 2)
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -906,34 +828,81 @@ model PrescriptionEdgingFee {
 
 model PrescriptionProfit {
   id        String   @id @default(cuid())
-  profit    Decimal  @db.Decimal(10, 2) // Fixed profit amount (EUR) - default: 15.00
-  isActive  Boolean  @default(true)
+  profit    Decimal  @db.Decimal(10, 2)
+  isActive  Boolean  @unique @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-
-  @@unique([isActive])
 }
 
 model SplitBanner {
-  id                   String   @id @default(cuid())
-  sectionKey           String   @unique // "eyeglasses", "sunglasses"
-  title                String
-  leftImageUrl         String
-  leftLink             String
-  leftButtonText       String
-  rightImageUrl        String
-  rightLink            String
-  rightButtonText      String
-  isActive             Boolean  @default(true)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id              String   @id @default(cuid())
+  sectionKey      String   @unique
+  title           String
+  leftImageUrl    String
+  leftLink        String
+  leftButtonText  String
+  rightImageUrl   String
+  rightLink       String
+  rightButtonText String
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model LensBundlePrice {
   id        String   @id @default(cuid())
-  bundleId  String   @unique // e.g., "BASIC", "BLUE_FILTER"
+  bundleId  String   @unique
   price     Decimal  @db.Decimal(10, 2)
   updatedAt DateTime @updatedAt
 }
 
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum AssetType {
+  GALLERY
+  NO_BG
+  GLB
+  TRY_ON_2D
+  HOVER
+}
+
+enum Gender {
+  MEN
+  WOMEN
+  UNISEX
+  KIDS
+}
+
+enum ChatStatus {
+  OPEN
+  CLOSED
+  PENDING
+  FORCE_CLOSED
+}
+
+enum MessageSender {
+  USER
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  CANCELLED
+  CONFIRMED
+  PROCESSING
+  DELIVERED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
+}

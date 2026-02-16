@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import Header from "@/components/Landing/header";
 import Footer from "@/components/Landing/footer";
 import { Button } from "@/components/ui/button";
 import {
@@ -722,7 +721,6 @@ export default function AccountPage() {
   if (status === "loading") {
     return (
       <div className="flex flex-col min-h-screen bg-brand-white">
-        <Header />
         <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="text-center py-12">
@@ -739,7 +737,6 @@ export default function AccountPage() {
   if (status === "unauthenticated" || !session?.user) {
     return (
       <div className="flex flex-col min-h-screen bg-brand-white">
-        <Header />
         <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
           <div className="container mx-auto px-4 sm:px-6">
             <div className="max-w-md mx-auto mt-12">
@@ -778,7 +775,6 @@ export default function AccountPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-white">
-      <Header />
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="container mx-auto px-4 sm:px-6">
           <h1 className="text-brand-h1 font-headline text-brand-blue mb-8">

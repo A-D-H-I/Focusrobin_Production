@@ -7,8 +7,8 @@ import { z } from "zod";
 
 // Validation schemas
 const prescriptionGlassesLandingImageSchema = z.object({
-  imageUrl: z.string().url().max(2048),
-  mobileTabletImageUrl: z.string().url().max(2048).optional().nullable(),
+  imageUrl: z.string().min(1).max(2048),
+  mobileTabletImageUrl: z.string().min(1).max(2048).optional().nullable(),
   alt: z.string().trim().min(1).max(200),
   isActive: z.boolean().optional().default(false),
 });
@@ -44,11 +44,11 @@ export async function createPrescriptionGlassesLandingImage(formData: FormData) 
     const isActive = formData.get('isActive') === 'true';
 
     // Validate input
-    const validatedInput = prescriptionGlassesLandingImageSchema.safeParse({ 
-      imageUrl, 
+    const validatedInput = prescriptionGlassesLandingImageSchema.safeParse({
+      imageUrl,
       mobileTabletImageUrl,
-      alt, 
-      isActive 
+      alt,
+      isActive
     });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
@@ -101,11 +101,11 @@ export async function updatePrescriptionGlassesLandingImage(formData: FormData) 
     const isActive = formData.get('isActive') === 'true';
 
     // Validate input
-    const validatedInput = prescriptionGlassesLandingImageSchema.safeParse({ 
-      imageUrl, 
+    const validatedInput = prescriptionGlassesLandingImageSchema.safeParse({
+      imageUrl,
       mobileTabletImageUrl,
-      alt, 
-      isActive 
+      alt,
+      isActive
     });
     if (!validatedInput.success) {
       return { error: validatedInput.error.errors[0]?.message || "Invalid input" };

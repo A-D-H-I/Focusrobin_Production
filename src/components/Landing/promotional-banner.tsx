@@ -32,19 +32,12 @@ function parseBoldText(text: string): (string | React.ReactElement)[] {
   return parts.length > 0 ? parts : [text];
 }
 
-export default function PromotionalBanner() {
-  const [bannerTexts, setBannerTexts] = useState<string[]>(["BUY 1, GET 1 FREE ON ALL GLASSES! CODE: XMAS2X1"]);
+interface PromotionalBannerProps {
+  banners: string[];
+}
 
-  // Fetch scrolling banners from database
-  useEffect(() => {
-    const fetchBanners = async () => {
-      const result = await getScrollingBanners();
-      if (result.success && result.banners && result.banners.length > 0) {
-        setBannerTexts(result.banners.map((b: any) => b.text));
-      }
-    };
-    fetchBanners();
-  }, []);
+export default function PromotionalBanner({ banners }: PromotionalBannerProps) {
+  const bannerTexts = banners;
 
   // Create a sequence where all offers are shown together, then repeated
   const textSequence: string[] = [];
@@ -54,10 +47,14 @@ export default function PromotionalBanner() {
     });
   }
 
+  if (bannerTexts.length === 0) {
+    return null;
+  }
+
   return (
-    <div 
+    <div
       className="fixed top-0 left-0 right-0 w-full bg-brand-blue text-white py-3 sm:py-4 overflow-hidden z-[101]"
-      style={{ 
+      style={{
         position: 'fixed',
         top: 0,
         left: 0,
@@ -69,7 +66,7 @@ export default function PromotionalBanner() {
       <div className="flex animate-scroll whitespace-nowrap">
         {/* First set of messages */}
         {textSequence.map((item, index) => (
-          <span 
+          <span
             key={`first-${index}`}
             className="text-sm sm:text-base font-bold uppercase tracking-wide inline-block mr-12"
           >
@@ -78,7 +75,7 @@ export default function PromotionalBanner() {
         ))}
         {/* Duplicate for seamless loop */}
         {textSequence.map((item, index) => (
-          <span 
+          <span
             key={`second-${index}`}
             className="text-sm sm:text-base font-bold uppercase tracking-wide inline-block mr-12"
           >
