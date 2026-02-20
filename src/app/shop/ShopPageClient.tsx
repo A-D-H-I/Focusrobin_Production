@@ -47,12 +47,12 @@ export default function ShopPageClient({
   title = "All Products",
   searchQuery,
   priceRange,
-  glassShapes,
-  genderCounts,
-  materials,
+  glassShapes = [],
+  genderCounts = [],
+  materials = [],
 
-  colors,
-  brands
+  colors = [],
+  brands = []
 }: ShopPageClientProps) {
   const searchParams = useSearchParams();
   const [filtersApplied, setFiltersApplied] = useState(0);
@@ -154,12 +154,12 @@ export default function ShopPageClient({
                 {searchQuery ? (
                   <>
                     {sortedProducts.length === 0
-                      ? `No products found for "${searchQuery}"`
+                      ? `No products found`
                       : `Found ${sortedProducts.length} ${sortedProducts.length === 1 ? 'product' : 'products'} for "${searchQuery}"`
                     }
                   </>
                 ) : (
-                  `Showing ${sortedProducts.length} results`
+                  sortedProducts.length === 0 ? "No products found" : `Showing ${sortedProducts.length} results`
                 )}
               </p>
             </div>
@@ -242,7 +242,28 @@ export default function ShopPageClient({
           </div>
 
           {/* Products Grid */}
-          <ProductGrid products={sortedProducts} viewMode="grid" />
+          {sortedProducts.length > 0 ? (
+            <ProductGrid products={sortedProducts} viewMode="grid" />
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="bg-muted/30 rounded-full p-6 mb-4">
+                <Filter className="h-10 w-10 text-muted-foreground/50" />
+              </div>
+              <h3 className="text-xl font-headline font-semibold mb-2">No products found</h3>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                {searchQuery
+                  ? `We couldn't find any products matching "${searchQuery}".`
+                  : "There are no products available in this category yet."}
+              </p>
+              <Button
+                variant="outline"
+                className="mt-6"
+                onClick={() => window.location.href = '/shop'}
+              >
+                View all products
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

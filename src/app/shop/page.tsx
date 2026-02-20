@@ -381,17 +381,46 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   ] = await Promise.all([
     prisma.product.findMany({
       where: whereClause,
-      include: {
-        Category: true, // Include Category for search
-        ProductVariant: {
-          include: {
-            ProductAsset: true,
-          },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        basePrice: true,
+        discountPct: true,
+        averageRating: true,
+        reviewCount: true,
+        isNewlyAdded: true,
+        isUniqueDesign: true,
+        // price removed
+        Category: {
+          select: {
+            name: true
+          }
         },
+        ProductVariant: {
+          take: 20, // Take more variants to show color options
+          select: {
+            id: true,
+            name: true,
+            // price removed
+            stock: true,
+            colorHex: true,
+            colorName: true,
+            ProductAsset: {
+              take: 5, // Take more assets to ensure we get HOVER/GALLERY images
+              select: {
+                url: true,
+                isPrimary: true,
+                type: true // Required for mapper to identify HOVER/GALLERY images
+              }
+            }
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc',
       },
+      take: 100, // Safety limit
     }),
     getPriceRange(),
     getAvailableGlassShapes(),

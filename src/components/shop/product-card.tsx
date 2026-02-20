@@ -70,6 +70,12 @@ function StarRating({ rating, count }: { rating: number; count?: number }) {
 
 function ProductCard({ product, onColorClick, priority = false, viewMode = "grid" }: ProductCardProps) {
   const router = useRouter();
+
+  // Guard clause: If product has no variants, don't render the card (prevent crash)
+  if (!product.variants || product.variants.length === 0) {
+    return null;
+  }
+
   const [hoveredVariant, setHoveredVariant] = useState<ProductColorVariant | null>(null);
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
   const { addToCart } = useCart();

@@ -455,6 +455,80 @@ export async function processSuccessfulOrder(orderId: string, orderNumber: strin
  * 3. Calculate and award cashback
  * 4. Generate invoice and send email
  */
+/**
+ * Deducts wallet balance for an order if used.
+ * Optimized to be idempotent (safe to call multiple times).
+ */
+async function deductWalletBalance(userId: string, amount: number, orderId: string, orderNumber: string) {
+    if (amount <= 0) return;
+
+    try {
+        console.log(`[Order Fulfillment] Processing wallet deduction of €${amount} for order ${orderNumber}...`);
+
+        const wallet = await prisma.wallet.findUnique({
+            where: { userId },
+        });
+
+        if (!wallet) {
+            console.error(`[Order Fulfillment] Wallet not found for user ${userId}`);
+            return;
+        }
+
+        // Check if transaction already exists (idempotency)
+        const existingTx = await prisma.walletTransaction.findFirst({
+            where: {
+                walletId: wallet.id,
+                description: {
+                    contains: `Order ${orderNumber}`,
+                },
+                type: 'DEBIT',
+                amount: amount // Ensure amount matches
+            }
+        });
+
+        if (existingTx) {
+            console.log(`[Order Fulfillment] Wallet deduction for order ${orderNumber} already processed. Skipping.`);
+            return;
+        }
+
+        // Deduct from wallet
+        // Allow negative balance if race condition occurred (better than failing a paid order)
+        await prisma.wallet.update({
+            where: { userId },
+            data: {
+                balance: {
+                    decrement: amount,
+                },
+            },
+        });
+
+        // Create transaction record
+        await prisma.walletTransaction.create({
+            data: {
+                walletId: wallet.id,
+                amount: amount,
+                type: 'DEBIT',
+                description: `Order ${orderNumber} - Payment`,
+            },
+        });
+
+        console.log(`[Order Fulfillment] ✓ Deducted €${amount} from wallet for order ${orderNumber}`);
+
+    } catch (error) {
+        console.error(`[Order Fulfillment] Failed to deduct wallet balance for order ${orderNumber}:`, error);
+        // We log but don't throw, as the order is already paid. 
+        // Admin intervention might be needed if this fails.
+    }
+}
+
+/**
+ * Finalize order fulfillment:
+ * 1. Deduct wallet balance (NEW)
+ * 2. Update stock
+ * 3. Clear cart
+ * 4. Calculate and award cashback
+ * 5. Generate invoice and send email
+ */
 export async function finalizeOrder(orderId: string) {
     console.log(`[Order Fulfillment] Finalizing order ${orderId}...`);
     try {
@@ -478,7 +552,12 @@ export async function finalizeOrder(orderId: string) {
             return;
         }
 
-        // 1. Update stock for each item
+        // 1. Deduct wallet balance (moved from checkout)
+        if (order.userId && order.walletAmountUsed && Number(order.walletAmountUsed) > 0) {
+            await deductWalletBalance(order.userId, Number(order.walletAmountUsed), order.id, order.orderNumber);
+        }
+
+        // 2. Update stock for each item
         console.log(`[Order Fulfillment] Updating stock for order ${order.orderNumber}...`);
         for (const item of order.items) {
             await prisma.productVariant.update({
@@ -491,7 +570,7 @@ export async function finalizeOrder(orderId: string) {
             });
         }
 
-        // 2. Clear the user's cart if userId exists
+        // 3. Clear the user's cart if userId exists
         if (order.userId) {
             console.log(`[Order Fulfillment] Clearing cart for user ${order.userId}...`);
             await prisma.cartItem.deleteMany({
@@ -503,7 +582,7 @@ export async function finalizeOrder(orderId: string) {
             });
         }
 
-        // 3. Add cashback to user's wallet if applicable
+        // 4. Add cashback to user's wallet if applicable
         if (order.userId) {
             let totalCashback = 0;
             // Add product cashback
@@ -569,7 +648,7 @@ export async function finalizeOrder(orderId: string) {
             }
         }
 
-        // 4. Generate and send invoices (async)
+        // 5. Generate and send invoices (async)
         // This runs in the background
         processSuccessfulOrder(orderId, order.orderNumber).catch((err) => {
             console.error(`[Order Fulfillment] Invoice processing failed:`, err);
@@ -577,7 +656,5 @@ export async function finalizeOrder(orderId: string) {
 
     } catch (error: any) {
         console.error(`[Order Fulfillment] Error finalizing order ${orderId}:`, error);
-        // Continue execution or throw depending on requirements? 
-        // Mostly validation/logging here.
     }
 }

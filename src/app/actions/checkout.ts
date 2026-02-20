@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import stripe from "@/lib/stripe";
+import Stripe from 'stripe';
 import { requireAuth, safeAction } from "@/lib/security";
 import { rateLimit, getIdentifier } from "@/lib/rate-limit";
 import { getShippingProvider } from "@/lib/shipping-provider";
@@ -37,6 +38,8 @@ interface CheckoutData {
   businessName?: string;
   businessNumber?: string;
   vatNumber?: string;
+  // UI Mode (hosted or embedded)
+  uiMode?: 'hosted' | 'embedded';
 }
 
 function generateOrderNumber(): string {
@@ -395,37 +398,14 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     const shippingProvider = getShippingProvider(checkoutData.shippingAddress.country);
 
     // Deduct wallet amount if used (before creating order to ensure atomicity)
+    // UPDATE: Wallet deduction is now moved to finalizeOrder (after payment success)
+    // to prevent phantom deductions on abandoned checkouts.
+    // We still validate balance above.
+
     let walletTransactionId: string | null = null;
-    if (walletAmount > 0) {
-      const wallet = await prisma.wallet.findUnique({
-        where: { userId },
-      });
 
-      if (!wallet) {
-        return { error: "Wallet not found" };
-      }
-
-      // Deduct from wallet
-      await prisma.wallet.update({
-        where: { userId },
-        data: {
-          balance: {
-            decrement: walletAmount,
-          },
-        },
-      });
-
-      // Create wallet transaction record
-      const walletTransaction = await prisma.walletTransaction.create({
-        data: {
-          walletId: wallet.id,
-          amount: walletAmount,
-          type: 'DEBIT',
-          description: `Order payment - Pending`,
-        },
-      });
-      walletTransactionId = walletTransaction.id;
-    }
+    // NOTE: Wallet balance is NOT deducted here anymore.
+    // It will be deducted in finalizeOrder() after payment is confirmed.
 
     // Create order in database (PENDING status)
     const order = await prisma.order.create({
@@ -510,30 +490,14 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     console.log(`[Checkout] Stripe will charge: €${exactStripeTotal.toFixed(2)} (from Order Summary)`);
 
     // Create Stripe Checkout Session
-    // For local development, use localhost. For production, use NEXT_PUBLIC_URL
+    // For local development, use localhost:3001. For production, use NEXT_PUBLIC_URL
     let baseUrl: string;
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === undefined;
-    
+
     if (isDevelopment) {
-      // Local development - prioritize localhost URLs
-      const envUrl = process.env.NEXT_PUBLIC_URL;
-      
-      // If NEXT_PUBLIC_URL is explicitly set to localhost, use it
-      if (envUrl && (envUrl.includes('localhost') || envUrl.includes('127.0.0.1'))) {
-        baseUrl = envUrl;
-        console.log('[Checkout] Using localhost URL from NEXT_PUBLIC_URL:', baseUrl);
-      } else if (envUrl && !envUrl.includes('focusrobin.lt') && !envUrl.includes('https://')) {
-        // If NEXT_PUBLIC_URL is set but not production, use it (might be a test URL)
-        baseUrl = envUrl;
-        console.log('[Checkout] Using non-production URL from NEXT_PUBLIC_URL:', baseUrl);
-      } else {
-        // Default to localhost:3000 (Docker) - override production URL in development
-        // This ensures local testing always uses localhost even if NEXT_PUBLIC_URL is set to production
-        const port = process.env.PORT || '3000';
-        baseUrl = `http://localhost:${port}`;
-        console.log('[Checkout] Development mode - overriding NEXT_PUBLIC_URL, using localhost:', baseUrl);
-        console.log('[Checkout] Note: NEXT_PUBLIC_URL was:', envUrl || 'not set');
-      }
+      // Always use localhost:3001 in development
+      baseUrl = 'http://localhost:3001';
+      console.log('[Checkout] Development mode, using:', baseUrl);
     } else {
       // Production - use NEXT_PUBLIC_URL
       baseUrl = process.env.NEXT_PUBLIC_URL || 'https://focusrobin.lt';
@@ -671,8 +635,9 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         }
       }
 
-      const stripeSession = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
+      const uiMode = checkoutData.uiMode || 'hosted';
+
+      let sessionParams: Stripe.Checkout.SessionCreateParams = {
         mode: 'payment',
         customer_email: session.user.email || undefined,
         line_items: stripeLineItems,
@@ -685,12 +650,21 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
           expectedTotal: exactStripeTotal.toFixed(2),
           lineItemsCount: stripeLineItems.length.toString(),
         },
-        success_url: successUrl,
-        cancel_url: cancelUrl,
         shipping_address_collection: {
           allowed_countries: ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE', 'GB', 'CH', 'NO', 'IS'],
         },
-      });
+      };
+
+      if (uiMode === 'embedded') {
+        sessionParams.ui_mode = 'embedded';
+        sessionParams.return_url = `${successUrl}&session_id={CHECKOUT_SESSION_ID}`;
+        // Embedded mode doesn't use success_url/cancel_url, it utilizes return_url
+      } else {
+        sessionParams.success_url = successUrl;
+        sessionParams.cancel_url = cancelUrl;
+      }
+
+      const stripeSession = await stripe.checkout.sessions.create(sessionParams);
 
       // Log the created session details to verify amount
       console.log("========================================");
@@ -706,10 +680,11 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         console.error(`[Checkout] WARNING: Stripe session amount (${stripeSession.amount_total} cents) does not match expected (${exactStripeTotalCents} cents)!`);
       }
 
-      // Validate that we got a URL
+      // Validate that we got a URL (hosted) or client_secret (embedded)
       let checkoutUrl = stripeSession.url;
+      let clientSecret = stripeSession.client_secret;
 
-      if (!checkoutUrl) {
+      if (!checkoutUrl && uiMode === 'hosted') {
         console.error("Stripe session created but no URL returned. Attempting to retrieve session...", {
           sessionId: stripeSession.id,
           status: stripeSession.status,
@@ -731,20 +706,22 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         }
       }
 
-      // Validate URL format
-      if (!checkoutUrl || typeof checkoutUrl !== 'string') {
+      // Validate URL format (only for hosted mode)
+      if (uiMode === 'hosted' && (!checkoutUrl || typeof checkoutUrl !== 'string')) {
         console.error("Invalid URL type from Stripe:", typeof checkoutUrl, checkoutUrl);
         return { error: "Invalid checkout URL format. Please try again." };
       }
 
-      try {
-        const url = new URL(checkoutUrl);
-        if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-          throw new Error('Invalid URL protocol: ' + url.protocol);
+      if (uiMode === 'hosted' && checkoutUrl) {
+        try {
+          const url = new URL(checkoutUrl);
+          if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+            throw new Error('Invalid URL protocol: ' + url.protocol);
+          }
+        } catch (urlError) {
+          console.error("Invalid URL format from Stripe:", checkoutUrl, urlError);
+          return { error: "Invalid checkout URL format. Please try again." };
         }
-      } catch (urlError) {
-        console.error("Invalid URL format from Stripe:", checkoutUrl, urlError);
-        return { error: "Invalid checkout URL format. Please try again." };
       }
 
       // Update order with Stripe session ID
@@ -764,6 +741,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       return {
         success: true,
         url: checkoutUrl,
+        clientSecret: clientSecret,
         orderId: order.id,
         orderNumber: order.orderNumber,
       };

@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { unstable_cache } from "next/cache";
 
 export interface AvailableGlassShape {
   shape: string;
@@ -14,87 +15,70 @@ export interface AvailableGlassShape {
  * @param type 'sunglasses' | 'eyeglasses' - Product type to fetch shapes for
  */
 export async function getAvailableGlassShapes(type: 'sunglasses' | 'eyeglasses' = 'sunglasses'): Promise<AvailableGlassShape[]> {
-  try {
-    let products;
-    if (type === 'eyeglasses') {
-      // Fetch prescription glasses shapes
-      products = await prisma.prescriptionGlasses.findMany({
-        where: {
-          glassShape: {
-            not: null,
-          }
-        },
-        select: {
-          glassShape: true,
-        },
-      });
-    } else {
-      // Fetch sunglasses shapes (default)
-      products = await prisma.product.findMany({
-        where: {
-          glassShape: {
-            not: null,
-          }
-        },
-        select: {
-          glassShape: true,
-        },
-      });
-    }
+  return unstable_cache(
+    async () => {
+      try {
+        let shapeCounts: { glassShape: string | null; _count: { _all: number } }[] = [];
 
-    // Group by glassShape to count occurrences
-    const shapeMap = new Map<string, number>();
-
-    products.forEach((product) => {
-      if (product.glassShape) {
-        const normalizedShape = product.glassShape.trim();
-        if (normalizedShape) {
-          shapeMap.set(
-            normalizedShape,
-            (shapeMap.get(normalizedShape) || 0) + 1
-          );
+        if (type === 'eyeglasses') {
+          // @ts-ignore
+          shapeCounts = await prisma.prescriptionGlasses.groupBy({
+            by: ['glassShape'],
+            _count: { _all: true },
+            where: { glassShape: { not: null } }
+          });
+        } else {
+          // @ts-ignore
+          shapeCounts = await prisma.product.groupBy({
+            by: ['glassShape'],
+            _count: { _all: true },
+            where: { glassShape: { not: null } }
+          });
         }
+
+        // Fetch shape images from GlassShape table
+        const glassShapes = await prisma.glassShape.findMany({
+          where: { isActive: true },
+          select: { name: true, imageUrl: true, order: true },
+        });
+
+        // Create a map of shape name to imageUrl
+        const shapeImageMap = new Map<string, { imageUrl: string | null, order: number }>();
+        glassShapes.forEach((gs) => {
+          shapeImageMap.set(gs.name.toLowerCase(), { imageUrl: gs.imageUrl, order: gs.order });
+        });
+
+        // Convert to array and sort
+        const availableShapes: AvailableGlassShape[] = shapeCounts
+          .filter(s => s.glassShape)
+          .map(s => {
+            const shapeName = s.glassShape!.trim();
+            const mapData = shapeImageMap.get(shapeName.toLowerCase());
+            return {
+              shape: shapeName,
+              count: s._count._all,
+              imageUrl: mapData?.imageUrl || null,
+              _order: mapData?.order ?? 999
+            }
+          })
+          .sort((a, b) => {
+            if (a._order !== b._order) return a._order - b._order;
+            if (b.count !== a.count) return b.count - a.count;
+            return a.shape.localeCompare(b.shape);
+          })
+          .map(({ _order, ...rest }) => rest);
+
+        return availableShapes;
+      } catch (error) {
+        console.error("Error fetching available glass shapes:", error);
+        return [];
       }
-    });
-
-    // Fetch shape images from GlassShape table
-    const glassShapes = await prisma.glassShape.findMany({
-      where: {
-        isActive: true,
-      },
-      select: {
-        name: true,
-        imageUrl: true,
-        order: true,
-      },
-    });
-
-    // Create a map of shape name to imageUrl
-    const shapeImageMap = new Map<string, string | null>();
-    glassShapes.forEach((gs) => {
-      shapeImageMap.set(gs.name, gs.imageUrl);
-    });
-
-    // Convert to array and sort by count (most common first), then alphabetically
-    const availableShapes: AvailableGlassShape[] = Array.from(shapeMap.entries())
-      .map(([shape, count]) => ({
-        shape,
-        count,
-        imageUrl: shapeImageMap.get(shape) || null,
-      }))
-      .sort((a, b) => {
-        // First sort by count (most common first)
-        if (b.count !== a.count) {
-          return b.count - a.count;
-        }
-        // Then alphabetically by shape name
-        return a.shape.localeCompare(b.shape);
-      });
-
-    return availableShapes;
-  } catch (error) {
-    console.error("Error fetching available glass shapes:", error);
-    return [];
-  }
+    },
+    [`available-shapes-${type}`],
+    {
+      revalidate: 3600,
+      tags: ['products', 'shapes']
+    }
+  )();
 }
 

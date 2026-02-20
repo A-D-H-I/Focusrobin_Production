@@ -36,6 +36,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { getDeliveryTime } from "@/lib/delivery-time";
 import { trackInitiateCheckout } from "@/components/analytics/MetaPixel";
 import { trackGA4BeginCheckout } from "@/components/analytics/GoogleAnalytics";
+import { loadStripe } from "@stripe/stripe-js";
+import {
+  EmbeddedCheckoutProvider,
+  EmbeddedCheckout,
+} from "@stripe/react-stripe-js";
+
+// Make sure to call loadStripe outside of a component’s render to avoid
+// recreating the Stripe object on every render.
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 const SCHENGEN_COUNTRIES = [
   'Austria',
@@ -69,15 +78,18 @@ const SCHENGEN_COUNTRIES = [
 ];
 
 export default function CheckoutPage() {
-  const { data: session } = useSession();
+  const { data: session, status: sessionStatus } = useSession();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { cartItems, getCartTotal } = useCart();
+  const { cartItems, getCartTotal, isLoading: isCartLoading } = useCart();
   const { currency } = useCurrency();
   const { formatPrice, rate, parseEurPrice } = usePrice();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [addresses, setAddresses] = useState<any[]>([]);
+
+
+
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [useSavedAddress, setUseSavedAddress] = useState(true);
   const [saveAddress, setSaveAddress] = useState(false); // Option to save new address
@@ -110,6 +122,7 @@ export default function CheckoutPage() {
     businessNumber: "",
     vatNumber: "",
   });
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
   const hasTrackedCheckout = useRef(false);
 
   const subtotal = getCartTotal();
@@ -582,6 +595,7 @@ export default function CheckoutPage() {
         businessName: isBusinessPurchase ? businessForm.businessName : undefined,
         businessNumber: isBusinessPurchase ? businessForm.businessNumber : undefined,
         vatNumber: isBusinessPurchase ? businessForm.vatNumber : undefined,
+        uiMode: 'embedded',
       });
     } catch (apiError: any) {
       console.error("Error calling createCheckoutSession:", apiError);
@@ -600,7 +614,14 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Check if result has success and url
+    // Handle embedded checkout
+    if (result && 'clientSecret' in result && result.clientSecret) {
+      setClientSecret(result.clientSecret);
+      // We don't turn off processing yet, as the UI will switch to showing the checkout
+      return;
+    }
+
+    // Fallback for hosted mode (if for some reason embedded failed or not used)
     if (result && 'success' in result && result.success && 'url' in result && result.url) {
       let checkoutUrl: string;
 
@@ -712,6 +733,50 @@ export default function CheckoutPage() {
   // Wallet balance and amounts are stored/processed in EUR
   const isNonEurCurrency = currency !== 'EUR';
 
+  // Show loading state while session is being checked or cart is initializing
+  if (sessionStatus === "loading" || isCartLoading) {
+    return (
+      <div className="flex flex-col min-h-screen bg-brand-white">
+        <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16 flex items-center justify-center min-h-[50vh]">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-brand-teal border-t-transparent"></div>
+            <p className="text-muted-foreground font-medium">Loading checkout...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Redirect to sign in if not authenticated (after loading completes)
+  if (sessionStatus === "unauthenticated") {
+    return (
+      <div className="flex flex-col min-h-screen bg-brand-white">
+        <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
+          <div className="container mx-auto px-4 sm:px-6">
+            <h1 className="text-brand-h1 font-headline text-brand-blue mb-8">
+              Checkout
+            </h1>
+            <div className="max-w-2xl mx-auto text-center py-16">
+              <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
+                Sign In Required
+              </h2>
+              <p className="text-muted-foreground mb-8">
+                Please sign in to proceed with checkout.
+              </p>
+              <Link href="/api/auth/signin?callbackUrl=/checkout" prefetch={true}>
+                <Button size="lg" className="bg-brand-teal text-white hover:bg-brand-teal/90">
+                  Sign In
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-brand-white">
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
@@ -721,22 +786,7 @@ export default function CheckoutPage() {
               Checkout
             </h1>
 
-            {/* Check if user is logged in */}
-            {!session?.user ? (
-              <div className="max-w-2xl mx-auto text-center py-16">
-                <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
-                  Sign In Required
-                </h2>
-                <p className="text-muted-foreground mb-8">
-                  Please sign in to proceed with checkout.
-                </p>
-                <Link href="/api/auth/signin" prefetch={true}>
-                  <Button size="lg" className="bg-brand-teal text-white hover:bg-brand-teal/90">
-                    Sign In
-                  </Button>
-                </Link>
-              </div>
-            ) : cartItems.length === 0 ? (
+            {cartItems.length === 0 ? (
               <div className="max-w-2xl mx-auto text-center py-16">
                 <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
                   Your Cart is Empty
@@ -754,346 +804,373 @@ export default function CheckoutPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column - Checkout Form */}
                 <div className="lg:col-span-2 space-y-6">
-                  {/* Shipping Address */}
-                  <div>
-                    <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
-                      Shipping Address
-                    </h2>
+                  {clientSecret ? (
+                    <div id="checkout" className="bg-white p-6 rounded-lg border border-gray-200">
+                      <EmbeddedCheckoutProvider
+                        stripe={stripePromise}
+                        options={{ clientSecret }}
+                      >
+                        <EmbeddedCheckout />
+                      </EmbeddedCheckoutProvider>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Shipping Address */}
+                      <div>
+                        <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
+                          Shipping Address
+                        </h2>
 
-                    {addresses.length > 0 ? (
-                      <div className="mb-4">
-                        <Label className="text-brand-blue font-semibold mb-2 block">
-                          Select Shipping Address
-                        </Label>
-                        <Select
-                          value={useSavedAddress && selectedAddressId ? selectedAddressId : "new"}
-                          onValueChange={handleAddressSelect}
-                        >
-                          <SelectTrigger className="bg-white border-gray-200">
-                            <SelectValue placeholder="Select an address" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {addresses.map((address) => (
-                              <SelectItem key={address.id} value={address.id}>
-                                {address.fullName} - {address.addressLine1}, {address.city}
-                                {address.isDefault && " (Default)"}
-                              </SelectItem>
-                            ))}
-                            <SelectItem value="new">Enter New Address</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    ) : (
-                      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p className="text-sm text-blue-800">
-                          No saved addresses found. Please enter your shipping address below.
-                        </p>
-                      </div>
-                    )}
-
-                    <Card className="border border-gray-200">
-                      <CardContent className="p-6 space-y-4">
-                        <div>
-                          <Label htmlFor="shippingName" className="text-brand-blue font-semibold mb-2 block">
-                            Full Name <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            id="shippingName"
-                            value={shippingForm.name}
-                            onChange={(e) => setShippingForm({ ...shippingForm, name: e.target.value })}
-                            className="bg-white border-gray-200 focus:border-brand-teal"
-                            placeholder="John Doe"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="shippingPhone" className="text-brand-blue font-semibold mb-2 block">
-                            Phone Number <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            id="shippingPhone"
-                            type="tel"
-                            value={shippingForm.phone}
-                            onChange={(e) => setShippingForm({ ...shippingForm, phone: e.target.value })}
-                            className="bg-white border-gray-200 focus:border-brand-teal"
-                            placeholder="+370 609 66069"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="shippingAddress1" className="text-brand-blue font-semibold mb-2 block">
-                            Address Line 1 <span className="text-red-500">*</span>
-                          </Label>
-                          <Input
-                            id="shippingAddress1"
-                            value={shippingForm.addressLine1}
-                            onChange={(e) => setShippingForm({ ...shippingForm, addressLine1: e.target.value })}
-                            className="bg-white border-gray-200 focus:border-brand-teal"
-                            placeholder="Street address"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="shippingAddress2" className="text-brand-blue font-semibold mb-2 block">
-                            Address Line 2
-                          </Label>
-                          <Input
-                            id="shippingAddress2"
-                            value={shippingForm.addressLine2}
-                            onChange={(e) => setShippingForm({ ...shippingForm, addressLine2: e.target.value })}
-                            className="bg-white border-gray-200 focus:border-brand-teal"
-                            placeholder="Apartment, suite, etc. (optional)"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="shippingCity" className="text-brand-blue font-semibold mb-2 block">
-                              City <span className="text-red-500">*</span>
+                        {addresses.length > 0 ? (
+                          <div className="mb-4">
+                            <Label className="text-brand-blue font-semibold mb-2 block">
+                              Select Shipping Address
                             </Label>
-                            <Input
-                              id="shippingCity"
-                              value={shippingForm.city}
-                              onChange={(e) => setShippingForm({ ...shippingForm, city: e.target.value })}
-                              className="bg-white border-gray-200 focus:border-brand-teal"
-                              placeholder="City"
-                              required
-                            />
+                            <Select
+                              value={useSavedAddress && selectedAddressId ? selectedAddressId : "new"}
+                              onValueChange={handleAddressSelect}
+                            >
+                              <SelectTrigger className="bg-white border-gray-200">
+                                <SelectValue placeholder="Select an address" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {addresses.map((address) => (
+                                  <SelectItem key={address.id} value={address.id}>
+                                    {address.fullName} - {address.addressLine1}, {address.city}
+                                    {address.isDefault && " (Default)"}
+                                  </SelectItem>
+                                ))}
+                                <SelectItem value="new">Enter New Address</SelectItem>
+                              </SelectContent>
+                            </Select>
                           </div>
-
-                          <div>
-                            <Label htmlFor="shippingPostalCode" className="text-brand-blue font-semibold mb-2 block">
-                              Postal Code <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                              id="shippingPostalCode"
-                              value={shippingForm.postalCode}
-                              onChange={(e) => setShippingForm({ ...shippingForm, postalCode: e.target.value })}
-                              className="bg-white border-gray-200 focus:border-brand-teal"
-                              placeholder="12345"
-                              required
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="shippingCountry" className="text-brand-blue font-semibold mb-2 block">
-                            Country <span className="text-red-500">*</span>
-                          </Label>
-                          <Select
-                            value={shippingForm.country}
-                            onValueChange={(value) => setShippingForm({ ...shippingForm, country: value })}
-                            required
-                          >
-                            <SelectTrigger id="shippingCountry" className="bg-white border-gray-200 focus:border-brand-teal">
-                              <SelectValue placeholder="Select country" />
-                            </SelectTrigger>
-                            <SelectContent className="max-h-[300px]">
-                              {SCHENGEN_COUNTRIES.map((country) => (
-                                <SelectItem key={country} value={country}>
-                                  {country}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Delivery Provider: <span className="font-semibold text-brand-blue">{getShippingProviderDisplayName(shippingProvider)}</span>
-                            {shippingProvider === 'Omniva' && ' (Latvia, Lithuania, Estonia)'}
-                            {shippingProvider === 'DHL' && ' (Other countries)'}
-                          </p>
-                          {deliveryTime && (
-                            <p className="text-sm text-brand-teal font-semibold mt-2 flex items-center gap-1">
-                              <span>📦</span>
-                              <span>Expected Delivery: {deliveryTime}</span>
+                        ) : (
+                          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <p className="text-sm text-blue-800">
+                              No saved addresses found. Please enter your shipping address below.
                             </p>
-                          )}
-                        </div>
-
-                        {/* Option to save address if it's a new address */}
-                        {isNewAddress && (
-                          <div className="pt-4 border-t border-gray-200">
-                            <div className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id="saveAddress"
-                                checked={saveAddress}
-                                onChange={(e) => setSaveAddress(e.target.checked)}
-                                className="w-4 h-4 text-brand-teal border-gray-300 rounded focus:ring-brand-teal"
-                              />
-                              <Label htmlFor="saveAddress" className="text-sm text-brand-blue cursor-pointer">
-                                Save this address for future orders
-                              </Label>
-                            </div>
                           </div>
                         )}
-                      </CardContent>
-                    </Card>
-                  </div>
 
-                  {/* Business Purchase Section */}
-                  <div>
-                    <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
-                      Business Purchase
-                    </h2>
-                    <Card className="border border-gray-200">
-                      <CardContent className="p-6">
-                        <div className="flex items-center space-x-2 mb-4">
-                          <input
-                            type="checkbox"
-                            id="isBusinessPurchase"
-                            checked={isBusinessPurchase}
-                            onChange={(e) => setIsBusinessPurchase(e.target.checked)}
-                            className="w-4 h-4 text-brand-teal border-gray-300 rounded focus:ring-brand-teal"
-                          />
-                          <Label htmlFor="isBusinessPurchase" className="text-sm text-brand-blue cursor-pointer flex items-center gap-2">
-                            <Building className="h-4 w-4" />
-                            This is a business purchase
-                          </Label>
-                        </div>
-
-                        {isBusinessPurchase && (
-                          <div className="space-y-4 pt-4 border-t border-gray-200">
+                        <Card className="border border-gray-200">
+                          <CardContent className="p-6 space-y-4">
                             <div>
-                              <Label htmlFor="businessName" className="text-brand-blue font-semibold mb-2 block">
-                                Business Name <span className="text-red-500">*</span>
+                              <Label htmlFor="shippingName" className="text-brand-blue font-semibold mb-2 block">
+                                Full Name <span className="text-red-500">*</span>
                               </Label>
                               <Input
-                                id="businessName"
-                                value={businessForm.businessName}
-                                onChange={(e) => setBusinessForm({ ...businessForm, businessName: e.target.value })}
+                                id="shippingName"
+                                value={shippingForm.name}
+                                onChange={(e) => setShippingForm({ ...shippingForm, name: e.target.value })}
                                 className="bg-white border-gray-200 focus:border-brand-teal"
-                                placeholder="Company Ltd."
+                                placeholder="John Doe"
                                 required
                               />
                             </div>
 
                             <div>
-                              <Label htmlFor="businessNumber" className="text-brand-blue font-semibold mb-2 block">
-                                Business Registration Number
+                              <Label htmlFor="shippingPhone" className="text-brand-blue font-semibold mb-2 block">
+                                Phone Number <span className="text-red-500">*</span>
                               </Label>
                               <Input
-                                id="businessNumber"
-                                value={businessForm.businessNumber}
-                                onChange={(e) => setBusinessForm({ ...businessForm, businessNumber: e.target.value })}
+                                id="shippingPhone"
+                                type="tel"
+                                value={shippingForm.phone}
+                                onChange={(e) => setShippingForm({ ...shippingForm, phone: e.target.value })}
                                 className="bg-white border-gray-200 focus:border-brand-teal"
-                                placeholder="e.g., 12345678"
+                                placeholder="+370 609 66069"
+                                required
                               />
                             </div>
 
                             <div>
-                              <Label htmlFor="vatNumber" className="text-brand-blue font-semibold mb-2 block">
-                                VAT Number
+                              <Label htmlFor="shippingAddress1" className="text-brand-blue font-semibold mb-2 block">
+                                Address Line 1 <span className="text-red-500">*</span>
                               </Label>
                               <Input
-                                id="vatNumber"
-                                value={businessForm.vatNumber}
-                                onChange={(e) => setBusinessForm({ ...businessForm, vatNumber: e.target.value })}
+                                id="shippingAddress1"
+                                value={shippingForm.addressLine1}
+                                onChange={(e) => setShippingForm({ ...shippingForm, addressLine1: e.target.value })}
                                 className="bg-white border-gray-200 focus:border-brand-teal"
-                                placeholder="e.g., IE1234567L"
+                                placeholder="Street address"
+                                required
                               />
                             </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
 
-                  {/* Payment Section */}
-                  <div>
-                    <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
-                      Payment Method
-                    </h2>
-                    <Card className="border border-gray-200">
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-3 mb-6">
-                          <Lock className="h-6 w-6 text-brand-teal" />
-                          <div>
-                            <h3 className="text-brand-h3 font-headline text-brand-blue">
-                              Secure Payment
-                            </h3>
-                            <p className="text-sm text-muted-foreground">
-                              Choose your preferred payment method
-                            </p>
-                          </div>
-                        </div>
+                            <div>
+                              <Label htmlFor="shippingAddress2" className="text-brand-blue font-semibold mb-2 block">
+                                Address Line 2
+                              </Label>
+                              <Input
+                                id="shippingAddress2"
+                                value={shippingForm.addressLine2}
+                                onChange={(e) => setShippingForm({ ...shippingForm, addressLine2: e.target.value })}
+                                className="bg-white border-gray-200 focus:border-brand-teal"
+                                placeholder="Apartment, suite, etc. (optional)"
+                              />
+                            </div>
 
-                        <RadioGroup
-                          value={paymentMethod}
-                          onValueChange={(value) => setPaymentMethod(value as "stripe" | "paypal")}
-                          className="space-y-4"
-                        >
-                          {/* Stripe Option */}
-                          <div className={`relative flex items-center border rounded-lg p-4 cursor-pointer transition-all ${paymentMethod === "stripe"
-                            ? "border-brand-teal bg-brand-teal/5 ring-2 ring-brand-teal/20"
-                            : "border-gray-200 hover:border-gray-300"
-                            }`}>
-                            <RadioGroupItem value="stripe" id="stripe" className="sr-only" />
-                            <Label htmlFor="stripe" className="flex items-center gap-4 cursor-pointer flex-1">
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === "stripe" ? "border-brand-teal" : "border-gray-300"
-                                }`}>
-                                {paymentMethod === "stripe" && (
-                                  <div className="w-3 h-3 rounded-full bg-brand-teal" />
-                                )}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <Label htmlFor="shippingCity" className="text-brand-blue font-semibold mb-2 block">
+                                  City <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                  id="shippingCity"
+                                  value={shippingForm.city}
+                                  onChange={(e) => setShippingForm({ ...shippingForm, city: e.target.value })}
+                                  className="bg-white border-gray-200 focus:border-brand-teal"
+                                  placeholder="City"
+                                  required
+                                />
                               </div>
-                              <div className="flex items-center gap-3">
-                                <CreditCard className="h-6 w-6 text-gray-600" />
-                                <div>
-                                  <span className="font-semibold text-brand-blue">Credit/Debit Card</span>
-                                  <p className="text-xs text-muted-foreground">Visa, Mastercard, Amex, Google Pay, Apple Pay and more</p>
+
+                              <div>
+                                <Label htmlFor="shippingPostalCode" className="text-brand-blue font-semibold mb-2 block">
+                                  Postal Code <span className="text-red-500">*</span>
+                                </Label>
+                                <Input
+                                  id="shippingPostalCode"
+                                  value={shippingForm.postalCode}
+                                  onChange={(e) => setShippingForm({ ...shippingForm, postalCode: e.target.value })}
+                                  className="bg-white border-gray-200 focus:border-brand-teal"
+                                  placeholder="12345"
+                                  required
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <Label htmlFor="shippingCountry" className="text-brand-blue font-semibold mb-2 block">
+                                Country <span className="text-red-500">*</span>
+                              </Label>
+                              <Select
+                                value={shippingForm.country}
+                                onValueChange={(value) => setShippingForm({ ...shippingForm, country: value })}
+                                required
+                              >
+                                <SelectTrigger id="shippingCountry" className="bg-white border-gray-200 focus:border-brand-teal">
+                                  <SelectValue placeholder="Select country" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-[300px]">
+                                  {SCHENGEN_COUNTRIES.map((country) => (
+                                    <SelectItem key={country} value={country}>
+                                      {country}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Delivery Provider: <span className="font-semibold text-brand-blue">{getShippingProviderDisplayName(shippingProvider)}</span>
+                                {shippingProvider === 'Omniva' && ' (Latvia, Lithuania, Estonia)'}
+                                {shippingProvider === 'DHL' && ' (Other countries)'}
+                              </p>
+                              {deliveryTime && (
+                                <p className="text-sm text-brand-teal font-semibold mt-2 flex items-center gap-1">
+                                  <span>📦</span>
+                                  <span>Expected Delivery: {deliveryTime}</span>
+                                </p>
+                              )}
+                            </div>
+
+                            {/* Option to save address if it's a new address */}
+                            {isNewAddress && (
+                              <div className="pt-4 border-t border-gray-200">
+                                <div className="flex items-center space-x-2">
+                                  <input
+                                    type="checkbox"
+                                    id="saveAddress"
+                                    checked={saveAddress}
+                                    onChange={(e) => setSaveAddress(e.target.checked)}
+                                    className="w-4 h-4 text-brand-teal border-gray-300 rounded focus:ring-brand-teal"
+                                  />
+                                  <Label htmlFor="saveAddress" className="text-sm text-brand-blue cursor-pointer">
+                                    Save this address for future orders
+                                  </Label>
                                 </div>
                               </div>
-                              <div className="ml-auto flex items-center gap-2">
-                                <img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/flags/4x3/eu.svg" alt="EU" className="h-4 w-6 object-cover rounded-sm opacity-60" />
-                                <span className="text-xs text-muted-foreground">Powered by Stripe</span>
-                              </div>
-                            </Label>
-                          </div>
-
-                          {/* PayPal Option */}
-                          <div className={`relative flex items-center border rounded-lg p-4 cursor-pointer transition-all ${paymentMethod === "paypal"
-                            ? "border-[#0070ba] bg-[#0070ba]/5 ring-2 ring-[#0070ba]/20"
-                            : "border-gray-200 hover:border-gray-300"
-                            }`}>
-                            <RadioGroupItem value="paypal" id="paypal" className="sr-only" />
-                            <Label htmlFor="paypal" className="flex items-center gap-4 cursor-pointer flex-1">
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === "paypal" ? "border-[#0070ba]" : "border-gray-300"
-                                }`}>
-                                {paymentMethod === "paypal" && (
-                                  <div className="w-3 h-3 rounded-full bg-[#0070ba]" />
-                                )}
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                  <path d="M7.076 21.337H2.47a.641.641 0 01-.633-.74L4.944 3.384a.77.77 0 01.76-.647h6.583c2.178 0 3.908.536 5.012 1.551 1.053.969 1.478 2.359 1.228 4.013-.342 2.256-1.465 3.922-3.239 4.811-1.41.706-3.139 1.056-5.134 1.056H7.57l-1.24 6.441a.75.75 0 01-.746.633l-.509.095z" fill="#009cde" />
-                                  <path d="M23.053 8.033c-.384 2.525-1.688 4.382-3.803 5.395-1.583.758-3.588 1.123-5.969 1.123h-1.92l-1.287 6.687a.75.75 0 01-.746.633h-3.45a.47.47 0 01-.464-.543l.176-.915.05-.257L7.067 11.5l.027-.155a.77.77 0 01.76-.647h1.705c2.623 0 4.697-.566 6.166-1.684 1.437-1.092 2.35-2.705 2.715-4.8.185-1.068.113-1.97-.185-2.713 1.234.79 1.985 2.059 1.985 3.74-.001.931-.066 1.852-.187 2.792z" fill="#012169" />
-                                </svg>
-                                <div>
-                                  <span className="font-semibold text-brand-blue">PayPal</span>
-                                  <p className="text-xs text-muted-foreground">Pay with your PayPal account</p>
-                                </div>
-                              </div>
-                              <div className="ml-auto">
-                                <span className="text-xs text-muted-foreground">Fast & Secure</span>
-                              </div>
-                            </Label>
-                          </div>
-                        </RadioGroup>
-
-                        <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
-                          <p className="text-xs text-muted-foreground">
-                            {paymentMethod === "stripe" ? (
-                              <>🔒 Your payment is secured with Stripe's industry-leading encryption and fraud prevention.</>
-                            ) : (
-                              <>🔒 PayPal Purchase Protection covers eligible purchases. You can also pay with your linked cards.</>
                             )}
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Business Purchase Section */}
+                      <div>
+                        <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
+                          Business Purchase
+                        </h2>
+                        <Card className="border border-gray-200">
+                          <CardContent className="p-6">
+                            <div className="flex items-center space-x-2 mb-4">
+                              <input
+                                type="checkbox"
+                                id="isBusinessPurchase"
+                                checked={isBusinessPurchase}
+                                onChange={(e) => setIsBusinessPurchase(e.target.checked)}
+                                className="w-4 h-4 text-brand-teal border-gray-300 rounded focus:ring-brand-teal"
+                              />
+                              <Label htmlFor="isBusinessPurchase" className="text-sm text-brand-blue cursor-pointer flex items-center gap-2">
+                                <Building className="h-4 w-4" />
+                                This is a business purchase
+                              </Label>
+                            </div>
+
+                            {isBusinessPurchase && (
+                              <div className="space-y-4 pt-4 border-t border-gray-200">
+                                <div>
+                                  <Label htmlFor="businessName" className="text-brand-blue font-semibold mb-2 block">
+                                    Business Name <span className="text-red-500">*</span>
+                                  </Label>
+                                  <Input
+                                    id="businessName"
+                                    value={businessForm.businessName}
+                                    onChange={(e) => setBusinessForm({ ...businessForm, businessName: e.target.value })}
+                                    className="bg-white border-gray-200 focus:border-brand-teal"
+                                    placeholder="Company Ltd."
+                                    required
+                                  />
+                                </div>
+
+                                <div>
+                                  <Label htmlFor="businessNumber" className="text-brand-blue font-semibold mb-2 block">
+                                    Business Registration Number
+                                  </Label>
+                                  <Input
+                                    id="businessNumber"
+                                    value={businessForm.businessNumber}
+                                    onChange={(e) => setBusinessForm({ ...businessForm, businessNumber: e.target.value })}
+                                    className="bg-white border-gray-200 focus:border-brand-teal"
+                                    placeholder="e.g., 12345678"
+                                  />
+                                </div>
+
+                                <div>
+                                  <Label htmlFor="vatNumber" className="text-brand-blue font-semibold mb-2 block">
+                                    VAT Number
+                                  </Label>
+                                  <Input
+                                    id="vatNumber"
+                                    value={businessForm.vatNumber}
+                                    onChange={(e) => setBusinessForm({ ...businessForm, vatNumber: e.target.value })}
+                                    className="bg-white border-gray-200 focus:border-brand-teal"
+                                    placeholder="e.g., IE1234567L"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </div>
+
+                      {/* Payment Section */}
+                      <div>
+                        <h2 className="text-brand-h2 font-headline text-brand-blue mb-4">
+                          Payment Method
+                        </h2>
+                        <Card className="border border-gray-200">
+                          <CardContent className="p-6">
+                            <div className="flex items-center gap-3 mb-6">
+                              <Lock className="h-6 w-6 text-brand-teal" />
+                              <div>
+                                <h3 className="text-brand-h3 font-headline text-brand-blue">
+                                  Secure Payment
+                                </h3>
+                                <p className="text-sm text-muted-foreground">
+                                  Choose your preferred payment method
+                                </p>
+                              </div>
+                            </div>
+
+                            <RadioGroup
+                              value={paymentMethod}
+                              onValueChange={(value) => setPaymentMethod(value as "stripe" | "paypal")}
+                              className="space-y-4"
+                            >
+                              {/* Stripe Option */}
+                              <div className={`relative flex items-center border rounded-lg p-4 cursor-pointer transition-all ${paymentMethod === "stripe"
+                                ? "border-brand-teal bg-brand-teal/5 ring-2 ring-brand-teal/20"
+                                : "border-gray-200 hover:border-gray-300"
+                                }`}>
+                                <RadioGroupItem value="stripe" id="stripe" className="sr-only" />
+                                <Label htmlFor="stripe" className="flex items-center gap-4 cursor-pointer flex-1">
+                                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === "stripe" ? "border-brand-teal" : "border-gray-300"
+                                    }`}>
+                                    {paymentMethod === "stripe" && (
+                                      <div className="w-3 h-3 rounded-full bg-brand-teal" />
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col gap-2 flex-1">
+                                    <span className="font-semibold text-brand-blue">Credit / Debit Card</span>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      {/* Visa */}
+                                      <div className="bg-white border border-gray-200 rounded px-2 py-1 flex items-center justify-center h-8" title="Visa">
+                                        <img src="/PayemntSvg/visa.svg" alt="Visa" className="h-full w-auto" />
+                                      </div>
+                                      {/* Mastercard */}
+                                      <div className="bg-white border border-gray-200 rounded px-2 py-1 flex items-center justify-center h-8" title="Mastercard">
+                                        <img src="/PayemntSvg/master-card.svg" alt="Mastercard" className="h-full w-auto" />
+                                      </div>
+                                      {/* Google Pay */}
+                                      <div className="bg-white border border-gray-200 rounded px-2 py-1 flex items-center justify-center h-8" title="Google Pay">
+                                        <img src="/PayemntSvg/google-pay.svg" alt="Google Pay" className="h-full w-auto" />
+                                      </div>
+                                      {/* Apple Pay */}
+                                      <div className="bg-white border border-gray-200 rounded px-2 py-1 flex items-center justify-center h-8" title="Apple Pay">
+                                        <img src="/PayemntSvg/apple-pay.svg" alt="Apple Pay" className="h-full w-auto" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="ml-auto flex items-center gap-2">
+                                    <img src="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/flags/4x3/eu.svg" alt="EU" className="h-4 w-6 object-cover rounded-sm opacity-60" />
+                                    <span className="text-xs text-muted-foreground">Powered by Stripe</span>
+                                  </div>
+                                </Label>
+                              </div>
+
+                              {/* PayPal Option */}
+                              <div className={`relative flex items-center border rounded-lg p-4 cursor-pointer transition-all ${paymentMethod === "paypal"
+                                ? "border-[#0070ba] bg-[#0070ba]/5 ring-2 ring-[#0070ba]/20"
+                                : "border-gray-200 hover:border-gray-300"
+                                }`}>
+                                <RadioGroupItem value="paypal" id="paypal" className="sr-only" />
+                                <Label htmlFor="paypal" className="flex items-center gap-4 cursor-pointer flex-1">
+                                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === "paypal" ? "border-[#0070ba]" : "border-gray-300"
+                                    }`}>
+                                    {paymentMethod === "paypal" && (
+                                      <div className="w-3 h-3 rounded-full bg-[#0070ba]" />
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                      <path d="M7.076 21.337H2.47a.641.641 0 01-.633-.74L4.944 3.384a.77.77 0 01.76-.647h6.583c2.178 0 3.908.536 5.012 1.551 1.053.969 1.478 2.359 1.228 4.013-.342 2.256-1.465 3.922-3.239 4.811-1.41.706-3.139 1.056-5.134 1.056H7.57l-1.24 6.441a.75.75 0 01-.746.633l-.509.095z" fill="#009cde" />
+                                      <path d="M23.053 8.033c-.384 2.525-1.688 4.382-3.803 5.395-1.583.758-3.588 1.123-5.969 1.123h-1.92l-1.287 6.687a.75.75 0 01-.746.633h-3.45a.47.47 0 01-.464-.543l.176-.915.05-.257L7.067 11.5l.027-.155a.77.77 0 01.76-.647h1.705c2.623 0 4.697-.566 6.166-1.684 1.437-1.092 2.35-2.705 2.715-4.8.185-1.068.113-1.97-.185-2.713 1.234.79 1.985 2.059 1.985 3.74-.001.931-.066 1.852-.187 2.792z" fill="#012169" />
+                                    </svg>
+                                    <div>
+                                      <span className="font-semibold text-brand-blue">PayPal</span>
+                                      <p className="text-xs text-muted-foreground">Pay with your PayPal account</p>
+                                    </div>
+                                  </div>
+                                  <div className="ml-auto">
+                                    <span className="text-xs text-muted-foreground">Fast & Secure</span>
+                                  </div>
+                                </Label>
+                              </div>
+                            </RadioGroup>
+
+                            <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4">
+                              <p className="text-xs text-muted-foreground">
+                                {paymentMethod === "stripe" ? (
+                                  <>🔒 Your payment is secured with Stripe's industry-leading encryption and fraud prevention.</>
+                                ) : (
+                                  <>🔒 PayPal Purchase Protection covers eligible purchases. You can also pay with your linked cards.</>
+                                )}
+                              </p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Right Column - Order Summary */}

@@ -52,7 +52,7 @@ export default function CheckoutSuccessPage() {
   const orderId = searchParams.get("orderId");
   const paypalToken = searchParams.get("token"); // PayPal includes token in return URL
   const { clearCart } = useCart();
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<OrderDetails | null>(null);
@@ -91,7 +91,7 @@ export default function CheckoutSuccessPage() {
 
   const fetchOrderStatus = useCallback(async (): Promise<OrderDetails | null> => {
     if (!orderId) return null;
-    
+
     try {
       const response = await fetch(`/api/orders/${orderId}`);
       if (response.ok) {
@@ -156,7 +156,7 @@ export default function CheckoutSuccessPage() {
 
     if (orderData) {
       setOrder(orderData);
-      
+
       // Check if payment is completed - this is the primary check
       if (orderData.isPaid && orderData.paymentStatus === 'COMPLETED') {
         console.log('[CheckoutSuccess] Payment already completed, showing success');
@@ -169,10 +169,10 @@ export default function CheckoutSuccessPage() {
               id: item.sku || item.id,
               quantity: item.quantity,
             }));
-            
+
             // Meta Pixel
             trackPurchase(orderData.orderNumber, orderData.total, orderData.currency || 'EUR', contents);
-            
+
             // GA4
             const ga4Items = orderData.items.map((item) => ({
               item_id: item.sku || item.id,
@@ -180,7 +180,7 @@ export default function CheckoutSuccessPage() {
               price: item.price,
               quantity: item.quantity,
             }));
-            
+
             trackGA4Purchase({
               transaction_id: orderData.orderNumber,
               value: orderData.total,
@@ -199,43 +199,29 @@ export default function CheckoutSuccessPage() {
 
     // If order is not paid yet, start polling for order update (webhook might be processing)
     console.log('[CheckoutSuccess] Order not paid yet, starting polling for webhook update...');
-    
+
     // Start polling immediately - webhook might still be processing
-    let pollAttempts = 0;
-    const maxPollAttempts = 30; // 30 seconds
-    const pollInterval = 1000; // 1 second
+
 
     const pollForPayment = async () => {
-      pollAttempts++;
-      setPollCount(pollAttempts);
+      const maxPollAttempts = 15;
+      const pollInterval = 1000; // 1 second
 
-      // Check order status
-      const currentOrder = await fetchOrderStatus();
-      
-      if (currentOrder && currentOrder.isPaid && currentOrder.paymentStatus === 'COMPLETED') {
-        console.log('[CheckoutSuccess] Payment confirmed via polling!');
-        setOrder(currentOrder);
-        clearCart();
-        setError(null);
-        setLoading(false);
-        setHasFetched(true);
-        return;
-      }
+      for (let attempt = 1; attempt <= maxPollAttempts; attempt++) {
+        setPollCount(attempt);
 
-      // If we haven't exceeded max attempts, continue polling
-      if (pollAttempts < maxPollAttempts) {
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
-        pollForPayment();
-      } else {
-        // Timeout - check Stripe session status as fallback
-        console.log('[CheckoutSuccess] Polling timeout, checking Stripe session...');
-        const sessionStatus = await verifyStripeSession();
-        
-        // Re-check order one more time after Stripe verification
-        const finalOrderCheck = await fetchOrderStatus();
-        if (finalOrderCheck && finalOrderCheck.isPaid && finalOrderCheck.paymentStatus === 'COMPLETED') {
-          console.log('[CheckoutSuccess] Payment confirmed after Stripe verification!');
-          setOrder(finalOrderCheck);
+        // On attempt 3, call verifyStripeSession which updates the DB when Stripe confirms payment
+        if (attempt === 3) {
+          console.log('[CheckoutSuccess] Calling verifyStripeSession to check/update order...');
+          await verifyStripeSession();
+        }
+
+        // Check order status from DB
+        const currentOrder = await fetchOrderStatus();
+
+        if (currentOrder && currentOrder.isPaid && currentOrder.paymentStatus === 'COMPLETED') {
+          console.log('[CheckoutSuccess] Payment confirmed via polling on attempt', attempt);
+          setOrder(currentOrder);
           clearCart();
           setError(null);
           setLoading(false);
@@ -243,84 +229,52 @@ export default function CheckoutSuccessPage() {
           return;
         }
 
-        // If Stripe session check returned results, use that for more accurate status
-        if (sessionStatus) {
-          console.log('[CheckoutSuccess] Stripe session status:', sessionStatus);
-      
-          // Payment confirmed by Stripe but order not updated yet (webhook pending)
-          if (sessionStatus.paymentStatus === 'PENDING' && sessionStatus.success) {
-            setError("Payment confirmed! Processing your order. This may take a few moments...");
-            // Continue polling (already started above)
-            return;
-          }
-
-          // Payment failed or not completed
-          if (sessionStatus.paymentStatus === 'FAILED' || !sessionStatus.success) {
-            setError(sessionStatus.message || "Payment was not completed. Please try again.");
-            
-            // Refund wallet if needed
-            if (sessionStatus.shouldRefund && orderId) {
-              console.log('[CheckoutSuccess] Payment not completed, refunding wallet...');
-              refundWalletForFailedOrder(orderId);
-            }
-
-            setLoading(false);
-            setHasFetched(true);
-            return;
-          }
-        } else {
-          // If verifyStripeSession returned null, it means the API call failed
-          // Fall through to check order status directly
-          console.log('[CheckoutSuccess] Stripe session verification failed or returned null, checking order status directly...');
+        // Wait before next poll
+        if (attempt < maxPollAttempts) {
+          await new Promise(resolve => setTimeout(resolve, pollInterval));
         }
       }
+
+      // Timeout - one final Stripe verification attempt
+      console.log('[CheckoutSuccess] Polling timeout, final Stripe session check...');
+      await verifyStripeSession();
+
+      // Final order check
+      const finalOrder = await fetchOrderStatus();
+      if (finalOrder && finalOrder.isPaid && finalOrder.paymentStatus === 'COMPLETED') {
+        console.log('[CheckoutSuccess] Payment confirmed after final verification!');
+        setOrder(finalOrder);
+        clearCart();
+        setError(null);
+        setLoading(false);
+        setHasFetched(true);
+        return;
+      }
+
+      // Still not confirmed - show appropriate error
+      if (finalOrder) {
+        setOrder(finalOrder);
+        if (finalOrder.paymentStatus === 'FAILED' || finalOrder.status === 'CANCELLED') {
+          setError('Payment was declined or cancelled. Please try again with a different payment method.');
+          if (finalOrder.walletAmountUsed && finalOrder.walletAmountUsed > 0 && orderId) {
+            refundWalletForFailedOrder(orderId);
+          }
+        } else {
+          setError("Payment is still processing. Please click 'Check Again' to refresh status.");
+        }
+      } else {
+        setError('Could not verify payment status. Please check your orders page or contact support.');
+      }
+      setLoading(false);
+      setHasFetched(true);
     };
 
-    // Start polling
-    pollForPayment();
+    // Start polling and wait for result
+    await pollForPayment();
 
-    // Fallback: Check order status directly
-    if (orderData) {
-      // Check if payment failed
-      if (orderData.paymentStatus === 'FAILED' || orderData.status === 'CANCELLED') {
-        setError(`Payment was declined or cancelled. Status: ${orderData.paymentStatus}. Please try again with a different payment method.`);
-        
-        // Refund wallet if payment failed and wallet was used
-        if (orderData.walletAmountUsed && orderData.walletAmountUsed > 0 && orderId) {
-          console.log('[CheckoutSuccess] Payment failed, refunding wallet...');
-          refundWalletForFailedOrder(orderId);
-        }
-        
-        setLoading(false);
-        setHasFetched(true);
-        return;
-      }
-
-      // Payment still pending
-      if (orderData.paymentStatus === 'PENDING' || orderData.status === 'PENDING') {
-        setError("Payment is still processing. Please wait a moment and click 'Check Again' to refresh status.");
-        setLoading(false);
-        setHasFetched(true);
-        return;
-      }
-    }
-
-    // Default: Could not verify - but check if order exists and show it
-    if (orderData) {
-      // We have order data, show it even if verification failed
-      setOrder(orderData);
-      if (!error) {
-        // If order is paid, show success even if verification failed
-        if (orderData.isPaid && orderData.paymentStatus === 'COMPLETED') {
-          clearCart();
-          setError(null);
-        } else {
-          setError("Payment verification is taking longer than expected. Your order status: " + orderData.paymentStatus + ". Please check your orders page or contact support if you were charged.");
-        }
-      }
-    } else if (!error) {
-      setError("Could not verify payment status. Please check your orders page or contact support.");
-    }
+    // If we get here, polling finished without finding a completed payment
+    // The pollForPayment function already handles timeout + Stripe verification
+    // Just make sure loading state is updated
     setLoading(false);
     setHasFetched(true);
   }, [orderId, clearCart, fetchOrderStatus, verifyStripeSession]);
@@ -360,13 +314,13 @@ export default function CheckoutSuccessPage() {
       } else {
         console.error('[CheckoutSuccess] PayPal capture failed:', result);
         setError(result.error || 'Failed to capture PayPal payment');
-        
+
         // Refund wallet if payment failed and wallet was used
         if (pendingOrder.orderId) {
           console.log('[CheckoutSuccess] PayPal capture failed, refunding wallet...');
           refundWalletForFailedOrder(pendingOrder.orderId);
         }
-        
+
         return null;
       }
     } catch (err: any) {
@@ -386,11 +340,11 @@ export default function CheckoutSuccessPage() {
     const handlePayment = async () => {
       // Check if this is a PayPal return (has token in URL or pending order in session)
       const pendingPayPalOrder = sessionStorage.getItem('pendingPayPalOrder');
-      
+
       if (paypalToken || pendingPayPalOrder) {
         console.log('[CheckoutSuccess] PayPal return detected, capturing payment...');
         const capturedOrderId = await capturePayPalPayment();
-        
+
         if (capturedOrderId) {
           // Update URL with orderId for consistency
           const url = new URL(window.location.href);
@@ -398,7 +352,7 @@ export default function CheckoutSuccessPage() {
           url.searchParams.delete('token');
           url.searchParams.delete('PayerID');
           window.history.replaceState({}, '', url.toString());
-          
+
           // Fetch the order details
           try {
             const response = await fetch(`/api/orders/${capturedOrderId}`);
@@ -415,10 +369,10 @@ export default function CheckoutSuccessPage() {
                       id: item.sku || item.id,
                       quantity: item.quantity,
                     }));
-                    
+
                     // Meta Pixel
                     trackPurchase(data.order.orderNumber, data.order.total, data.order.currency || 'EUR', contents);
-                    
+
                     // GA4
                     const ga4Items = data.order.items.map((item: any) => ({
                       item_id: item.sku || item.id,
@@ -426,7 +380,7 @@ export default function CheckoutSuccessPage() {
                       price: item.price,
                       quantity: item.quantity,
                     }));
-                    
+
                     trackGA4Purchase({
                       transaction_id: data.order.orderNumber,
                       value: data.order.total,
@@ -463,7 +417,7 @@ export default function CheckoutSuccessPage() {
             }
           }
         }
-        
+
         setLoading(false);
         setHasFetched(true);
       } else {
@@ -478,15 +432,15 @@ export default function CheckoutSuccessPage() {
   const handleRetry = async () => {
     setIsRetrying(true);
     setError(null);
-    
+
     try {
       // Verify Stripe session first for accurate status
       const sessionStatus = await verifyStripeSession();
       const orderData = await fetchOrderStatus();
-      
+
       if (orderData) {
         setOrder(orderData);
-        
+
         if (orderData.isPaid && orderData.paymentStatus === 'COMPLETED') {
           clearCart();
           setError(null);
@@ -498,7 +452,7 @@ export default function CheckoutSuccessPage() {
             setTimeout(() => handleRetry(), 2000);
           } else if (sessionStatus.paymentStatus === 'FAILED' || !sessionStatus.success) {
             setError(sessionStatus.message || "Payment was not completed. Please try again.");
-            
+
             // Refund wallet if needed
             if (sessionStatus.shouldRefund && orderId) {
               console.log('[CheckoutSuccess] Payment failed on retry, refunding wallet...');
@@ -509,7 +463,7 @@ export default function CheckoutSuccessPage() {
           }
         } else if (orderData.paymentStatus === 'FAILED' || orderData.status === 'CANCELLED') {
           setError(`Payment was declined. Status: ${orderData.paymentStatus}. Please try again.`);
-          
+
           // Refund wallet if payment failed and wallet was used
           if (orderData.walletAmountUsed && orderData.walletAmountUsed > 0 && orderId) {
             console.log('[CheckoutSuccess] Payment failed on retry, refunding wallet...');
@@ -597,20 +551,20 @@ export default function CheckoutSuccessPage() {
                 Payment Verification Pending
               </h2>
               <p className="text-lg text-muted-foreground mb-4">{error}</p>
-              
+
               {order && (
                 <div className="bg-gray-50 border rounded-lg p-4 mb-6 text-left">
                   <p className="text-sm font-medium mb-2">Order: {order.orderNumber}</p>
                   <p className="text-sm text-muted-foreground">
-                    Status: <span className="font-medium">{order.status}</span> • 
+                    Status: <span className="font-medium">{order.status}</span> •
                     Payment: <span className="font-medium">{order.paymentStatus}</span>
                   </p>
                 </div>
               )}
-              
+
               <div className="flex gap-4 justify-center flex-wrap">
-                <Button 
-                  onClick={handleRetry} 
+                <Button
+                  onClick={handleRetry}
                   disabled={isRetrying}
                   className="bg-brand-teal hover:bg-brand-teal/90"
                 >
@@ -633,7 +587,7 @@ export default function CheckoutSuccessPage() {
                   <Button variant="outline">View My Orders</Button>
                 </Link>
               </div>
-              
+
               <p className="text-sm text-muted-foreground mt-6">
                 If you were charged but see this message, please contact support with your order details.
               </p>
@@ -653,163 +607,163 @@ export default function CheckoutSuccessPage() {
                 </p>
               </div>
 
-            {order && (
-              <Card className="mb-8">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="h-5 w-5" />
-                    Order {order.orderNumber}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Order Items */}
-                  <div>
-                    <h3 className="font-semibold mb-3">Order Items</h3>
-                    <div className="space-y-3">
-                      {order.items.map((item, index) => (
-                        <div
-                          key={item.id || index}
-                          className="flex justify-between items-start py-2 border-b last:border-0"
-                        >
-                          <div className="flex-1">
-                            <p className="font-medium">{item.productName}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {item.variantName} • SKU: {item.sku}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Quantity: {item.quantity} × €{item.price.toFixed(2)} = €{item.total.toFixed(2)}
-                            </p>
-                            {(item.hasPrescription || item.prescriptionData) && (
-                              <a
-                                href={`/api/orders/${order.id}/prescription/${item.id}`}
-                                download
-                                className="inline-flex items-center gap-2 mt-2 text-sm text-brand-teal hover:text-brand-teal/80 font-medium"
-                              >
-                                <Download className="h-4 w-4" />
-                                Download Prescription PDF
-                              </a>
-                            )}
+              {order && (
+                <Card className="mb-8">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Package className="h-5 w-5" />
+                      Order {order.orderNumber}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    {/* Order Items */}
+                    <div>
+                      <h3 className="font-semibold mb-3">Order Items</h3>
+                      <div className="space-y-3">
+                        {order.items.map((item, index) => (
+                          <div
+                            key={item.id || index}
+                            className="flex justify-between items-start py-2 border-b last:border-0"
+                          >
+                            <div className="flex-1">
+                              <p className="font-medium">{item.productName}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {item.variantName} • SKU: {item.sku}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                Quantity: {item.quantity} × €{item.price.toFixed(2)} = €{item.total.toFixed(2)}
+                              </p>
+                              {(item.hasPrescription || item.prescriptionData) && (
+                                <a
+                                  href={`/api/orders/${order.id}/prescription/${item.id}`}
+                                  download
+                                  className="inline-flex items-center gap-2 mt-2 text-sm text-brand-teal hover:text-brand-teal/80 font-medium"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  Download Prescription PDF
+                                </a>
+                              )}
+                            </div>
+                            <p className="font-semibold">€{item.total.toFixed(2)}</p>
                           </div>
-                          <p className="font-semibold">€{item.total.toFixed(2)}</p>
+                        ))}
+                      </div>
+
+                      {/* Price Breakdown */}
+                      <div className="pt-4 border-t mt-4 space-y-2">
+                        {order.subtotal && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Subtotal</span>
+                            <span>€{order.subtotal.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {order.shipping !== undefined && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Shipping</span>
+                            <span>{order.shipping === 0 ? 'Free' : `€${order.shipping.toFixed(2)}`}</span>
+                          </div>
+                        )}
+                        {order.promoDiscount && order.promoDiscount > 0 && (
+                          <div className="flex justify-between text-sm text-green-600">
+                            <span>Promo Discount</span>
+                            <span>-€{order.promoDiscount.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {order.walletAmountUsed && order.walletAmountUsed > 0 && (
+                          <div className="flex justify-between text-sm text-blue-600">
+                            <span>Wallet Applied</span>
+                            <span>-€{order.walletAmountUsed.toFixed(2)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between items-center pt-2 border-t">
+                          <p className="text-lg font-bold">Total Paid</p>
+                          <p className="text-lg font-bold text-brand-teal">
+                            €{order.total.toFixed(2)}
+                          </p>
                         </div>
-                      ))}
+                      </div>
                     </div>
-                    
-                    {/* Price Breakdown */}
-                    <div className="pt-4 border-t mt-4 space-y-2">
-                      {order.subtotal && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Subtotal</span>
-                          <span>€{order.subtotal.toFixed(2)}</span>
-                        </div>
-                      )}
-                      {order.shipping !== undefined && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Shipping</span>
-                          <span>{order.shipping === 0 ? 'Free' : `€${order.shipping.toFixed(2)}`}</span>
-                        </div>
-                      )}
-                      {order.promoDiscount && order.promoDiscount > 0 && (
-                        <div className="flex justify-between text-sm text-green-600">
-                          <span>Promo Discount</span>
-                          <span>-€{order.promoDiscount.toFixed(2)}</span>
-                        </div>
-                      )}
-                      {order.walletAmountUsed && order.walletAmountUsed > 0 && (
-                        <div className="flex justify-between text-sm text-blue-600">
-                          <span>Wallet Applied</span>
-                          <span>-€{order.walletAmountUsed.toFixed(2)}</span>
-                        </div>
-                      )}
-                      <div className="flex justify-between items-center pt-2 border-t">
-                        <p className="text-lg font-bold">Total Paid</p>
-                        <p className="text-lg font-bold text-brand-teal">
-                          €{order.total.toFixed(2)}
+
+                    {/* Shipping Address */}
+                    <div>
+                      <h3 className="font-semibold mb-3">Shipping Address</h3>
+                      <div className="bg-muted/50 rounded-lg p-4">
+                        <p className="font-medium">{order.shippingAddress.name}</p>
+                        <p className="text-muted-foreground">
+                          {order.shippingAddress.addressLine1}
+                        </p>
+                        {order.shippingAddress.addressLine2 && (
+                          <p className="text-muted-foreground">
+                            {order.shippingAddress.addressLine2}
+                          </p>
+                        )}
+                        <p className="text-muted-foreground">
+                          {order.shippingAddress.city}
+                          {order.shippingAddress.state && `, ${order.shippingAddress.state}`}{" "}
+                          {order.shippingAddress.postalCode}
+                        </p>
+                        <p className="text-muted-foreground">
+                          {order.shippingAddress.country}
+                        </p>
+                        {(() => {
+                          const deliveryTime = getDeliveryTime(
+                            order.items.map((item) => ({
+                              prescriptionData: item.prescriptionData,
+                              productSlug: item.productSlug,
+                            })),
+                            order.shippingAddress.country
+                          );
+                          return (
+                            <div className="mt-3 pt-3 border-t border-gray-200">
+                              <p className="text-sm font-semibold text-brand-teal flex items-center gap-1">
+                                <span>📦</span>
+                                <span>Expected Delivery: {deliveryTime}</span>
+                              </p>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Success Status */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CheckCircle className="h-5 w-5 text-green-600" />
+                        <span className="font-medium text-green-800">
+                          Payment Confirmed ✓
+                        </span>
+                      </div>
+                      <p className="text-sm text-green-700">
+                        Your payment has been confirmed. Your order is now being processed and will be shipped soon.
+                      </p>
+                      <p className="text-sm text-green-700 mt-2">
+                        We'll send you another email with your tracking ID once your order ships.
+                      </p>
+                      <div className="mt-3 pt-3 border-t border-green-200">
+                        <p className="text-xs text-green-600">
+                          Payment Status: <span className="font-semibold">COMPLETED</span> •
+                          Order Status: <span className="font-semibold">{order.status}</span>
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </CardContent>
+                </Card>
+              )}
 
-                  {/* Shipping Address */}
-                  <div>
-                    <h3 className="font-semibold mb-3">Shipping Address</h3>
-                    <div className="bg-muted/50 rounded-lg p-4">
-                      <p className="font-medium">{order.shippingAddress.name}</p>
-                      <p className="text-muted-foreground">
-                        {order.shippingAddress.addressLine1}
-                      </p>
-                      {order.shippingAddress.addressLine2 && (
-                        <p className="text-muted-foreground">
-                          {order.shippingAddress.addressLine2}
-                        </p>
-                      )}
-                      <p className="text-muted-foreground">
-                        {order.shippingAddress.city}
-                        {order.shippingAddress.state && `, ${order.shippingAddress.state}`}{" "}
-                        {order.shippingAddress.postalCode}
-                      </p>
-                      <p className="text-muted-foreground">
-                        {order.shippingAddress.country}
-                      </p>
-                      {(() => {
-                        const deliveryTime = getDeliveryTime(
-                          order.items.map((item) => ({
-                            prescriptionData: item.prescriptionData,
-                            productSlug: item.productSlug,
-                          })),
-                          order.shippingAddress.country
-                        );
-                        return (
-                          <div className="mt-3 pt-3 border-t border-gray-200">
-                            <p className="text-sm font-semibold text-brand-teal flex items-center gap-1">
-                              <span>📦</span>
-                              <span>Expected Delivery: {deliveryTime}</span>
-                            </p>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Success Status */}
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      <span className="font-medium text-green-800">
-                        Payment Confirmed ✓
-                      </span>
-                    </div>
-                    <p className="text-sm text-green-700">
-                      Your payment has been confirmed. Your order is now being processed and will be shipped soon.
-                    </p>
-                    <p className="text-sm text-green-700 mt-2">
-                      We'll send you another email with your tracking ID once your order ships.
-                    </p>
-                    <div className="mt-3 pt-3 border-t border-green-200">
-                      <p className="text-xs text-green-600">
-                        Payment Status: <span className="font-semibold">COMPLETED</span> • 
-                        Order Status: <span className="font-semibold">{order.status}</span>
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/account?tab=orders">
-                <Button size="lg" className="w-full sm:w-auto">
-                  View My Orders
-                </Button>
-              </Link>
-              <Link href="/shop">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                  Continue Shopping
-                </Button>
-              </Link>
+              {/* Actions */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/account?tab=orders">
+                  <Button size="lg" className="w-full sm:w-auto">
+                    View My Orders
+                  </Button>
+                </Link>
+                <Link href="/shop">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto">
+                    Continue Shopping
+                  </Button>
+                </Link>
+              </div>
             </div>
-          </div>
           )}
         </div>
       </main>

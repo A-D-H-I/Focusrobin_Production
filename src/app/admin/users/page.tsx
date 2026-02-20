@@ -5,7 +5,7 @@ import UserManagement from './UserManagement';
 
 export default async function AdminUsersPage() {
   const session = await auth();
-  
+
   // Server-side check: redirect if not logged in or not admin
   if (!session?.user) {
     redirect('/');
@@ -21,11 +21,7 @@ export default async function AdminUsersPage() {
     include: {
       accounts: true,
       sessions: true,
-      prescriptions: {
-        orderBy: {
-          updatedAt: 'desc',
-        },
-      },
+      prescriptions: true,
       cart: {
         include: {
           items: {
@@ -85,6 +81,19 @@ export default async function AdminUsersPage() {
 
   const currentUserId = (session.user as any)?.id;
 
-  return <UserManagement users={users} currentUserId={currentUserId} />;
+  // Transform data to match UserManagement expectations (e.g. Decimal -> number)
+  const serializedUsers = users.map(user => ({
+    ...user,
+    wallet: user.wallet ? {
+      ...user.wallet,
+      balance: Number(user.wallet.balance),
+      transactions: user.wallet.transactions.map(t => ({
+        ...t,
+        amount: Number(t.amount),
+      })),
+    } : null,
+  }));
+
+  return <UserManagement users={serializedUsers as any} currentUserId={currentUserId} />;
 }
 

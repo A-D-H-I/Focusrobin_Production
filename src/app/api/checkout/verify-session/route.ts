@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import Stripe from 'stripe';
+import { finalizeOrder } from '@/lib/order-fulfillment';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-11-17.clover',
 });
 
 /**
@@ -82,16 +83,47 @@ export async function POST(request: NextRequest) {
 
       // Payment completed
       if (paymentStatus === 'paid' && sessionStatus === 'complete') {
-        // Payment is confirmed, but order might not be updated yet (webhook might be delayed)
-        // Return pending status - the webhook will update it
+        // Check if order was already paid (to prevent double fulfillment)
+        const wasAlreadyPaid = order.isPaid && order.paymentStatus === 'COMPLETED';
+
+        if (!wasAlreadyPaid) {
+          // Payment is confirmed by Stripe - update the order directly
+          // This acts as a safety net in case the webhook is delayed or doesn't fire (e.g., local dev)
+          try {
+            await prisma.order.update({
+              where: { id: orderId },
+              data: {
+                isPaid: true,
+                paymentStatus: 'COMPLETED',
+                status: 'CONFIRMED',
+              },
+            });
+            console.log(`[VerifySession] Order ${orderId} marked as paid (Stripe confirmed)`);
+
+            // Run full fulfillment: stock update, cart clear, cashback, invoice, email
+            try {
+              await finalizeOrder(orderId);
+              console.log(`[VerifySession] Order ${orderId} fulfillment completed`);
+            } catch (fulfillmentError) {
+              console.error(`[VerifySession] Fulfillment error for order ${orderId}:`, fulfillmentError);
+              // Don't fail the response - order is already marked as paid
+            }
+          } catch (updateError) {
+            console.error(`[VerifySession] Failed to update order ${orderId}:`, updateError);
+            // Don't fail the response - the webhook may still update it
+          }
+        } else {
+          console.log(`[VerifySession] Order ${orderId} was already paid, skipping fulfillment`);
+        }
+
         return NextResponse.json({
           success: true,
-          paymentStatus: 'PENDING', // Payment is paid but order not updated yet
+          paymentStatus: 'COMPLETED',
           stripePaymentStatus: paymentStatus,
           stripeSessionStatus: sessionStatus,
-          orderStatus: order.status,
-          isPaid: false, // Order not marked as paid yet
-          message: 'Payment confirmed. Processing order...',
+          orderStatus: 'CONFIRMED',
+          isPaid: true,
+          message: 'Payment completed successfully',
           shouldRefundWallet: false,
         });
       }
@@ -108,11 +140,11 @@ export async function POST(request: NextRequest) {
           stripeSessionStatus: sessionStatus,
           orderStatus: order.status,
           isPaid: false,
-          message: sessionStatus === 'expired' 
+          message: sessionStatus === 'expired'
             ? 'Payment session expired. Please try again.'
             : paymentStatus === 'unpaid'
-            ? 'Payment was not completed. Please try again.'
-            : 'Payment is still pending. Please wait or try again.',
+              ? 'Payment was not completed. Please try again.'
+              : 'Payment is still pending. Please wait or try again.',
           shouldRefundWallet: shouldRefund,
         });
       }

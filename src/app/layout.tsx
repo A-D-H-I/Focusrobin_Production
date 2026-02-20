@@ -187,22 +187,7 @@ export const metadata: Omit<Metadata, 'viewport'> = {
   alternates: {
     canonical: 'https://focusrobin.lt',
   },
-  icons: {
-    icon: [
-      {
-        url: '/Symbol Wide Primary light (Teal).svg',
-        type: 'image/svg+xml',
-        sizes: 'any',
-      },
-    ],
-    apple: [
-      {
-        url: '/Symbol Wide Primary light (Teal).svg',
-        sizes: '180x180',
-        type: 'image/svg+xml',
-      },
-    ],
-  },
+  // Icons are handled by the file convention (src/app/icon.svg)
 };
 
 import Header from "@/components/Landing/header";

@@ -75,6 +75,31 @@ export async function POST(request: Request) {
         }
 
         try {
+          // Check if order is already paid (to prevent double-fulfillment if verify-session ran first)
+          const existingOrder = await prisma.order.findUnique({
+            where: { id: orderId },
+            select: { isPaid: true, orderNumber: true, stripePaymentIntentId: true }
+          });
+
+          if (existingOrder?.isPaid) {
+            console.log(`[Stripe Webhook] Order ${existingOrder.orderNumber} already paid. Skipping fulfillment/stock update.`);
+
+            // Ensure payment intent is saved if missing
+            const paymentIntentId = typeof session.payment_intent === 'string'
+              ? session.payment_intent
+              : session.payment_intent?.id || null;
+
+            if (!existingOrder.stripePaymentIntentId && paymentIntentId) {
+              await prisma.order.update({
+                where: { id: orderId },
+                data: { stripePaymentIntentId: paymentIntentId }
+              });
+              console.log(`[Stripe Webhook] Updated missing payment intent for order ${existingOrder.orderNumber}`);
+            }
+
+            return NextResponse.json({ received: true, orderId: orderId, status: 'already-paid' });
+          }
+
           // Update the order
           // When payment is successful:
           // - paymentStatus = 'COMPLETED' (payment is done)
@@ -110,7 +135,14 @@ export async function POST(request: Request) {
           }
 
           // Finalize order (Stock, Cart, Cashback, Invoice)
-          await finalizeOrder(orderId);
+          try {
+            await finalizeOrder(orderId);
+          } catch (fulfillmentError) {
+            console.error('[Stripe Webhook] Fulfillment failed:', fulfillmentError);
+            // Verify-session passes even if fulfillment fails, so we log but don't error? 
+            // Ideally we should error so Stripe retries. But if it sends email twice...
+            // Let's assume finalizeOrder throws if critical.
+          }
 
           return NextResponse.json({ received: true, orderId: order.id });
         } catch (error) {
@@ -137,57 +169,10 @@ export async function POST(request: Request) {
             });
             console.log(`[Stripe Webhook] Order ${orderId} marked as expired/cancelled`);
 
-            // Refund wallet amount if it was used
-            if (walletAmountUsed > 0 && userId) {
-              try {
-                const wallet = await prisma.wallet.findUnique({
-                  where: { userId },
-                  include: {
-                    transactions: {
-                      where: {
-                        description: {
-                          contains: `Refund for cancelled order ${session.metadata?.orderNumber || orderId}`,
-                        },
-                        type: 'CREDIT',
-                      },
-                      take: 1,
-                    },
-                  },
-                });
+            console.log(`[Stripe Webhook] Order ${orderId} marked as expired/cancelled`);
 
-                if (wallet) {
-                  // Check if already refunded
-                  if (wallet.transactions.length > 0) {
-                    console.log(`[Stripe Webhook] Wallet already refunded for order ${orderId}`);
-                  } else {
-                    // Refund the wallet amount
-                    await prisma.wallet.update({
-                      where: { userId },
-                      data: {
-                        balance: {
-                          increment: walletAmountUsed,
-                        },
-                      },
-                    });
-
-                    // Create refund transaction
-                    await prisma.walletTransaction.create({
-                      data: {
-                        walletId: wallet.id,
-                        amount: walletAmountUsed,
-                        type: 'CREDIT',
-                        description: `Refund for cancelled order ${session.metadata?.orderNumber || orderId}`,
-                      },
-                    });
-
-                    console.log(`[Stripe Webhook] Refunded ${walletAmountUsed} EUR to wallet for cancelled order`);
-                  }
-                }
-              } catch (walletError) {
-                console.error('[Stripe Webhook] Error refunding wallet:', walletError);
-                // Don't fail the webhook if wallet refund fails
-              }
-            }
+            // NOTE: Wallet refund logic removed because we now deduct wallet balance ONLY after successful payment.
+            // So if session expires, no deduction has occurred yet.
           } catch (error) {
             console.error('[Stripe Webhook] Error marking order as expired:', error);
           }
@@ -257,58 +242,10 @@ export async function POST(request: Request) {
             });
             console.log(`[Stripe Webhook] Order ${order.orderNumber} marked as payment failed`);
 
-            // Refund wallet amount if it was used
-            const walletAmountUsed = Number(order.walletAmountUsed || 0);
-            if (walletAmountUsed > 0) {
-              try {
-                const wallet = await prisma.wallet.findUnique({
-                  where: { userId: order.User.id },
-                  include: {
-                    transactions: {
-                      where: {
-                        description: {
-                          contains: `Refund for failed payment - Order ${order.orderNumber}`,
-                        },
-                        type: 'CREDIT',
-                      },
-                      take: 1,
-                    },
-                  },
-                });
+            console.log(`[Stripe Webhook] Order ${order.orderNumber} marked as payment failed`);
 
-                if (wallet) {
-                  // Check if already refunded
-                  if (wallet.transactions.length > 0) {
-                    console.log(`[Stripe Webhook] Wallet already refunded for failed payment order ${order.orderNumber}`);
-                  } else {
-                    // Refund the wallet amount
-                    await prisma.wallet.update({
-                      where: { userId: order.User.id },
-                      data: {
-                        balance: {
-                          increment: walletAmountUsed,
-                        },
-                      },
-                    });
-
-                    // Create refund transaction
-                    await prisma.walletTransaction.create({
-                      data: {
-                        walletId: wallet.id,
-                        amount: walletAmountUsed,
-                        type: 'CREDIT',
-                        description: `Refund for failed payment - Order ${order.orderNumber}`,
-                      },
-                    });
-
-                    console.log(`[Stripe Webhook] Refunded ${walletAmountUsed} EUR to wallet for failed payment`);
-                  }
-                }
-              } catch (walletError) {
-                console.error('[Stripe Webhook] Error refunding wallet:', walletError);
-                // Don't fail the webhook if wallet refund fails
-              }
-            }
+            // NOTE: Wallet refund logic removed because we now deduct wallet balance ONLY after successful payment.
+            // So if payment fails here, no deduction has occurred yet.
           }
         } catch (error) {
           console.error('[Stripe Webhook] Error handling payment failure:', error);

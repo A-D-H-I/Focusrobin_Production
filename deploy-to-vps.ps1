@@ -37,3 +37,4 @@ Write-Host "   docker compose logs app --tail=50 --follow" -ForegroundColor Cyan
 
 
 
+
