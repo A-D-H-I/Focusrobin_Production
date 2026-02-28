@@ -137,8 +137,22 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     };
   });
 
-  // Calculate price with discount
-  const basePrice = prismaProduct.basePrice != null ? Number(prismaProduct.basePrice) : 0;
+  // Apply margin calculation if not FocusRobin
+  const isFocusRobin = (prismaProduct.brand || '').trim().toLowerCase() === 'focusrobin';
+  const rawBasePrice = prismaProduct.basePrice != null ? Number(prismaProduct.basePrice) : 0;
+
+  let effectiveBasePrice = rawBasePrice;
+  if (!isFocusRobin && rawBasePrice > 0) {
+    // Base Price + 10% Margin + 13.5 EUR handling + 21% VAT
+    let priceWithMargin = (rawBasePrice * 1.10) + 13.5;
+    priceWithMargin = priceWithMargin * 1.21;
+    // + 1.5% Stripe fee
+    priceWithMargin = priceWithMargin * 1.015;
+    effectiveBasePrice = priceWithMargin;
+  }
+
+  // Calculate price with discount using the effective base price
+  const basePrice = effectiveBasePrice;
   const discountPct = prismaProduct.discountPct || 0;
   const hasDiscount = discountPct > 0;
 
@@ -182,9 +196,9 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     ],
     warranty: prismaProduct.warranty || '2 Years Warranty',
     description: prismaProduct.description || '',
-    lensMaterial: prismaProduct.lensMaterial || 'Polycarbonate', // From database
-    frameMaterial: prismaProduct.frameMaterial || 'Unknown',
-    uvProtection: prismaProduct.uvProtection || 'Standard',
+    lensMaterial: prismaProduct.lensMaterial || undefined, // From database
+    frameMaterial: prismaProduct.frameMaterial || undefined,
+    uvProtection: prismaProduct.uvProtection || undefined,
     averageRating: prismaProduct.averageRating || undefined,
     reviewCount: prismaProduct.reviewCount || undefined,
     size: {
@@ -206,6 +220,7 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     isAntiScratch: prismaProduct.isAntiScratch,
     isBioBased: prismaProduct.isBioBased,
     customFeatures: prismaProduct.customFeatures || [],
+    tags: prismaProduct.tags || [],
     // Product Highlights
     showHighlights: prismaProduct.showHighlights || false,
     highlights: prismaProduct.highlights ? prismaProduct.highlights.map(h => ({

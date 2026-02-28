@@ -384,10 +384,20 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
           nobg: nobg ? normalizeImageUrl(nobg) : undefined,
           images: images.map(normalizeImageUrl),
           tryOn: tryOn ? normalizeImageUrl(tryOn) : undefined,
+          textureImageUrl: v.textureImageUrl ? normalizeImageUrl(v.textureImageUrl) : undefined,
         };
       });
 
-      const price = Number(prescriptionGlass.basePrice) * (1 - (prescriptionGlass.discountPct || 0) / 100);
+      const isFocusRobin = (prescriptionGlass.brand || 'FocusRobin').trim().toLowerCase() === 'focusrobin';
+      let effectiveBasePrice = Number(prescriptionGlass.basePrice);
+
+      if (!isFocusRobin && effectiveBasePrice > 0) {
+        effectiveBasePrice = (effectiveBasePrice * 1.10) + 13.5;
+        effectiveBasePrice = effectiveBasePrice * 1.21;
+        effectiveBasePrice = effectiveBasePrice * 1.015;
+      }
+
+      const price = effectiveBasePrice * (1 - (prescriptionGlass.discountPct || 0) / 100);
 
       const product = {
         id: prescriptionGlass.id,
@@ -395,7 +405,7 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
         name: prescriptionGlass.name,
         productType: 'eyeglasses' as const,
         price: price.toFixed(2),
-        originalPrice: prescriptionGlass.discountPct ? Number(prescriptionGlass.basePrice).toFixed(2) : undefined,
+        originalPrice: prescriptionGlass.discountPct ? effectiveBasePrice.toFixed(2) : undefined,
         discountPct: prescriptionGlass.discountPct || 0,
         cashback: prescriptionGlass.cashbackAmount && Number(prescriptionGlass.cashbackAmount) > 0
           ? Number(prescriptionGlass.cashbackAmount).toFixed(2)
@@ -403,9 +413,9 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
         variants: variants,
         categories: [prescriptionGlass.Category.name],
         description: prescriptionGlass.description || "",
-        lensMaterial: prescriptionGlass.lensMaterial || "Polycarbonate",
-        frameMaterial: prescriptionGlass.frameMaterial,
-        uvProtection: prescriptionGlass.uvProtection || "UV400",
+        lensMaterial: prescriptionGlass.lensMaterial || undefined,
+        frameMaterial: prescriptionGlass.frameMaterial || undefined,
+        uvProtection: prescriptionGlass.uvProtection || undefined,
         averageRating: prescriptionGlass.averageRating,
         reviewCount: prescriptionGlass.reviewCount,
         size: {

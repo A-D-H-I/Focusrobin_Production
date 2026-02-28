@@ -14,6 +14,12 @@ import { Gender } from '@prisma/client';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ImageUploader } from '@/components/admin/ImageUploader';
+import { GalleryImageUploader } from '@/components/admin/GalleryImageUploader';
+import type { PrescriptionGlassesVariantData as VariantData } from '@/app/actions/prescriptionGlassesCRUD';
+
+interface VariantWithId extends VariantData {
+    id?: string;
+}
 
 interface PrescriptionGlassesData {
     id: string;
@@ -36,7 +42,6 @@ interface PrescriptionGlassesData {
     lensMaterial: string | null;
     uvProtection: string | null;
     glassShape: string | null;
-    // Dynamic Features
     isPolarized: boolean;
     isUVProtection: boolean;
     isHydrophobic: boolean;
@@ -46,6 +51,7 @@ interface PrescriptionGlassesData {
     customFeatures: string[];
     showHighlights: boolean;
     highlights: Array<{ id: string; title: string; description: string; imageUrl: string; order: number }>;
+    variants: VariantWithId[];
 }
 
 interface EditPrescriptionGlassesFormProps {
@@ -77,8 +83,8 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
     const [weightBg, setWeightBg] = useState(prescriptionGlasses.weightBg.toString());
 
     // Specs
-    const [frameMaterial, setFrameMaterial] = useState(prescriptionGlasses.frameMaterial);
-    const [lensMaterial, setLensMaterial] = useState(prescriptionGlasses.lensMaterial || 'Polycarbonate');
+    const [frameMaterial, setFrameMaterial] = useState(prescriptionGlasses.frameMaterial || '');
+    const [lensMaterial, setLensMaterial] = useState(prescriptionGlasses.lensMaterial || '');
     const [uvProtection, setUvProtection] = useState(prescriptionGlasses.uvProtection || '');
     const [glassShape, setGlassShape] = useState(prescriptionGlasses.glassShape || '');
 
@@ -90,6 +96,78 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
     const [isBioBased, setIsBioBased] = useState(prescriptionGlasses.isBioBased);
     const [warranty, setWarranty] = useState(prescriptionGlasses.warranty);
     const [customFeatures, setCustomFeatures] = useState(prescriptionGlasses.customFeatures.join(', '));
+
+    // Variants
+    const [variants, setVariants] = useState<VariantWithId[]>(
+        prescriptionGlasses.variants && prescriptionGlasses.variants.length > 0
+            ? prescriptionGlasses.variants
+            : [{
+                name: '',
+                sku: '',
+                colorName: '',
+                colorHex: '#000000',
+                lensColor: '',
+                stock: 0,
+                asset_nobg: '',
+                asset_glb: '',
+                asset_tryon: '',
+                asset_hover: '',
+                asset_gallery: '',
+            }]
+    );
+
+    const addVariant = () => {
+        setVariants([...variants, {
+            name: '',
+            sku: '',
+            colorName: '',
+            colorHex: '#000000',
+            lensColor: '',
+            stock: 0,
+            asset_nobg: '',
+            asset_glb: '',
+            asset_tryon: '',
+            asset_hover: '',
+            asset_gallery: '',
+        }]);
+    };
+
+    const removeVariant = (index: number) => {
+        if (variants.length > 1) {
+            setVariants(variants.filter((_, i) => i !== index));
+        }
+    };
+
+    const updateVariant = (index: number, field: keyof VariantWithId, value: string | number) => {
+        const updated = [...variants];
+        // Strip quotes from URL fields
+        if (typeof value === 'string' && ['asset_nobg', 'asset_glb', 'asset_tryon', 'asset_hover', 'asset_gallery'].includes(field)) {
+            value = value.replace(/^["']|["']$/g, '').trim();
+        }
+        updated[index] = { ...updated[index], [field]: value };
+        setVariants(updated);
+    };
+
+    // Calculate discounted price
+    const calculateDiscountedPrice = () => {
+        if (!basePrice) return '';
+        let price = parseFloat(basePrice);
+        if (isNaN(price)) return '';
+
+        const isFocusRobin = brand.trim().toLowerCase() === 'focusrobin';
+        if (!isFocusRobin) {
+            price = (price * 1.10) + 13.5;
+            price = price * 1.21;
+            price = price * 1.015;
+        }
+
+        const discount = parseFloat(discountPct) || 0;
+        if (discount < 0 || discount > 100) return '';
+
+        const discounted = price * (1 - discount / 100);
+        return discounted.toFixed(2);
+    };
+    const discountedPrice = calculateDiscountedPrice();
 
     // Product Highlights
     const [showHighlights, setShowHighlights] = useState(prescriptionGlasses.showHighlights);
@@ -147,6 +225,23 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
             formData.append(`highlight-${i}-image`, h.imageUrl);
         });
 
+        // Variants
+        formData.set('variantCount', variants.length.toString());
+        variants.forEach((v, i) => {
+            if (v.id) formData.append(`variant-${i}-id`, v.id);
+            formData.append(`variant-${i}-name`, v.name);
+            formData.append(`variant-${i}-sku`, v.sku);
+            formData.append(`variant-${i}-colorName`, v.colorName);
+            formData.append(`variant-${i}-colorHex`, v.colorHex);
+            formData.append(`variant-${i}-lensColor`, v.lensColor);
+            formData.append(`variant-${i}-stock`, v.stock.toString());
+            if (v.asset_nobg) formData.append(`variant-${i}-asset_nobg`, v.asset_nobg);
+            if (v.asset_glb) formData.append(`variant-${i}-asset_glb`, v.asset_glb);
+            if (v.asset_tryon) formData.append(`variant-${i}-asset_tryon`, v.asset_tryon);
+            if (v.asset_hover) formData.append(`variant-${i}-asset_hover`, v.asset_hover);
+            if (v.asset_gallery) formData.append(`variant-${i}-asset_gallery`, v.asset_gallery);
+        });
+
         const result = await updatePrescriptionGlasses(prescriptionGlasses.id, formData);
 
         if (result.error) {
@@ -184,7 +279,7 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
                         <Label htmlFor="description">Description</Label>
                         <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
                     </div>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="basePrice">Base Price *</Label>
                             <Input id="basePrice" type="number" step="0.01" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} required />
@@ -196,6 +291,19 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
                         <div className="space-y-2">
                             <Label htmlFor="cashbackAmount">Cashback (€)</Label>
                             <Input id="cashbackAmount" type="number" step="0.01" value={cashbackAmount} onChange={(e) => setCashbackAmount(e.target.value)} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Discounted Price</Label>
+                            <div className="h-10 px-3 py-2 bg-muted rounded-md border border-input flex items-center">
+                                <span className="text-lg font-semibold">
+                                    {discountedPrice ? `€${discountedPrice}` : 'Enter price and discount to calculate'}
+                                </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                {brand.trim().toLowerCase() === 'focusrobin'
+                                    ? 'Automatically calculated from base price and discount percentage'
+                                    : 'Calculated with margins: Base + 10% margin + 13.5 EUR shipping + 21% VAT + 1.5% Stripe'}
+                            </p>
                         </div>
                     </div>
                     <div className="space-y-2">
@@ -229,28 +337,28 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
                 <CardContent>
                     <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
                         <div className="space-y-2">
-                            <Label htmlFor="frameWidth">Frame Width *</Label>
-                            <Input id="frameWidth" type="number" step="0.1" value={frameWidth} onChange={(e) => setFrameWidth(e.target.value)} required />
+                            <Label htmlFor="frameWidth">Frame Width</Label>
+                            <Input id="frameWidth" type="number" step="0.1" value={frameWidth} onChange={(e) => setFrameWidth(e.target.value)} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="lensWidth">Lens Width *</Label>
-                            <Input id="lensWidth" type="number" step="0.1" value={lensWidth} onChange={(e) => setLensWidth(e.target.value)} required />
+                            <Label htmlFor="lensWidth">Lens Width</Label>
+                            <Input id="lensWidth" type="number" step="0.1" value={lensWidth} onChange={(e) => setLensWidth(e.target.value)} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="lensHeight">Lens Height *</Label>
-                            <Input id="lensHeight" type="number" step="0.1" value={lensHeight} onChange={(e) => setLensHeight(e.target.value)} required />
+                            <Label htmlFor="lensHeight">Lens Height</Label>
+                            <Input id="lensHeight" type="number" step="0.1" value={lensHeight} onChange={(e) => setLensHeight(e.target.value)} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="bridgeWidth">Bridge Width *</Label>
-                            <Input id="bridgeWidth" type="number" step="0.1" value={bridgeWidth} onChange={(e) => setBridgeWidth(e.target.value)} required />
+                            <Label htmlFor="bridgeWidth">Bridge Width</Label>
+                            <Input id="bridgeWidth" type="number" step="0.1" value={bridgeWidth} onChange={(e) => setBridgeWidth(e.target.value)} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="templeLength">Temple Length *</Label>
-                            <Input id="templeLength" type="number" step="0.1" value={templeLength} onChange={(e) => setTempleLength(e.target.value)} required />
+                            <Label htmlFor="templeLength">Temple Length</Label>
+                            <Input id="templeLength" type="number" step="0.1" value={templeLength} onChange={(e) => setTempleLength(e.target.value)} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="weightBg">Weight (g) *</Label>
-                            <Input id="weightBg" type="number" step="0.1" value={weightBg} onChange={(e) => setWeightBg(e.target.value)} required />
+                            <Label htmlFor="weightBg">Weight (g)</Label>
+                            <Input id="weightBg" type="number" step="0.1" value={weightBg} onChange={(e) => setWeightBg(e.target.value)} />
                         </div>
                     </div>
                 </CardContent>
@@ -262,20 +370,20 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
                 <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="space-y-2">
-                            <Label htmlFor="frameMaterial">Frame Material *</Label>
-                            <Input id="frameMaterial" value={frameMaterial} onChange={(e) => setFrameMaterial(e.target.value)} required />
+                            <Label htmlFor="frameMaterial">Frame Material</Label>
+                            <Input id="frameMaterial" value={frameMaterial} onChange={(e) => setFrameMaterial(e.target.value)} placeholder="e.g., Titanium, Acetate" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="lensMaterial">Lens Material</Label>
-                            <Input id="lensMaterial" value={lensMaterial} onChange={(e) => setLensMaterial(e.target.value)} />
+                            <Input id="lensMaterial" value={lensMaterial} onChange={(e) => setLensMaterial(e.target.value)} placeholder="e.g., Polycarbonate, CR-39" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="uvProtection">UV Protection</Label>
-                            <Input id="uvProtection" value={uvProtection} onChange={(e) => setUvProtection(e.target.value)} />
+                            <Input id="uvProtection" value={uvProtection} onChange={(e) => setUvProtection(e.target.value)} placeholder="e.g., UV400 Polarized" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="glassShape">Glass Shape</Label>
-                            <Input id="glassShape" value={glassShape} onChange={(e) => setGlassShape(e.target.value)} />
+                            <Input id="glassShape" value={glassShape} onChange={(e) => setGlassShape(e.target.value)} placeholder="e.g., Cat Eye, Rectangle, Round" />
                         </div>
                     </div>
                 </CardContent>
@@ -311,11 +419,11 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                         <div className="space-y-2">
                             <Label htmlFor="warranty">Warranty</Label>
-                            <Input id="warranty" value={warranty} onChange={(e) => setWarranty(e.target.value)} />
+                            <Input id="warranty" value={warranty} onChange={(e) => setWarranty(e.target.value)} placeholder="e.g., 1.5 Years Warranty" />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="customFeatures">Custom Features (comma-separated)</Label>
-                            <Input id="customFeatures" value={customFeatures} onChange={(e) => setCustomFeatures(e.target.value)} />
+                            <Input id="customFeatures" value={customFeatures} onChange={(e) => setCustomFeatures(e.target.value)} placeholder="e.g., hand made, Fast Delivery" />
                         </div>
                     </div>
                 </CardContent>
@@ -366,6 +474,149 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
                         ))}
                     </CardContent>
                 )}
+            </Card>
+
+            {/* Variants (Colors) */}
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <CardTitle>Product Variants (Colors)</CardTitle>
+                        <Button type="button" variant="outline" size="sm" onClick={addVariant} className="gap-2">
+                            <Plus className="h-4 w-4" /> Add Variant
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                    {variants.map((variant, index) => (
+                        <div key={index} className="space-y-4 rounded-lg border p-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="font-semibold">Variant {index + 1}</h3>
+                                {variants.length > 1 && (
+                                    <Button type="button" variant="ghost" size="sm" onClick={() => removeVariant(index)} className="text-destructive hover:text-destructive">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor={`variant-${index}-name`}>Variant Name *</Label>
+                                    <Input
+                                        id={`variant-${index}-name`}
+                                        value={variant.name}
+                                        onChange={(e) => updateVariant(index, 'name', e.target.value)}
+                                        required
+                                        placeholder="e.g., Jet Blue"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`variant-${index}-sku`}>SKU *</Label>
+                                    <Input
+                                        id={`variant-${index}-sku`}
+                                        value={variant.sku}
+                                        onChange={(e) => updateVariant(index, 'sku', e.target.value)}
+                                        required
+                                        placeholder="e.g., PG-JET-001"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`variant-${index}-colorName`}>Color Name *</Label>
+                                    <Input
+                                        id={`variant-${index}-colorName`}
+                                        value={variant.colorName}
+                                        onChange={(e) => updateVariant(index, 'colorName', e.target.value)}
+                                        required
+                                        placeholder="e.g., Jet Blue"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`variant-${index}-colorHex`}>Color Hex *</Label>
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id={`variant-${index}-colorHex`}
+                                            type="color"
+                                            value={variant.colorHex}
+                                            onChange={(e) => updateVariant(index, 'colorHex', e.target.value)}
+                                            className="h-10 w-20"
+                                        />
+                                        <Input
+                                            value={variant.colorHex}
+                                            onChange={(e) => updateVariant(index, 'colorHex', e.target.value)}
+                                            placeholder="#1C3142"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`variant-${index}-lensColor`}>Lens Color *</Label>
+                                    <Input
+                                        id={`variant-${index}-lensColor`}
+                                        value={variant.lensColor}
+                                        onChange={(e) => updateVariant(index, 'lensColor', e.target.value)}
+                                        placeholder="e.g., Dark Blue"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor={`variant-${index}-stock`}>Stock *</Label>
+                                    <Input
+                                        id={`variant-${index}-stock`}
+                                        type="number"
+                                        min="0"
+                                        value={variant.stock}
+                                        onChange={(e) => updateVariant(index, 'stock', parseInt(e.target.value) || 0)}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <Separator className="my-4" />
+                            <h4 className="font-semibold text-sm text-muted-foreground">Product Images</h4>
+
+                            <div className="space-y-4">
+                                <GalleryImageUploader
+                                    value={variant.asset_gallery || ''}
+                                    onChange={(urls) => updateVariant(index, 'asset_gallery', urls)}
+                                    folder="products"
+                                    label="Gallery Images (Product Photos)"
+                                    description="Main product images. First image is the primary/thumbnail image."
+                                    accept="image/*"
+                                />
+                                <ImageUploader
+                                    value={variant.asset_hover || ''}
+                                    onChange={(url) => updateVariant(index, 'asset_hover', url)}
+                                    folder="products"
+                                    label="Hover Image (optional)"
+                                    description="Alternate image shown on hover."
+                                    accept="image/*"
+                                />
+                                <ImageUploader
+                                    value={variant.asset_nobg || ''}
+                                    onChange={(url) => updateVariant(index, 'asset_nobg', url)}
+                                    folder="products"
+                                    label="No-Background Image (optional)"
+                                    description="PNG with transparent background for 3D view."
+                                    accept="image/*"
+                                />
+                                <ImageUploader
+                                    value={variant.asset_tryon || ''}
+                                    onChange={(url) => updateVariant(index, 'asset_tryon', url)}
+                                    folder="products"
+                                    label="Try-On Image (optional)"
+                                    description="2D image for virtual try-on."
+                                    accept="image/*"
+                                />
+                                <ImageUploader
+                                    value={variant.asset_glb || ''}
+                                    onChange={(url) => updateVariant(index, 'asset_glb', url)}
+                                    folder="products"
+                                    label="3D Model (GLB) (optional)"
+                                    description="3D model file for AR try-on. Upload .glb file."
+                                    accept=".glb,.gltf"
+                                />
+                            </div>
+                        </div>
+                    ))}
+                </CardContent>
             </Card>
 
             {/* Submit */}

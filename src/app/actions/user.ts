@@ -88,14 +88,48 @@ export async function addToCart(productSlugOrId: string, variantSkuOrId: string,
         });
       }
 
+      let prescriptionGlasses = null;
+      let isPrescriptionProduct = false;
+
+      // If not a regular product, try to find in PrescriptionGlasses
       if (!product) {
+        prescriptionGlasses = await prisma.prescriptionGlasses.findUnique({
+          where: { slug },
+          include: {
+            PrescriptionGlassesVariant: {
+              select: { id: true, sku: true, stock: true },
+            },
+          },
+        });
+
+        if (!prescriptionGlasses) {
+          prescriptionGlasses = await prisma.prescriptionGlasses.findUnique({
+            where: { id: slug },
+            include: {
+              PrescriptionGlassesVariant: {
+                select: { id: true, sku: true, stock: true },
+              },
+            },
+          });
+        }
+
+        if (prescriptionGlasses) {
+          isPrescriptionProduct = true;
+        }
+      }
+
+      if (!product && !prescriptionGlasses) {
         return { error: "Product not found" };
       }
 
-      const actualProductId = product.id;
+      const actualProductId = isPrescriptionProduct ? prescriptionGlasses!.id : product!.id;
 
       // Find variant by SKU or ID
-      const variant = product.ProductVariant.find(
+      const variants = isPrescriptionProduct
+        ? prescriptionGlasses!.PrescriptionGlassesVariant
+        : product!.ProductVariant;
+
+      const variant = variants.find(
         (v) => v.sku === variantId || v.id === variantId
       );
 
@@ -127,8 +161,11 @@ export async function addToCart(productSlugOrId: string, variantSkuOrId: string,
       const existingItems = await prisma.cartItem.findMany({
         where: {
           cartId: cart.id,
-          productId: actualProductId,
           variantId: actualVariantId,
+          // Conditionally check product type
+          ...(isPrescriptionProduct
+            ? { prescriptionGlassesId: actualProductId }
+            : { productId: actualProductId }),
         },
       });
 
@@ -157,18 +194,28 @@ export async function addToCart(productSlugOrId: string, variantSkuOrId: string,
         if (prescriptionData) {
           console.log('[SERVER] Prescription data keys:', Object.keys(prescriptionData));
         }
+
+        const createData: any = {
+          cartId: cart.id,
+          variantId: actualVariantId,
+          quantity: qty,
+          prescriptionData: prescriptionData || null,
+        };
+
+        if (isPrescriptionProduct) {
+          createData.prescriptionGlassesId = actualProductId;
+        } else {
+          createData.productId = actualProductId;
+        }
+
         const created = await prisma.cartItem.create({
-          data: {
-            cartId: cart.id,
-            productId: actualProductId,
-            variantId: actualVariantId,
-            quantity: qty,
-            prescriptionData: prescriptionData || null,
-          },
+          data: createData,
         });
+
         console.log('[SERVER] Created cart item:', {
           id: created.id,
           productId: created.productId,
+          prescriptionGlassesId: created.prescriptionGlassesId,
           variantId: created.variantId,
           quantity: created.quantity,
           hasPrescriptionData: !!created.prescriptionData,
@@ -237,11 +284,36 @@ export async function removeFromCart(productSlugOrId: string, variantSkuOrId: st
       });
     }
 
+    let prescriptionGlasses = null;
+    let isPrescriptionProduct = false;
+
     if (!product) {
+      prescriptionGlasses = await prisma.prescriptionGlasses.findUnique({
+        where: { slug: validatedInput.data.productSlugOrId },
+        include: { PrescriptionGlassesVariant: { select: { id: true, sku: true } } },
+      });
+
+      if (!prescriptionGlasses) {
+        prescriptionGlasses = await prisma.prescriptionGlasses.findUnique({
+          where: { id: validatedInput.data.productSlugOrId },
+          include: { PrescriptionGlassesVariant: { select: { id: true, sku: true } } },
+        });
+      }
+
+      if (prescriptionGlasses) {
+        isPrescriptionProduct = true;
+      }
+    }
+
+    if (!product && !prescriptionGlasses) {
       return { error: "Product not found" };
     }
 
-    const variant = product.ProductVariant.find(
+    const variants = isPrescriptionProduct
+      ? prescriptionGlasses!.PrescriptionGlassesVariant
+      : product!.ProductVariant;
+
+    const variant = variants.find(
       (v) => v.sku === validatedInput.data.variantSkuOrId || v.id === validatedInput.data.variantSkuOrId
     );
 
@@ -260,8 +332,13 @@ export async function removeFromCart(productSlugOrId: string, variantSkuOrId: st
     }
 
     // Find the specific item matching product, variant, AND prescription data
+    const actualProductId = isPrescriptionProduct ? prescriptionGlasses!.id : product!.id;
+
     const item = cart.items.find((i) => {
-      const productMatch = i.productId === product!.id && i.variantId === variant.id;
+      const productMatch = isPrescriptionProduct
+        ? i.prescriptionGlassesId === actualProductId && i.variantId === variant.id
+        : i.productId === actualProductId && i.variantId === variant.id;
+
       if (!productMatch) return false;
 
       // Match prescription data using deep comparison
@@ -333,11 +410,36 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
       });
     }
 
+    let prescriptionGlasses = null;
+    let isPrescriptionProduct = false;
+
     if (!product) {
+      prescriptionGlasses = await prisma.prescriptionGlasses.findUnique({
+        where: { slug: validatedInput.data.productSlugOrId },
+        include: { PrescriptionGlassesVariant: { select: { id: true, sku: true } } },
+      });
+
+      if (!prescriptionGlasses) {
+        prescriptionGlasses = await prisma.prescriptionGlasses.findUnique({
+          where: { id: validatedInput.data.productSlugOrId },
+          include: { PrescriptionGlassesVariant: { select: { id: true, sku: true } } },
+        });
+      }
+
+      if (prescriptionGlasses) {
+        isPrescriptionProduct = true;
+      }
+    }
+
+    if (!product && !prescriptionGlasses) {
       return { error: "Product not found" };
     }
 
-    const variant = product.ProductVariant.find(
+    const variants = isPrescriptionProduct
+      ? prescriptionGlasses!.PrescriptionGlassesVariant
+      : product!.ProductVariant;
+
+    const variant = variants.find(
       (v) => v.sku === validatedInput.data.variantSkuOrId || v.id === validatedInput.data.variantSkuOrId
     );
 
@@ -356,8 +458,13 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
     }
 
     // Find the specific item matching product, variant, AND prescription data
+    const actualProductId = isPrescriptionProduct ? prescriptionGlasses!.id : product!.id;
+
     const item = cart.items.find((i) => {
-      const productMatch = i.productId === product!.id && i.variantId === variant.id;
+      const productMatch = isPrescriptionProduct
+        ? i.prescriptionGlassesId === actualProductId && i.variantId === variant.id
+        : i.productId === actualProductId && i.variantId === variant.id;
+
       if (!productMatch) return false;
 
       // Match prescription data using deep comparison
@@ -465,6 +572,48 @@ export async function getCart() {
                 Category: true,
               },
             },
+            PrescriptionGlasses: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                basePrice: true,
+                discountPct: true,
+                cashbackAmount: true,
+                gender: true,
+                frameMaterial: true,
+                lensMaterial: true,
+                uvProtection: true,
+                description: true,
+                frameWidth: true,
+                lensWidth: true,
+                lensHeight: true,
+                bridgeWidth: true,
+                templeLength: true,
+                weightBg: true,
+                averageRating: true,
+                reviewCount: true,
+                PrescriptionGlassesVariant: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sku: true,
+                    colorHex: true,
+                    price: true,
+                    stock: true,
+                    PrescriptionGlassesAsset: {
+                      select: {
+                        id: true,
+                        url: true,
+                        type: true,
+                        isPrimary: true,
+                      },
+                    },
+                  },
+                },
+                Category: true,
+              },
+            },
           },
         },
       },
@@ -476,31 +625,38 @@ export async function getCart() {
     }
 
     console.log('[getCart] Found cart with', cart.items.length, 'items');
-    console.log('[getCart] Items:', cart.items.map(i => ({
+    console.log('[getCart] Items:', cart.items.map((i: any) => ({
       id: i.id,
       productId: i.productId,
+      prescriptionGlassesId: i.prescriptionGlassesId,
       hasPrescription: !!i.prescriptionData,
       prescriptionDataType: typeof i.prescriptionData
     })));
 
     return {
-      items: cart.items.map((item) => ({
-        id: item.id,
-        productId: item.productId,
-        variantId: item.variantId,
-        quantity: item.quantity,
-        prescriptionData: item.prescriptionData, // Include prescription data
-        Product: {
-          ...item.Product,
-          cashbackAmount: item.Product.cashbackAmount ? Number(item.Product.cashbackAmount) : 0,
-          basePrice: Number(item.Product.basePrice),
-          ProductVariant: item.Product.ProductVariant.map((variant: any) => ({
-            ...variant,
-            price: variant.price ? Number(variant.price) : null,
-            stock: variant.stock !== null && variant.stock !== undefined ? Number(variant.stock) : null, // Include stock
-          })),
-        },
-      })),
+      items: cart.items.map((item: any) => {
+        const productData = item.Product || item.PrescriptionGlasses;
+        const variants = item.Product ? item.Product.ProductVariant : (item.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
+
+        return {
+          id: item.id,
+          productId: item.productId || item.prescriptionGlassesId,
+          variantId: item.variantId,
+          quantity: item.quantity,
+          prescriptionData: item.prescriptionData, // Include prescription data
+          Product: {
+            ...productData,
+            cashbackAmount: productData?.cashbackAmount ? Number(productData.cashbackAmount) : 0,
+            basePrice: productData?.basePrice ? Number(productData.basePrice) : 0,
+            ProductVariant: variants.map((variant: any) => ({
+              ...variant,
+              price: variant.price ? Number(variant.price) : null,
+              stock: variant.stock !== null && variant.stock !== undefined ? Number(variant.stock) : null, // Include stock
+              ProductAsset: variant.ProductAsset || variant.PrescriptionGlassesAsset || []
+            })),
+          },
+        };
+      }),
     };
   } catch (error) {
     console.error("[getCart] Error fetching cart:", error);
@@ -585,17 +741,38 @@ export async function toggleWishlist(productSlugOrId: string) {
       });
     }
 
+    let prescriptionGlasses = null;
+    let isPrescriptionProduct = false;
+
     if (!product) {
+      prescriptionGlasses = await prisma.prescriptionGlasses.findUnique({
+        where: { slug: validatedInput.data },
+        select: { id: true },
+      });
+
+      if (!prescriptionGlasses) {
+        prescriptionGlasses = await prisma.prescriptionGlasses.findUnique({
+          where: { id: validatedInput.data },
+          select: { id: true },
+        });
+      }
+
+      if (prescriptionGlasses) {
+        isPrescriptionProduct = true;
+      }
+    }
+
+    if (!product && !prescriptionGlasses) {
       return { error: "Product not found" };
     }
 
+    const actualProductId = isPrescriptionProduct ? prescriptionGlasses!.id : product!.id;
+
     // IDOR Protection: Only check/modify wishlist for current user
-    const existing = await prisma.wishlist.findUnique({
+    const existing = await prisma.wishlist.findFirst({
       where: {
-        userId_productId: {
-          userId: session.user.id,
-          productId: product.id,
-        },
+        userId: session.user.id,
+        ...(isPrescriptionProduct ? { prescriptionGlassesId: actualProductId } : { productId: actualProductId }),
       },
     });
 
@@ -606,11 +783,17 @@ export async function toggleWishlist(productSlugOrId: string) {
       revalidatePath("/wishlist");
       return { success: true, added: false };
     } else {
+      const createData: any = {
+        userId: session.user.id,
+      };
+      if (isPrescriptionProduct) {
+        createData.prescriptionGlassesId = actualProductId;
+      } else {
+        createData.productId = actualProductId;
+      }
+
       await prisma.wishlist.create({
-        data: {
-          userId: session.user.id,
-          productId: product.id,
-        },
+        data: createData,
       });
       revalidatePath("/wishlist");
       return { success: true, added: true };
@@ -642,22 +825,39 @@ export async function getWishlist() {
             Category: true,
           },
         },
+        PrescriptionGlasses: {
+          include: {
+            PrescriptionGlassesVariant: {
+              include: {
+                PrescriptionGlassesAsset: true,
+              },
+            },
+            Category: true,
+          },
+        },
       },
     });
 
     return {
-      items: wishlistItems.map((item) => ({
-        ...item,
-        Product: {
-          ...item.Product,
-          basePrice: Number(item.Product.basePrice),
-          cashbackAmount: item.Product.cashbackAmount ? Number(item.Product.cashbackAmount) : 0,
-          ProductVariant: item.Product.ProductVariant.map((variant) => ({
-            ...variant,
-            price: variant.price ? Number(variant.price) : null,
-          })),
-        },
-      })),
+      items: wishlistItems.map((item: any) => {
+        const productData = item.Product || item.PrescriptionGlasses;
+        const variants = item.Product ? item.Product.ProductVariant : (item.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
+
+        return {
+          ...item,
+          productId: item.productId || item.prescriptionGlassesId,
+          Product: {
+            ...productData,
+            basePrice: productData?.basePrice ? Number(productData.basePrice) : 0,
+            cashbackAmount: productData?.cashbackAmount ? Number(productData.cashbackAmount) : 0,
+            ProductVariant: variants.map((variant: any) => ({
+              ...variant,
+              price: variant.price ? Number(variant.price) : null,
+              ProductAsset: variant.ProductAsset || variant.PrescriptionGlassesAsset || []
+            })),
+          },
+        };
+      }),
     };
   } catch (error) {
     console.error("Error fetching wishlist:", error);
@@ -687,17 +887,38 @@ export async function isInWishlist(productSlugOrId: string) {
       });
     }
 
+    let prescriptionGlasses = null;
+    let isPrescriptionProduct = false;
+
     if (!product) {
+      prescriptionGlasses = await prisma.prescriptionGlasses.findUnique({
+        where: { slug: productSlugOrId },
+        select: { id: true },
+      });
+
+      if (!prescriptionGlasses) {
+        prescriptionGlasses = await prisma.prescriptionGlasses.findUnique({
+          where: { id: productSlugOrId },
+          select: { id: true },
+        });
+      }
+
+      if (prescriptionGlasses) {
+        isPrescriptionProduct = true;
+      }
+    }
+
+    if (!product && !prescriptionGlasses) {
       return false;
     }
 
+    const actualProductId = isPrescriptionProduct ? prescriptionGlasses!.id : product!.id;
+
     // IDOR Protection: Only check wishlist for current user
-    const item = await prisma.wishlist.findUnique({
+    const item = await prisma.wishlist.findFirst({
       where: {
-        userId_productId: {
-          userId,
-          productId: product.id,
-        },
+        userId,
+        ...(isPrescriptionProduct ? { prescriptionGlassesId: actualProductId } : { productId: actualProductId }),
       },
     });
 

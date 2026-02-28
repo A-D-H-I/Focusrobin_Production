@@ -29,7 +29,7 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
           <ProductDimensions
             dimensions={{
               frameWidth: product.frameWidth,
-              lensWidth: Number(product.size.lensWidth),
+              lensWidth: product.lensWidth,
               lensHeight: product.lensHeight,
               bridgeWidth: product.bridgeWidth,
               templeLength: product.templeLength,
@@ -46,30 +46,38 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
                       {currentVariant?.name || 'N/A'}
                     </TableCell>
                   </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Frame Material" /></TableCell>
-                    <TableCell className="text-center border text-sm sm:text-base">
-                      {product.frameMaterial || 'N/A'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Lens Material" /></TableCell>
-                    <TableCell className="text-center border text-sm sm:text-base">
-                      {product.lensMaterial || 'N/A'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="UV Protection Level" /></TableCell>
-                    <TableCell className="text-center border text-sm sm:text-base">
-                      {product.uvProtection || 'N/A'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Frame Weight" /></TableCell>
-                    <TableCell className="text-center border text-sm sm:text-base">
-                      {product.weight ? `${product.weight}g` : 'N/A'}
-                    </TableCell>
-                  </TableRow>
+                  {product.frameMaterial && product.frameMaterial !== 'N/A' && (
+                    <TableRow>
+                      <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Frame Material" /></TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">
+                        {product.frameMaterial}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {product.lensMaterial && product.lensMaterial !== 'N/A' && (
+                    <TableRow>
+                      <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Lens Material" /></TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">
+                        {product.lensMaterial}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {product.uvProtection && product.uvProtection !== 'N/A' && (
+                    <TableRow>
+                      <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="UV Protection Level" /></TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">
+                        {product.uvProtection}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {product.weight ? (
+                    <TableRow>
+                      <TableCell className="font-medium text-center border text-sm sm:text-base"><TranslatableText text="Frame Weight" /></TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">
+                        {product.weight}g
+                      </TableCell>
+                    </TableRow>
+                  ) : null}
                 </TableBody>
               </Table>
             </div>
@@ -104,18 +112,26 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="font-medium text-center border text-sm sm:text-base">Brand</TableHead>
                       <TableHead className="font-medium text-center border text-sm sm:text-base">Country</TableHead>
                       <TableHead className="font-medium text-center border text-sm sm:text-base">Standard Shipping</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
+                      <TableCell className="text-center border text-sm sm:text-base">FocusRobin</TableCell>
                       <TableCell className="text-center border text-sm sm:text-base">Lithuania</TableCell>
                       <TableCell className="text-center border text-sm sm:text-base">4-7 days</TableCell>
                     </TableRow>
                     <TableRow>
+                      <TableCell className="text-center border text-sm sm:text-base">FocusRobin</TableCell>
                       <TableCell className="text-center border text-sm sm:text-base">Other Countries</TableCell>
                       <TableCell className="text-center border text-sm sm:text-base">9-14 days</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-center border text-sm sm:text-base">Other Brands</TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">All Countries</TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">7-15 days</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
@@ -128,18 +144,26 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="font-medium text-center border text-sm sm:text-base">Brand</TableHead>
                       <TableHead className="font-medium text-center border text-sm sm:text-base">Country</TableHead>
                       <TableHead className="font-medium text-center border text-sm sm:text-base">Standard Shipping</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
+                      <TableCell className="text-center border text-sm sm:text-base">FocusRobin</TableCell>
                       <TableCell className="text-center border text-sm sm:text-base">Lithuania</TableCell>
                       <TableCell className="text-center border text-sm sm:text-base">2-4 days</TableCell>
                     </TableRow>
                     <TableRow>
+                      <TableCell className="text-center border text-sm sm:text-base">FocusRobin</TableCell>
                       <TableCell className="text-center border text-sm sm:text-base">Other Countries</TableCell>
                       <TableCell className="text-center border text-sm sm:text-base">4-7 days</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-center border text-sm sm:text-base">Other Brands</TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">All Countries</TableCell>
+                      <TableCell className="text-center border text-sm sm:text-base">7-9 days</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>

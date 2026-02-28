@@ -158,9 +158,17 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
         const maxPrice = maxPriceParam ? parseFloat(maxPriceParam) : undefined;
 
         displayedProducts = prismaProducts.filter((product) => {
-            const basePrice = Number(product.basePrice);
+            const isFocusRobin = (product.brand || '').trim().toLowerCase() === 'focusrobin';
+            const rawBase = Number(product.basePrice);
+            let effectiveBase = rawBase;
+            if (!isFocusRobin && rawBase > 0) {
+                let p = (rawBase * 1.10) + 13.5;
+                p = p * 1.21;
+                p = p * 1.015;
+                effectiveBase = p;
+            }
             const discountPct = product.discountPct || 0;
-            const finalPrice = basePrice * (1 - discountPct / 100);
+            const finalPrice = effectiveBase * (1 - discountPct / 100);
 
             if (minPrice !== undefined && finalPrice < minPrice) return false;
             if (maxPrice !== undefined && finalPrice > maxPrice) return false;
@@ -193,10 +201,21 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
                 nobg: nobg ? normalizeImageUrl(nobg) : undefined,
                 images: galleryImages.map(normalizeImageUrl),
                 tryOn: tryOn ? normalizeImageUrl(tryOn) : undefined,
+                textureImageUrl: v.textureImageUrl ? normalizeImageUrl(v.textureImageUrl) : undefined,
             };
         });
 
-        const priceVal = Number(p.basePrice) * (1 - (p.discountPct || 0) / 100);
+        const isFocusRobin = (p.brand || '').trim().toLowerCase() === 'focusrobin';
+        const rawBase = Number(p.basePrice);
+        let effectiveBase = rawBase;
+        if (!isFocusRobin && rawBase > 0) {
+            let pm = (rawBase * 1.10) + 13.5;
+            pm = pm * 1.21;
+            pm = pm * 1.015;
+            effectiveBase = pm;
+        }
+        const discountPct = p.discountPct || 0;
+        const finalPriceVal = effectiveBase * (1 - discountPct / 100);
 
         // Cast to any to access new fields if TypeScript definition isn't updated yet in the project context
         const pAny = p as any;
@@ -205,17 +224,17 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
             id: p.id,
             slug: p.slug,
             name: p.name,
-            price: priceVal.toFixed(2),
-            originalPrice: p.discountPct ? Number(p.basePrice).toFixed(2) : undefined,
-            discountPct: p.discountPct || 0,
+            price: `€${finalPriceVal.toFixed(2)}`,
+            originalPrice: discountPct > 0 ? `€${effectiveBase.toFixed(2)}` : undefined,
+            discountPct: discountPct > 0 ? discountPct : undefined,
             cashback: Number(p.cashbackAmount).toFixed(2),
             variants: variants,
             categories: [p.Category.name],
             warranty: pAny.warranty || "1.5 Years Warranty",
             description: p.description || "",
-            lensMaterial: p.lensMaterial || "Polycarbonate",
-            frameMaterial: p.frameMaterial,
-            uvProtection: p.uvProtection || "UV400",
+            lensMaterial: p.lensMaterial || undefined,
+            frameMaterial: p.frameMaterial || undefined,
+            uvProtection: p.uvProtection || undefined,
             averageRating: p.averageRating,
             reviewCount: p.reviewCount,
             size: {

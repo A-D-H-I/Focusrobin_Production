@@ -33,6 +33,7 @@ export interface VariantData {
   textureImageUrl?: string;
   lensColor: string;
   stock: number;
+  price?: number;
   asset_nobg?: string;
   asset_glb?: string;
   asset_tryon?: string;
@@ -49,16 +50,16 @@ const productSchema = z.object({
   basePrice: z.number().positive().max(100000),
   discountPct: z.number().int().min(0).max(99).optional().default(0),
   cashbackAmount: z.number().nonnegative().max(1000).optional().default(0),
-  frameMaterial: z.string().trim().min(2).max(100),
-  lensMaterial: z.string().trim().max(100).optional().default("Polycarbonate"),
-  uvProtection: z.string().trim().min(2).max(50),
+  frameMaterial: z.string().trim().max(100).optional(),
+  lensMaterial: z.string().trim().max(100).optional(),
+  uvProtection: z.string().trim().max(50).optional(),
   glassShape: z.string().trim().max(100).optional().nullable(),
-  frameWidth: z.number().positive().optional(),
-  lensWidth: z.number().positive().optional(),
-  lensHeight: z.number().positive().optional(),
-  bridgeWidth: z.number().positive().optional(),
-  templeLength: z.number().positive().optional(),
-  weightBg: z.number().positive().optional(),
+  frameWidth: z.number().min(0).optional().default(0),
+  lensWidth: z.number().min(0).optional().default(0),
+  lensHeight: z.number().min(0).optional().default(0),
+  bridgeWidth: z.number().min(0).optional().default(0),
+  templeLength: z.number().min(0).optional().default(0),
+  weightBg: z.number().min(0).optional().default(0),
   tags: z.array(z.string().trim().max(50)).max(20).optional().default([]),
   // Dynamic Product Features
   isPolarized: z.boolean().optional().default(false),
@@ -82,6 +83,7 @@ const variantSchema = z.object({
   textureImageUrl: z.string().max(2048).optional(),
   lensColor: z.string().trim().min(1).max(50),
   stock: z.number().int().nonnegative().max(10000).optional().default(0),
+  price: z.number().positive().optional(),
   asset_nobg: z.string().max(2048).optional(),
   asset_glb: z.string().max(2048).optional(),
   asset_tryon: z.string().max(2048).optional(),
@@ -138,18 +140,18 @@ export async function updateProduct(productId: string, formData: FormData) {
     const warranty = (formData.get('warranty') as string) || "2 Years Warranty";
 
     // Dimensions
-    const frameWidth = parseFloat(formData.get('frameWidth') as string) || undefined;
-    const lensWidth = parseFloat(formData.get('lensWidth') as string) || undefined;
-    const lensHeight = parseFloat(formData.get('lensHeight') as string) || undefined;
-    const bridgeWidth = parseFloat(formData.get('bridgeWidth') as string) || undefined;
-    const templeLength = parseFloat(formData.get('templeLength') as string) || undefined;
-    const weightBg = parseFloat(formData.get('weightBg') as string) || undefined;
+    const frameWidth = parseFloat(formData.get('frameWidth') as string) || 0;
+    const lensWidth = parseFloat(formData.get('lensWidth') as string) || 0;
+    const lensHeight = parseFloat(formData.get('lensHeight') as string) || 0;
+    const bridgeWidth = parseFloat(formData.get('bridgeWidth') as string) || 0;
+    const templeLength = parseFloat(formData.get('templeLength') as string) || 0;
+    const weightBg = parseFloat(formData.get('weightBg') as string) || 0;
 
     // Specs
     const brand = (formData.get('brand') as string) || 'FocusRobin';
-    const frameMaterial = formData.get('frameMaterial') as string;
-    const lensMaterial = (formData.get('lensMaterial') as string) || 'Polycarbonate';
-    const uvProtection = formData.get('uvProtection') as string;
+    const frameMaterial = (formData.get('frameMaterial') as string) || '';
+    const lensMaterial = (formData.get('lensMaterial') as string) || '';
+    const uvProtection = (formData.get('uvProtection') as string) || '';
     const glassShapeRaw = formData.get('glassShape') as string | null;
     const glassShape = glassShapeRaw?.trim() || null;
 
@@ -255,6 +257,7 @@ export async function updateProduct(productId: string, formData: FormData) {
       const variantTextureImageUrl = (formData.get(`variant-${i}-textureImageUrl`) as string)?.trim() || undefined;
       const variantLensColor = formData.get(`variant-${i}-lensColor`) as string;
       const variantStock = parseInt(formData.get(`variant-${i}-stock`) as string) || 0;
+      const variantPrice = formData.get(`variant-${i}-price`) as string;
       const asset_nobg = formData.get(`variant-${i}-asset_nobg`) as string;
       const asset_glb = formData.get(`variant-${i}-asset_glb`) as string;
       const asset_tryon = formData.get(`variant-${i}-asset_tryon`) as string;
@@ -272,6 +275,7 @@ export async function updateProduct(productId: string, formData: FormData) {
         textureImageUrl: variantTextureImageUrl,
         lensColor: variantLensColor,
         stock: variantStock,
+        price: variantPrice ? parseFloat(variantPrice) : undefined,
         asset_nobg: asset_nobg || undefined,
         asset_glb: asset_glb || undefined,
         asset_tryon: asset_tryon || undefined,
@@ -548,6 +552,7 @@ export async function updateProduct(productId: string, formData: FormData) {
           textureImageUrl: variant.textureImageUrl || null,
           lensColor: variant.lensColor,
           stock: variant.stock,
+          price: variant.price ?? null,
           ProductAsset: {
             create: assets,
           },
@@ -570,6 +575,7 @@ export async function updateProduct(productId: string, formData: FormData) {
           textureImageUrl: variant.textureImageUrl || null,
           lensColor: variant.lensColor,
           stock: variant.stock,
+          price: variant.price ?? null,
           ProductAsset: {
             create: assets,
           },

@@ -123,7 +123,7 @@ export default function TermsPage() {
                       <TranslatableText text="2. Products and Pricing" />
                     </h2>
                   </div>
-                  
+
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-xl font-headline text-brand-blue mb-4 flex items-center gap-2">
@@ -195,7 +195,7 @@ export default function TermsPage() {
                       <TranslatableText text="3. Shipping and Delivery" />
                     </h2>
                   </div>
-                  
+
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-xl font-headline text-brand-blue mb-4"><TranslatableText text="3.1 Shipping Carriers" /></h3>
@@ -223,13 +223,14 @@ export default function TermsPage() {
                       <p className="text-brand-blue/80 leading-relaxed mb-4">
                         <TranslatableText text="Delivery times vary based on product type and shipping location:" />
                       </p>
-                      
+
                       <div className="mb-6">
                         <h4 className="text-lg font-semibold text-brand-blue mb-3"><TranslatableText text="Prescription Glasses" /></h4>
                         <div className="overflow-x-auto">
                           <Table>
                             <TableHeader>
                               <TableRow>
+                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Brand" /></TableHead>
                                 <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Country" /></TableHead>
                                 <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Standard Shipping" /></TableHead>
                                 <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Shipping Provider" /></TableHead>
@@ -237,14 +238,22 @@ export default function TermsPage() {
                             </TableHeader>
                             <TableBody>
                               <TableRow>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="FocusRobin" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="Lithuania" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base font-medium">4-7 days</TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">Omniva</TableCell>
                               </TableRow>
                               <TableRow>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="FocusRobin" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="Other Countries" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base font-medium">9-14 days</TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">DHL</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="Other Brands" /></TableCell>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="All Countries" /></TableCell>
+                                <TableCell className="text-center border text-sm sm:text-base font-medium">7-15 days</TableCell>
+                                <TableCell className="text-center border text-sm sm:text-base">DHL/Omniva</TableCell>
                               </TableRow>
                             </TableBody>
                           </Table>
@@ -257,6 +266,7 @@ export default function TermsPage() {
                           <Table>
                             <TableHeader>
                               <TableRow>
+                                <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Brand" /></TableHead>
                                 <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Country" /></TableHead>
                                 <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Standard Shipping" /></TableHead>
                                 <TableHead className="font-medium text-center border text-sm sm:text-base bg-brand-blue/5"><TranslatableText text="Shipping Provider" /></TableHead>
@@ -264,14 +274,22 @@ export default function TermsPage() {
                             </TableHeader>
                             <TableBody>
                               <TableRow>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="FocusRobin" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="Lithuania" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base font-medium">2-4 days</TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">Omniva</TableCell>
                               </TableRow>
                               <TableRow>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="FocusRobin" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="Other Countries" /></TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base font-medium">4-7 days</TableCell>
                                 <TableCell className="text-center border text-sm sm:text-base">DHL</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="Other Brands" /></TableCell>
+                                <TableCell className="text-center border text-sm sm:text-base"><TranslatableText text="All Countries" /></TableCell>
+                                <TableCell className="text-center border text-sm sm:text-base font-medium">7-9 days</TableCell>
+                                <TableCell className="text-center border text-sm sm:text-base">DHL/Omniva</TableCell>
                               </TableRow>
                             </TableBody>
                           </Table>

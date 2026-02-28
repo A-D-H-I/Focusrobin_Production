@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import Footer from "@/components/Landing/footer";
+import { Table, TableBody, TableCell, TableRow, TableHeader, TableHead } from "@/components/ui/table";
+import TranslatableText from "@/components/ui/TranslatableText";
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Shipping Information',
@@ -43,30 +46,104 @@ export default function ShippingPage() {
 
           {/* Shipping Signal - Near top of page */}
           <p className="text-base sm:text-lg text-brand-blue/80 leading-relaxed mb-8 break-words max-w-full">
-            We deliver sunglasses across Lithuania (Vilnius, Kaunas, Klaipėda) and to all EU/Schengen countries.
+            <TranslatableText text="We deliver across Lithuania and to all EU/Schengen countries. Delivery times and shipping providers vary based on the brand and product type." />
           </p>
 
           <div className="prose prose-lg max-w-none">
-            <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              Shipping to Lithuania
+            <h2 className="text-brand-h2 font-headline mt-8 mb-6 text-brand-blue">
+              <TranslatableText text="Estimated Delivery Times" />
+            </h2>
+
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-brand-blue mb-4"><TranslatableText text="Prescription Glasses" /></h3>
+              <div className="overflow-x-auto rounded-xl border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-brand-blue/5">
+                      <TableHead className="font-medium text-center border-r border-b text-sm sm:text-base"><TranslatableText text="Brand" /></TableHead>
+                      <TableHead className="font-medium text-center border-r border-b text-sm sm:text-base"><TranslatableText text="Country" /></TableHead>
+                      <TableHead className="font-medium text-center border-r border-b text-sm sm:text-base"><TranslatableText text="Standard Shipping" /></TableHead>
+                      <TableHead className="font-medium text-center border-b text-sm sm:text-base"><TranslatableText text="Shipping Provider" /></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base"><TranslatableText text="FocusRobin" /></TableCell>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base"><TranslatableText text="Lithuania" /></TableCell>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base font-medium">4-7 days</TableCell>
+                      <TableCell className="text-center border-b text-sm sm:text-base">Omniva</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base"><TranslatableText text="FocusRobin" /></TableCell>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base"><TranslatableText text="Other Countries" /></TableCell>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base font-medium">9-14 days</TableCell>
+                      <TableCell className="text-center border-b text-sm sm:text-base">DHL</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-center border-r text-sm sm:text-base"><TranslatableText text="Other Brands" /></TableCell>
+                      <TableCell className="text-center border-r text-sm sm:text-base"><TranslatableText text="All Countries" /></TableCell>
+                      <TableCell className="text-center border-r text-sm sm:text-base font-medium">7-15 days</TableCell>
+                      <TableCell className="text-center text-sm sm:text-base">DHL/Omniva</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div className="mb-8">
+              <h3 className="text-xl font-semibold text-brand-blue mb-4"><TranslatableText text="Sunglasses (Non-Prescription)" /></h3>
+              <div className="overflow-x-auto rounded-xl border border-border">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-brand-blue/5">
+                      <TableHead className="font-medium text-center border-r border-b text-sm sm:text-base"><TranslatableText text="Brand" /></TableHead>
+                      <TableHead className="font-medium text-center border-r border-b text-sm sm:text-base"><TranslatableText text="Country" /></TableHead>
+                      <TableHead className="font-medium text-center border-r border-b text-sm sm:text-base"><TranslatableText text="Standard Shipping" /></TableHead>
+                      <TableHead className="font-medium text-center border-b text-sm sm:text-base"><TranslatableText text="Shipping Provider" /></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base"><TranslatableText text="FocusRobin" /></TableCell>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base"><TranslatableText text="Lithuania" /></TableCell>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base font-medium">2-4 days</TableCell>
+                      <TableCell className="text-center border-b text-sm sm:text-base">Omniva</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base"><TranslatableText text="FocusRobin" /></TableCell>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base"><TranslatableText text="Other Countries" /></TableCell>
+                      <TableCell className="text-center border-r border-b text-sm sm:text-base font-medium">4-7 days</TableCell>
+                      <TableCell className="text-center border-b text-sm sm:text-base">DHL</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="text-center border-r text-sm sm:text-base"><TranslatableText text="Other Brands" /></TableCell>
+                      <TableCell className="text-center border-r text-sm sm:text-base"><TranslatableText text="All Countries" /></TableCell>
+                      <TableCell className="text-center border-r text-sm sm:text-base font-medium">7-9 days</TableCell>
+                      <TableCell className="text-center text-sm sm:text-base">DHL/Omniva</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            <div className="bg-brand-teal/10 border border-brand-teal/20 rounded-lg p-5 mb-8">
+              <p className="text-brand-blue/80 text-base m-0">
+                <strong><TranslatableText text="Note:" /></strong> <TranslatableText text="If your order contains both prescription glasses and sunglasses, the delivery time will be calculated based on prescription glasses (longer delivery time) as all items ship together." />
+              </p>
+            </div>
+
+            <h2 className="text-brand-h2 font-headline mt-12 mb-4 text-brand-blue">
+              <TranslatableText text="Free Shipping" />
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-6">
-              We offer fast shipping to all major cities in Lithuania including Vilnius, Kaunas, and Klaipėda. 
-              Most orders are delivered within 2-3 business days.
+              <TranslatableText text="We currently offer free standard shipping on all orders." />
             </p>
 
             <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              EU/Schengen Shipping
+              <TranslatableText text="Order Processing" />
             </h2>
             <p className="text-brand-blue/80 leading-relaxed mb-6">
-              We ship to all EU and Schengen countries. Delivery times vary by location, typically 3-7 business days.
-            </p>
-
-            <h2 className="text-brand-h2 font-headline mt-8 mb-4 text-brand-blue">
-              Free Shipping
-            </h2>
-            <p className="text-brand-blue/80 leading-relaxed mb-6">
-              Free shipping is available on orders over a certain amount. Check your cart for current shipping offers.
+              <TranslatableText text="Orders are typically processed within 48 hours. FocusRobin is not responsible for delays caused by customs, weather conditions, or other circumstances beyond our control." />
             </p>
           </div>
         </div>

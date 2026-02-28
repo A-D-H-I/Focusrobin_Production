@@ -138,11 +138,11 @@ export default function TryOnProductDetails({
         {originalPriceInEur && originalPriceInEur !== priceInEur && (
           <>
             <p className="text-xs text-muted-foreground line-through">{formatPrice(originalPriceInEur)}</p>
-            {product.discountPct && (
+            {product.discountPct ? (
               <Badge variant="destructive" className="text-xs px-1.5 py-0 h-5">
                 -{product.discountPct}%
               </Badge>
-            )}
+            ) : null}
           </>
         )}
       </div>
@@ -155,7 +155,7 @@ export default function TryOnProductDetails({
       )}
 
       {/* Rating */}
-      {product.averageRating && (
+      {product.averageRating ? (
         <div className="flex items-center gap-1.5">
           <div className="flex items-center">
             {[...Array(5)].map((_, i) => (
@@ -174,7 +174,7 @@ export default function TryOnProductDetails({
             ({product.reviewCount || 0})
           </span>
         </div>
-      )}
+      ) : null}
 
       {/* Color Selector */}
       <div>

@@ -118,6 +118,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
           select: {
             id: true,
             productId: true,
+            prescriptionGlassesId: true,
             variantId: true,
             quantity: true,
             prescriptionData: true,
@@ -144,6 +145,29 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
                 },
               },
             },
+            PrescriptionGlasses: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                basePrice: true,
+                discountPct: true,
+                PrescriptionGlassesVariant: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sku: true,
+                    price: true,
+                    stock: true,
+                    PrescriptionGlassesAsset: {
+                      where: { isPrimary: true },
+                      take: 1,
+                      select: { url: true },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -161,9 +185,12 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     // Allow items already in cart to be purchased even if stock goes low (reserve them)
     // But prevent checkout if items are fully sold out (stock = 0)
     for (const cartItem of cart.items) {
-      const variant = cartItem.Product.ProductVariant.find((v: any) => v.id === cartItem.variantId);
+      const product = cartItem.Product || cartItem.PrescriptionGlasses;
+      const variants = cartItem.Product ? cartItem.Product.ProductVariant : (cartItem.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
+      const variant = variants.find((v: any) => v.id === cartItem.variantId);
+
       if (!variant) {
-        return { error: `Variant not found for ${cartItem.Product.name}` };
+        return { error: `Variant not found for ${product?.name || 'Unknown Product'}` };
       }
 
       const stock = variant.stock !== null && variant.stock !== undefined ? Number(variant.stock) : null;
@@ -171,7 +198,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       // If stock is 0, item is fully sold out - prevent checkout
       if (stock === 0) {
         return {
-          error: `${cartItem.Product.name} (${variant.name}) is currently out of stock and cannot be purchased. Please remove it from your cart.`,
+          error: `${product?.name || 'Item'} (${variant.name}) is currently out of stock and cannot be purchased. Please remove it from your cart.`,
         };
       }
 
@@ -196,7 +223,8 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
 
     // Build order items from database cart (for order record)
     const orderItems: {
-      productId: string;
+      productId?: string | null;
+      prescriptionGlassesId?: string | null;
       variantId: string;
       productName: string;
       variantName: string;
@@ -214,8 +242,11 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
 
     let subtotal = 0;
     for (const cartItem of cart.items) {
-      const variant = cartItem.Product.ProductVariant.find((v: any) => v.id === cartItem.variantId);
-      if (!variant) continue;
+      const product = cartItem.Product || cartItem.PrescriptionGlasses;
+      const variants = cartItem.Product ? cartItem.Product.ProductVariant : (cartItem.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
+      const variant = variants.find((v: any) => v.id === cartItem.variantId);
+
+      if (!product || !variant) continue;
 
       // IMPORTANT: Only use prescription data directly from the cart item
       // This was stored when the user added the item with prescription to cart
@@ -225,27 +256,28 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       // Only use prescription pricing if the item has valid prescription data with totalNet
       if (prescriptionData?.rxPriceBreakdown?.totalNet) {
         price = Number(prescriptionData.rxPriceBreakdown.totalNet);
-        console.log(`[CHECKOUT] Item ${cartItem.Product.name}: Using prescription price €${price}`);
+        console.log(`[CHECKOUT] Item ${product.name}: Using prescription price €${price}`);
       } else {
         // No prescription or no totalNet - use regular frame price
         const basePrice = variant.price
           ? Number(variant.price)
-          : Number(cartItem.Product.basePrice);
-        const discountPct = cartItem.Product.discountPct || 0;
+          : Number(product.basePrice);
+        const discountPct = product.discountPct || 0;
         price = basePrice * (1 - discountPct / 100);
-        console.log(`[CHECKOUT] Item ${cartItem.Product.name}: Using frame price €${price} (base: €${basePrice}, discount: ${discountPct}%)`);
+        console.log(`[CHECKOUT] Item ${product.name}: Using frame price €${price} (base: €${basePrice}, discount: ${discountPct}%)`);
       }
 
       const itemTotal = price * cartItem.quantity;
       subtotal += itemTotal;
 
-      const primaryAsset = variant.ProductAsset[0];
+      const primaryAsset = cartItem.Product ? variant.ProductAsset?.[0] : (variant as any).PrescriptionGlassesAsset?.[0];
       const imageUrl = normalizeImageUrl(primaryAsset?.url || null);
 
       orderItems.push({
         productId: cartItem.productId,
+        prescriptionGlassesId: cartItem.prescriptionGlassesId,
         variantId: cartItem.variantId,
-        productName: cartItem.Product.name,
+        productName: product.name,
         variantName: variant.name,
         sku: variant.sku,
         quantity: cartItem.quantity,
@@ -255,7 +287,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         prescriptionData, // Only include actual prescription data from cart item
       });
 
-      console.log(`[CHECKOUT] Added order item: ${cartItem.Product.name} - ${variant.name}, qty: ${cartItem.quantity}, price: €${price}, total: €${itemTotal}, hasPrescription: ${!!prescriptionData}`);
+      console.log(`[CHECKOUT] Added order item: ${product.name} - ${variant.name}, qty: ${cartItem.quantity}, price: €${price}, total: €${itemTotal}, hasPrescription: ${!!prescriptionData}`);
     }
 
     // Create a SINGLE Stripe line item with the total from Order Summary
@@ -292,17 +324,21 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       // Extract frame price (base product price, before prescription lenses)
       // For ALL items (both regular and prescription), use the base product price
       const cartItem = cart.items.find((ci: any) =>
-        ci.productId === orderItem.productId && ci.variantId === orderItem.variantId
+        ci.variantId === orderItem.variantId &&
+        ((ci.productId && ci.productId === orderItem.productId) || (ci.prescriptionGlassesId && ci.prescriptionGlassesId === orderItem.prescriptionGlassesId))
       );
 
       if (cartItem) {
-        const variant = cartItem.Product.ProductVariant.find((v: any) => v.id === orderItem.variantId);
-        if (variant) {
+        const product = cartItem.Product || cartItem.PrescriptionGlasses;
+        const variants = cartItem.Product ? cartItem.Product.ProductVariant : (cartItem.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
+        const variant = variants.find((v: any) => v.id === orderItem.variantId);
+
+        if (product && variant) {
           // Get base frame price (before any prescription lenses)
           const basePrice = variant.price
             ? Number(variant.price)
-            : Number(cartItem.Product.basePrice);
-          const discountPct = cartItem.Product.discountPct || 0;
+            : Number(product.basePrice);
+          const discountPct = product.discountPct || 0;
           const framePrice = basePrice * (1 - discountPct / 100);
           frameSubtotal += framePrice * orderItem.quantity;
         }
@@ -448,7 +484,8 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         vatNumber: checkoutData.vatNumber || null,
         items: {
           create: orderItems.map((item) => ({
-            productId: item.productId,
+            productId: item.productId || null,
+            prescriptionGlassesId: item.prescriptionGlassesId || null,
             variantId: item.variantId,
             productName: item.productName,
             variantName: item.variantName,
@@ -599,7 +636,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         amount: item.price_data.unit_amount,
         quantity: item.quantity,
         itemTotal: (item.price_data.unit_amount * item.quantity) / 100,
-        hasImage: !!item.price_data.product_data.images,
+        hasImage: !!(item.price_data.product_data as any).images,
       })),
       totalAmount: finalStripeTotalEur,
       expectedAmount: exactStripeTotal,
@@ -756,8 +793,8 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         name: item.price_data.product_data.name,
         amount: item.price_data.unit_amount,
         quantity: item.quantity,
-        hasImages: !!item.price_data.product_data.images,
-        imageCount: item.price_data.product_data.images?.length || 0,
+        hasImages: !!(item.price_data.product_data as any).images,
+        imageCount: (item.price_data.product_data as any).images?.length || 0,
       })), null, 2));
       console.error("Success URL:", successUrl);
       console.error("Cancel URL:", cancelUrl);
@@ -1173,7 +1210,7 @@ export async function refundPendingOrders() {
 
     const result = await getPendingOrdersWithWallet();
 
-    if (!result.success || !result.orders || result.orders.length === 0) {
+    if ('error' in result || !result.success || !result.orders || result.orders.length === 0) {
       console.log(`[RefundPendingOrders] No pending orders found`);
       return { success: true, refunded: 0, ordersProcessed: 0 };
     }
@@ -1186,7 +1223,7 @@ export async function refundPendingOrders() {
     for (const order of result.orders) {
       try {
         const refundResult = await refundWalletForOrder(order.id);
-        if (refundResult.success && refundResult.refunded) {
+        if (!('error' in refundResult) && refundResult.success && refundResult.refunded) {
           totalRefunded += refundResult.refunded;
           ordersProcessed++;
           console.log(`[RefundPendingOrders] Refunded ${refundResult.refunded} EUR for order ${order.orderNumber}`);

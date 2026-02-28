@@ -16,6 +16,7 @@ export async function getPriceRange(): Promise<PriceRange> {
     // Fetch all products with their pricing
     const products = await prisma.product.findMany({
       select: {
+        brand: true,
         basePrice: true,
         discountPct: true,
       },
@@ -25,9 +26,19 @@ export async function getPriceRange(): Promise<PriceRange> {
       return { min: 0, max: 500 };
     }
 
-    // Calculate final prices (basePrice * (1 - discountPct/100))
+    // Calculate final prices (basePrice * (1 - discountPct/100)) with brand margin markup logic
     const prices = products.map((product) => {
-      const basePrice = Number(product.basePrice);
+      const isFocusRobin = (product.brand || '').trim().toLowerCase() === 'focusrobin';
+      const rawBasePrice = Number(product.basePrice);
+
+      let basePrice = rawBasePrice;
+      if (!isFocusRobin && rawBasePrice > 0) {
+        let priceWithMargin = (rawBasePrice * 1.10) + 13.5;
+        priceWithMargin = priceWithMargin * 1.21;
+        priceWithMargin = priceWithMargin * 1.015;
+        basePrice = priceWithMargin;
+      }
+
       const discountPct = product.discountPct || 0;
       const finalPrice = basePrice * (1 - discountPct / 100);
       return finalPrice;

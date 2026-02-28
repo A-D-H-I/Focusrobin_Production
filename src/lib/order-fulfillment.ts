@@ -542,6 +542,11 @@ export async function finalizeOrder(orderId: string) {
                                 cashbackAmount: true,
                             },
                         },
+                        PrescriptionGlasses: {
+                            select: {
+                                cashbackAmount: true,
+                            },
+                        }
                     },
                 },
             },
@@ -560,14 +565,29 @@ export async function finalizeOrder(orderId: string) {
         // 2. Update stock for each item
         console.log(`[Order Fulfillment] Updating stock for order ${order.orderNumber}...`);
         for (const item of order.items) {
-            await prisma.productVariant.update({
-                where: { id: item.variantId },
-                data: {
-                    stock: {
-                        decrement: item.quantity,
-                    },
-                },
-            });
+            try {
+                if (item.prescriptionGlassesId) {
+                    await prisma.prescriptionGlassesVariant.update({
+                        where: { id: item.variantId },
+                        data: {
+                            stock: {
+                                decrement: item.quantity,
+                            },
+                        },
+                    });
+                } else {
+                    await prisma.productVariant.update({
+                        where: { id: item.variantId },
+                        data: {
+                            stock: {
+                                decrement: item.quantity,
+                            },
+                        },
+                    });
+                }
+            } catch (stockError) {
+                console.error(`[Order Fulfillment] Failed to update stock for variant ${item.variantId}:`, stockError);
+            }
         }
 
         // 3. Clear the user's cart if userId exists
@@ -589,6 +609,8 @@ export async function finalizeOrder(orderId: string) {
             for (const item of order.items) {
                 if (item.Product?.cashbackAmount) {
                     totalCashback += Number(item.Product.cashbackAmount) * item.quantity;
+                } else if (item.PrescriptionGlasses?.cashbackAmount) {
+                    totalCashback += Number(item.PrescriptionGlasses.cashbackAmount) * item.quantity;
                 }
             }
             // Add promo code cashback

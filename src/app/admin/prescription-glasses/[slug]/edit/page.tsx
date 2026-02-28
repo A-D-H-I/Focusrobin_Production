@@ -17,6 +17,12 @@ export default async function EditPrescriptionGlassesPage({ params }: EditPrescr
         where: { slug: decodedSlug },
         include: {
             highlights: true,
+            PrescriptionGlassesVariant: {
+                include: {
+                    PrescriptionGlassesAsset: true,
+                },
+                orderBy: { createdAt: 'asc' },
+            },
         },
     });
 
@@ -60,6 +66,21 @@ export default async function EditPrescriptionGlassesPage({ params }: EditPrescr
             description: h.description,
             imageUrl: h.imageUrl,
             order: h.order,
+        })),
+        brand: (prescriptionGlasses as any).brand || 'FocusRobin',
+        variants: ((prescriptionGlasses as any).PrescriptionGlassesVariant || []).map((v: any) => ({
+            id: v.id,
+            name: v.name,
+            sku: v.sku,
+            colorName: v.colorName,
+            colorHex: v.colorHex,
+            lensColor: v.lensColor || '',
+            stock: v.stock || 0,
+            asset_nobg: v.PrescriptionGlassesAsset?.find((a: any) => a.type === 'NO_BG')?.url || '',
+            asset_glb: v.PrescriptionGlassesAsset?.find((a: any) => a.type === 'GLB')?.url || '',
+            asset_tryon: v.PrescriptionGlassesAsset?.find((a: any) => a.type === 'TRY_ON_2D')?.url || '',
+            asset_hover: v.PrescriptionGlassesAsset?.find((a: any) => a.type === 'HOVER')?.url || '',
+            asset_gallery: v.PrescriptionGlassesAsset?.filter((a: any) => a.type === 'GALLERY').map((a: any) => a.url).join(', ') || '',
         })),
     };
 

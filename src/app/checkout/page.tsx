@@ -1356,7 +1356,7 @@ export default function CheckoutPage() {
                                       const maxAmount = Math.min(walletBalance, subtotal + shipping);
                                       setWalletAmount(Math.min(amount, maxAmount));
                                     }}
-                                    className="w-24 h-8 text-sm"
+                                    className="w-24 h-8 text-[16px] md:text-sm"
                                   />
                                 </div>
                                 <div className="flex justify-between text-sm text-green-600">

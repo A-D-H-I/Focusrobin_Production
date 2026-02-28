@@ -387,11 +387,11 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
             </h3>
 
             {/* Star Rating */}
-            {product.averageRating && (
+            {product.averageRating ? (
               <div className="mb-1">
                 <StarRating rating={product.averageRating} count={product.reviewCount} />
               </div>
-            )}
+            ) : null}
 
             {/* Price Section */}
             <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -403,11 +403,11 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                   <p className="text-sm sm:text-base md:text-lg text-muted-foreground line-through">
                     {formatPrice(originalPriceInEur)}
                   </p>
-                  {discountPct && (
+                  {discountPct ? (
                     <span className="text-sm sm:text-base font-semibold text-rose-500">
                       -{discountPct}%
                     </span>
-                  )}
+                  ) : null}
                 </>
               )}
             </div>

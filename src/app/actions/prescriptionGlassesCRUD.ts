@@ -48,16 +48,16 @@ const prescriptionGlassesSchema = z.object({
   basePrice: z.number().positive().max(100000),
   discountPct: z.number().int().min(0).max(99).optional().default(0),
   cashbackAmount: z.number().nonnegative().max(1000).optional().default(0),
-  frameMaterial: z.string().trim().min(2).max(100),
-  lensMaterial: z.string().trim().max(100).optional().default("Polycarbonate"),
-  uvProtection: z.string().trim().min(2).max(50).optional().nullable(),
+  frameMaterial: z.string().trim().max(100).optional(),
+  lensMaterial: z.string().trim().max(100).optional(),
+  uvProtection: z.string().trim().max(50).optional().nullable(),
   glassShape: z.string().trim().max(100).optional().nullable(),
-  frameWidth: z.number().positive().optional(),
-  lensWidth: z.number().positive().optional(),
-  lensHeight: z.number().positive().optional(),
-  bridgeWidth: z.number().positive().optional(),
-  templeLength: z.number().positive().optional(),
-  weightBg: z.number().positive().optional(),
+  frameWidth: z.number().min(0).optional().default(0),
+  lensWidth: z.number().min(0).optional().default(0),
+  lensHeight: z.number().min(0).optional().default(0),
+  bridgeWidth: z.number().min(0).optional().default(0),
+  templeLength: z.number().min(0).optional().default(0),
+  weightBg: z.number().min(0).optional().default(0),
   tags: z.array(z.string().trim().max(50)).max(20).optional().default([]),
 });
 
@@ -130,8 +130,8 @@ export async function createPrescriptionGlasses(formData: FormData) {
     const weightBg = parseFloat(formData.get('weightBg') as string) || 0;
 
     // Specs
-    const frameMaterial = formData.get('frameMaterial') as string;
-    const lensMaterial = (formData.get('lensMaterial') as string) || 'Polycarbonate';
+    const frameMaterial = (formData.get('frameMaterial') as string) || '';
+    const lensMaterial = (formData.get('lensMaterial') as string) || '';
     const uvProtection = (formData.get('uvProtection') as string) || null;
     const glassShapeRaw = formData.get('glassShape') as string | null;
     const glassShape = glassShapeRaw?.trim() || null;
@@ -381,7 +381,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
               colorHex: variant.colorHex,
               lensColor: variant.lensColor,
               stock: variant.stock,
-              price: variant.price,
+              price: variant.price ?? null,
               PrescriptionGlassesAsset: {
                 create: assets,
               },
@@ -489,7 +489,14 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
     // Check if exists
     const existing = await prisma.prescriptionGlasses.findUnique({
       where: { id: validatedId.data },
-      select: { id: true, slug: true, highlights: true },
+      select: {
+        id: true,
+        slug: true,
+        highlights: true,
+        PrescriptionGlassesVariant: {
+          include: { PrescriptionGlassesAsset: true },
+        },
+      },
     });
 
     if (!existing) {
@@ -534,16 +541,16 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
     const tags = (formData.get('tags') as string)?.split(',').map(t => t.trim()).filter(Boolean) || [];
 
     // Dimensions
-    const frameWidth = parseFloat(formData.get('frameWidth') as string) || undefined;
-    const lensWidth = parseFloat(formData.get('lensWidth') as string) || undefined;
-    const lensHeight = parseFloat(formData.get('lensHeight') as string) || undefined;
-    const bridgeWidth = parseFloat(formData.get('bridgeWidth') as string) || undefined;
-    const templeLength = parseFloat(formData.get('templeLength') as string) || undefined;
-    const weightBg = parseFloat(formData.get('weightBg') as string) || undefined;
+    const frameWidth = parseFloat(formData.get('frameWidth') as string) || 0;
+    const lensWidth = parseFloat(formData.get('lensWidth') as string) || 0;
+    const lensHeight = parseFloat(formData.get('lensHeight') as string) || 0;
+    const bridgeWidth = parseFloat(formData.get('bridgeWidth') as string) || 0;
+    const templeLength = parseFloat(formData.get('templeLength') as string) || 0;
+    const weightBg = parseFloat(formData.get('weightBg') as string) || 0;
 
     // Specs
-    const frameMaterial = formData.get('frameMaterial') as string;
-    const lensMaterial = (formData.get('lensMaterial') as string) || 'Polycarbonate';
+    const frameMaterial = (formData.get('frameMaterial') as string) || '';
+    const lensMaterial = (formData.get('lensMaterial') as string) || '';
     const uvProtection = (formData.get('uvProtection') as string) || null;
     const glassShapeRaw = formData.get('glassShape') as string | null;
     const glassShape = glassShapeRaw?.trim() || null;
@@ -647,6 +654,92 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
           order: h.order,
         })),
       });
+    }
+
+    // Handle variant updates
+    const variantCount = parseInt(formData.get('variantCount') as string) || 0;
+    const submittedVariantIds: string[] = [];
+
+    for (let i = 0; i < variantCount; i++) {
+      const variantId = formData.get(`variant-${i}-id`) as string | null;
+      const variantName = formData.get(`variant-${i}-name`) as string;
+      const variantSku = formData.get(`variant-${i}-sku`) as string;
+      const variantColorName = formData.get(`variant-${i}-colorName`) as string;
+      const variantColorHex = formData.get(`variant-${i}-colorHex`) as string;
+      const variantLensColor = formData.get(`variant-${i}-lensColor`) as string;
+      const variantStock = parseInt(formData.get(`variant-${i}-stock`) as string) || 0;
+      const asset_nobg = (formData.get(`variant-${i}-asset_nobg`) as string) || '';
+      const asset_glb = (formData.get(`variant-${i}-asset_glb`) as string) || '';
+      const asset_tryon = (formData.get(`variant-${i}-asset_tryon`) as string) || '';
+      const asset_hover = (formData.get(`variant-${i}-asset_hover`) as string) || '';
+      const asset_gallery = (formData.get(`variant-${i}-asset_gallery`) as string) || '';
+
+      if (!variantName || !variantSku || !variantColorHex) continue;
+
+      // Build assets array
+      const newAssets: Array<{ url: string; type: AssetType; isPrimary: boolean }> = [];
+      if (asset_nobg) newAssets.push({ url: asset_nobg, type: AssetType.NO_BG, isPrimary: false });
+      if (asset_glb) newAssets.push({ url: asset_glb, type: AssetType.GLB, isPrimary: false });
+      if (asset_tryon) newAssets.push({ url: asset_tryon, type: AssetType.TRY_ON_2D, isPrimary: false });
+      if (asset_hover) newAssets.push({ url: asset_hover, type: AssetType.HOVER, isPrimary: false });
+      if (asset_gallery) {
+        const galleryUrls = asset_gallery.split(',').map(u => u.trim()).filter(Boolean);
+        galleryUrls.forEach((url, idx) => newAssets.push({ url, type: AssetType.GALLERY, isPrimary: idx === 0 }));
+      }
+
+      if (variantId) {
+        // Update existing variant
+        submittedVariantIds.push(variantId);
+        await prisma.prescriptionGlassesVariant.update({
+          where: { id: variantId },
+          data: {
+            name: variantName,
+            sku: variantSku,
+            colorName: variantColorName,
+            colorHex: variantColorHex,
+            lensColor: variantLensColor || '',
+            stock: variantStock,
+          },
+        });
+        // Replace assets: delete old, create new
+        await prisma.prescriptionGlassesAsset.deleteMany({ where: { variantId } });
+        if (newAssets.length > 0) {
+          await prisma.prescriptionGlassesAsset.createMany({
+            data: newAssets.map(a => ({ ...a, variantId })),
+          });
+        }
+      } else {
+        // Create new variant
+        const newVariant = await prisma.prescriptionGlassesVariant.create({
+          data: {
+            name: variantName,
+            sku: variantSku,
+            colorName: variantColorName,
+            colorHex: variantColorHex,
+            lensColor: variantLensColor || '',
+            stock: variantStock,
+            prescriptionGlassesId: validatedId.data,
+            PrescriptionGlassesAsset: { create: newAssets },
+          },
+        });
+        submittedVariantIds.push(newVariant.id);
+      }
+    }
+
+    // Delete variants that were removed in the form
+    if (existing.PrescriptionGlassesVariant && existing.PrescriptionGlassesVariant.length > 0) {
+      for (const oldVariant of existing.PrescriptionGlassesVariant) {
+        if (!submittedVariantIds.includes(oldVariant.id)) {
+          // Delete assets from S3
+          for (const asset of oldVariant.PrescriptionGlassesAsset) {
+            if (asset.url) {
+              const key = getKeyFromUrl(asset.url);
+              if (key) await deleteFromS3(key);
+            }
+          }
+          await prisma.prescriptionGlassesVariant.delete({ where: { id: oldVariant.id } });
+        }
+      }
     }
 
     revalidatePath('/shop/prescription-glasses');

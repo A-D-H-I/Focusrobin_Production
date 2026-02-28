@@ -128,6 +128,7 @@ export async function POST(request: Request) {
           select: {
             id: true,
             productId: true,
+            prescriptionGlassesId: true,
             variantId: true,
             quantity: true,
             prescriptionData: true,
@@ -154,6 +155,29 @@ export async function POST(request: Request) {
                 },
               },
             },
+            PrescriptionGlasses: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                basePrice: true,
+                discountPct: true,
+                PrescriptionGlassesVariant: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sku: true,
+                    price: true,
+                    stock: true,
+                    PrescriptionGlassesAsset: {
+                      where: { isPrimary: true },
+                      take: 1,
+                      select: { url: true },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -168,16 +192,19 @@ export async function POST(request: Request) {
 
     // Verify stock for all items
     for (const cartItem of cart.items) {
-      const variant = cartItem.Product.ProductVariant.find((v: any) => v.id === cartItem.variantId);
+      const product = cartItem.Product || cartItem.PrescriptionGlasses;
+      const variants = cartItem.Product ? cartItem.Product.ProductVariant : (cartItem.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
+      const variant = variants.find((v: any) => v.id === cartItem.variantId);
+
       if (!variant) {
         return NextResponse.json(
-          { error: `Variant not found for ${cartItem.Product.name}` },
+          { error: `Variant not found for ${product?.name || 'Unknown Product'}` },
           { status: 400 }
         );
       }
       if (variant.stock < cartItem.quantity) {
         return NextResponse.json(
-          { error: `Not enough stock for ${cartItem.Product.name} (${variant.name}). Available: ${variant.stock}` },
+          { error: `Not enough stock for ${product?.name || 'Item'} (${variant.name}). Available: ${variant.stock}` },
           { status: 400 }
         );
       }
@@ -196,7 +223,8 @@ export async function POST(request: Request) {
 
     // Build order items from database cart
     const orderItems: {
-      productId: string;
+      productId?: string | null;
+      prescriptionGlassesId?: string | null;
       variantId: string;
       productName: string;
       variantName: string;
@@ -210,8 +238,11 @@ export async function POST(request: Request) {
 
     let subtotal = 0;
     for (const cartItem of cart.items) {
-      const variant = cartItem.Product.ProductVariant.find((v: any) => v.id === cartItem.variantId);
-      if (!variant) continue;
+      const product = cartItem.Product || cartItem.PrescriptionGlasses;
+      const variants = cartItem.Product ? cartItem.Product.ProductVariant : (cartItem.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
+      const variant = variants.find((v: any) => v.id === cartItem.variantId);
+
+      if (!product || !variant) continue;
 
       const prescriptionData = cartItem.prescriptionData ? (cartItem.prescriptionData as any) : null;
 
@@ -221,21 +252,22 @@ export async function POST(request: Request) {
       } else {
         const basePrice = variant.price
           ? Number(variant.price)
-          : Number(cartItem.Product.basePrice);
-        const discountPct = cartItem.Product.discountPct || 0;
+          : Number(product.basePrice);
+        const discountPct = product.discountPct || 0;
         price = basePrice * (1 - discountPct / 100);
       }
 
       const itemTotal = price * cartItem.quantity;
       subtotal += itemTotal;
 
-      const primaryAsset = variant.ProductAsset[0];
+      const primaryAsset = cartItem.Product ? variant.ProductAsset?.[0] : (variant as any).PrescriptionGlassesAsset?.[0];
       const imageUrl = normalizeImageUrl(primaryAsset?.url || null);
 
       orderItems.push({
         productId: cartItem.productId,
+        prescriptionGlassesId: cartItem.prescriptionGlassesId,
         variantId: cartItem.variantId,
-        productName: cartItem.Product.name,
+        productName: product.name,
         variantName: variant.name,
         sku: variant.sku,
         quantity: cartItem.quantity,
@@ -262,17 +294,21 @@ export async function POST(request: Request) {
       // Extract frame price (base product price, before prescription lenses)
       // For ALL items (both regular and prescription), use the base product price
       const cartItem = cart.items.find((ci: any) =>
-        ci.productId === orderItem.productId && ci.variantId === orderItem.variantId
+        ci.variantId === orderItem.variantId &&
+        ((ci.productId && ci.productId === orderItem.productId) || (ci.prescriptionGlassesId && ci.prescriptionGlassesId === orderItem.prescriptionGlassesId))
       );
 
       if (cartItem) {
-        const variant = cartItem.Product.ProductVariant.find((v: any) => v.id === orderItem.variantId);
-        if (variant) {
+        const product = cartItem.Product || cartItem.PrescriptionGlasses;
+        const variants = cartItem.Product ? cartItem.Product.ProductVariant : (cartItem.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
+        const variant = variants.find((v: any) => v.id === orderItem.variantId);
+
+        if (product && variant) {
           // Get base frame price (before any prescription lenses)
           const basePrice = variant.price
             ? Number(variant.price)
-            : Number(cartItem.Product.basePrice);
-          const discountPct = cartItem.Product.discountPct || 0;
+            : Number(product.basePrice);
+          const discountPct = product.discountPct || 0;
           const framePrice = basePrice * (1 - discountPct / 100);
           frameSubtotal += framePrice * orderItem.quantity;
         }
@@ -441,7 +477,8 @@ export async function POST(request: Request) {
           vatNumber: body.vatNumber || null,
           items: {
             create: orderItems.map((item) => ({
-              productId: item.productId,
+              productId: item.productId || null,
+              prescriptionGlassesId: item.prescriptionGlassesId || null,
               variantId: item.variantId,
               productName: item.productName,
               variantName: item.variantName,

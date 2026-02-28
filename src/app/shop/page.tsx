@@ -385,6 +385,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         id: true,
         name: true,
         slug: true,
+        brand: true,
         basePrice: true,
         discountPct: true,
         averageRating: true,
@@ -406,6 +407,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
             stock: true,
             colorHex: true,
             colorName: true,
+            textureImageUrl: true,
             ProductAsset: {
               take: 5, // Take more assets to ensure we get HOVER/GALLERY images
               select: {
@@ -440,7 +442,17 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     const maxPrice = maxPriceParam ? parseFloat(maxPriceParam) : undefined;
 
     prismaProducts = prismaProducts.filter((product: any) => {
-      const basePrice = Number(product.basePrice);
+      const isFocusRobin = (product.brand || '').trim().toLowerCase() === 'focusrobin';
+      const rawBasePrice = Number(product.basePrice);
+
+      let basePrice = rawBasePrice;
+      if (!isFocusRobin && rawBasePrice > 0) {
+        let priceWithMargin = (rawBasePrice * 1.10) + 13.5;
+        priceWithMargin = priceWithMargin * 1.21;
+        priceWithMargin = priceWithMargin * 1.015;
+        basePrice = priceWithMargin;
+      }
+
       const discountPct = product.discountPct || 0;
       const finalPrice = basePrice * (1 - discountPct / 100);
 

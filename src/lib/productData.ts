@@ -29,9 +29,9 @@ export interface Product {
   categories: string[];
   warranty: string;
   description: string;
-  lensMaterial: string;
-  frameMaterial: string;
-  uvProtection: string;
+  lensMaterial?: string;
+  frameMaterial?: string;
+  uvProtection?: string;
   averageRating?: number; // Average rating from reviews
   reviewCount?: number; // Total number of reviews
   size: {
@@ -54,6 +54,7 @@ export interface Product {
   isBioBased?: boolean;
 
   customFeatures?: string[];
+  tags?: string[];
 
   // Product Highlights
   showHighlights?: boolean;

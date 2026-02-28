@@ -95,8 +95,8 @@ export default function CartPage() {
   // formatPrice is now provided by usePrice hook with full currency conversion
 
   return (
-    <div className="flex flex-col min-h-screen bg-brand-white pb-[200px] sm:pb-0">
-      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-24 sm:pb-16">
+    <div className="flex flex-col min-h-screen bg-brand-white">
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-8 sm:pb-16">
         <div className="container mx-auto px-4 sm:px-6">
           <h1 className="text-brand-h1 font-headline text-brand-blue mb-8 text-center">
             <TranslatableText text="Shopping Cart" />
@@ -591,6 +591,8 @@ export default function CartPage() {
         </div>
       </main>
       <Footer />
+      {/* Spacer for mobile fixed bottom bar so footer can be scrolled above it */}
+      <div className="block sm:hidden h-[150px] bg-brand-white" />
     </div>
   );
 }

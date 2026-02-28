@@ -229,11 +229,11 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
         {originalPriceInEur && originalPriceInEur !== priceInEur && (
           <>
             <span className="text-base text-muted-foreground line-through">{formatPrice(originalPriceInEur)}</span>
-            {product.discountPct && (
+            {product.discountPct ? (
               <Badge className="bg-red-500 hover:bg-red-500 text-white text-sm px-2 py-0 h-6">
                 -{product.discountPct}%
               </Badge>
-            )}
+            ) : null}
           </>
         )}
         {cashbackInEur !== null && cashbackInEur > 0 && (
@@ -354,6 +354,20 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
           )}>
             <TranslatableText text="Only" /> {selectedVariant?.stock || 0} <TranslatableText text="left in stock" />
           </span>
+        )}
+      </div>
+
+      {/* Tags Details */}
+      <div className="pt-2 flex flex-col gap-1">
+        {product.tags && product.tags.length > 0 && (
+          <p className="text-sm text-muted-foreground m-0 flex flex-wrap gap-1 items-center">
+            <span className="font-medium min-w-[40px]"><TranslatableText text="Tags" />:</span>
+            <span className="flex flex-wrap gap-1">
+              {product.tags.map(tag => (
+                <span key={tag} className="font-semibold text-foreground bg-muted/50 px-1.5 py-0.5 rounded text-xs">{tag}</span>
+              ))}
+            </span>
+          </p>
         )}
       </div>
 

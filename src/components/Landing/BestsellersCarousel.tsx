@@ -371,11 +371,11 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                             <p className="text-sm text-muted-foreground line-through drop-shadow-md">
                               {formatPrice(parseEurPrice(product.originalPrice))}
                             </p>
-                            {product.discountPct && (
+                            {product.discountPct ? (
                               <span className="text-xs font-semibold text-destructive bg-white/90 px-2 py-0.5 rounded drop-shadow-md">
                                 -{product.discountPct}%
                               </span>
-                            )}
+                            ) : null}
                           </>
                         )}
                       </div>
@@ -399,8 +399,8 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                                 handleVariantSelect(variantIndex);
                               }}
                               className={`h-6 w-6 rounded-full border-2 transition-all relative z-40 ${selectedVariantIndex === variantIndex
-                                  ? "border-brand-blue ring-2 ring-brand-blue ring-offset-2 scale-125"
-                                  : "border-white/50 ring-1 ring-border/20 hover:scale-110"
+                                ? "border-brand-blue ring-2 ring-brand-blue ring-offset-2 scale-125"
+                                : "border-white/50 ring-1 ring-border/20 hover:scale-110"
                                 } shadow-sm cursor-pointer`}
                               style={{ backgroundColor: variant.hex }}
                               title={variant.name}
@@ -460,8 +460,8 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
               key={index}
               onClick={() => emblaApi?.scrollTo(index)}
               className={`transition-all duration-300 rounded-full ${index === selectedIndex
-                  ? "w-8 h-1.5 bg-brand-blue"
-                  : "w-2 h-2 bg-brand-blue/20 hover:bg-brand-blue/40"
+                ? "w-8 h-1.5 bg-brand-blue"
+                : "w-2 h-2 bg-brand-blue/20 hover:bg-brand-blue/40"
                 }`}
               aria-label={`Go to slide ${index + 1}`}
             />

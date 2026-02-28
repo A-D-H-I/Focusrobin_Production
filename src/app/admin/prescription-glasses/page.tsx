@@ -75,6 +75,19 @@ export default async function AdminPrescriptionGlassesPage() {
             );
             const imageUrl = firstGalleryAsset?.url || '/placeholder.png';
 
+            // Calculate the final price with margin (matching admin form logic)
+            const isFocusRobin = (glasses.brand || '').trim().toLowerCase() === 'focusrobin';
+            const rawBasePrice = Number(glasses.basePrice);
+            let effectiveBasePrice = rawBasePrice;
+            if (!isFocusRobin && rawBasePrice > 0) {
+              let p = (rawBasePrice * 1.10) + 13.5;
+              p = p * 1.21;
+              p = p * 1.015;
+              effectiveBasePrice = p;
+            }
+            const discountPct = glasses.discountPct || 0;
+            const finalPrice = effectiveBasePrice * (1 - discountPct / 100);
+
             return (
               <Card key={glasses.id} className="overflow-hidden">
                 <div className="relative aspect-video bg-muted">
@@ -103,7 +116,12 @@ export default async function AdminPrescriptionGlassesPage() {
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Price:</span>
                     <span className="font-semibold">
-                      €{Number(glasses.basePrice).toFixed(2)}
+                      €{finalPrice.toFixed(2)}
+                      {(glasses.discountPct ?? 0) > 0 && (
+                        <span className="ml-2 text-xs line-through text-muted-foreground">
+                          €{effectiveBasePrice.toFixed(2)}
+                        </span>
+                      )}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">

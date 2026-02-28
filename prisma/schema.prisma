@@ -131,6 +131,9 @@ model PrescriptionGlasses {
   PrescriptionGlassesOffer   PrescriptionGlassesOffer?
   PrescriptionGlassesVariant PrescriptionGlassesVariant[]
   highlights                 PrescriptionHighlight[]
+  CartItem                   CartItem[]
+  Wishlist                   Wishlist[]
+  OrderItems                 OrderItem[]
 }
 
 model PrescriptionHighlight {
@@ -312,27 +315,32 @@ model Cart {
 }
 
 model CartItem {
-  id               String   @id @default(cuid())
-  cartId           String
-  productId        String
-  variantId        String
-  quantity         Int      @default(1)
-  prescriptionData Json?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  Cart             Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  Product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id                    String               @id @default(cuid())
+  cartId                String
+  productId             String?
+  prescriptionGlassesId String?
+  variantId             String
+  quantity              Int                  @default(1)
+  prescriptionData      Json?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  Cart                  Cart                 @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  Product               Product?             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  PrescriptionGlasses   PrescriptionGlasses? @relation(fields: [prescriptionGlassesId], references: [id], onDelete: Cascade)
 }
 
 model Wishlist {
-  id        String   @id @default(cuid())
-  userId    String
-  productId String
-  createdAt DateTime @default(now())
-  Product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                    String               @id @default(cuid())
+  userId                String
+  productId             String?
+  prescriptionGlassesId String?
+  createdAt             DateTime             @default(now())
+  Product               Product?             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  PrescriptionGlasses   PrescriptionGlasses? @relation(fields: [prescriptionGlassesId], references: [id], onDelete: Cascade)
+  User                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, productId])
+  @@index([userId, productId])
+  @@index([userId, prescriptionGlassesId])
 }
 
 model Wallet {
@@ -674,24 +682,27 @@ model Order {
 }
 
 model OrderItem {
-  id               String   @id @default(cuid())
-  orderId          String
-  productId        String?
-  variantId        String
-  productName      String
-  variantName      String
-  sku              String
-  quantity         Int
-  price            Decimal  @db.Decimal(10, 2)
-  total            Decimal  @db.Decimal(10, 2)
-  imageUrl         String?
-  prescriptionData Json?
-  createdAt        DateTime @default(now())
-  Order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  Product          Product? @relation(fields: [productId], references: [id])
+  id                    String               @id @default(cuid())
+  orderId               String
+  productId             String?
+  prescriptionGlassesId String?
+  variantId             String
+  productName           String
+  variantName           String
+  sku                   String
+  quantity              Int
+  price                 Decimal              @db.Decimal(10, 2)
+  total                 Decimal              @db.Decimal(10, 2)
+  imageUrl              String?
+  prescriptionData      Json?
+  createdAt             DateTime             @default(now())
+  Order                 Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  Product               Product?             @relation(fields: [productId], references: [id])
+  PrescriptionGlasses   PrescriptionGlasses? @relation(fields: [prescriptionGlassesId], references: [id])
 
   @@index([orderId])
   @@index([productId])
+  @@index([prescriptionGlassesId])
 }
 
 model CurrencyRate {

@@ -16,6 +16,7 @@ export async function getPrescriptionGlassesPriceRange(): Promise<PriceRange> {
     // Fetch all prescription glasses with their pricing
     const prescriptionGlasses = await prisma.prescriptionGlasses.findMany({
       select: {
+        brand: true,
         basePrice: true,
         discountPct: true,
       },
@@ -25,9 +26,19 @@ export async function getPrescriptionGlassesPriceRange(): Promise<PriceRange> {
       return { min: 0, max: 500 };
     }
 
-    // Calculate final prices (basePrice * (1 - discountPct/100))
+    // Calculate final prices (basePrice * (1 - discountPct/100)) with brand margin markup logic
     const prices = prescriptionGlasses.map((glasses) => {
-      const basePrice = Number(glasses.basePrice);
+      const isFocusRobin = (glasses.brand || '').trim().toLowerCase() === 'focusrobin';
+      const rawBasePrice = Number(glasses.basePrice);
+
+      let basePrice = rawBasePrice;
+      if (!isFocusRobin && rawBasePrice > 0) {
+        let priceWithMargin = (rawBasePrice * 1.10) + 13.5;
+        priceWithMargin = priceWithMargin * 1.21;
+        priceWithMargin = priceWithMargin * 1.015;
+        basePrice = priceWithMargin;
+      }
+
       const discountPct = glasses.discountPct || 0;
       const finalPrice = basePrice * (1 - discountPct / 100);
       return finalPrice;

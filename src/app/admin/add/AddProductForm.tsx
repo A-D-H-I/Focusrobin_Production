@@ -34,6 +34,7 @@ export function AddProductForm() {
   const [basePrice, setBasePrice] = useState<string>('');
   const [discountPct, setDiscountPct] = useState<string>('0');
   const [cashbackAmount, setCashbackAmount] = useState<string>('0');
+  const [brand, setBrand] = useState<string>('FocusRobin');
 
   // Color Families State
   const [colorFamilies, setColorFamilies] = useState<Array<{ name: string, hex: string }>>([]);
@@ -96,12 +97,27 @@ export function AddProductForm() {
     setHighlights(updated);
   };
 
-  // Calculate discounted price
+  // Calculate discounted price with dynamic margins for non-FocusRobin products
   const calculateDiscountedPrice = () => {
-    if (!basePrice || !discountPct) return '';
-    const price = parseFloat(basePrice);
+    if (!basePrice) return '';
+    let price = parseFloat(basePrice);
+    if (isNaN(price)) return '';
+
+    // Apply margin calculation if not FocusRobin
+    const isFocusRobin = brand.trim().toLowerCase() === 'focusrobin';
+    if (!isFocusRobin) {
+      // Base Price + 10% Margin + 13.5 EUR + 21% VAT
+      price = (price * 1.10) + 13.5;
+      price = price * 1.21;
+      // + 1.5% Stripe
+      // To add 1.5% on top of the current total, we divide by (1 - 0.015) to ensure we get exactly 1.5% of the FINAL price as fee, 
+      // or we just multiply by 1.015. I'll multiply by 1.015 as per standard markup.
+      price = price * 1.015;
+    }
+
     const discount = parseFloat(discountPct) || 0;
-    if (isNaN(price) || discount < 0 || discount > 100) return '';
+    if (discount < 0 || discount > 100) return '';
+
     const discounted = price * (1 - discount / 100);
     return discounted.toFixed(2);
   };
@@ -257,7 +273,13 @@ export function AddProductForm() {
 
           <div className="space-y-2">
             <Label htmlFor="brand">Brand</Label>
-            <Input id="brand" name="brand" placeholder="FocusRobin" defaultValue="FocusRobin" />
+            <Input
+              id="brand"
+              name="brand"
+              placeholder="FocusRobin"
+              value={brand}
+              onChange={(e) => setBrand(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
@@ -360,7 +382,9 @@ export function AddProductForm() {
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">
-                Automatically calculated from base price and discount percentage
+                {brand.trim().toLowerCase() === 'focusrobin'
+                  ? 'Automatically calculated from base price and discount percentage'
+                  : 'Calculated with margins: Base + 10% margin + 13.5 EUR shipping + 21% VAT + 1.5% Stripe'}
               </p>
             </div>
           </div>
@@ -384,68 +408,62 @@ export function AddProductForm() {
         <CardContent>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="frameWidth">Frame Width *</Label>
+              <Label htmlFor="frameWidth">Frame Width</Label>
               <Input
                 id="frameWidth"
                 name="frameWidth"
                 type="number"
                 step="0.1"
-                required
                 placeholder="140"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lensWidth">Lens Width *</Label>
+              <Label htmlFor="lensWidth">Lens Width</Label>
               <Input
                 id="lensWidth"
                 name="lensWidth"
                 type="number"
                 step="0.1"
-                required
                 placeholder="58"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lensHeight">Lens Height *</Label>
+              <Label htmlFor="lensHeight">Lens Height</Label>
               <Input
                 id="lensHeight"
                 name="lensHeight"
                 type="number"
                 step="0.1"
-                required
                 placeholder="50"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="bridgeWidth">Bridge Width *</Label>
+              <Label htmlFor="bridgeWidth">Bridge Width</Label>
               <Input
                 id="bridgeWidth"
                 name="bridgeWidth"
                 type="number"
                 step="0.1"
-                required
                 placeholder="14"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="templeLength">Temple Length *</Label>
+              <Label htmlFor="templeLength">Temple Length</Label>
               <Input
                 id="templeLength"
                 name="templeLength"
                 type="number"
                 step="0.1"
-                required
                 placeholder="145"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="weightBg">Weight (g) *</Label>
+              <Label htmlFor="weightBg">Weight (g)</Label>
               <Input
                 id="weightBg"
                 name="weightBg"
                 type="number"
                 step="0.1"
-                required
                 placeholder="24"
               />
             </div>
@@ -461,29 +479,26 @@ export function AddProductForm() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="frameMaterial">Frame Material *</Label>
+              <Label htmlFor="frameMaterial">Frame Material</Label>
               <Input
                 id="frameMaterial"
                 name="frameMaterial"
-                required
                 placeholder="e.g., Titanium, Acetate"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="lensMaterial">Lens Material *</Label>
+              <Label htmlFor="lensMaterial">Lens Material</Label>
               <Input
                 id="lensMaterial"
                 name="lensMaterial"
-                required
                 placeholder="e.g., Polycarbonate, CR-39"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="uvProtection">UV Protection *</Label>
+              <Label htmlFor="uvProtection">UV Protection</Label>
               <Input
                 id="uvProtection"
                 name="uvProtection"
-                required
                 placeholder="e.g., UV400 Polarized"
               />
             </div>
