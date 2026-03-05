@@ -68,31 +68,39 @@ export default function ProductDimensions({ dimensions }: ProductDimensionsProps
       <div className="overflow-x-auto">
         <Table>
           <TableBody>
-            <TableRow>
-              <TableCell className="font-medium text-center border text-sm sm:text-base">Frame width</TableCell>
-              <TableCell className="text-center border text-sm sm:text-base">
-                {formatValue(frameWidth)}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell className="font-medium text-center border text-sm sm:text-base">Lens width</TableCell>
-              <TableCell className="text-center border text-sm sm:text-base">
-                {formatValue(lensWidth)}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell className="font-medium text-center border text-sm sm:text-base">Bridge</TableCell>
-              <TableCell className="text-center border text-sm sm:text-base">
-                {formatValue(bridgeWidth)}
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell className="font-medium text-center border text-sm sm:text-base">Lens height</TableCell>
-              <TableCell className="text-center border text-sm sm:text-base">
-                {formatValue(lensHeight)}
-              </TableCell>
-            </TableRow>
-            {templeLength !== undefined && (
+            {frameWidth !== undefined && frameWidth > 0 && (
+              <TableRow>
+                <TableCell className="font-medium text-center border text-sm sm:text-base">Frame width</TableCell>
+                <TableCell className="text-center border text-sm sm:text-base">
+                  {formatValue(frameWidth)}
+                </TableCell>
+              </TableRow>
+            )}
+            {lensWidth !== undefined && lensWidth > 0 && (
+              <TableRow>
+                <TableCell className="font-medium text-center border text-sm sm:text-base">Lens width</TableCell>
+                <TableCell className="text-center border text-sm sm:text-base">
+                  {formatValue(lensWidth)}
+                </TableCell>
+              </TableRow>
+            )}
+            {bridgeWidth !== undefined && bridgeWidth > 0 && (
+              <TableRow>
+                <TableCell className="font-medium text-center border text-sm sm:text-base">Bridge</TableCell>
+                <TableCell className="text-center border text-sm sm:text-base">
+                  {formatValue(bridgeWidth)}
+                </TableCell>
+              </TableRow>
+            )}
+            {lensHeight !== undefined && lensHeight > 0 && (
+              <TableRow>
+                <TableCell className="font-medium text-center border text-sm sm:text-base">Lens height</TableCell>
+                <TableCell className="text-center border text-sm sm:text-base">
+                  {formatValue(lensHeight)}
+                </TableCell>
+              </TableRow>
+            )}
+            {templeLength !== undefined && templeLength > 0 && (
               <TableRow>
                 <TableCell className="font-medium text-center border text-sm sm:text-base">Temple length</TableCell>
                 <TableCell className="text-center border text-sm sm:text-base">

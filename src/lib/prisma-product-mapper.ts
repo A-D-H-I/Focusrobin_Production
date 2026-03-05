@@ -180,6 +180,7 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     id: productId, // Use database ID or slug as fallback
     slug: productSlug, // URL-friendly slug for routing
     name: prismaProduct.name,
+    brand: prismaProduct.brand || 'FocusRobin',
     productType: 'sunglasses', // Products from Product table are sunglasses
     price: finalPrice, // Final price after discount
     originalPrice: hasDiscount ? originalPrice : undefined, // Original price if discounted

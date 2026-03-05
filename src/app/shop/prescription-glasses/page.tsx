@@ -6,7 +6,7 @@ import { normalizeImageUrl } from "@/lib/normalize-image-url";
 import { getPrescriptionGlassesGlassShapes } from "@/app/actions/getPrescriptionGlassesGlassShapes";
 import { getPrescriptionGlassesGenderCounts } from "@/app/actions/getPrescriptionGlassesGenderCounts";
 import { getPrescriptionGlassesMaterials } from "@/app/actions/getPrescriptionGlassesMaterials";
-import { getPrescriptionGlassesColors } from "@/app/actions/getPrescriptionGlassesColors";
+import { getAvailableFrameColors } from "@/app/actions/getAvailableColors";
 import { getPrescriptionGlassesPriceRange } from "@/app/actions/getPrescriptionGlassesPriceRange";
 import { getAvailableBrands, type AvailableBrand } from "@/app/actions/getAvailableBrands";
 import { Gender, Prisma } from "@prisma/client";
@@ -23,9 +23,26 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
     const brandFilter = searchParamsValue.brand as string | string[] | undefined;
     const minPriceParam = searchParamsValue.minPrice as string | undefined;
     const maxPriceParam = searchParamsValue.maxPrice as string | undefined;
+    const filterType = searchParamsValue.filter as string | undefined;
 
     const whereClause: any = {};
     const andConditions: any[] = [];
+
+    const hasAdditionalFilters =
+        colorFilter || genderFilter || glassShapeFilter || materialFilter || brandFilter || minPriceParam || maxPriceParam;
+
+    if (!hasAdditionalFilters && filterType) {
+        if (filterType === 'new-arrivals') {
+            whereClause.isNewlyAdded = true;
+        } else if (filterType === 'bestsellers') {
+            whereClause.isUniqueDesign = true;
+        } else {
+            whereClause.brand = {
+                equals: decodeURIComponent(filterType).trim(),
+                mode: 'insensitive' as Prisma.QueryMode,
+            };
+        }
+    }
 
     // Filter by gender
     if (genderFilter) {
@@ -88,22 +105,55 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
         }
     }
 
-    // Filter by color
-    if (colorFilter) {
-        const colors = Array.isArray(colorFilter) ? colorFilter : [colorFilter];
-        const colorHexes: string[] = [];
-        colors.forEach(c => {
-            const normalized = c.startsWith('#') ? c.toLowerCase() : `#${c.toLowerCase()}`;
-            if (!colorHexes.includes(normalized)) colorHexes.push(normalized);
-        });
+    // Filter by color(s) if provided
+    const colorHexes: string[] = [];
+    const colorFamilies: string[] = [];
 
-        if (colorHexes.length > 0) {
-            if (colorHexes.length === 1) {
-                whereClause.PrescriptionGlassesVariant = { some: { colorHex: colorHexes[0] } };
+    const processColor = (val: string) => {
+        const decoded = decodeURIComponent(val).trim();
+        if (decoded.startsWith('#')) {
+            const normalized = decoded.toLowerCase();
+            if (!colorHexes.includes(normalized)) colorHexes.push(normalized);
+        } else {
+            const isHex = /^[0-9A-Fa-f]{6}$/i.test(decoded);
+            if (isHex) {
+                const normalized = `#${decoded.toLowerCase()}`;
+                if (!colorHexes.includes(normalized)) colorHexes.push(normalized);
             } else {
-                whereClause.PrescriptionGlassesVariant = { some: { OR: colorHexes.map(h => ({ colorHex: h })) } };
+                if (!colorFamilies.includes(decoded)) colorFamilies.push(decoded);
             }
         }
+    };
+
+    if (colorFilter) {
+        if (Array.isArray(colorFilter)) {
+            colorFilter.forEach(processColor);
+        } else {
+            processColor(colorFilter);
+        }
+    }
+
+    if (colorHexes.length > 0 || colorFamilies.length > 0) {
+        const colorConditions: any[] = [];
+
+        if (colorHexes.length > 0) {
+            colorConditions.push(...colorHexes.map(hex => ({
+                colorHex: hex,
+                stock: { gt: 0 }
+            })));
+        }
+
+        if (colorFamilies.length > 0) {
+            colorConditions.push(...colorFamilies.map(family => ({
+                colorFamily: {
+                    equals: family,
+                    mode: 'insensitive' as Prisma.QueryMode
+                },
+                stock: { gt: 0 }
+            })));
+        }
+
+        whereClause.PrescriptionGlassesVariant = { some: { OR: colorConditions } };
     }
 
     if (andConditions.length > 0) {
@@ -143,7 +193,7 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
         getPrescriptionGlassesGlassShapes(),
         getPrescriptionGlassesGenderCounts(),
         getPrescriptionGlassesMaterials(),
-        getPrescriptionGlassesColors(),
+        getAvailableFrameColors('eyeglasses'),
         getAvailableBrands('eyeglasses'),
     ]);
 

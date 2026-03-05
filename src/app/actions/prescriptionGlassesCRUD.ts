@@ -29,6 +29,7 @@ export interface PrescriptionGlassesVariantData {
   sku: string;
   colorName: string;
   colorHex: string;
+  colorFamily?: string;
   lensColor: string;
   stock: number;
   price?: number;
@@ -66,6 +67,7 @@ const variantSchema = z.object({
   sku: z.string().trim().min(1).max(50),
   colorName: z.string().trim().min(1).max(50),
   colorHex: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  colorFamily: z.string().trim().max(100).optional().nullable(),
   lensColor: z.string().trim().min(1).max(50),
   stock: z.number().int().nonnegative().max(10000).optional().default(0),
   price: z.number().positive().optional(),
@@ -213,6 +215,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
       const variantSku = formData.get(`variant-${i}-sku`) as string;
       const variantColorName = formData.get(`variant-${i}-colorName`) as string;
       const variantColorHex = formData.get(`variant-${i}-colorHex`) as string;
+      const variantColorFamily = formData.get(`variant-${i}-colorFamily`) as string;
       const variantLensColor = formData.get(`variant-${i}-lensColor`) as string;
       const variantStock = parseInt(formData.get(`variant-${i}-stock`) as string) || 0;
       const variantPrice = formData.get(`variant-${i}-price`) as string;
@@ -227,6 +230,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
         sku: variantSku,
         colorName: variantColorName,
         colorHex: variantColorHex,
+        colorFamily: variantColorFamily || undefined,
         lensColor: variantLensColor,
         stock: variantStock,
         price: variantPrice ? parseFloat(variantPrice) : undefined,
@@ -379,6 +383,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
               sku: variant.sku,
               colorName: variant.colorName,
               colorHex: variant.colorHex,
+              colorFamily: variant.colorFamily || null,
               lensColor: variant.lensColor,
               stock: variant.stock,
               price: variant.price ?? null,
@@ -666,6 +671,7 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
       const variantSku = formData.get(`variant-${i}-sku`) as string;
       const variantColorName = formData.get(`variant-${i}-colorName`) as string;
       const variantColorHex = formData.get(`variant-${i}-colorHex`) as string;
+      const variantColorFamily = formData.get(`variant-${i}-colorFamily`) as string;
       const variantLensColor = formData.get(`variant-${i}-lensColor`) as string;
       const variantStock = parseInt(formData.get(`variant-${i}-stock`) as string) || 0;
       const asset_nobg = (formData.get(`variant-${i}-asset_nobg`) as string) || '';
@@ -697,6 +703,7 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
             sku: variantSku,
             colorName: variantColorName,
             colorHex: variantColorHex,
+            colorFamily: variantColorFamily || null,
             lensColor: variantLensColor || '',
             stock: variantStock,
           },
@@ -716,6 +723,7 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
             sku: variantSku,
             colorName: variantColorName,
             colorHex: variantColorHex,
+            colorFamily: variantColorFamily || null,
             lensColor: variantLensColor || '',
             stock: variantStock,
             prescriptionGlassesId: validatedId.data,

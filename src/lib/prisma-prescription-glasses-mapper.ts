@@ -62,6 +62,7 @@ export function mapPrismaPrescriptionGlassesToProduct(prismaGlasses: any): any {
   return {
     id: prismaGlasses.id,
     name: prismaGlasses.name,
+    brand: prismaGlasses.brand || 'FocusRobin',
     slug: prismaGlasses.slug,
     price: `€${finalPrice.toFixed(2)}`,
     originalPrice: discountPct > 0 ? `€${basePrice.toFixed(2)}` : undefined,

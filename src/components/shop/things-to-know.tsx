@@ -34,6 +34,10 @@ interface ThingsToKnowProps {
 }
 
 export default function ThingsToKnow({ product }: ThingsToKnowProps) {
+    if (product && product.brand && product.brand.trim().toLowerCase() !== 'focusrobin') {
+        return null;
+    }
+
     const showDynamic = product?.showHighlights && product.highlights && product.highlights.length > 0;
     const highlights = product?.highlights || [];
 

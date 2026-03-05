@@ -361,11 +361,17 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
 
   // Filter by type (new-arrivals, bestsellers) - BUT only if no additional filters are applied
   // This allows users to filter all products when they select specific criteria
-  if (!hasAdditionalFilters) {
+  if (!hasAdditionalFilters && filterType) {
     if (filterType === 'new-arrivals') {
       whereClause.isNewlyAdded = true;
     } else if (filterType === 'bestsellers') {
       whereClause.isUniqueDesign = true;
+    } else {
+      // If it's not a special filter type, it's likely a brand name from the mega menu
+      whereClause.brand = {
+        equals: decodeURIComponent(filterType).trim(),
+        mode: 'insensitive' as Prisma.QueryMode,
+      };
     }
   }
 

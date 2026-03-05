@@ -74,6 +74,7 @@ export default async function EditPrescriptionGlassesPage({ params }: EditPrescr
             sku: v.sku,
             colorName: v.colorName,
             colorHex: v.colorHex,
+            colorFamily: v.colorFamily || '',
             lensColor: v.lensColor || '',
             stock: v.stock || 0,
             asset_nobg: v.PrescriptionGlassesAsset?.find((a: any) => a.type === 'NO_BG')?.url || '',

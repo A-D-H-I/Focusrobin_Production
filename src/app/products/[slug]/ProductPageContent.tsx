@@ -203,7 +203,7 @@ export default function ProductPageContent({ product, reviews, relatedProducts =
 
       {/* Premium Packing Banner - Full Width using viewport width */}
       <div className="mt-12 lg:mt-16" style={{ marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)', width: '100vw' }}>
-        <PremiumPackingBanner />
+        <PremiumPackingBanner product={product} />
       </div>
 
       <div className="pt-24 pb-12 lg:pb-8 overflow-x-hidden">

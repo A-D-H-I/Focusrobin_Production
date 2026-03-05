@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { updatePrescriptionGlasses } from '@/app/actions/prescriptionGlassesCRUD';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ImageUploader } from '@/components/admin/ImageUploader';
 import { GalleryImageUploader } from '@/components/admin/GalleryImageUploader';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AddColorFamilyDialog } from '@/components/admin/AddColorFamilyDialog';
+import { getColorFamilyList } from '@/app/actions/getAvailableColorFamilies';
 import type { PrescriptionGlassesVariantData as VariantData } from '@/app/actions/prescriptionGlassesCRUD';
 
 interface VariantWithId extends VariantData {
@@ -63,6 +66,20 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
     const { toast } = useToast();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    const [colorFamilies, setColorFamilies] = useState<Array<{ name: string, hex: string }>>([]);
+
+    useEffect(() => {
+        const fetchFamilies = async () => {
+            const families = await getColorFamilyList();
+            setColorFamilies(families);
+        };
+        fetchFamilies();
+    }, []);
+
+    const handleNewColorFamily = (newFamily: any) => {
+        setColorFamilies(prev => [...prev, newFamily].sort((a, b) => a.name.localeCompare(b.name)));
+    };
+
     // Basic fields
     const [name, setName] = useState(prescriptionGlasses.name);
     const [slug, setSlug] = useState(prescriptionGlasses.slug);
@@ -106,6 +123,7 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
                 sku: '',
                 colorName: '',
                 colorHex: '#000000',
+                colorFamily: '',
                 lensColor: '',
                 stock: 0,
                 asset_nobg: '',
@@ -122,6 +140,7 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
             sku: '',
             colorName: '',
             colorHex: '#000000',
+            colorFamily: '',
             lensColor: '',
             stock: 0,
             asset_nobg: '',
@@ -233,6 +252,7 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
             formData.append(`variant-${i}-sku`, v.sku);
             formData.append(`variant-${i}-colorName`, v.colorName);
             formData.append(`variant-${i}-colorHex`, v.colorHex);
+            formData.append(`variant-${i}-colorFamily`, v.colorFamily || '');
             formData.append(`variant-${i}-lensColor`, v.lensColor);
             formData.append(`variant-${i}-stock`, v.stock.toString());
             if (v.asset_nobg) formData.append(`variant-${i}-asset_nobg`, v.asset_nobg);
@@ -546,6 +566,25 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
                                             required
                                         />
                                     </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <Label htmlFor={`variant-${index}-colorFamily`}>Color Family</Label>
+                                        <AddColorFamilyDialog onSuccess={handleNewColorFamily} />
+                                    </div>
+                                    <select
+                                        id={`variant-${index}-colorFamily`}
+                                        value={variant.colorFamily || ''}
+                                        onChange={(e) => updateVariant(index, 'colorFamily', e.target.value)}
+                                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                        <option value="">Select Color Family</option>
+                                        {colorFamilies.map((family) => (
+                                            <option key={family.name} value={family.name}>
+                                                {family.name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor={`variant-${index}-lensColor`}>Lens Color *</Label>

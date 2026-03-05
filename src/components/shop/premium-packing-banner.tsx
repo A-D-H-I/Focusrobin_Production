@@ -6,14 +6,20 @@ import { normalizeImageUrl } from "@/lib/normalize-image-url";
 interface PremiumPackingBannerProps {
   imageUrl?: string;
   mobileTabletImageUrl?: string | null;
+  product?: any;
 }
 
-export default function PremiumPackingBanner({ 
-  imageUrl = '/PremiumPacking/premiumPackingLaptop.jpeg', 
-  mobileTabletImageUrl 
+export default function PremiumPackingBanner({
+  imageUrl = '/PremiumPacking/premiumPackingLaptop.jpeg',
+  mobileTabletImageUrl,
+  product
 }: PremiumPackingBannerProps) {
+  if (product && product.brand && product.brand.trim().toLowerCase() !== 'focusrobin') {
+    return null;
+  }
+
   const desktopImageUrl = normalizeImageUrl(imageUrl);
-  const mobileImageUrl = mobileTabletImageUrl 
+  const mobileImageUrl = mobileTabletImageUrl
     ? normalizeImageUrl(mobileTabletImageUrl)
     : normalizeImageUrl('/PremiumPacking/premiumPackingMobile.png');
 
@@ -53,7 +59,7 @@ export default function PremiumPackingBanner({
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-headline text-white mb-2 sm:mb-3 md:mb-4 leading-[1.1] tracking-tight drop-shadow-lg">
               Premium Packaging
             </h2>
-            
+
             <p className="text-white/90 text-xs sm:text-sm md:text-base drop-shadow-md">
               Every product is carefully packaged with premium materials, ensuring your purchase arrives in perfect condition. Experience the luxury of unboxing with our thoughtfully designed packaging.
             </p>
@@ -70,7 +76,7 @@ export default function PremiumPackingBanner({
               <h2 className="text-4xl lg:text-5xl xl:text-brand-h2 font-headline text-white mb-3 md:mb-4 leading-[1.1] tracking-tight drop-shadow-lg">
                 Premium Packaging
               </h2>
-              
+
               <p className="text-white/90 text-base lg:text-lg drop-shadow-md">
                 Every product is carefully packaged with premium materials, ensuring your purchase arrives in perfect condition. Experience the luxury of unboxing with our thoughtfully designed packaging.
               </p>

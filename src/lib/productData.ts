@@ -20,6 +20,7 @@ export interface Product {
   id: string;
   slug?: string; // URL-friendly slug for routing
   name: string;
+  brand?: string; // Brand of the product
   price: string; // Final price (after discount if applicable)
   originalPrice?: string; // Original price before discount
   discountPct?: number; // Discount percentage (0-100)

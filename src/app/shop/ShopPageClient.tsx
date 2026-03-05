@@ -121,29 +121,27 @@ export default function ShopPageClient({
   }, [products, sortBy, originalOrder]);
 
   return (
-    <div className="container mx-auto px-4 overflow-x-hidden">
-      <div className="flex flex-col md:flex-row gap-8 py-8 overflow-x-hidden">
-        {/* Desktop Filter Sidebar */}
-        <div className="hidden md:block md:w-72 lg:w-80 flex-shrink-0">
-          <div className="sticky top-32">
-            <div className="max-h-[calc(100vh-10rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent">
-              <Suspense fallback={<div className="text-muted-foreground">Loading filters...</div>}>
-                <FilterSidebar
-                  priceRange={priceRange}
-                  glassShapes={glassShapes}
-                  genderCounts={genderCounts}
-                  materials={materials}
-
-                  colors={colors}
-                  brands={brands}
-                />
-              </Suspense>
-            </div>
+    <div className="container mx-auto px-4">
+      {/* On desktop: fixed-height layout so only products scroll, not filters */}
+      <div className="flex flex-col md:flex-row gap-8 py-8 md:h-[calc(100vh-7rem)]">
+        {/* Desktop Filter Sidebar - static, does NOT scroll with page */}
+        <div className="hidden md:block md:w-72 lg:w-80 flex-shrink-0 h-full">
+          <div className="h-full overflow-y-auto pr-2 pb-8 hide-scrollbar">
+            <Suspense fallback={<div className="text-muted-foreground">Loading filters...</div>}>
+              <FilterSidebar
+                priceRange={priceRange}
+                glassShapes={glassShapes}
+                genderCounts={genderCounts}
+                materials={materials}
+                colors={colors}
+                brands={brands}
+              />
+            </Suspense>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="w-full md:flex-1 min-w-0 overflow-x-hidden">
+        {/* Main Content - ONLY this column scrolls on desktop */}
+        <div className="w-full md:flex-1 min-w-0 md:h-full md:overflow-y-auto md:pr-1 hide-scrollbar">
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>

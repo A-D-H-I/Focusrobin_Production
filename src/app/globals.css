@@ -169,7 +169,7 @@
   /* CRITICAL FIX: Ensure main content area is scrollable in Chrome/Edge */
   main {
     position: relative;
-    overflow-x: hidden;
+    /* NOTE: Do NOT set overflow-x: hidden here - it breaks position:sticky on child elements */
     overflow-y: visible;
     /* Allow pointer events and scrolling on main content */
     pointer-events: auto;
@@ -180,7 +180,7 @@
   /* Ensure all direct children of body can receive scroll events */
   body > div {
     position: relative;
-    overflow-x: hidden;
+    /* NOTE: Do NOT set overflow-x: hidden here - it breaks position:sticky on child elements */
     overflow-y: visible;
     /* Allow scroll events to propagate */
     touch-action: pan-y;

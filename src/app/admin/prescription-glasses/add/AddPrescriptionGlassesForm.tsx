@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPrescriptionGlasses, type PrescriptionGlassesVariantData as VariantData } from '@/app/actions/prescriptionGlassesCRUD';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ImageUploader } from '@/components/admin/ImageUploader';
 import { GalleryImageUploader } from '@/components/admin/GalleryImageUploader';
+import { getColorFamilyList } from '@/app/actions/getAvailableColorFamilies';
+import { AddColorFamilyDialog } from '@/components/admin/AddColorFamilyDialog';
 
 interface AddPrescriptionGlassesFormProps {
   availableSunglasses: Array<{ id: string; name: string; slug: string }>;
@@ -38,6 +40,22 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
   const [discountPct, setDiscountPct] = useState<string>('0');
   const [cashbackAmount, setCashbackAmount] = useState<string>('0');
   const [brand, setBrand] = useState<string>('FocusRobin');
+
+  // Color Families State
+  const [colorFamilies, setColorFamilies] = useState<Array<{ name: string, hex: string }>>([]);
+
+  useEffect(() => {
+    // Fetch initial list
+    const fetchFamilies = async () => {
+      const families = await getColorFamilyList();
+      setColorFamilies(families);
+    };
+    fetchFamilies();
+  }, []);
+
+  const handleNewColorFamily = (newFamily: any) => {
+    setColorFamilies(prev => [...prev, newFamily].sort((a, b) => a.name.localeCompare(b.name)));
+  };
 
   // Dynamic Product Features
   const [isPolarized, setIsPolarized] = useState(true);
@@ -58,6 +76,7 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
       sku: '',
       colorName: '',
       colorHex: '#000000',
+      colorFamily: '',
       lensColor: '',
       stock: 0,
       asset_nobg: '',
@@ -102,6 +121,7 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
         sku: '',
         colorName: '',
         colorHex: '#000000',
+        colorFamily: '',
         lensColor: '',
         stock: 0,
         asset_nobg: '',
@@ -163,6 +183,7 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
       formData.append(`variant-${index}-sku`, variant.sku);
       formData.append(`variant-${index}-colorName`, variant.colorName);
       formData.append(`variant-${index}-colorHex`, variant.colorHex);
+      formData.append(`variant-${index}-colorFamily`, variant.colorFamily || '');
       formData.append(`variant-${index}-lensColor`, variant.lensColor);
       formData.append(`variant-${index}-stock`, variant.stock.toString());
       if (variant.asset_nobg) {
@@ -802,30 +823,52 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor={`variant-${index}-lensColor`}>Lens Color *</Label>
-                  <Input
-                    id={`variant-${index}-lensColor`}
-                    value={variant.lensColor}
-                    onChange={(e) => updateVariant(index, 'lensColor', e.target.value)}
-                    required
-                    placeholder="e.g., Black Smoke"
-                  />
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor={`variant-${index}-colorFamily`}>Color Family</Label>
+                    <AddColorFamilyDialog onSuccess={handleNewColorFamily} />
+                  </div>
+                  <select
+                    id={`variant-${index}-colorFamily`}
+                    value={variant.colorFamily || ''}
+                    onChange={(e) => updateVariant(index, 'colorFamily', e.target.value)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select a color family</option>
+                    {colorFamilies.map((family) => (
+                      <option key={family.name} value={family.name}>
+                        {family.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Broad color group for filtering (e.g., &quot;Blue&quot; for Navy, Sky Blue, etc.)
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor={`variant-${index}-stock`}>Stock *</Label>
-                  <Input
-                    id={`variant-${index}-stock`}
-                    type="number"
-                    value={variant.stock}
-                    onChange={(e) => updateVariant(index, 'stock', parseInt(e.target.value) || 0)}
-                    required
-                    placeholder="50"
-                  />
-                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`variant-${index}-lensColor`}>Lens Color *</Label>
+                <Input
+                  id={`variant-${index}-lensColor`}
+                  value={variant.lensColor}
+                  onChange={(e) => updateVariant(index, 'lensColor', e.target.value)}
+                  required
+                  placeholder="e.g., Black Smoke"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor={`variant-${index}-stock`}>Stock *</Label>
+                <Input
+                  id={`variant-${index}-stock`}
+                  type="number"
+                  value={variant.stock}
+                  onChange={(e) => updateVariant(index, 'stock', parseInt(e.target.value) || 0)}
+                  required
+                  placeholder="50"
+                />
               </div>
 
               {/* Assets Configuration Section */}
-              <div className="mt-6 space-y-4 rounded-lg border bg-muted/30 p-4">
+              < div className="mt-6 space-y-4 rounded-lg border bg-muted/30 p-4" >
                 <h4 className="text-brand-h4 font-headline">Assets Configuration</h4>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-2">

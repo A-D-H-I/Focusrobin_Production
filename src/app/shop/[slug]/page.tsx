@@ -403,6 +403,7 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
         id: prescriptionGlass.id,
         slug: prescriptionGlass.slug,
         name: prescriptionGlass.name,
+        brand: prescriptionGlass.brand || 'FocusRobin',
         productType: 'eyeglasses' as const,
         price: price.toFixed(2),
         originalPrice: prescriptionGlass.discountPct ? effectiveBasePrice.toFixed(2) : undefined,
@@ -437,6 +438,7 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
         isBioBased: prescriptionGlass.isBioBased ?? true,
         warranty: prescriptionGlass.warranty ?? "1.5 Years Warranty",
         customFeatures: prescriptionGlass.customFeatures ?? ["hand made", "Fast Delivery"],
+        tags: prescriptionGlass.tags || [],
         // Product Highlights
         showHighlights: prescriptionGlass.showHighlights ?? false,
         highlights: (prescriptionGlass.highlights || []).map((h: any) => ({
