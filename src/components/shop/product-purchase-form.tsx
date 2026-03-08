@@ -27,6 +27,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   const [selectedColor, setSelectedColor] = useState(product.variants[0]?.hex || '#000000');
   const [internalSelectedVariant, setInternalSelectedVariant] = useState(product.variants[0]);
   const selectedVariant = externalSelectedVariant || internalSelectedVariant;
+  const showTryOn = (product.brand || 'FocusRobin').trim().toLowerCase() === 'focusrobin';
   const [quantity, setQuantity] = useState(1);
   const [prescriptionData, setPrescriptionData] = useState<any>(null);
 
@@ -374,15 +375,17 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       {/* Action Buttons */}
       <div className="space-y-2 overflow-hidden">
         {/* Virtual Try-On and Add to Cart - Two buttons in a row */}
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="outline"
-            className="h-10 text-sm border overflow-hidden"
-            onClick={handleTryOn}
-          >
-            <Camera className="w-4 h-4 mr-1.5 flex-shrink-0" />
-            <span className="truncate"><TranslatableText text="Virtual Try-On" /></span>
-          </Button>
+        <div className={cn("grid gap-2", showTryOn ? "grid-cols-2" : "grid-cols-1")}>
+          {showTryOn && (
+            <Button
+              variant="outline"
+              className="h-10 text-sm border overflow-hidden"
+              onClick={handleTryOn}
+            >
+              <Camera className="w-4 h-4 mr-1.5 flex-shrink-0" />
+              <span className="truncate"><TranslatableText text="Virtual Try-On" /></span>
+            </Button>
+          )}
 
           <Button
             className="h-10 text-sm font-semibold overflow-hidden"

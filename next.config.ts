@@ -156,6 +156,9 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  // Server external packages (Next.js 15+)
+  serverExternalPackages: ['@google-cloud/translate'],
+
   // Optimize for faster navigation
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],

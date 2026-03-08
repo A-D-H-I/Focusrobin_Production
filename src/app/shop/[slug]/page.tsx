@@ -229,49 +229,44 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
 
     return (
       <div className="flex flex-col min-h-screen">
-        <main className="flex-grow bg-background">
-          {/* Banner */}
-          <CategoryBanner
-            title={bannerTitle}
-            imageSrc={bannerImage}
-            description={bannerDescription}
-            alt={bannerAlt}
-          />
-
-          {/* Video Section */}
-          {customPage.videoUrl && (
-            <section className="w-full py-12 bg-background">
-              <div className="container mx-auto px-4">
-                <div className="max-w-4xl mx-auto">
-                  <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
-                    {customPage.videoUrl.includes('youtube.com') || customPage.videoUrl.includes('youtu.be') ? (
-                      <iframe
-                        src={customPage.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
-                        title={customPage.name}
-                        className="w-full h-full"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <video
-                        src={customPage.videoUrl}
-                        controls
-                        className="w-full h-full object-contain"
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
-
+        <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background overflow-x-hidden">
           {/* Products Grid */}
           <div className="bg-background py-8">
             <div className="container mx-auto px-4">
               {products.length > 0 ? (
                 <ShopPageClient
+                  banner={
+                    <div className="flex flex-col gap-6 mb-6">
+                      <CategoryBanner
+                        title={bannerTitle}
+                        imageSrc={bannerImage}
+                        description={bannerDescription}
+                        alt={bannerAlt}
+                        className="mt-0 sm:mt-0"
+                      />
+                      {customPage.videoUrl && (
+                        <div className="relative aspect-video bg-muted rounded-lg overflow-hidden shrink-0">
+                          {customPage.videoUrl.includes('youtube.com') || customPage.videoUrl.includes('youtu.be') ? (
+                            <iframe
+                              src={customPage.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                              title={customPage.name}
+                              className="w-full h-full"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
+                          ) : (
+                            <video
+                              src={customPage.videoUrl}
+                              controls
+                              className="w-full h-full object-contain"
+                            >
+                              Your browser does not support the video tag.
+                            </video>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  }
                   products={products}
                   title={customPage.name}
                   priceRange={await getPriceRange()}

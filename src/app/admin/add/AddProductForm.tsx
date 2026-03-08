@@ -25,16 +25,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { GalleryImageUploader } from '@/components/admin/GalleryImageUploader';
 import { getColorFamilyList } from '@/app/actions/getAvailableColorFamilies';
 import { AddColorFamilyDialog } from '@/components/admin/AddColorFamilyDialog';
+import { getAllBrands } from '@/app/actions/brandCRUD';
 
 export function AddProductForm() {
   const router = useRouter();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [productName, setProductName] = useState('');
+  const [slug, setSlug] = useState('');
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [genders, setGenders] = useState<Gender[]>([Gender.UNISEX]);
   const [basePrice, setBasePrice] = useState<string>('');
   const [discountPct, setDiscountPct] = useState<string>('0');
   const [cashbackAmount, setCashbackAmount] = useState<string>('0');
   const [brand, setBrand] = useState<string>('FocusRobin');
+  const [brandList, setBrandList] = useState<string[]>([]);
+  const [showBrandDropdown, setShowBrandDropdown] = useState(false);
 
   // Color Families State
   const [colorFamilies, setColorFamilies] = useState<Array<{ name: string, hex: string }>>([]);
@@ -46,6 +52,17 @@ export function AddProductForm() {
       setColorFamilies(families);
     };
     fetchFamilies();
+  }, []);
+
+  // Fetch brands on mount
+  useEffect(() => {
+    const fetchBrands = async () => {
+      const result = await getAllBrands();
+      if (result.success && result.data) {
+        setBrandList(result.data.map((b: any) => b.name));
+      }
+    };
+    fetchBrands();
   }, []);
 
   const handleNewColorFamily = (newFamily: any) => {
@@ -76,7 +93,7 @@ export function AddProductForm() {
   const [isHydrophobic, setIsHydrophobic] = useState(false);
   const [isAntiScratch, setIsAntiScratch] = useState(false);
   const [isBioBased, setIsBioBased] = useState(false);
-  const [warranty, setWarranty] = useState('2 Years Warranty');
+  const [warranty, setWarranty] = useState('');
   const [customFeatures, setCustomFeatures] = useState('');
 
   // Product Highlights State
@@ -254,32 +271,99 @@ export function AddProductForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Section 1: Basic Details */}
-      <Card>
+      <Card className="overflow-visible">
         <CardHeader>
           <CardTitle>Basic Details</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 overflow-visible">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="name">Product Name *</Label>
-              <Input id="name" name="name" required placeholder="e.g., The Horizon" />
+              <Input
+                id="name"
+                name="name"
+                required
+                placeholder="e.g., The Horizon"
+                value={productName}
+                onChange={(e) => {
+                  const name = e.target.value;
+                  setProductName(name);
+                  if (!slugManuallyEdited) {
+                    setSlug(
+                      name
+                        .toLowerCase()
+                        .trim()
+                        .replace(/[^a-z0-9\s-]/g, '')
+                        .replace(/\s+/g, '-')
+                        .replace(/-+/g, '-')
+                    );
+                  }
+                }}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="slug">Slug (URL-friendly)</Label>
-              <Input id="slug" name="slug" placeholder="cool-sunglasses" required />
-              <p className="text-xs text-muted-foreground">Will be auto-generated from name if left empty.</p>
+              <Input
+                id="slug"
+                name="slug"
+                placeholder="auto-generated-from-name"
+                required
+                value={slug}
+                onChange={(e) => {
+                  setSlug(e.target.value);
+                  setSlugManuallyEdited(true);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">Auto-generated from product name. You can edit it manually.</p>
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 relative z-[100]">
             <Label htmlFor="brand">Brand</Label>
             <Input
               id="brand"
               name="brand"
-              placeholder="FocusRobin"
+              placeholder="Search or type a new brand..."
               value={brand}
-              onChange={(e) => setBrand(e.target.value)}
+              autoComplete="off"
+              onChange={(e) => {
+                setBrand(e.target.value);
+                setShowBrandDropdown(true);
+              }}
+              onFocus={() => setShowBrandDropdown(true)}
+              onBlur={() => {
+                // Delay to allow click on dropdown item
+                setTimeout(() => setShowBrandDropdown(false), 200);
+              }}
             />
+            {showBrandDropdown && (
+              <div className="absolute z-[100] w-full mt-1 bg-background border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                {brandList
+                  .filter((b) => b.toLowerCase().includes(brand.toLowerCase()))
+                  .map((b) => (
+                    <button
+                      key={b}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setBrand(b);
+                        setShowBrandDropdown(false);
+                      }}
+                    >
+                      {b}
+                    </button>
+                  ))}
+                {brand.trim() && !brandList.some((b) => b.toLowerCase() === brand.trim().toLowerCase()) && (
+                  <div className="px-3 py-2 text-sm text-muted-foreground border-t">
+                    <span className="font-medium text-foreground">&quot;{brand.trim()}&quot;</span> will be added as a new brand
+                  </div>
+                )}
+                {brandList.filter((b) => b.toLowerCase().includes(brand.toLowerCase())).length === 0 && !brand.trim() && (
+                  <div className="px-3 py-2 text-sm text-muted-foreground">No brands found</div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="space-y-2">

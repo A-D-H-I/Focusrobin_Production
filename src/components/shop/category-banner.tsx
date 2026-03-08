@@ -42,7 +42,7 @@ export default function CategoryBanner({ title, imageSrc, description, link, alt
   );
 
   const bannerWrapper = (
-    <div className={cn("relative w-full h-[300px] md:h-[400px] lg:h-[500px] overflow-hidden mt-[105px] sm:mt-[105px]", className)}>
+    <div className={cn("relative w-full h-[300px] md:h-[400px] lg:h-[500px] overflow-hidden rounded-xl", className)}>
       {bannerContent}
     </div>
   );

@@ -158,25 +158,25 @@ export default async function PrescriptionGlassesKidsPage({ searchParams }: { se
     const bannerLink = shopBanner?.link || undefined;
 
     return (
-        <>
-            <CategoryBanner
-                title={bannerTitle}
-                imageSrc={bannerImage}
-                description={bannerDescription}
-                alt={bannerAlt}
-                link={bannerLink}
-                className="mt-0 sm:mt-0"
-            />
-            <ShopPageClient
-                products={products}
-                title="Kids Prescription Glasses"
-                priceRange={await getPriceRange()}
-                glassShapes={[]}
-                genderCounts={[]}
-                materials={[]}
-                colors={[]}
-                brands={[]}
-            />
-        </>
+        <ShopPageClient
+            banner={
+                <CategoryBanner
+                    title={bannerTitle}
+                    imageSrc={bannerImage}
+                    description={bannerDescription}
+                    alt={bannerAlt}
+                    link={bannerLink}
+                    className="mt-0 sm:mt-0 mb-6"
+                />
+            }
+            products={products}
+            title="Kids Prescription Glasses"
+            priceRange={await getPriceRange()}
+            glassShapes={[]}
+            genderCounts={[]}
+            materials={[]}
+            colors={[]}
+            brands={[]}
+        />
     );
 }

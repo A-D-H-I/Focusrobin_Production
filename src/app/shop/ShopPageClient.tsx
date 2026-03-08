@@ -40,6 +40,7 @@ interface ShopPageClientProps {
 
   colors: AvailableColor[];
   brands: AvailableBrand[];
+  banner?: React.ReactNode;
 }
 
 export default function ShopPageClient({
@@ -52,7 +53,8 @@ export default function ShopPageClient({
   materials = [],
 
   colors = [],
-  brands = []
+  brands = [],
+  banner
 }: ShopPageClientProps) {
   const searchParams = useSearchParams();
   const [filtersApplied, setFiltersApplied] = useState(0);
@@ -142,6 +144,13 @@ export default function ShopPageClient({
 
         {/* Main Content - ONLY this column scrolls on desktop */}
         <div className="w-full md:flex-1 min-w-0 md:h-full md:overflow-y-auto md:pr-1 hide-scrollbar">
+          {/* Banner Section - scrolls with products */}
+          {banner && (
+            <div className="mb-6">
+              {banner}
+            </div>
+          )}
+
           {/* Header Section */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <div>

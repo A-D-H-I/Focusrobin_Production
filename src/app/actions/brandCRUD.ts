@@ -187,6 +187,10 @@ export async function deleteBrand(formData: FormData) {
 
 export async function getAllBrands() {
     try {
+        // Automatically sync brands from existing products to ensure the table is up to date
+        // This is safe to run frequently as it skips duplicates and only adds missing ones
+        await syncBrandsFromProducts();
+
         const brands = await prisma.brand.findMany({
             orderBy: [
                 { order: 'asc' },

@@ -946,7 +946,29 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                                 <TableBody>
                                   {user.cart.items.map((item: any) => {
                                     const product = item.Product;
-                                    const variant = product.ProductVariant.find((v: any) => v.id === item.variantId);
+
+                                    if (!product) {
+                                      return (
+                                        <TableRow key={item.id}>
+                                          <TableCell className="text-muted-foreground italic">Deleted Product</TableCell>
+                                          <TableCell>-</TableCell>
+                                          <TableCell>-</TableCell>
+                                          <TableCell>{item.quantity}</TableCell>
+                                          <TableCell>-</TableCell>
+                                          <TableCell>
+                                            <Button
+                                              variant="destructive"
+                                              size="sm"
+                                              onClick={() => handleDeleteCartItem(item.id)}
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </TableCell>
+                                        </TableRow>
+                                      );
+                                    }
+
+                                    const variant = product.ProductVariant?.find((v: any) => v.id === item.variantId);
                                     const price = Number(product.basePrice);
                                     const hasPrescription = !!item.prescriptionData;
                                     const rxData = item.prescriptionData;
@@ -1160,8 +1182,31 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {user.wishlist.map((wishlistItem: any) => {
                                   const product = wishlistItem.Product;
-                                  const variant = product.ProductVariant[0];
-                                  const asset = variant?.ProductAsset.find((a: any) => a.type === 'GALLERY') || variant?.ProductAsset[0];
+
+                                  if (!product) {
+                                    return (
+                                      <div key={wishlistItem.id} className="border rounded-lg p-3">
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-[60px] h-[60px] bg-muted rounded flex items-center justify-center">
+                                            <Trash2 className="h-6 w-6 text-muted-foreground opacity-50" />
+                                          </div>
+                                          <div className="flex-1">
+                                            <p className="font-medium text-sm italic text-muted-foreground">Deleted Product</p>
+                                          </div>
+                                          <Button
+                                            variant="destructive"
+                                            size="sm"
+                                            onClick={() => handleDeleteWishlistItem(wishlistItem.id)}
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    );
+                                  }
+
+                                  const variant = product.ProductVariant?.[0];
+                                  const asset = variant?.ProductAsset?.find((a: any) => a.type === 'GALLERY') || variant?.ProductAsset?.[0];
                                   return (
                                     <div key={wishlistItem.id} className="border rounded-lg p-3">
                                       <div className="flex items-center gap-3">

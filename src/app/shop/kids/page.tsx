@@ -146,21 +146,25 @@ export default async function KidsShopPage({ searchParams }: KidsShopPageProps) 
 
   return (
     <div className="flex flex-col min-h-screen">
-      <main className="flex-grow bg-background">
-        <CategoryBanner
-          title={bannerTitle}
-          imageSrc={bannerImage}
-          description={bannerDescription}
-          alt={bannerAlt}
-          link={bannerLink}
-        />
+      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background overflow-x-hidden">
         <ShopPageClient
+          banner={
+            <CategoryBanner
+              title={bannerTitle}
+              imageSrc={bannerImage}
+              description={bannerDescription}
+              alt={bannerAlt}
+              link={bannerLink}
+              className="mt-0 sm:mt-0 mb-6"
+            />
+          }
           products={products}
           priceRange={priceRange}
           glassShapes={glassShapes}
           genderCounts={genderCounts}
           materials={materials}
           colors={colors}
+          brands={[]}
         />
       </main>
       <Footer />

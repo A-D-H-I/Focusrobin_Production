@@ -1,10 +1,15 @@
-import { Translate } from "@google-cloud/translate/build/src/v2";
+// Dynamic import to prevent @google-cloud/translate from being bundled into the client.
+// This file is used by server actions (chat.ts) which are imported by client components.
+// A static top-level import causes Turbopack to try to evaluate @google-cloud/translate
+// in the browser, which crashes because Node.js Buffer is unavailable.
 
-// Initialize Google Translate client
-let translateClient: Translate | null = null;
+type TranslateType = import("@google-cloud/translate/build/src/v2").Translate;
+
+// Initialize Google Translate client (lazy)
+let translateClient: TranslateType | null = null;
 let isTranslationAvailable = false;
 
-function getTranslateClient(): Translate | null {
+async function getTranslateClient(): Promise<TranslateType | null> {
   // Check if translation API is configured
   const credentials = process.env.GOOGLE_TRANSLATE_CREDENTIALS;
   const projectId = process.env.GOOGLE_TRANSLATE_PROJECT_ID;
@@ -16,6 +21,9 @@ function getTranslateClient(): Translate | null {
 
   if (!translateClient) {
     try {
+      // Dynamic import – only resolved on the server at runtime
+      const { Translate } = await import("@google-cloud/translate/build/src/v2");
+
       // Parse credentials if it's a JSON string
       const credentialsObj =
         typeof credentials === "string"
@@ -41,8 +49,8 @@ function getTranslateClient(): Translate | null {
 /**
  * Check if translation API is available
  */
-export function isTranslationEnabled(): boolean {
-  getTranslateClient(); // This will set isTranslationAvailable
+export async function isTranslationEnabled(): Promise<boolean> {
+  await getTranslateClient(); // This will set isTranslationAvailable
   return isTranslationAvailable;
 }
 
@@ -50,8 +58,8 @@ export function isTranslationEnabled(): boolean {
  * Detects the language of the given text
  */
 export async function detectLanguage(text: string): Promise<string> {
-  const client = getTranslateClient();
-  
+  const client = await getTranslateClient();
+
   if (!client) {
     // Translation API not available - default to English
     return "en";
@@ -75,8 +83,8 @@ export async function translateText(
   targetLanguage: string,
   sourceLanguage?: string
 ): Promise<string> {
-  const client = getTranslateClient();
-  
+  const client = await getTranslateClient();
+
   if (!client) {
     // Translation API not available - return original text
     return text;
@@ -108,7 +116,7 @@ export async function translateToEnglish(
   sourceLanguage?: string
 ): Promise<string> {
   // If translation API is not available, return original text
-  if (!isTranslationEnabled()) {
+  if (!(await isTranslationEnabled())) {
     return text;
   }
 
@@ -132,7 +140,7 @@ export async function translateToUserLanguage(
   targetLanguage: string
 ): Promise<string> {
   // If translation API is not available, return original text
-  if (!isTranslationEnabled()) {
+  if (!(await isTranslationEnabled())) {
     return text;
   }
 
@@ -142,4 +150,3 @@ export async function translateToUserLanguage(
   }
   return translateText(text, targetLanguage, "en");
 }
-

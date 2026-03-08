@@ -78,6 +78,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
 
   const [hoveredVariant, setHoveredVariant] = useState<ProductColorVariant | null>(null);
   const [selectedVariant, setSelectedVariant] = useState(product.variants[0]);
+  const showTryOn = (product.brand || 'FocusRobin').trim().toLowerCase() === 'focusrobin';
   const { addToCart } = useCart();
   const { addToWishlist, removeFromWishlist, isInWishlist } = useWishlist();
   const { toast } = useToast();
@@ -279,14 +280,16 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                   </span>
                 </Button>
                 <div className="flex gap-1.5 sm:gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={handleTryOnClick}
-                    className="flex-1 border-teal-primary text-teal-primary hover:bg-teal-primary/10 text-sm sm:text-base md:text-lg px-1.5 sm:px-2 md:px-3 py-2 sm:py-2.5 md:py-3 h-auto min-h-[36px] sm:min-h-[40px] md:min-h-[44px]"
-                  >
-                    <Glasses className="h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5 mr-1.5 sm:mr-2 md:mr-2.5 flex-shrink-0" />
-                    <span className="whitespace-normal break-words"><TranslatableText text="Try-On" /></span>
-                  </Button>
+                  {showTryOn && (
+                    <Button
+                      variant="outline"
+                      onClick={handleTryOnClick}
+                      className="flex-1 border-teal-primary text-teal-primary hover:bg-teal-primary/10 text-sm sm:text-base md:text-lg px-1.5 sm:px-2 md:px-3 py-2 sm:py-2.5 md:py-3 h-auto min-h-[36px] sm:min-h-[40px] md:min-h-[44px]"
+                    >
+                      <Glasses className="h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5 mr-1.5 sm:mr-2 md:mr-2.5 flex-shrink-0" />
+                      <span className="whitespace-normal break-words"><TranslatableText text="Try-On" /></span>
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="icon"
@@ -463,17 +466,19 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                   {isOutOfStock ? <TranslatableText text="Out of Stock" /> : <TranslatableText text="Add to Cart" />}
                 </span>
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleTryOnClick}
-                className="w-full border-teal-primary text-teal-primary hover:bg-teal-primary/10 font-semibold text-sm sm:text-base md:text-lg px-2 sm:px-3 py-1.5 sm:py-2 md:py-2.5 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px]"
-              >
-                <Glasses className="h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5 mr-1.5 sm:mr-2 flex-shrink-0" />
-                <span className="whitespace-normal break-words">
-                  <span className="hidden sm:inline"><TranslatableText text="Virtual " /></span>
-                  <TranslatableText text="Try-On" />
-                </span>
-              </Button>
+              {showTryOn && (
+                <Button
+                  variant="outline"
+                  onClick={handleTryOnClick}
+                  className="w-full border-teal-primary text-teal-primary hover:bg-teal-primary/10 font-semibold text-sm sm:text-base md:text-lg px-2 sm:px-3 py-1.5 sm:py-2 md:py-2.5 h-auto min-h-[32px] sm:min-h-[36px] md:min-h-[40px]"
+                >
+                  <Glasses className="h-4 w-4 sm:h-5 sm:w-5 md:h-5 md:w-5 mr-1.5 sm:mr-2 flex-shrink-0" />
+                  <span className="whitespace-normal break-words">
+                    <span className="hidden sm:inline"><TranslatableText text="Virtual " /></span>
+                    <TranslatableText text="Try-On" />
+                  </span>
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
