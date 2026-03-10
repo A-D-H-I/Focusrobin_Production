@@ -5,6 +5,12 @@ import { getPriceRange } from "@/app/actions/getPriceRange";
 import { Product, ProductColorVariant } from "@/lib/productData";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
 
+import { getAvailableGlassShapes } from "@/app/actions/getAvailableGlassShapes";
+import { getAvailableGenderCounts } from "@/app/actions/getAvailableGenderCounts";
+import { getAvailableMaterials } from "@/app/actions/getAvailableMaterials";
+import { getAvailableFrameColors } from "@/app/actions/getAvailableColors";
+import { getAvailableBrands } from "@/app/actions/getAvailableBrands";
+
 export const revalidate = 0; // Disable caching for real-time updates
 
 export default async function PrescriptionGlassesNewArrivalsPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
@@ -132,16 +138,25 @@ export default async function PrescriptionGlassesNewArrivalsPage({ searchParams 
         };
     });
 
+    // Fetch all filter options for eyeglasses
+    const [glassShapes, genderCounts, materials, colors, brands] = await Promise.all([
+        getAvailableGlassShapes('eyeglasses'),
+        getAvailableGenderCounts('eyeglasses'),
+        getAvailableMaterials('eyeglasses'),
+        getAvailableFrameColors('eyeglasses'),
+        getAvailableBrands('eyeglasses'),
+    ]);
+
     return (
         <ShopPageClient
             products={products}
             title="New Arrivals - Prescription Glasses"
             priceRange={await getPriceRange()}
-            glassShapes={[]}
-            genderCounts={[]}
-            materials={[]}
-            colors={[]}
-            brands={[]}
+            glassShapes={glassShapes}
+            genderCounts={genderCounts}
+            materials={materials}
+            colors={colors}
+            brands={brands}
         />
     );
 }

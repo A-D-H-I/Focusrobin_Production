@@ -18,6 +18,11 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { getPriceRange } from "@/app/actions/getPriceRange";
+import { getAvailableGlassShapes } from "@/app/actions/getAvailableGlassShapes";
+import { getAvailableGenderCounts } from "@/app/actions/getAvailableGenderCounts";
+import { getAvailableMaterials } from "@/app/actions/getAvailableMaterials";
+import { getAvailableFrameColors } from "@/app/actions/getAvailableColors";
+import { getAvailableBrands } from "@/app/actions/getAvailableBrands";
 
 // Helper to get OG image with fallback
 function getOGImageUrl(productImage?: string): string {
@@ -227,6 +232,16 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
     const bannerImage = normalizeImageUrl(customPage.bannerImage);
     const bannerAlt = customPage.name || 'Shop page banner';
 
+    // Fetch filters for the collection
+    const [priceRange, glassShapes, genderCounts, materials, colors, brands] = await Promise.all([
+      getPriceRange(),
+      getAvailableGlassShapes(),
+      getAvailableGenderCounts(),
+      getAvailableMaterials(),
+      getAvailableFrameColors(),
+      getAvailableBrands()
+    ]);
+
     return (
       <div className="flex flex-col min-h-screen">
         <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background overflow-x-hidden">
@@ -269,12 +284,12 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
                   }
                   products={products}
                   title={customPage.name}
-                  priceRange={await getPriceRange()}
-                  glassShapes={[]}
-                  genderCounts={[]}
-                  materials={[]}
-                  colors={[]}
-                  brands={[]}
+                  priceRange={priceRange}
+                  glassShapes={glassShapes}
+                  genderCounts={genderCounts}
+                  materials={materials}
+                  colors={colors}
+                  brands={brands}
                 />
               ) : (
                 <div className="text-center py-16">

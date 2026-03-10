@@ -12,15 +12,25 @@ export interface GenderCount {
 /**
  * Get product counts for each gender
  * Returns gender options with their product counts
+ * @param type 'sunglasses' | 'eyeglasses' - Product type to fetch gender counts for
  */
-export async function getAvailableGenderCounts(): Promise<GenderCount[]> {
+export async function getAvailableGenderCounts(type: 'sunglasses' | 'eyeglasses' = 'sunglasses'): Promise<GenderCount[]> {
   try {
-    // Fetch all products with their genders
-    const products = await prisma.product.findMany({
-      select: {
-        gender: true,
-      },
-    });
+    let products: { gender: Gender[] }[] = [];
+
+    if (type === 'eyeglasses') {
+      products = await prisma.prescriptionGlasses.findMany({
+        select: {
+          gender: true,
+        },
+      });
+    } else {
+      products = await prisma.product.findMany({
+        select: {
+          gender: true,
+        },
+      });
+    }
 
     // Count products for each gender
     const genderCounts = new Map<string, number>();

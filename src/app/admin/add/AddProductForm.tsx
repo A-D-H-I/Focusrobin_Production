@@ -26,6 +26,7 @@ import { GalleryImageUploader } from '@/components/admin/GalleryImageUploader';
 import { getColorFamilyList } from '@/app/actions/getAvailableColorFamilies';
 import { AddColorFamilyDialog } from '@/components/admin/AddColorFamilyDialog';
 import { getAllBrands } from '@/app/actions/brandCRUD';
+import { getFormSuggestions } from '@/app/actions/getFormSuggestions';
 
 export function AddProductForm() {
   const router = useRouter();
@@ -44,6 +45,23 @@ export function AddProductForm() {
 
   // Color Families State
   const [colorFamilies, setColorFamilies] = useState<Array<{ name: string, hex: string }>>([]);
+  const [showAddFamilyParent, setShowAddFamilyParent] = useState(false);
+
+  // Auto-suggest Specifications State
+  const [frameMaterial, setFrameMaterial] = useState('');
+  const [lensMaterial, setLensMaterial] = useState('');
+  const [uvProtection, setUvProtection] = useState('');
+  const [glassShape, setGlassShape] = useState('');
+
+  const [frameMaterialList, setFrameMaterialList] = useState<string[]>([]);
+  const [lensMaterialList, setLensMaterialList] = useState<string[]>([]);
+  const [uvProtectionList, setUvProtectionList] = useState<string[]>([]);
+  const [glassShapeList, setGlassShapeList] = useState<string[]>([]);
+
+  const [showFrameMaterialDropdown, setShowFrameMaterialDropdown] = useState(false);
+  const [showLensMaterialDropdown, setShowLensMaterialDropdown] = useState(false);
+  const [showUvProtectionDropdown, setShowUvProtectionDropdown] = useState(false);
+  const [showGlassShapeDropdown, setShowGlassShapeDropdown] = useState(false);
 
   useEffect(() => {
     // Fetch initial list
@@ -63,6 +81,17 @@ export function AddProductForm() {
       }
     };
     fetchBrands();
+
+    const fetchSuggestions = async () => {
+      const result = await getFormSuggestions();
+      if (result.success && result.data) {
+        setFrameMaterialList(result.data.frameMaterials);
+        setLensMaterialList(result.data.lensMaterials);
+        setUvProtectionList(result.data.uvProtections);
+        setGlassShapeList(result.data.glassShapes);
+      }
+    };
+    fetchSuggestions();
   }, []);
 
   const handleNewColorFamily = (newFamily: any) => {
@@ -289,14 +318,18 @@ export function AddProductForm() {
                   const name = e.target.value;
                   setProductName(name);
                   if (!slugManuallyEdited) {
-                    setSlug(
-                      name
-                        .toLowerCase()
-                        .trim()
-                        .replace(/[^a-z0-9\s-]/g, '')
-                        .replace(/\s+/g, '-')
-                        .replace(/-+/g, '-')
-                    );
+                    let generatedSlug = name
+                      .toLowerCase()
+                      .trim()
+                      .replace(/[^a-z0-9\s-]/g, '')
+                      .replace(/\s+/g, '-')
+                      .replace(/-+/g, '-');
+
+                    if (generatedSlug && !generatedSlug.startsWith('the-') && generatedSlug !== 'the') {
+                      generatedSlug = `the-${generatedSlug}`;
+                    }
+
+                    setSlug(generatedSlug);
                   }
                 }}
               />
@@ -562,38 +595,150 @@ export function AddProductForm() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="space-y-2">
+            <div className="space-y-2 relative z-[90]">
               <Label htmlFor="frameMaterial">Frame Material</Label>
               <Input
                 id="frameMaterial"
                 name="frameMaterial"
-                placeholder="e.g., Titanium, Acetate"
+                placeholder="Search or type new..."
+                value={frameMaterial}
+                autoComplete="off"
+                onChange={(e) => {
+                  setFrameMaterial(e.target.value);
+                  setShowFrameMaterialDropdown(true);
+                }}
+                onFocus={() => setShowFrameMaterialDropdown(true)}
+                onBlur={() => setTimeout(() => setShowFrameMaterialDropdown(false), 200)}
               />
+              {showFrameMaterialDropdown && (
+                <div className="absolute z-[90] w-full mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {frameMaterialList
+                    .filter((m) => m.toLowerCase().includes(frameMaterial.toLowerCase()))
+                    .map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setFrameMaterial(m);
+                          setShowFrameMaterialDropdown(false);
+                        }}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative z-[80]">
               <Label htmlFor="lensMaterial">Lens Material</Label>
               <Input
                 id="lensMaterial"
                 name="lensMaterial"
-                placeholder="e.g., Polycarbonate, CR-39"
+                placeholder="Search or type new..."
+                value={lensMaterial}
+                autoComplete="off"
+                onChange={(e) => {
+                  setLensMaterial(e.target.value);
+                  setShowLensMaterialDropdown(true);
+                }}
+                onFocus={() => setShowLensMaterialDropdown(true)}
+                onBlur={() => setTimeout(() => setShowLensMaterialDropdown(false), 200)}
               />
+              {showLensMaterialDropdown && (
+                <div className="absolute z-[80] w-full mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {lensMaterialList
+                    .filter((m) => m.toLowerCase().includes(lensMaterial.toLowerCase()))
+                    .map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setLensMaterial(m);
+                          setShowLensMaterialDropdown(false);
+                        }}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative z-[70]">
               <Label htmlFor="uvProtection">UV Protection</Label>
               <Input
                 id="uvProtection"
                 name="uvProtection"
-                placeholder="e.g., UV400 Polarized"
+                placeholder="Search or type new..."
+                value={uvProtection}
+                autoComplete="off"
+                onChange={(e) => {
+                  setUvProtection(e.target.value);
+                  setShowUvProtectionDropdown(true);
+                }}
+                onFocus={() => setShowUvProtectionDropdown(true)}
+                onBlur={() => setTimeout(() => setShowUvProtectionDropdown(false), 200)}
               />
+              {showUvProtectionDropdown && (
+                <div className="absolute z-[70] w-full mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {uvProtectionList
+                    .filter((m) => m.toLowerCase().includes(uvProtection.toLowerCase()))
+                    .map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setUvProtection(m);
+                          setShowUvProtectionDropdown(false);
+                        }}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative z-[60]">
               <Label htmlFor="glassShape">Glass Shape</Label>
               <Input
                 id="glassShape"
                 name="glassShape"
-                placeholder="e.g., Cat Eye, Rectangle, Round"
+                placeholder="Search or type new..."
+                value={glassShape}
+                autoComplete="off"
+                onChange={(e) => {
+                  setGlassShape(e.target.value);
+                  setShowGlassShapeDropdown(true);
+                }}
+                onFocus={() => setShowGlassShapeDropdown(true)}
+                onBlur={() => setTimeout(() => setShowGlassShapeDropdown(false), 200)}
               />
-              <p className="text-xs text-muted-foreground">
+              {showGlassShapeDropdown && (
+                <div className="absolute z-[60] w-full mt-1 bg-background border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {glassShapeList
+                    .filter((m) => m.toLowerCase().includes(glassShape.toLowerCase()))
+                    .map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted cursor-pointer"
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setGlassShape(m);
+                          setShowGlassShapeDropdown(false);
+                        }}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">
                 Optional. Enter the glass shape (e.g., Cat Eye, Rectangle, Round, Aviator).
                 The shape will be automatically created in <Link href="/admin/shapes" className="text-primary hover:underline" target="_blank">Shape Management</Link> where you can add an image for the mega menu.
               </p>

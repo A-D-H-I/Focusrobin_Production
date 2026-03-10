@@ -11,23 +11,37 @@ export interface AvailableMaterial {
 /**
  * Get all available frame materials from products
  * Returns unique materials with their product counts
+ * @param type 'sunglasses' | 'eyeglasses' - Product type to fetch materials for
  */
-export async function getAvailableMaterials(): Promise<AvailableMaterial[]> {
+export async function getAvailableMaterials(type: 'sunglasses' | 'eyeglasses' = 'sunglasses'): Promise<AvailableMaterial[]> {
   return unstable_cache(
     async () => {
       try {
-        // Use groupBy instead of finding all
-        const materialCounts = await prisma.product.groupBy({
-          by: ['frameMaterial'] as const,
-          _count: {
-            _all: true
-          }
-        });
+        let materialCounts: { frameMaterial: string | null; _count: { _all: number } }[] = [];
+
+        if (type === 'eyeglasses') {
+          // @ts-ignore
+          materialCounts = await prisma.prescriptionGlasses.groupBy({
+            by: ['frameMaterial'] as const,
+            _count: {
+              _all: true
+            }
+          });
+        } else {
+          // @ts-ignore
+          materialCounts = await prisma.product.groupBy({
+            by: ['frameMaterial'] as const,
+            _count: {
+              _all: true
+            }
+          });
+        }
 
         // Convert to array and sort by count (most common first), then alphabetically
         const availableMaterials: AvailableMaterial[] = materialCounts
+          .filter(item => item.frameMaterial)
           .map((item) => ({
-            material: item.frameMaterial,
+            material: item.frameMaterial!,
             count: item._count._all,
           }))
           .sort((a, b) => {
@@ -45,7 +59,7 @@ export async function getAvailableMaterials(): Promise<AvailableMaterial[]> {
         return [];
       }
     },
-    ['available-materials'],
+    [`available-materials-${type}`],
     {
       revalidate: 3600,
       tags: ['products', 'materials']
