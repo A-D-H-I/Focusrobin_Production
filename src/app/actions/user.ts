@@ -503,6 +503,22 @@ export async function updateCartItemQuantity(productSlugOrId: string, variantSku
   });
 }
 
+// Helper to convert any Prisma Decimal values to plain numbers in an object
+function convertDecimalsToNumbers(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'object' && obj.constructor?.name === 'Decimal') return Number(obj);
+  if (typeof obj === 'bigint') return Number(obj);
+  if (Array.isArray(obj)) return obj.map(convertDecimalsToNumbers);
+  if (typeof obj === 'object' && obj !== null) {
+    const result: any = {};
+    for (const key of Object.keys(obj)) {
+      result[key] = convertDecimalsToNumbers(obj[key]);
+    }
+    return result;
+  }
+  return obj;
+}
+
 export async function getCart() {
   const session = await auth();
 
@@ -514,7 +530,6 @@ export async function getCart() {
 
   try {
     // IDOR Protection: Only fetch cart for current user
-    // Using explicit select to ensure prescriptionData is included
     const cart = await prisma.cart.findUnique({
       where: { userId },
       select: {
@@ -525,41 +540,33 @@ export async function getCart() {
             id: true,
             cartId: true,
             productId: true,
+            prescriptionGlassesId: true,
             variantId: true,
             quantity: true,
-            prescriptionData: true, // Explicitly select prescriptionData
-            createdAt: true,
-            updatedAt: true,
+            prescriptionData: true,
             Product: {
               select: {
                 id: true,
                 name: true,
                 slug: true,
+                brand: true,
                 basePrice: true,
+                compareAtPrice: true,
                 discountPct: true,
                 cashbackAmount: true,
                 gender: true,
-                frameMaterial: true,
-                lensMaterial: true,
-                uvProtection: true,
-                description: true,
-                frameWidth: true,
-                lensWidth: true,
-                lensHeight: true,
-                bridgeWidth: true,
-                templeLength: true,
-                weightBg: true,
-                averageRating: true,
-                reviewCount: true,
                 ProductVariant: {
                   select: {
                     id: true,
                     name: true,
                     sku: true,
                     colorHex: true,
+                    colorFamily: true,
+                    textureImageUrl: true,
                     price: true,
-                    stock: true, // Include stock for availability checking
+                    stock: true,
                     ProductAsset: {
+                      where: { isPrimary: true },
                       select: {
                         id: true,
                         url: true,
@@ -569,7 +576,12 @@ export async function getCart() {
                     },
                   },
                 },
-                Category: true,
+                Category: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
             PrescriptionGlasses: {
@@ -577,31 +589,23 @@ export async function getCart() {
                 id: true,
                 name: true,
                 slug: true,
+                brand: true,
                 basePrice: true,
+                compareAtPrice: true,
                 discountPct: true,
                 cashbackAmount: true,
                 gender: true,
-                frameMaterial: true,
-                lensMaterial: true,
-                uvProtection: true,
-                description: true,
-                frameWidth: true,
-                lensWidth: true,
-                lensHeight: true,
-                bridgeWidth: true,
-                templeLength: true,
-                weightBg: true,
-                averageRating: true,
-                reviewCount: true,
                 PrescriptionGlassesVariant: {
                   select: {
                     id: true,
                     name: true,
                     sku: true,
                     colorHex: true,
+                    textureImageUrl: true,
                     price: true,
                     stock: true,
                     PrescriptionGlassesAsset: {
+                      where: { isPrimary: true },
                       select: {
                         id: true,
                         url: true,
@@ -611,7 +615,12 @@ export async function getCart() {
                     },
                   },
                 },
-                Category: true,
+                Category: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -624,37 +633,42 @@ export async function getCart() {
       return { items: [] };
     }
 
-    console.log('[getCart] Found cart with', cart.items.length, 'items');
-    console.log('[getCart] Items:', cart.items.map((i: any) => ({
-      id: i.id,
-      productId: i.productId,
-      prescriptionGlassesId: i.prescriptionGlassesId,
-      hasPrescription: !!i.prescriptionData,
-      prescriptionDataType: typeof i.prescriptionData
-    })));
+    // CRITICAL: Use JSON.parse(JSON.stringify()) to convert ALL Prisma types
+    // (Decimal, Date, BigInt) to plain serializable values.
+    // This is the only reliable way to prevent "Decimal objects are not supported" errors.
+    const serializedCart = JSON.parse(JSON.stringify(cart));
+
+    console.log('[getCart] Found cart with', serializedCart.items.length, 'items');
 
     return {
-      items: cart.items.map((item: any) => {
-        const productData = item.Product || item.PrescriptionGlasses;
-        const variants = item.Product ? item.Product.ProductVariant : (item.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
+      items: serializedCart.items.map((item: any) => {
+        const isPrescription = !!item.prescriptionGlassesId;
+        const productData = isPrescription ? item.PrescriptionGlasses : item.Product;
+        const variants = isPrescription
+          ? (item.PrescriptionGlasses?.PrescriptionGlassesVariant || [])
+          : (item.Product?.ProductVariant || []);
 
         return {
           id: item.id,
           productId: item.productId || item.prescriptionGlassesId,
+          prescriptionGlassesId: item.prescriptionGlassesId || null,
           variantId: item.variantId,
           quantity: item.quantity,
-          prescriptionData: item.prescriptionData, // Include prescription data
-          Product: {
+          prescriptionData: item.prescriptionData,
+          Product: productData ? {
             ...productData,
-            cashbackAmount: productData?.cashbackAmount ? Number(productData.cashbackAmount) : 0,
-            basePrice: productData?.basePrice ? Number(productData.basePrice) : 0,
-            ProductVariant: variants.map((variant: any) => ({
-              ...variant,
-              price: variant.price ? Number(variant.price) : null,
-              stock: variant.stock !== null && variant.stock !== undefined ? Number(variant.stock) : null, // Include stock
-              ProductAsset: variant.ProductAsset || variant.PrescriptionGlassesAsset || []
-            })),
-          },
+            brand: productData.brand || 'FocusRobin',
+            cashbackAmount: productData.cashbackAmount ? Number(productData.cashbackAmount) : 0,
+            basePrice: productData.basePrice ? Number(productData.basePrice) : 0,
+            ProductVariant: variants
+              .filter((variant: any) => variant.id === item.variantId)
+              .map((variant: any) => ({
+                ...variant,
+                price: variant.price ? Number(variant.price) : null,
+                stock: variant.stock !== null && variant.stock !== undefined ? Number(variant.stock) : null,
+                ProductAsset: isPrescription ? (variant.PrescriptionGlassesAsset || []) : (variant.ProductAsset || []),
+              })),
+          } : null,
         };
       }),
     };
@@ -689,6 +703,16 @@ export async function getCartOld() {
                 Category: true,
               },
             },
+            PrescriptionGlasses: {
+              include: {
+                PrescriptionGlassesVariant: {
+                  include: {
+                    PrescriptionGlassesAsset: true,
+                  },
+                },
+                Category: true,
+              },
+            },
           },
         },
       },
@@ -699,7 +723,12 @@ export async function getCartOld() {
     }
 
     const total = cart.items.reduce((sum, item) => {
-      const price = Number(item.Product.basePrice);
+      let price = 0;
+      if (item.Product) {
+        price = Number(item.Product.basePrice);
+      } else if (item.PrescriptionGlasses) {
+        price = Number(item.PrescriptionGlasses.basePrice);
+      }
       return sum + price * item.quantity;
     }, 0);
 

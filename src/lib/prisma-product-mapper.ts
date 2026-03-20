@@ -156,10 +156,29 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
   const discountPct = prismaProduct.discountPct || 0;
   const hasDiscount = discountPct > 0;
 
-  const originalPrice = `€${basePrice.toFixed(2)}`;
+  // Determine originalPrice (crossed-out price)
+  // Priority: compareAtPrice from DB > discountPct calculation
+  const compareAtPriceRaw = (prismaProduct as any).compareAtPrice;
+  let originalPrice: string | undefined;
+  let computedDiscountPct: number | undefined = hasDiscount ? discountPct : undefined;
+  
   const discountedPrice = hasDiscount
     ? basePrice * (1 - discountPct / 100)
     : basePrice;
+
+  if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
+    // Use manual compare-at price directly with NO margins applied
+    let compareAt = Number(compareAtPriceRaw);
+    originalPrice = `€${compareAt.toFixed(2)}`;
+    
+    // Calculate new discount pct based on exactly the compare at and the final selling price
+    if (compareAt > discountedPrice) {
+      computedDiscountPct = Math.round(((compareAt - discountedPrice) / compareAt) * 100);
+    }
+  } else if (hasDiscount) {
+    originalPrice = `€${basePrice.toFixed(2)}`;
+  }
+
   const finalPrice = `€${discountedPrice.toFixed(2)}`;
 
   // Generate a URL-safe slug from product name if slug doesn't exist
@@ -183,18 +202,17 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     brand: prismaProduct.brand || 'FocusRobin',
     productType: 'sunglasses', // Products from Product table are sunglasses
     price: finalPrice, // Final price after discount
-    originalPrice: hasDiscount ? originalPrice : undefined, // Original price if discounted
-    discountPct: hasDiscount ? discountPct : undefined, // Discount percentage if applicable
+    originalPrice: originalPrice && originalPrice !== finalPrice ? originalPrice : undefined,
+    discountPct: computedDiscountPct,
     cashback: prismaProduct.cashbackAmount && Number(prismaProduct.cashbackAmount) > 0
       ? `€${Number(prismaProduct.cashbackAmount).toFixed(2)}`
       : undefined, // Cashback amount in Euros (only if > 0)
     variants,
-    categories: [
-      prismaProduct.Category?.name || 'Unisex',
-      ...(Array.isArray(prismaProduct.gender)
+    categories: Array.from(new Set(
+      Array.isArray(prismaProduct.gender) && prismaProduct.gender.length > 0
         ? prismaProduct.gender.map(g => g === 'MEN' ? 'Men' : g === 'WOMEN' ? 'Women' : g === 'KIDS' ? 'Kids' : 'Unisex')
-        : [])
-    ],
+        : [prismaProduct.Category?.name || 'Unisex']
+    )),
     warranty: prismaProduct.warranty || '2 Years Warranty',
     description: prismaProduct.description || '',
     lensMaterial: prismaProduct.lensMaterial || undefined, // From database

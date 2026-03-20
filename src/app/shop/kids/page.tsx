@@ -138,7 +138,7 @@ export default async function KidsShopPage({ searchParams }: KidsShopPageProps) 
   }
 
   // Fallback to default values if no shop banner found
-  const bannerTitle = "Shop for Kids";
+  const bannerTitle = "Kids Sunglasses";
   const bannerDescription = "Fun and durable eyewear designed with kids in mind";
   const bannerImage = shopBanner?.imageUrl || "/shopcategory/kids.jpg";
   const bannerAlt = shopBanner?.alt || bannerTitle;
@@ -156,6 +156,7 @@ export default async function KidsShopPage({ searchParams }: KidsShopPageProps) 
               alt={bannerAlt}
               link={bannerLink}
               className="mt-0 sm:mt-0 mb-6"
+              contentClassName="pb-2 sm:pb-3 md:pb-4 lg:pb-6 xl:pb-6"
             />
           }
           products={products}

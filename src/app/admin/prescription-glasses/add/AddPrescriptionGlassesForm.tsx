@@ -43,6 +43,7 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
   const [useSharedStock, setUseSharedStock] = useState(false);
   const [genders, setGenders] = useState<Gender[]>([Gender.UNISEX]);
   const [basePrice, setBasePrice] = useState<string>('');
+  const [compareAtPrice, setCompareAtPrice] = useState<string>('');
   const [discountPct, setDiscountPct] = useState<string>('0');
   const [cashbackAmount, setCashbackAmount] = useState<string>('0');
   const [brand, setBrand] = useState<string>('FocusRobin');
@@ -462,9 +463,9 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
 
           <Separator className="my-6" />
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="basePrice">Base Price *</Label>
+              <Label htmlFor="basePrice">Base Price (€) *</Label>
               <Input
                 id="basePrice"
                 name="basePrice"
@@ -475,6 +476,23 @@ export function AddPrescriptionGlassesForm({ availableSunglasses }: AddPrescript
                 value={basePrice}
                 onChange={(e) => setBasePrice(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">The actual selling price</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="compareAtPrice">Original / Compare-at Price (€)</Label>
+              <Input
+                id="compareAtPrice"
+                name="compareAtPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="199.00"
+                value={compareAtPrice}
+                onChange={(e) => setCompareAtPrice(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                If set, shown crossed-out next to the actual price (e.g., <s>€199.00</s> €129.00)
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Gender * (Select one or more)</Label>

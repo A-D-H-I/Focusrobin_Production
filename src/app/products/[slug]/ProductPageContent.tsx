@@ -181,7 +181,11 @@ export default function ProductPageContent({ product, reviews, relatedProducts =
         {/* Mobile Layout - Stacked */}
         <div className="lg:hidden">
           <Suspense fallback={<div className="h-96 bg-muted animate-pulse rounded-lg" />}>
-            <ProductPageClient product={product} />
+            <ProductPageClient 
+              product={product} 
+              selectedVariant={selectedVariant}
+              onVariantChange={setSelectedVariant}
+            />
           </Suspense>
         </div>
 

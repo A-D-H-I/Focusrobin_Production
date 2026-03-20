@@ -72,9 +72,6 @@ export default function Footer() {
                 <p className="text-xs sm:text-sm font-bold text-brand-blue uppercase leading-tight">
                   <TranslatableText text="Free Delivery" />
                 </p>
-                <p className="text-[10px] sm:text-[11px] text-muted-foreground leading-tight mt-0.5">
-                  <TranslatableText text="Within 2 days in Lithuania" />
-                </p>
               </div>
             </div>
           </div>

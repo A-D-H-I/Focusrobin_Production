@@ -407,7 +407,23 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
         effectiveBasePrice = effectiveBasePrice * 1.015;
       }
 
-      const price = effectiveBasePrice * (1 - (prescriptionGlass.discountPct || 0) / 100);
+      const discountPctRaw = prescriptionGlass.discountPct || 0;
+      const price = effectiveBasePrice * (1 - discountPctRaw / 100);
+
+      // Determine originalPrice from compareAtPrice (manual) or discountPct fallback
+      const compareAtPriceRaw = (prescriptionGlass as any).compareAtPrice;
+      let originalPriceStr: string | undefined;
+      let computedDiscountPct: number | undefined = discountPctRaw > 0 ? discountPctRaw : undefined;
+
+      if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
+        const compareAt = Number(compareAtPriceRaw);
+        originalPriceStr = `€${compareAt.toFixed(2)}`;
+        if (compareAt > price) {
+          computedDiscountPct = Math.round(((compareAt - price) / compareAt) * 100);
+        }
+      } else if (discountPctRaw > 0) {
+        originalPriceStr = `€${effectiveBasePrice.toFixed(2)}`;
+      }
 
       const product = {
         id: prescriptionGlass.id,
@@ -415,9 +431,9 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
         name: prescriptionGlass.name,
         brand: prescriptionGlass.brand || 'FocusRobin',
         productType: 'eyeglasses' as const,
-        price: price.toFixed(2),
-        originalPrice: prescriptionGlass.discountPct ? effectiveBasePrice.toFixed(2) : undefined,
-        discountPct: prescriptionGlass.discountPct || 0,
+        price: `€${price.toFixed(2)}`,
+        originalPrice: originalPriceStr && originalPriceStr !== `€${price.toFixed(2)}` ? originalPriceStr : undefined,
+        discountPct: computedDiscountPct,
         cashback: prescriptionGlass.cashbackAmount && Number(prescriptionGlass.cashbackAmount) > 0
           ? Number(prescriptionGlass.cashbackAmount).toFixed(2)
           : undefined,

@@ -139,7 +139,7 @@ export default async function MenShopPage({ searchParams }: MenShopPageProps) {
   }
 
   // Fallback to default values if no shop banner found
-  const bannerTitle = "Shop for Men";
+  const bannerTitle = "Men's Sunglasses";
   const bannerDescription = "Discover our premium collection of eyewear designed for the modern gentleman";
   const bannerImage = shopBanner?.imageUrl || "/shopcategory/Men.jpg";
   const bannerAlt = shopBanner?.alt || bannerTitle;
@@ -157,6 +157,7 @@ export default async function MenShopPage({ searchParams }: MenShopPageProps) {
               alt={bannerAlt}
               link={bannerLink}
               className="mt-0 sm:mt-0 mb-6"
+              contentClassName="pb-2 sm:pb-3 md:pb-4 lg:pb-6 xl:pb-6"
             />
           }
           products={products}

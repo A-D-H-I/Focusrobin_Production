@@ -38,6 +38,9 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
     Array.isArray(product.gender) ? product.gender : product.gender ? [product.gender] : [Gender.UNISEX]
   );
   const [basePrice, setBasePrice] = useState<string>(Number(product.basePrice).toString());
+  const [compareAtPrice, setCompareAtPrice] = useState<string>(
+    product.compareAtPrice ? Number(product.compareAtPrice).toString() : ''
+  );
   const [discountPct, setDiscountPct] = useState<string>((product.discountPct || 0).toString());
 
   // Brand
@@ -219,6 +222,9 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
     formData.set('genderCount', genders.length.toString());
     formData.set('discountPct', discountPct || '0');
     formData.set('brand', brand);
+    if (compareAtPrice && parseFloat(compareAtPrice) > 0) {
+      formData.set('compareAtPrice', compareAtPrice);
+    }
 
     // Add dynamic feature flags
     if (isPolarized) formData.append('isPolarized', 'on');
@@ -334,9 +340,9 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
             />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="basePrice">Base Price *</Label>
+              <Label htmlFor="basePrice">Base Price (€) *</Label>
               <Input
                 id="basePrice"
                 name="basePrice"
@@ -347,6 +353,23 @@ export function EditProductForm({ product, productId }: EditProductFormProps) {
                 value={basePrice}
                 onChange={(e) => setBasePrice(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">The actual selling price</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="compareAtPrice">Original / Compare-at Price (€)</Label>
+              <Input
+                id="compareAtPrice"
+                name="compareAtPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="199.00"
+                value={compareAtPrice}
+                onChange={(e) => setCompareAtPrice(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                If set, shown crossed-out next to the actual price (e.g., <s>€199.00</s> €129.00)
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Gender * (Select one or more)</Label>

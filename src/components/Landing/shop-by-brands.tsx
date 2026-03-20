@@ -12,6 +12,7 @@ interface BrandItem {
     name: string;
     imageUrl: string | null;
     landingImageUrl: string | null;
+    shopUrl?: string;
 }
 
 interface ShopByBrandsProps {
@@ -100,7 +101,7 @@ export default function ShopByBrands({ brands }: ShopByBrandsProps) {
                                     <div className="relative overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-500 h-full flex flex-col">
                                         {/* Image Container */}
                                         <Link
-                                            href={`/shop?brand=${encodeURIComponent(brand.name)}`}
+                                            href={brand.shopUrl || `/shop?brand=${encodeURIComponent(brand.name)}`}
                                         >
                                             <div className="relative h-64 overflow-hidden bg-gradient-to-br from-slate-100 to-slate-50">
                                                 <motion.div

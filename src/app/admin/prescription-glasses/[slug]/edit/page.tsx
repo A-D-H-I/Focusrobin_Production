@@ -37,6 +37,7 @@ export default async function EditPrescriptionGlassesPage({ params }: EditPrescr
         slug: prescriptionGlasses.slug,
         description: prescriptionGlasses.description,
         basePrice: Number(prescriptionGlasses.basePrice),
+        compareAtPrice: prescriptionGlasses.compareAtPrice ? Number(prescriptionGlasses.compareAtPrice) : null,
         discountPct: prescriptionGlasses.discountPct || 0,
         cashbackAmount: Number(prescriptionGlasses.cashbackAmount || 0),
         gender: prescriptionGlasses.gender,

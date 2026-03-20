@@ -394,10 +394,12 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         brand: true,
         basePrice: true,
         discountPct: true,
+        compareAtPrice: true,
         averageRating: true,
         reviewCount: true,
         isNewlyAdded: true,
         isUniqueDesign: true,
+        gender: true,
         // price removed
         Category: {
           select: {

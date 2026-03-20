@@ -33,7 +33,50 @@ function getKeyFromUrl(url: string | null | undefined): string | null {
   }
 }
 
-// ... (createShopBanner stays same) ...
+/**
+ * Create a new shop banner (Admin only)
+ */
+export async function createShopBanner(formData: FormData) {
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
+    if (!prisma.shopBanner || typeof prisma.shopBanner.create !== 'function') {
+      return { error: 'ShopBanner model not available. Please regenerate Prisma client.' };
+    }
+
+    const category = formData.get('category') as string;
+    const imageUrl = formData.get('imageUrl') as string;
+    const alt = formData.get('alt') as string;
+    const link = formData.get('link') as string || '';
+    const isActive = formData.get('isActive') === 'true';
+
+    const validatedInput = shopBannerSchema.safeParse({ category, imageUrl, alt, link, isActive });
+    
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
+    }
+
+    // @ts-ignore
+    const shopBanner = await prisma.shopBanner.create({
+      data: {
+        category: validatedInput.data.category,
+        imageUrl: validatedInput.data.imageUrl,
+        alt: validatedInput.data.alt,
+        link: validatedInput.data.link || null,
+        isActive: validatedInput.data.isActive,
+      },
+    });
+
+    revalidatePath('/shop/men');
+    revalidatePath('/shop/women');
+    revalidatePath('/shop/kids');
+    revalidatePath('/shop/unisex');
+    revalidatePath('/admin/shop-banners');
+
+    return { success: true, shopBannerId: shopBanner.id };
+  });
+}
 
 /**
  * Update a shop banner (Admin only)

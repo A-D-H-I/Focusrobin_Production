@@ -108,7 +108,7 @@ export const LENS_BUNDLE_DETAILS: Record<LensBundle, { description: string; best
   BASIC: {
     description: "1.60 Thinner Lens. Includes AR multicoat to reduce reflections.",
     bestFor: "Everyday indoor use.",
-    features: ["Anti-Reflective", "Scratch Resistant", "UV Protection", "Water Resistant"],
+    features: ["Anti-Reflective", "Scratch Resistant", "Water Resistant"],
   },
   BLUE_FILTER: {
     description: "1.60 Thinner Lens with Blue 420 filter + premium AR.",

@@ -117,14 +117,19 @@ export async function POST(req: NextRequest) {
           }
         );
       } catch (translationError) {
-        console.error("Batch translation error in API route:", translationError);
+        const isRateLimit = translationError instanceof Error && translationError.message.includes("Circuit Breaker");
+        
+        if (!isRateLimit) {
+          console.error("Batch translation error in API route:", translationError);
+        }
+        
         return NextResponse.json(
           {
-            error: translationError instanceof Error ? translationError.message : "Batch translation failed",
-            details: translationError instanceof Error ? translationError.stack : undefined,
+            error: isRateLimit ? "Rate limit exceeded" : (translationError instanceof Error ? translationError.message : "Batch translation failed"),
+            details: (translationError instanceof Error && !isRateLimit) ? translationError.stack : undefined,
           },
           {
-            status: 500,
+            status: isRateLimit ? 429 : 500,
             headers: SECURITY_HEADERS,
           }
         );
@@ -156,14 +161,19 @@ export async function POST(req: NextRequest) {
           }
         );
       } catch (translationError) {
-        console.error("Translation error in API route:", translationError);
+        const isRateLimit = translationError instanceof Error && translationError.message.includes("Circuit Breaker");
+        
+        if (!isRateLimit) {
+          console.error("Translation error in API route:", translationError);
+        }
+        
         return NextResponse.json(
           {
-            error: translationError instanceof Error ? translationError.message : "Translation failed",
-            details: translationError instanceof Error ? translationError.stack : undefined,
+            error: isRateLimit ? "Rate limit exceeded" : (translationError instanceof Error ? translationError.message : "Translation failed"),
+            details: (translationError instanceof Error && !isRateLimit) ? translationError.stack : undefined,
           },
           {
-            status: 500,
+            status: isRateLimit ? 429 : 500,
             headers: SECURITY_HEADERS,
           }
         );

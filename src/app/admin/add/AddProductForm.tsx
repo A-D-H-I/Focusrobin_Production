@@ -37,6 +37,7 @@ export function AddProductForm() {
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [genders, setGenders] = useState<Gender[]>([Gender.UNISEX]);
   const [basePrice, setBasePrice] = useState<string>('');
+  const [compareAtPrice, setCompareAtPrice] = useState<string>('');
   const [discountPct, setDiscountPct] = useState<string>('0');
   const [cashbackAmount, setCashbackAmount] = useState<string>('0');
   const [brand, setBrand] = useState<string>('FocusRobin');
@@ -412,9 +413,9 @@ export function AddProductForm() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="basePrice">Base Price *</Label>
+              <Label htmlFor="basePrice">Base Price (€) *</Label>
               <Input
                 id="basePrice"
                 name="basePrice"
@@ -425,7 +426,43 @@ export function AddProductForm() {
                 value={basePrice}
                 onChange={(e) => setBasePrice(e.target.value)}
               />
+              <p className="text-xs text-muted-foreground">The actual selling price</p>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="compareAtPrice">Original / Compare-at Price (€)</Label>
+              <Input
+                id="compareAtPrice"
+                name="compareAtPrice"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="199.00"
+                value={compareAtPrice}
+                onChange={(e) => setCompareAtPrice(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                If set, shown crossed-out next to the actual price (e.g., <s>€199.00</s> €129.00)
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="cashbackAmount">Cashback Amount (€) *</Label>
+              <Input
+                id="cashbackAmount"
+                name="cashbackAmount"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                value={cashbackAmount}
+                onChange={(e) => setCashbackAmount(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Fixed Euro amount returned to customer wallet per purchase
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Gender * (Select one or more)</Label>
               <div className="flex flex-wrap gap-4 mt-2">

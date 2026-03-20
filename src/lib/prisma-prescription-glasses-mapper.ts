@@ -21,6 +21,23 @@ export function mapPrismaPrescriptionGlassesToProduct(prismaGlasses: any): any {
   const finalPrice = basePrice * (1 - discountPct / 100);
   const cashback = prismaGlasses.cashbackAmount ? Number(prismaGlasses.cashbackAmount) : 0;
 
+  // Determine originalPrice (crossed-out price)
+  const compareAtPriceRaw = prismaGlasses.compareAtPrice;
+  let originalPrice: string | undefined;
+  let computedDiscountPct: number | undefined = discountPct > 0 ? discountPct : undefined;
+
+  if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
+    // Use manual compare-at price directly with NO margins
+    let compareAt = Number(compareAtPriceRaw);
+    originalPrice = `€${compareAt.toFixed(2)}`;
+    
+    if (compareAt > finalPrice) {
+      computedDiscountPct = Math.round(((compareAt - finalPrice) / compareAt) * 100);
+    }
+  } else if (discountPct > 0) {
+    originalPrice = `€${basePrice.toFixed(2)}`;
+  }
+
   // Map variants
   const variants = (prismaGlasses.PrescriptionGlassesVariant || []).map((variant: any) => {
     const assets = variant.PrescriptionGlassesAsset || [];
@@ -62,14 +79,18 @@ export function mapPrismaPrescriptionGlassesToProduct(prismaGlasses: any): any {
   return {
     id: prismaGlasses.id,
     name: prismaGlasses.name,
-    brand: prismaGlasses.brand || 'FocusRobin',
+    brand: prismaGlasses.brand || '',
     slug: prismaGlasses.slug,
     price: `€${finalPrice.toFixed(2)}`,
-    originalPrice: discountPct > 0 ? `€${basePrice.toFixed(2)}` : undefined,
-    discountPct: discountPct > 0 ? discountPct : undefined,
+    originalPrice: originalPrice && `€${finalPrice.toFixed(2)}` !== originalPrice ? originalPrice : undefined,
+    discountPct: computedDiscountPct,
     cashback: cashback > 0 ? cashback.toFixed(2) : '0',
     variants,
-    categories: prismaGlasses.gender || [],
+    categories: Array.from(new Set(
+      Array.isArray(prismaGlasses.gender) && prismaGlasses.gender.length > 0
+        ? prismaGlasses.gender.map((g: string) => g === 'MEN' ? 'Men' : g === 'WOMEN' ? 'Women' : g === 'KIDS' ? 'Kids' : 'Unisex')
+        : [prismaGlasses.Category?.name || 'Unisex']
+    )),
     tags: prismaGlasses.tags || [],
     warranty: '1 Year',
     description: prismaGlasses.description || '',

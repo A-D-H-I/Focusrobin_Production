@@ -1,17 +1,17 @@
 import type { Metadata } from 'next';
-import HeroSection from '@/components/Landing/hero-section.tsx';
-// import IconicSection from '@/components/Landing/iconic-section.tsx';
-import ShopByShapes from '@/components/Landing/shop-by-shapes.tsx';
-import ShopByBrands from '@/components/Landing/shop-by-brands.tsx';
-import GiftCategoriesSection from '@/components/Landing/gift-categories-section.tsx';
-import GiftBannerSection from '@/components/Landing/gift-banner-section.tsx';
-import GiftForLovedOnesBanner from '@/components/Landing/gift-for-loved-ones-banner.tsx';
-import BestsellersCarousel from '@/components/Landing/BestsellersCarousel.tsx';
-import Products3DSection from '@/components/Landing/products-3d-section.tsx';
-import ValuePropsSection from '@/components/Landing/value-props-section.tsx';
-import LensFeatureSection from '@/components/Landing/lens-feature-section.tsx';
-import InstagramFeedSection from '@/components/Landing/instagram-feed-section.tsx';
-import Footer from '@/components/Landing/footer.tsx';
+import HeroSection from '@/components/Landing/hero-section';
+// import IconicSection from '@/components/Landing/iconic-section';
+import ShopByShapes from '@/components/Landing/shop-by-shapes';
+import ShopByBrands from '@/components/Landing/shop-by-brands';
+import GiftCategoriesSection from '@/components/Landing/gift-categories-section';
+import GiftBannerSection from '@/components/Landing/gift-banner-section';
+import GiftForLovedOnesBanner from '@/components/Landing/gift-for-loved-ones-banner';
+import BestsellersCarousel from '@/components/Landing/BestsellersCarousel';
+import Products3DSection from '@/components/Landing/products-3d-section';
+import ValuePropsSection from '@/components/Landing/value-props-section';
+import LensFeatureSection from '@/components/Landing/lens-feature-section';
+import InstagramFeedSection from '@/components/Landing/instagram-feed-section';
+import Footer from '@/components/Landing/footer';
 import SplitBannerSection from '@/components/Landing/split-banner-section';
 import FaqSection from '@/components/Landing/faq-section';
 import { prisma } from '@/lib/prisma';
@@ -288,7 +288,7 @@ export default async function Home() {
   // Fetch brands for Shop By Brands section
   let brandsData: any[] = [];
   try {
-    brandsData = await prisma.brand.findMany({
+    const rawBrandsData = await prisma.brand.findMany({
       where: { isActive: true },
       orderBy: [{ order: 'asc' }, { name: 'asc' }],
       select: {
@@ -296,6 +296,26 @@ export default async function Home() {
         imageUrl: true,
         landingImageUrl: true,
       },
+    });
+
+    const { getAvailableBrands } = await import('@/app/actions/getAvailableBrands');
+    const sgBrands = await getAvailableBrands('sunglasses');
+    const egBrands = await getAvailableBrands('eyeglasses');
+    
+    const sunglassesBrandNames = sgBrands.map(b => (b.brand || '').toLowerCase());
+    const eyeglassesBrandNames = egBrands.map(b => (b.brand || '').toLowerCase());
+
+    brandsData = rawBrandsData.map(brand => {
+      const lowerName = brand.name.toLowerCase();
+      // If a brand exclusively sells prescription glasses, or we know it from db
+      const isEyeglassesOnly = eyeglassesBrandNames.includes(lowerName) && !sunglassesBrandNames.includes(lowerName);
+      
+      return {
+        ...brand,
+        shopUrl: isEyeglassesOnly 
+          ? `/shop/prescription-glasses?brand=${encodeURIComponent(brand.name)}`
+          : `/shop?brand=${encodeURIComponent(brand.name)}`
+      };
     });
   } catch (error) {
     console.error('Error fetching brands:', error);

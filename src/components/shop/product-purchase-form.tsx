@@ -48,7 +48,9 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   ];
 
   // Check if product is sunglasses (prescription option is not available for sunglasses)
-  const isSunglasses = product.productType === 'sunglasses';
+  const isPrescription = product.productType === 'eyeglasses' || 
+    (product.categories || []).some(c => c.toLowerCase().includes('prescription'));
+  const isSunglasses = !isPrescription;
 
   // Load prescription data from sessionStorage
   useEffect(() => {
@@ -177,7 +179,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       }
     }
 
-    addToCart(product, selectedVariant, quantity);
+    addToCart(product, selectedVariant, quantity, prescriptionData);
     toast({
       title: "Added to cart",
       description: `${product.name} (${selectedVariant.name}) has been added to your cart.`,
@@ -387,16 +389,28 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
             </Button>
           )}
 
-          <Button
-            className="h-10 text-sm font-semibold overflow-hidden"
-            disabled={isOutOfStock}
-            onClick={handleAddToCart}
-          >
-            <ShoppingCart className="w-4 h-4 mr-1.5 flex-shrink-0" />
-            <span className="truncate">
-              {isOutOfStock ? <TranslatableText text="Out of Stock" /> : <TranslatableText text="Add to Cart" />}
-            </span>
-          </Button>
+          {(!isSunglasses && !prescriptionData) ? (
+            <Button
+              className="h-10 text-sm font-semibold overflow-hidden"
+              disabled={isOutOfStock}
+              asChild
+            >
+              <Link href={`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`}>
+                <span className="truncate"><TranslatableText text="Choose Lenses" /></span>
+              </Link>
+            </Button>
+          ) : (
+            <Button
+              className="h-10 text-sm font-semibold overflow-hidden"
+              disabled={isOutOfStock}
+              onClick={handleAddToCart}
+            >
+              <ShoppingCart className="w-4 h-4 mr-1.5 flex-shrink-0" />
+              <span className="truncate">
+                {isOutOfStock ? <TranslatableText text="Out of Stock" /> : <TranslatableText text="Add to Cart" />}
+              </span>
+            </Button>
+          )}
         </div>
 
         {/* Prescription Section - Only show for non-sunglasses products */}
@@ -531,30 +545,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
               </Link>
             </Button>
           </div>
-        ) : !isSunglasses ? (
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              className="h-10 text-sm font-semibold overflow-hidden"
-              disabled={isOutOfStock}
-              asChild
-            >
-              <Link href={`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`}>
-                <Plus className="w-4 h-4 mr-1.5 flex-shrink-0" />
-                <span className="truncate">Add Prescription</span>
-              </Link>
-            </Button>
-
-            <Button
-              variant="outline"
-              className={cn("h-10 text-sm overflow-hidden", isWishlisted && "border-primary")}
-              onClick={handleWishlist}
-            >
-              <Heart className={cn("w-4 h-4 mr-1.5 flex-shrink-0", isWishlisted && "fill-red-500 text-red-500")} />
-              <span className="truncate">{isWishlisted ? "In Wishlist" : "Wishlist"}</span>
-            </Button>
-          </div>
         ) : (
-          /* Sunglasses: show only Wishlist button (no prescription) */
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -565,17 +556,6 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
               <span className="truncate">{isWishlisted ? "In Wishlist" : "Add to Wishlist"}</span>
             </Button>
           </div>
-        )}
-
-        {!isSunglasses && prescriptionData && (
-          <Button
-            variant="outline"
-            className={cn("w-full h-10 text-sm overflow-hidden", isWishlisted && "border-primary")}
-            onClick={handleWishlist}
-          >
-            <Heart className={cn("w-4 h-4 mr-1.5 flex-shrink-0", isWishlisted && "fill-red-500 text-red-500")} />
-            <span className="truncate">{isWishlisted ? "In Wishlist" : "Add to Wishlist"}</span>
-          </Button>
         )}
       </div>
 

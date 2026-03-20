@@ -137,7 +137,7 @@ export default async function UnisexShopPage({ searchParams }: UnisexShopPagePro
   }
 
   // Fallback to default values if no shop banner found
-  const bannerTitle = "Unisex Collection";
+  const bannerTitle = "Unisex Sunglasses";
   const bannerDescription = "Versatile eyewear designed for everyone";
   const bannerImage = shopBanner?.imageUrl || "/shopcategory/Men.jpg";
   const bannerAlt = shopBanner?.alt || bannerTitle;
@@ -155,6 +155,7 @@ export default async function UnisexShopPage({ searchParams }: UnisexShopPagePro
               alt={bannerAlt}
               link={bannerLink}
               className="mt-0 sm:mt-0 mb-6"
+              contentClassName="pb-2 sm:pb-3 md:pb-4 lg:pb-6 xl:pb-6"
             />
           }
           products={products}

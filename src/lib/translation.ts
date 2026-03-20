@@ -96,14 +96,23 @@ function getTranslateClient(): Translate {
  */
 export async function detectLanguage(text: string): Promise<string> {
   try {
+    if (Date.now() < rateLimitUntil) {
+      throw new Error("User Rate Limit Exceeded (Circuit Breaker)");
+    }
     const client = getTranslateClient();
     const [detection] = await client.detect(text);
     return detection.language;
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    if (errorMessage.includes("Rate Limit Exceeded") || errorMessage.includes("userRateLimitExceeded") || errorMessage.includes("403")) {
+      rateLimitUntil = Date.now() + 60000;
+    }
     console.error("Error detecting language:", error);
     throw new Error("Failed to detect language");
   }
 }
+
+let rateLimitUntil = 0;
 
 /**
  * Translate text to a target language
@@ -127,6 +136,11 @@ export async function translateText(
       return text;
     }
 
+    // Circuit breaker: fail fast if we are currently rate limited
+    if (Date.now() < rateLimitUntil) {
+      throw new Error("User Rate Limit Exceeded (Circuit Breaker)");
+    }
+
     const client = getTranslateClient();
     const options: { from?: string; to: string } = {
       to: targetLanguage,
@@ -141,8 +155,14 @@ export async function translateText(
     console.log(`[Translation] Result: "${translation}"`);
     return translation;
   } catch (error) {
-    console.error("Error translating text:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Trigger circuit breaker on rate limit to prevent connection pool exhaustion
+    if (errorMessage.includes("Rate Limit Exceeded") || errorMessage.includes("userRateLimitExceeded") || errorMessage.includes("403")) {
+      rateLimitUntil = Date.now() + 60000; // Block further requests for 60 seconds
+    }
+
+    console.error("Error translating text:", error);
     const errorDetails = error instanceof Error ? error.stack : undefined;
     console.error("Error details:", errorDetails);
     throw new Error(
@@ -175,6 +195,10 @@ export async function translateBatch(
       return texts;
     }
 
+    if (Date.now() < rateLimitUntil) {
+      throw new Error("User Rate Limit Exceeded (Circuit Breaker)");
+    }
+
     const client = getTranslateClient();
     const options: { from?: string; to: string } = {
       to: targetLanguage,
@@ -198,9 +222,13 @@ export async function translateBatch(
       return translatedArray[translationIndex++] || text;
     });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    if (errorMessage.includes("Rate Limit Exceeded") || errorMessage.includes("userRateLimitExceeded") || errorMessage.includes("403")) {
+      rateLimitUntil = Date.now() + 60000;
+    }
     console.error("Error translating batch:", error);
     throw new Error(
-      `Failed to translate batch: ${error instanceof Error ? error.message : "Unknown error"}`
+      `Failed to translate batch: ${errorMessage}`
     );
   }
 }

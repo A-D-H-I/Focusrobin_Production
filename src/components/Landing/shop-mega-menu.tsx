@@ -196,25 +196,25 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
         <div className="space-y-4">
           <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text={title} /></h3>
           <div className="space-y-2 sm:space-y-3">
-            <Link href={baseUrl} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+            <Link href={baseUrl} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
               <TranslatableText text={`All ${title}`} />
             </Link>
-            <Link href={`${baseUrl}/women`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+            <Link href={`${baseUrl}/women`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
               <TranslatableText text={`Women's ${title}`} />
             </Link>
-            <Link href={`${baseUrl}/men`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+            <Link href={`${baseUrl}/men`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
               <TranslatableText text={`Men's ${title}`} />
             </Link>
-            <Link href={`${baseUrl}/kids`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+            <Link href={`${baseUrl}/kids`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
               <TranslatableText text={`Kids ${type === 'eyeglasses' ? 'Eyeglasses' : 'Sunglasses'}`} />
             </Link>
-            <Link href={`${baseUrl}/unisex`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+            <Link href={`${baseUrl}/unisex`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
               <TranslatableText text={`Unisex ${title}`} />
             </Link>
-            <Link href={`${baseUrl}?filter=bestsellers`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+            <Link href={`${baseUrl}?filter=bestsellers`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
               <TranslatableText text="Best Sellers" />
             </Link>
-            <Link href={`${baseUrl}/new-arrivals`} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
+            <Link href={`${baseUrl}/new-arrivals`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
               <TranslatableText text="New Arrivals" />
             </Link>
           </div>
@@ -240,6 +240,7 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
                   <Link
                     key={brandData.brand + "-" + index}
                     href={`${baseUrl}?filter=${encodeURIComponent(brandData.brand)}`}
+                    onClick={onClose}
                     className="group flex flex-col items-center p-2 sm:p-3 bg-[#F5F5DC] rounded-lg hover:bg-[#E8E8D0] transition-colors cursor-pointer"
                   >
                     <div className="w-10 h-6 sm:w-12 sm:h-8 mb-1 sm:mb-2 flex items-center justify-center relative">
@@ -293,6 +294,7 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
                   <Link
                     key={color.colorHex + "-" + index}
                     href={`${baseUrl}?color=${encodeURIComponent(color.colorName)}`}
+                    onClick={onClose}
                     className="group relative flex justify-center cursor-pointer"
                     title={color.colorName}
                   >
@@ -333,6 +335,7 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
                   <Link
                     key={shapeData.shape + "-" + index}
                     href={`${baseUrl}?glassShape=${encodeURIComponent(shapeData.shape.toLowerCase().replace(/\s+/g, "-"))}`}
+                    onClick={onClose}
                     className="group flex flex-col items-center p-2 sm:p-3 bg-[#F5F5DC] rounded-lg hover:bg-[#E8E8D0] transition-colors cursor-pointer"
                   >
                     <div className="w-10 h-6 sm:w-12 sm:h-8 mb-1 sm:mb-2 flex items-center justify-center relative">

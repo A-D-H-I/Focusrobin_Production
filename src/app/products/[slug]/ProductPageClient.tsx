@@ -9,21 +9,32 @@ type ProductPageClientProps = {
   product: Product;
   showGalleryOnly?: boolean;
   showPurchaseFormOnly?: boolean;
+  selectedVariant?: ProductColorVariant;
+  onVariantChange?: (variant: ProductColorVariant) => void;
 };
 
 export default function ProductPageClient({ 
   product, 
   showGalleryOnly = false,
-  showPurchaseFormOnly = false 
+  showPurchaseFormOnly = false,
+  selectedVariant: externalSelectedVariant,
+  onVariantChange
 }: ProductPageClientProps) {
-  const [selectedVariant, setSelectedVariant] = useState<ProductColorVariant>(product.variants[0]);
+  const [internalSelectedVariant, setInternalSelectedVariant] = useState<ProductColorVariant>(product.variants[0]);
+  
+  const selectedVariant = externalSelectedVariant || internalSelectedVariant;
+  
+  const handleVariantChange = (variant: ProductColorVariant) => {
+    setInternalSelectedVariant(variant);
+    if (onVariantChange) onVariantChange(variant);
+  };
 
   // Mobile Layout: Gallery -> Purchase Form
   if (!showGalleryOnly && !showPurchaseFormOnly) {
     return (
       <div className="lg:hidden space-y-8">
         <ProductGallery product={product} selectedVariant={selectedVariant} />
-        <ProductPurchaseForm product={product} onVariantChange={setSelectedVariant} />
+        <ProductPurchaseForm product={product} selectedVariant={selectedVariant} onVariantChange={handleVariantChange} />
       </div>
     );
   }
@@ -41,7 +52,7 @@ export default function ProductPageClient({
   if (showPurchaseFormOnly) {
     return (
       <div className="hidden lg:block">
-        <ProductPurchaseForm product={product} onVariantChange={setSelectedVariant} />
+        <ProductPurchaseForm product={product} selectedVariant={selectedVariant} onVariantChange={handleVariantChange} />
       </div>
     );
   }

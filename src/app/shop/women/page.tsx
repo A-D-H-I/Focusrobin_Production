@@ -138,7 +138,7 @@ export default async function WomenShopPage({ searchParams }: WomenShopPageProps
   }
 
   // Fallback to default values if no shop banner found
-  const bannerTitle = "Shop for Women";
+  const bannerTitle = "Women's Sunglasses";
   const bannerDescription = "Elegant and stylish eyewear crafted for the contemporary woman";
   const bannerImage = shopBanner?.imageUrl || "/shopcategory/women.jpg";
   const bannerAlt = shopBanner?.alt || bannerTitle;
@@ -156,6 +156,7 @@ export default async function WomenShopPage({ searchParams }: WomenShopPageProps
               alt={bannerAlt}
               link={bannerLink}
               className="mt-0 sm:mt-0 mb-6"
+              contentClassName="pb-2 sm:pb-3 md:pb-4 lg:pb-6 xl:pb-6"
             />
           }
           products={products}

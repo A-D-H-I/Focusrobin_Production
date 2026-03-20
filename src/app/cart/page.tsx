@@ -45,48 +45,25 @@ export default function CartPage() {
 
   // Calculate cashback from actual product cashback amounts
   useEffect(() => {
-    const calculateCashback = async () => {
+    const calculateCashback = () => {
       if (!session?.user || !cartItems || cartItems.length === 0) {
         setTotalCashback(0);
         return;
       }
 
-      try {
-        const cart = await getCart();
-
-        if (!cart || !cart.items || cart.items.length === 0) {
-          // Fallback: try to parse from cartItems if available
-          let cashback = 0;
-          for (const item of cartItems) {
-            if (item.product.cashback) {
-              const cashbackStr = item.product.cashback.replace(/[€,\s]/g, '').trim();
-              const cashbackAmount = parseFloat(cashbackStr);
-              if (!isNaN(cashbackAmount) && cashbackAmount > 0) {
-                cashback += cashbackAmount * item.quantity;
-              }
-            }
-          }
-          setTotalCashback(cashback);
-          return;
-        }
-
-        // Calculate from database values (cashbackAmount is already a number)
-        let cashback = 0;
-        for (const item of cart.items) {
-          if (item.Product) {
-            const cashbackAmount = (item.Product as any).cashbackAmount || 0;
-            if (cashbackAmount > 0) {
-              const itemCashback = cashbackAmount * item.quantity;
-              cashback += itemCashback;
-            }
+      let cashback = 0;
+      for (const item of cartItems) {
+        if (item.product.cashback) {
+          const cashbackStr = typeof item.product.cashback === 'string' 
+            ? item.product.cashback.replace(/[€,\s]/g, '').trim()
+            : String(item.product.cashback);
+          const cashbackAmount = parseFloat(cashbackStr);
+          if (!isNaN(cashbackAmount) && cashbackAmount > 0) {
+            cashback += cashbackAmount * item.quantity;
           }
         }
-
-        setTotalCashback(cashback);
-      } catch (error) {
-        console.error("Error calculating cashback:", error);
-        setTotalCashback(0);
       }
+      setTotalCashback(cashback);
     };
 
     calculateCashback();

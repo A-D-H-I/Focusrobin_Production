@@ -48,6 +48,7 @@ const productSchema = z.object({
   brand: z.string().trim().min(1).max(100).optional().default("FocusRobin"),
   description: z.string().trim().max(5000).optional().nullable(),
   basePrice: z.number().positive().max(100000),
+  compareAtPrice: z.number().positive().max(100000).optional().nullable(),
   discountPct: z.number().int().min(0).max(99).optional().default(0),
   cashbackAmount: z.number().nonnegative().max(1000).optional().default(0),
   frameMaterial: z.string().trim().max(100).optional(),
@@ -119,6 +120,8 @@ export async function updateProduct(productId: string, formData: FormData) {
     const descriptionRaw = formData.get('description') as string | null;
     const description = descriptionRaw?.trim() || null;
     const basePrice = parseFloat(formData.get('basePrice') as string);
+    const compareAtPriceRaw = formData.get('compareAtPrice') as string;
+    const compareAtPrice = compareAtPriceRaw && parseFloat(compareAtPriceRaw) > 0 ? parseFloat(compareAtPriceRaw) : null;
     const discountPct = parseInt(formData.get('discountPct') as string) || 0;
     const cashbackAmount = parseFloat(formData.get('cashbackAmount') as string) || 0;
 
@@ -216,6 +219,7 @@ export async function updateProduct(productId: string, formData: FormData) {
       brand,
       description,
       basePrice,
+      compareAtPrice,
       discountPct,
       cashbackAmount,
       frameMaterial,
@@ -422,6 +426,7 @@ export async function updateProduct(productId: string, formData: FormData) {
         brand: productValidation.data.brand,
         description: productValidation.data.description || null,
         basePrice: productValidation.data.basePrice,
+        compareAtPrice: productValidation.data.compareAtPrice ?? null,
         discountPct: productValidation.data.discountPct || 0,
         cashbackAmount: productValidation.data.cashbackAmount || 0,
         gender: genders,

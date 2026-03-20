@@ -31,6 +31,7 @@ interface PrescriptionGlassesData {
     brand: string;
     description: string | null;
     basePrice: number;
+    compareAtPrice?: number | null;
     discountPct: number;
     cashbackAmount: number;
     gender: Gender[];
@@ -86,6 +87,9 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
     const [brand, setBrand] = useState(prescriptionGlasses.brand || 'FocusRobin');
     const [description, setDescription] = useState(prescriptionGlasses.description || '');
     const [basePrice, setBasePrice] = useState(prescriptionGlasses.basePrice.toString());
+    const [compareAtPrice, setCompareAtPrice] = useState(
+        prescriptionGlasses.compareAtPrice ? Number(prescriptionGlasses.compareAtPrice).toString() : ''
+    );
     const [discountPct, setDiscountPct] = useState(prescriptionGlasses.discountPct.toString());
     const [cashbackAmount, setCashbackAmount] = useState(prescriptionGlasses.cashbackAmount.toString());
     const [genders, setGenders] = useState<Gender[]>(prescriptionGlasses.gender);
@@ -204,6 +208,9 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
         formData.set('brand', brand);
         formData.set('description', description);
         formData.set('basePrice', basePrice);
+        if (compareAtPrice && parseFloat(compareAtPrice) > 0) {
+            formData.set('compareAtPrice', compareAtPrice);
+        }
         formData.set('discountPct', discountPct);
         formData.set('cashbackAmount', cashbackAmount);
         formData.set('tags', tags);
@@ -299,10 +306,26 @@ export function EditPrescriptionGlassesForm({ prescriptionGlasses }: EditPrescri
                         <Label htmlFor="description">Description</Label>
                         <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} rows={4} />
                     </div>
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                         <div className="space-y-2">
-                            <Label htmlFor="basePrice">Base Price *</Label>
+                            <Label htmlFor="basePrice">Base Price (€) *</Label>
                             <Input id="basePrice" type="number" step="0.01" value={basePrice} onChange={(e) => setBasePrice(e.target.value)} required />
+                            <p className="text-xs text-muted-foreground">The actual selling price</p>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="compareAtPrice">Original / Compare-at Price (€)</Label>
+                            <Input
+                                id="compareAtPrice"
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="199.00"
+                                value={compareAtPrice}
+                                onChange={(e) => setCompareAtPrice(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                If set, shown crossed-out next to the actual price (e.g., <s>€199.00</s> €129.00)
+                            </p>
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="discountPct">Discount (%)</Label>

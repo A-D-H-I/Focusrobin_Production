@@ -45,6 +45,7 @@ model Product {
   brand                     String                @default("FocusRobin")
   description               String?
   basePrice                 Decimal               @db.Decimal(10, 2)
+  compareAtPrice            Decimal?              @db.Decimal(10, 2)
   discountPct               Int?                  @default(0)
   cashbackAmount            Decimal?              @default(0) @db.Decimal(10, 2)
   gender                    Gender[]
@@ -95,6 +96,7 @@ model PrescriptionGlasses {
   brand                      String                       @default("FocusRobin")
   description                String?
   basePrice                  Decimal                      @db.Decimal(10, 2)
+  compareAtPrice             Decimal?                     @db.Decimal(10, 2)
   discountPct                Int?                         @default(0)
   cashbackAmount             Decimal?                     @default(0) @db.Decimal(10, 2)
   linkedProductId            String?

@@ -41,6 +41,8 @@ export default function TryOnProductDetails({
   const cashbackInEur = product.cashback ? parseEurPrice(product.cashback) : null;
 
   const isWishlisted = isInWishlist(product.id, selectedVariant.hex);
+  const isPrescription = product.productType === 'eyeglasses' || 
+    (product.categories || []).some(c => c.toLowerCase().includes('prescription'));
 
   // Dynamic features based on product properties
   const dynamicFeatures = [
@@ -75,6 +77,11 @@ export default function TryOnProductDetails({
   };
 
   const handleAddToCart = () => {
+    if (isPrescription) {
+      router.push(`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
+      return;
+    }
+
     if (selectedVariant.stock !== undefined) {
       if (selectedVariant.stock === 0) {
         toast({
@@ -268,35 +275,29 @@ export default function TryOnProductDetails({
         <Button
           onClick={handleAddToCart}
           className="w-full h-10 font-semibold text-sm"
-          disabled={selectedVariant?.stock === 0}
+          disabled={selectedVariant?.stock === 0 && !isPrescription}
         >
           <ShoppingCart className="h-4 w-4 mr-1.5" />
-          {selectedVariant?.stock === 0 ? <TranslatableText text="Out of Stock" /> : <TranslatableText text="Add to Cart" />}
+          {isPrescription 
+            ? <TranslatableText text="Choose Lenses" /> 
+            : selectedVariant?.stock === 0 
+              ? <TranslatableText text="Out of Stock" /> 
+              : <TranslatableText text="Add to Cart" />}
         </Button>
 
         <div className="flex gap-2">
           <Button
             variant="outline"
-            onClick={() => {
-              router.push(`/shop/${product.id}/prescription?product=${encodeURIComponent(product.id)}`);
-            }}
-            className="flex-1 h-9 text-xs px-2"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            <TranslatableText text="Prescription" />
-          </Button>
-
-          <Button
-            variant="outline"
             onClick={handleWishlistToggle}
-            className={cn("h-9 w-9 p-0", isWishlisted && "border-primary")}
+            className={cn("w-full h-9", isWishlisted && "border-primary")}
           >
             <Heart
               className={cn(
-                "h-4 w-4",
+                "h-4 w-4 mr-1.5",
                 isWishlisted && "fill-red-500 text-red-500"
               )}
             />
+            <span className="text-xs">{isWishlisted ? "In Wishlist" : "Wishlist"}</span>
           </Button>
         </div>
       </div>

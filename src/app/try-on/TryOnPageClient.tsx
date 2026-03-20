@@ -35,7 +35,7 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
   const handleProductSelect = (product: Product, variantIndex: number = 0) => {
     setSelectedProduct(product);
     setSelectedVariantIndex(variantIndex);
-    router.push(`/try-on?product=${encodeURIComponent(product.slug)}&variant=${variantIndex}`, { scroll: false });
+    router.push(`/try-on?product=${encodeURIComponent(product.slug || product.id)}&variant=${variantIndex}`, { scroll: false });
   };
 
   // Handle variant change
@@ -44,20 +44,20 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
     const newIndex = selectedProduct.variants.findIndex((v) => v.hex === variant.hex);
     if (newIndex >= 0) {
       setSelectedVariantIndex(newIndex);
-      router.push(`/try-on?product=${encodeURIComponent(selectedProduct.slug)}&variant=${newIndex}`, { scroll: false });
+      router.push(`/try-on?product=${encodeURIComponent(selectedProduct.slug || selectedProduct.id)}&variant=${newIndex}`, { scroll: false });
     }
   };
 
   const handleVariantIndexChange = (index: number) => {
     if (!selectedProduct) return;
     setSelectedVariantIndex(index);
-    router.push(`/try-on?product=${encodeURIComponent(selectedProduct.slug)}&variant=${index}`, { scroll: false });
+    router.push(`/try-on?product=${encodeURIComponent(selectedProduct.slug || selectedProduct.id)}&variant=${index}`, { scroll: false });
   };
 
   // Handle going back to product page
   const handleBackToProduct = () => {
     if (selectedProduct) {
-      router.push(`/shop/${encodeURIComponent(selectedProduct.slug)}`);
+      router.push(`/shop/${encodeURIComponent(selectedProduct.slug || selectedProduct.id)}`);
     } else {
       router.push('/shop');
     }
@@ -98,6 +98,14 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
   const handleAddToCart = () => {
     if (!selectedProduct || !selectedVariant) return;
     
+    const isPrescription = selectedProduct.productType === 'eyeglasses' || 
+      (selectedProduct.categories || []).some(c => c.toLowerCase().includes('prescription'));
+      
+    if (isPrescription) {
+      router.push(`/shop/${selectedProduct.id}/prescription?product=${encodeURIComponent(selectedProduct.id)}`);
+      return;
+    }
+
     if (selectedVariant.stock !== undefined && selectedVariant.stock === 0) {
       toast({
         title: "Out of Stock",
@@ -287,10 +295,15 @@ export default function TryOnPageClient({ products }: TryOnPageClientProps) {
           <Button
             onClick={handleAddToCart}
             className="w-full h-14 font-bold text-base"
-            disabled={selectedVariant?.stock === 0}
+            disabled={selectedVariant?.stock === 0 && 
+              !(selectedProduct?.productType === 'eyeglasses' || (selectedProduct?.categories || []).some(c => c.toLowerCase().includes('prescription')))}
           >
             <ShoppingCart className="h-5 w-5 mr-2" />
-            {selectedVariant?.stock === 0 ? "Out of Stock" : `Add to Cart — ${selectedProduct.price}`}
+            {selectedProduct?.productType === 'eyeglasses' || (selectedProduct?.categories || []).some(c => c.toLowerCase().includes('prescription'))
+              ? "Choose Lenses" 
+              : selectedVariant?.stock === 0 
+                ? "Out of Stock" 
+                : `Add to Cart — ${selectedProduct.price}`}
           </Button>
         </div>
     </div>

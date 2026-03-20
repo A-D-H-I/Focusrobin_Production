@@ -47,6 +47,7 @@ const prescriptionGlassesSchema = z.object({
   brand: z.string().trim().min(1).max(100).optional().default("FocusRobin"),
   description: z.string().trim().max(5000).optional().nullable(),
   basePrice: z.number().positive().max(100000),
+  compareAtPrice: z.number().positive().max(100000).optional().nullable(),
   discountPct: z.number().int().min(0).max(99).optional().default(0),
   cashbackAmount: z.number().nonnegative().max(1000).optional().default(0),
   frameMaterial: z.string().trim().max(100).optional(),
@@ -100,6 +101,8 @@ export async function createPrescriptionGlasses(formData: FormData) {
     const descriptionRaw = formData.get('description') as string | null;
     const description = descriptionRaw?.trim() || null;
     const basePrice = parseFloat(formData.get('basePrice') as string);
+    const compareAtPriceRaw = formData.get('compareAtPrice') as string;
+    const compareAtPrice = compareAtPriceRaw && parseFloat(compareAtPriceRaw) > 0 ? parseFloat(compareAtPriceRaw) : null;
     const discountPct = parseInt(formData.get('discountPct') as string) || 0;
     const cashbackAmount = parseFloat(formData.get('cashbackAmount') as string) || 0;
 
@@ -187,6 +190,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
       brand,
       description,
       basePrice,
+      compareAtPrice,
       discountPct,
       cashbackAmount,
       frameMaterial,
@@ -301,6 +305,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
         brand: validation.data.brand,
         description: validation.data.description || null,
         basePrice: validation.data.basePrice,
+        compareAtPrice: (validation.data as any).compareAtPrice ?? null,
         discountPct: validation.data.discountPct || 0,
         cashbackAmount: validation.data.cashbackAmount || 0,
         linkedProductId: linkedProductId,
@@ -402,7 +407,7 @@ export async function createPrescriptionGlasses(formData: FormData) {
             order: h.order,
           })),
         } : undefined,
-      },
+      } as any,
     });
 
     revalidatePath('/shop/prescription-glasses');
@@ -522,6 +527,8 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
     const descriptionRaw = formData.get('description') as string | null;
     const description = descriptionRaw?.trim() || null;
     const basePrice = parseFloat(formData.get('basePrice') as string);
+    const compareAtPriceUpdateRaw = formData.get('compareAtPrice') as string;
+    const compareAtPriceUpdate = compareAtPriceUpdateRaw && parseFloat(compareAtPriceUpdateRaw) > 0 ? parseFloat(compareAtPriceUpdateRaw) : null;
     const discountPct = parseInt(formData.get('discountPct') as string) || 0;
     const cashbackAmount = parseFloat(formData.get('cashbackAmount') as string) || 0;
 
@@ -603,6 +610,7 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
         brand,
         description,
         basePrice,
+        compareAtPrice: compareAtPriceUpdate,
         discountPct,
         cashbackAmount,
         linkedProductId,
@@ -628,7 +636,7 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
         warranty,
         customFeatures,
         showHighlights,
-      },
+      } as any,
     });
 
     // Handle highlights update (delete and recreate)

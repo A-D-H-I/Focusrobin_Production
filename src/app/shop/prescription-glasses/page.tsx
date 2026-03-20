@@ -267,16 +267,32 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
         const discountPct = p.discountPct || 0;
         const finalPriceVal = effectiveBase * (1 - discountPct / 100);
 
-        // Cast to any to access new fields if TypeScript definition isn't updated yet in the project context
+        // Cast to any to access new fields
         const pAny = p as any;
+
+        const compareAtPriceRaw = pAny.compareAtPrice;
+        let originalPrice: string | undefined;
+        let computedDiscountPct: number | undefined = discountPct > 0 ? discountPct : undefined;
+      
+        if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
+          let compareAt = Number(compareAtPriceRaw);
+          originalPrice = `€${compareAt.toFixed(2)}`;
+          
+          if (compareAt > finalPriceVal) {
+            computedDiscountPct = Math.round(((compareAt - finalPriceVal) / compareAt) * 100);
+          }
+        } else if (discountPct > 0) {
+          originalPrice = `€${effectiveBase.toFixed(2)}`;
+        }
 
         return {
             id: p.id,
             slug: p.slug,
             name: p.name,
+            brand: p.brand || '',
             price: `€${finalPriceVal.toFixed(2)}`,
-            originalPrice: discountPct > 0 ? `€${effectiveBase.toFixed(2)}` : undefined,
-            discountPct: discountPct > 0 ? discountPct : undefined,
+            originalPrice: originalPrice && originalPrice !== `€${finalPriceVal.toFixed(2)}` ? originalPrice : undefined,
+            discountPct: computedDiscountPct,
             cashback: Number(p.cashbackAmount).toFixed(2),
             variants: variants,
             categories: [p.Category.name],

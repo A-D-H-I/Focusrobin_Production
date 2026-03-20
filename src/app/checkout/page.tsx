@@ -162,7 +162,7 @@ export default function CheckoutPage() {
 
       // Refund wallet for the cancelled order
       refundWalletForOrder(orderId)
-        .then((result) => {
+        .then((result: any) => {
           if (result.success && result.refunded && result.refunded > 0) {
             toast({
               title: "Wallet Refunded",
@@ -202,7 +202,7 @@ export default function CheckoutPage() {
     if (session?.user) {
       // Check for pending orders that need wallet refund
       refundPendingOrders()
-        .then((result) => {
+        .then((result: any) => {
           if (result.success && result.ordersProcessed && result.ordersProcessed > 0) {
             console.log(`[Checkout] Refunded wallet for ${result.ordersProcessed} pending order(s), total: €${result.refunded?.toFixed(2) || '0.00'}`);
             if (result.refunded && result.refunded > 0) {
@@ -347,54 +347,19 @@ export default function CheckoutPage() {
     }
   };
 
-  const calculateCashback = async () => {
+  const calculateCashback = () => {
     try {
       if (!cartItems || cartItems.length === 0) {
         setTotalCashback(0);
         return;
       }
 
-      // Fetch cart from database to get actual cashbackAmount values
-      const cart = await getCart();
-
-      if (!cart || !cart.items || cart.items.length === 0) {
-        // Fallback to parsing from cartItems if database fetch fails
-        let cashback = 0;
-        for (const item of cartItems) {
-          if (item.product.cashback) {
-            const cashbackStr = item.product.cashback.replace(/[€,\s]/g, '').trim();
-            const cashbackAmount = parseFloat(cashbackStr);
-            if (!isNaN(cashbackAmount) && cashbackAmount > 0) {
-              cashback += cashbackAmount * item.quantity;
-            }
-          }
-        }
-        setTotalCashback(cashback);
-        return;
-      }
-
-      // Calculate from database values (cashbackAmount is now a number, not Decimal)
-      let cashback = 0;
-      for (const item of cart.items) {
-        if (item.Product) {
-          // cashbackAmount is already converted to number in getCart
-          const cashbackAmount = (item.Product as any).cashbackAmount || 0;
-
-          if (cashbackAmount > 0) {
-            const itemCashback = cashbackAmount * item.quantity;
-            cashback += itemCashback;
-          }
-        }
-      }
-
-      setTotalCashback(cashback);
-    } catch (error) {
-      console.error("Error calculating cashback:", error);
-      // Fallback to parsing from cartItems
       let cashback = 0;
       for (const item of cartItems) {
         if (item.product.cashback) {
-          const cashbackStr = item.product.cashback.replace(/[€,\s]/g, '').trim();
+          const cashbackStr = typeof item.product.cashback === 'string' 
+            ? item.product.cashback.replace(/[€,\s]/g, '').trim()
+            : String(item.product.cashback);
           const cashbackAmount = parseFloat(cashbackStr);
           if (!isNaN(cashbackAmount) && cashbackAmount > 0) {
             cashback += cashbackAmount * item.quantity;
@@ -402,6 +367,9 @@ export default function CheckoutPage() {
         }
       }
       setTotalCashback(cashback);
+    } catch (error) {
+      console.error("Error calculating cashback:", error);
+      setTotalCashback(0);
     }
   };
 
