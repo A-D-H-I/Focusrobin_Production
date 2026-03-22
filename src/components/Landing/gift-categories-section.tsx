@@ -259,10 +259,10 @@ export default function GiftCategoriesSection({ categoryImages }: GiftCategories
       <div className="bg-white py-8 md:py-12">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-brand-blue mb-2 md:mb-3">
-            <TranslatableText text="Shop Polarized Sunglasses by Category" />
+            <TranslatableText text="Shop Sunglasses by Category" />
           </h2>
           <p className="text-sm md:text-base lg:text-lg text-gray-600 max-w-2xl mx-auto">
-            <TranslatableText text="Discover premium polarized eyewear designed for everyone" />
+            <TranslatableText text="Discover premium eyewear designed for everyone" />
           </p>
         </div>
       </div>

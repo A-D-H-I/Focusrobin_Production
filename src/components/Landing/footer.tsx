@@ -108,7 +108,8 @@ export default function Footer() {
 
               </div>
               <p className="mt-6 text-sm text-muted-foreground">
-                <TranslatableText text="Chemijos St. 27C-62, LT-51332 Kaunas" />
+                <TranslatableText text="Elektreny g. 1S" /><br />
+                <TranslatableText text="Kaunas, 51192 Kauno m. sav." />
               </p>
             </div>
 

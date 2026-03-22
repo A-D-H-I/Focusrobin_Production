@@ -254,7 +254,7 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
               key={i}
               className={cn(
                 "h-4 w-4",
-                i < Math.round(product.averageRating || 4)
+                i < Math.round((product.reviewCount && product.reviewCount > 0) ? (product.averageRating || 0) : 0)
                   ? "text-yellow-400 fill-yellow-400"
                   : "text-gray-300"
               )}

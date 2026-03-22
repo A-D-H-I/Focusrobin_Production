@@ -170,7 +170,7 @@ export default function TryOnProductDetails({
                 key={i}
                 className={cn(
                   "h-3.5 w-3.5",
-                  i < Math.round(product.averageRating || 4)
+                  i < Math.round((product.reviewCount && product.reviewCount > 0) ? (product.averageRating || 0) : 0)
                     ? "text-yellow-400 fill-current"
                     : "text-gray-300"
                 )}
