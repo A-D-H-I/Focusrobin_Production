@@ -1,0 +1,256 @@
+{
+  "orderItems": [
+    {
+      "id": "cmmz84yzd000dtznarc635hq6",
+      "orderId": "cmmz84yzd000btznaakff1pcs",
+      "productId": null,
+      "prescriptionGlassesId": "cmmj4zsmr000cue0kr02j6iuo",
+      "variantId": "cmmj4zsmr000due0k08xhq4v0",
+      "productName": "Zips ZP4140",
+      "variantName": "C1: Pink Crystal",
+      "sku": "ZP4140C1",
+      "quantity": 1,
+      "price": "57.6",
+      "total": "57.6",
+      "imageUrl": "https://focusrobin.s3.eu-central-1.amazonaws.com/products/admin-cmliovll00000fgrpbi916254/1773058008528-6kf9ik-4__1_.webp",
+      "prescriptionData": {
+        "rxConfig": {
+          "coating": "HMC",
+          "lensType": "SIMPLE_STOCK",
+          "frameType": "FULL_FRAME",
+          "lensIndex": "1.50",
+          "lensBundle": "BASIC"
+        },
+        "rxValues": {
+          "pd": "21.00",
+          "pdOd": "",
+          "pdOs": "",
+          "odCyl": "+0.00",
+          "odSph": "+0.00",
+          "osCyl": "+0.00",
+          "osSph": "+0.00",
+          "odAxis": "0",
+          "osAxis": "0",
+          "hasPrism": false,
+          "hasTwoPDs": false,
+          "isPdfMode": false,
+          "odPrismVertical": "0.00",
+          "osPrismVertical": "0.00",
+          "odPrismHorizontal": "0.00",
+          "osPrismHorizontal": "0.00",
+          "odPrismVerticalBase": "",
+          "osPrismVerticalBase": "",
+          "odPrismHorizontalBase": "",
+          "osPrismHorizontalBase": ""
+        },
+        "rxPriceBreakdown": {
+          "profit": 0,
+          "totalNet": 57.6,
+          "edgingFee": 0,
+          "lensesPair": 29,
+          "rxRetailNet": 29
+        }
+      },
+      "createdAt": "2026-03-20T18:20:06.553Z"
+    }
+  ],
+  "prescriptionGlasses": [
+    {
+      "id": "cmmj4zsmr000cue0kr02j6iuo",
+      "name": "Zips ZP4140",
+      "slug": "the-zips-zp4140",
+      "brand": "Zips",
+      "description": "A stylish and easy-to-wear frame created for smaller faces and teen-friendly comfort. With its balanced 51–19–145 fit, fresh crystal colour options, and refined details like metal pin accents and a self-locking screw, this model offers a modern look that feels practical, polished, and comfortable for everyday wear.\r\n\r\nRecommended age group: 16+ years / adults.\r\nThis size usually fits a small to medium adult face.",
+      "basePrice": "8.9",
+      "compareAtPrice": "200",
+      "discountPct": 0,
+      "cashbackAmount": "0",
+      "linkedProductId": null,
+      "useSharedStock": false,
+      "gender": [
+        "UNISEX",
+        "WOMEN",
+        "MEN"
+      ],
+      "tags": [
+        "unisex",
+        "Recommended age group: 16+ years / adults."
+      ],
+      "frameWidth": 0,
+      "lensWidth": 51,
+      "lensHeight": 42.2,
+      "bridgeWidth": 19,
+      "templeLength": 145,
+      "weightBg": 0,
+      "frameMaterial": "",
+      "lensMaterial": "",
+      "uvProtection": null,
+      "glassShape": "Rectangle",
+      "averageRating": 0,
+      "reviewCount": 0,
+      "isNewlyAdded": false,
+      "isUniqueDesign": false,
+      "isPolarized": false,
+      "isUVProtection": false,
+      "isHydrophobic": false,
+      "isAntiScratch": false,
+      "isBioBased": false,
+      "showHighlights": false,
+      "warranty": "1 Years Warranty",
+      "customFeatures": [
+        "Free Shipping"
+      ],
+      "categoryId": "cmm5crr8b0000hj0w9rq4aoc7",
+      "createdAt": "2026-03-09T12:07:47.379Z",
+      "updatedAt": "2026-03-11T12:17:17.921Z"
+    },
+    {
+      "id": "cmmj58aea000pue0kozktw618",
+      "name": "Zips ZP4141",
+      "slug": "the-zips-zp4141",
+      "brand": "Zips",
+      "description": "A smart retro-inspired frame designed for smaller faces and everyday comfort. With its neat 51–19–140 fit, classic Black and Tortoiseshell colour options, and vintage-style shape and bridge, this model offers a stylish look that feels both easy to wear and timeless. The self-locking screw detail also adds practical durability for daily use.\r\n\r\nRecommended age group: 14+ years / teens and adults.\r\nThis size usually fits a small to medium face.",
+      "basePrice": "8.89",
+      "compareAtPrice": "200",
+      "discountPct": 0,
+      "cashbackAmount": "0",
+      "linkedProductId": null,
+      "useSharedStock": false,
+      "gender": [
+        "UNISEX",
+        "MEN",
+        "WOMEN"
+      ],
+      "tags": [
+        "Unisex",
+        "Recommended age group: 14+ years / adults"
+      ],
+      "frameWidth": 0,
+      "lensWidth": 51,
+      "lensHeight": 44.1,
+      "bridgeWidth": 19,
+      "templeLength": 139.9,
+      "weightBg": 0,
+      "frameMaterial": "",
+      "lensMaterial": "",
+      "uvProtection": null,
+      "glassShape": "Round",
+      "averageRating": 0,
+      "reviewCount": 0,
+      "isNewlyAdded": false,
+      "isUniqueDesign": false,
+      "isPolarized": false,
+      "isUVProtection": false,
+      "isHydrophobic": false,
+      "isAntiScratch": false,
+      "isBioBased": false,
+      "showHighlights": false,
+      "warranty": "1 Years Warranty",
+      "customFeatures": [
+        "Free Shipping"
+      ],
+      "categoryId": "cmm5crr8b0000hj0w9rq4aoc7",
+      "createdAt": "2026-03-09T12:14:23.650Z",
+      "updatedAt": "2026-03-11T12:10:17.673Z"
+    }
+  ],
+  "products": [
+    {
+      "id": "cmm5drscx000c1irwy1a5rsng",
+      "name": "Carrera 302S3",
+      "slug": "the-carrera-302s3",
+      "brand": "Carrera",
+      "description": "Carrera 302/S is a bold, modern men’s sunglass with clear Carrera DNA. It has a strong rectangular / pilot-inspired front, a double bridge, and slim temples with metal detailing, so it gives a sporty premium look without feeling too heavy. Official Carrera product pages describe it as a men’s style built to stand out, and it is also RX-able, so it can be fitted with prescription sun lenses.\r\n\r\nSpecifications\r\n\r\nModel: Carrera 302/S\r\n\r\nApprox. frame width: 143 mm (calculated total width)\r\n\r\nLens width: 59 mm\r\n\r\nLens height: 47.8 mm (some sellers round this to 48 mm)\r\n\r\nBridge width: 15 mm\r\n\r\nTemple length: 145 mm\r\n\r\nWeight: about 32 g for at least one listed variant; this can vary slightly by color/lens combination.\r\n\r\nFrame material: Polyamide injected / plastic\r\n\r\nLens material: Polycarbonate\r\n\r\nLens specification: depending on variant, available with polarized or gradient lenses; 100% UV protection; filter category 3 on the polarized official variant; prescription-compatible.\r\n\r\nSuitable gender: officially marketed mainly for men, but the shape can also work as unisex for people who like a bold oversized fit.\r\n\r\nRecommended age group: adults / 18+. Because of the 59 mm lens width and approx. 143 mm frame width, it suits medium to large adult faces best\r\n\r\nStyle summary\r\nThis model is best for someone who wants a confident, masculine, premium everyday sunglass with Carrera’s signature racing-inspired attitude. The wide 59 mm eye size and double bridge make it especially good for medium-large faces and for people who want stronger face presence. This fit assessment is an inference from the published dimensions.",
+      "basePrice": "38.41",
+      "compareAtPrice": "146",
+      "discountPct": 0,
+      "cashbackAmount": "0",
+      "gender": [
+        "UNISEX",
+        "MEN",
+        "WOMEN"
+      ],
+      "tags": [
+        "EAN:0716736770192",
+        "European Guarantee"
+      ],
+      "frameWidth": 0,
+      "lensWidth": 59,
+      "lensHeight": 48,
+      "bridgeWidth": 15,
+      "templeLength": 145,
+      "weightBg": 32,
+      "frameMaterial": "Polyamide",
+      "lensMaterial": "Polycarbonate",
+      "uvProtection": "Protect against 100% of the UV rays (UV400)",
+      "glassShape": "Rectangle",
+      "lensBaseImageUrl": null,
+      "lensMaskImageUrl": null,
+      "lensBackgroundImageUrl": null,
+      "averageRating": 0,
+      "reviewCount": 0,
+      "isNewlyAdded": false,
+      "isUniqueDesign": false,
+      "isPolarized": true,
+      "isUVProtection": true,
+      "isHydrophobic": false,
+      "isAntiScratch": false,
+      "isBioBased": false,
+      "showHighlights": false,
+      "warranty": "1 Years Warranty",
+      "customFeatures": [
+        "Free Shipping"
+      ],
+      "categoryId": "cmljgl99o0001xgu7swy1eavq",
+      "createdAt": "2026-02-27T21:04:43.857Z",
+      "updatedAt": "2026-03-14T10:35:28.776Z"
+    },
+    {
+      "id": "cmmqbw2q6000es7ukf9ajtr7f",
+      "name": "Elton",
+      "slug": "the-elton",
+      "brand": "FocusRobin",
+      "description": "Refined, modern, and effortlessly wearable, these FocusRobin acetate sunglasses bring a clean round silhouette with a bold black finish that suits both everyday styling and elevated looks. The smooth full-rim acetate frame offers a premium feel while keeping the design lightweight and comfortable for regular use. The soft round shape gives the pair a timeless character, making it easy to match with casual, streetwear, or smart outfits.\r\n\r\nDesigned for both style and protection, these sunglasses feature polarized lenses that help reduce glare and improve visual comfort in bright conditions. The lenses also provide UV400 100% protection, helping shield your eyes from harmful UVA and UVB rays. With an anti-scratch coating, 1.1 mm lens thickness, and CAT3 protection level, this pair is a reliable choice for sunny days, driving, travel, and daily outdoor wear.",
+      "basePrice": "25",
+      "compareAtPrice": "50",
+      "discountPct": 0,
+      "cashbackAmount": "0",
+      "gender": [
+        "KIDS"
+      ],
+      "tags": [
+        "Recommended age group: Best suited for 10–16 years"
+      ],
+      "frameWidth": 129.2,
+      "lensWidth": 46,
+      "lensHeight": 43.5,
+      "bridgeWidth": 19,
+      "templeLength": 130,
+      "weightBg": 18.2,
+      "frameMaterial": "Acetate",
+      "lensMaterial": "TAC",
+      "uvProtection": "Protect against 100% of the UV rays (UV400)",
+      "glassShape": "Round",
+      "lensBaseImageUrl": null,
+      "lensMaskImageUrl": null,
+      "lensBackgroundImageUrl": null,
+      "averageRating": 0,
+      "reviewCount": 0,
+      "isNewlyAdded": false,
+      "isUniqueDesign": false,
+      "isPolarized": true,
+      "isUVProtection": true,
+      "isHydrophobic": false,
+      "isAntiScratch": true,
+      "isBioBased": false,
+      "showHighlights": false,
+      "warranty": "2 Years Warranty",
+      "customFeatures": [
+        "Free Shipping"
+      ],
+      "categoryId": "cmljgl99o0001xgu7swy1eavq",
+      "createdAt": "2026-03-14T12:55:14.382Z",
+      "updatedAt": "2026-03-14T13:04:42.121Z"
+    }
+  ]
+}
