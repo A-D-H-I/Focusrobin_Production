@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useMemo, useCallback, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import type { Product } from "@/lib/productData";
@@ -28,10 +28,11 @@ import { detectFrameType } from "@/lib/pricing/detectFrameType";
 import type { PrescriptionData, RxConfigData, FullPrescriptionData } from "@/types/prescription";
 
 // Step Components
-import Step0Initial from "./steps/Step0Initial";
 import Step1PrescriptionForm from "./steps/Step1PrescriptionForm";
+import Step2PowerCategory from "./steps/Step2PowerCategory";
 // Step2Review removed - redundant step
 import Step3LensSelection from "./steps/Step3LensSelection";
+import Step4LensThickness from "./steps/Step4LensThickness";
 import Step7Summary from "./steps/Step7Summary";
 
 interface PrescriptionFlowProps {
@@ -82,7 +83,8 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   const searchParams = useSearchParams();
   const { data: session } = useSession();
   const { formatPrice, parseEurPrice } = usePrice();
-  const { setPriceData } = usePrescriptionPrice();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { setPriceData, bundlePrices } = usePrescriptionPrice();
 
   // Check if there's a step parameter
   const stepParam = searchParams.get('step');
@@ -357,7 +359,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   }, [existingData, hasLoadedInitialData, lastLoadedDataId]);
 
   // Update step if step param changes (from browser back/forward or direct URL)
-  // Now only steps 0, 1, 2, 3 are valid (0=Initial, 1=Prescription, 2=Lens Selection, 3=Summary)
+  // Now only steps 0, 1, 2, 3 are valid (0=Power Category, 1=Prescription, 2=Lens Selection, 3=Summary)
   useEffect(() => {
     const stepParam = searchParams.get('step');
     if (stepParam) {
@@ -383,7 +385,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]); // Only depend on searchParams to respond to browser navigation
 
-  // Reload prescription data from sessionStorage when navigating back to step 0 or 1
+  // Reload prescription data from sessionStorage when navigating back to steps 0 or 1
   // This ensures prescription values are always up to date when user navigates between steps
   useEffect(() => {
     // Only reload on steps 0 and 1 (where prescription data is displayed/edited)
@@ -497,13 +499,17 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   // Calculate Rx price based on current configuration (Simplified Bundles)
   const rxPriceResult = useMemo(() => {
     // 1. Get Bundle Price (Fixed pair price including edging)
-    const bundlePrice = getBundlePrice(rxConfig.lensBundle);
+    const baseBundlePrice = bundlePrices[rxConfig.lensBundle] ?? getBundlePrice(rxConfig.lensBundle);
+    const bundlePrice = rxConfig.powerCategory === 'HIGH' ? baseBundlePrice * 2 : baseBundlePrice;
+
+    // 2. Add Lens Thickness surcharge (Flat +60 for Thinner)
+    const thicknessPrice = rxConfig.lensThickness === 'THINNER' ? 60 : 0;
 
     // 2. We don't add extra profit or edging fee on top, as it's included in the bundle price
     // But for the breakdown, we can simulate them if needed, or just put everything in lensesPair
 
     // We'll mimic the old structure for compatibility
-    const lensPairPrice = bundlePrice;
+    const lensPairPrice = bundlePrice + thicknessPrice;
     const rxRetailNet = lensPairPrice;
     const rxRetailGross = rxRetailNet * 1.21; // VAT
     const totalGross = framePrice + rxRetailGross;
@@ -521,7 +527,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       totalNet,
       totalGross,
     };
-  }, [framePrice, rxConfig.lensBundle]);
+  }, [framePrice, rxConfig.lensBundle, rxConfig.lensThickness, rxConfig.powerCategory]);
 
   // Handle configuration updates
   const handleRxConfigUpdate = (data: Partial<RxConfigData>, isDefaultApplication = false) => {
@@ -533,6 +539,28 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
 
     if (!isDefaultApplication) {
       setHasUserMadeLensSelection(true);
+    }
+
+    // If switching from HIGH to NORMAL, we must clear any SPH values that exceed the +/- 6.00 limits
+    if (data.powerCategory === 'NORMAL' && rxConfig.powerCategory === 'HIGH') {
+      setPrescriptionData(prev => {
+        const clampSph = (sphVal: string) => {
+          if (!sphVal) return sphVal;
+          const num = parseFloat(sphVal);
+          if (isNaN(num)) return sphVal;
+          if (num > 6.00 || num < -6.00) return ""; // Reset out-of-bounds values
+          return sphVal;
+        };
+
+        const newOd = { ...prev.od, sph: clampSph(prev.od.sph) };
+        const newOs = { ...prev.os, sph: clampSph(prev.os.sph) };
+
+        if (newOd.sph !== prev.od.sph || newOs.sph !== prev.os.sph) {
+          console.log('[PrescriptionFlow] Cleared out-of-bounds SPH values after switching to Normal category');
+          return { ...prev, od: newOd, os: newOs };
+        }
+        return prev;
+      });
     }
 
     setRxConfig(prev => {
@@ -589,6 +617,26 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       currentStep,
     });
   }, [rxPriceResult, framePrice, formatPrice, prescriptionData, rxConfig, currentStep, setPriceData]);
+
+  // Scroll to top when step changes - use useLayoutEffect to run synchronously
+  // before the browser paints, preventing flash of footer
+  useLayoutEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Disable browser scroll restoration
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
+      // Triple scroll reset (same proven pattern as checkout page)
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+    return () => {
+      if (typeof window !== 'undefined' && 'scrollRestoration' in history) {
+        history.scrollRestoration = 'auto';
+      }
+    };
+  }, [currentStep]);
 
   // Auto-save prescription data changes (for logged-in users)
   // Saves whenever prescription values are edited and PD is filled
@@ -647,7 +695,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     // NOTE: Removed automatic reload when navigating to Step 1 - this was causing rxConfig to reset
     // Prescription data is already in state from initial load
 
-    // If navigating away from Step 1, save prescription data if PD is filled OR PDF is uploaded
+    // If navigating away from Step 1 (Prescription Form), save prescription data if PD is filled OR PDF is uploaded
     if (currentStep === 1 && step !== 1 && session?.user) {
       // Check if PDF is uploaded - if so, we can save without PD
       const hasPdfUploaded = !!(
@@ -726,7 +774,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     });
   };
 
-  // Save prescription data when user submits Step 1
+  // Save prescription data when user submits Step 1 (Prescription Form)
   const handlePrescriptionSubmit = async () => {
     console.log('[PrescriptionFlow] handlePrescriptionSubmit called');
 
@@ -797,7 +845,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
     }
 
     // Go to Step 2 (Lens Selection) after prescription submission - ALWAYS navigate
-    console.log('[PrescriptionFlow] Navigating to Step 2...');
+    console.log('[PrescriptionFlow] Navigating to Step 2 (Lens Selection)...');
     handleStepChange(2);
   };
 
@@ -865,7 +913,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
 
   // Step navigation helpers
   const goBackFromSummary = () => {
-    handleStepChange(2); // Back to lens selection
+    handleStepChange(3); // Back to lens thickness
   };
 
   // Ensure frame type is always set to detected value for current product
@@ -891,19 +939,14 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
   }, [rxConfig]);
 
   return (
-    <div className="bg-card border rounded-lg p-4">
-      {/* Step 0: Initial - Show product info and Add Prescription button */}
+    <div ref={containerRef} className="bg-card border rounded-lg p-4">
+      {/* Step 0: Prescription Power Category (Normal vs High) */}
       {currentStep === 0 && (
-        <Step0Initial
-          product={product}
-          priceInEur={framePrice}
-          formatPrice={formatPrice}
-          onAddPrescription={() => handleStepChange(1)}
-          prescriptionData={prescriptionData}
+        <Step2PowerCategory
           rxConfig={rxConfig}
-          rxPriceResult={rxPriceResult}
-          onEditPrescription={() => handleStepChange(1)}
-          onChooseLens={() => handleStepChange(2)}
+          onConfigUpdate={handleRxConfigUpdate}
+          onNext={() => handleStepChange(1)}
+          onBack={() => router.push(`/shop/${productSlug}`)}
         />
       )}
 
@@ -911,6 +954,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
       {currentStep === 1 && (
         <Step1PrescriptionForm
           prescriptionData={prescriptionData}
+          rxConfig={rxConfig}
           onDataUpdate={handlePrescriptionUpdate}
           onNext={handlePrescriptionSubmit}
           onBack={() => handleStepChange(0)}
@@ -935,8 +979,20 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
         />
       )}
 
-      {/* Step 3: Summary with full price breakdown */}
+      {/* Step 3: Lens Thickness Selection */}
       {currentStep === 3 && (
+        <Step4LensThickness
+          rxConfig={rxConfig}
+          onConfigUpdate={handleRxConfigUpdate}
+          onConfigUpdateDefault={handleRxConfigUpdateWithDefault}
+          onNext={() => handleStepChange(4)}
+          onBack={() => handleStepChange(2)}
+          formatPrice={formatPrice}
+        />
+      )}
+
+      {/* Step 4: Summary with full price breakdown */}
+      {currentStep === 4 && (
         <Step7Summary
           product={product}
           prescriptionData={prescriptionData}
@@ -948,6 +1004,7 @@ export default function PrescriptionFlow({ product, productSlug }: PrescriptionF
           onBack={goBackFromSummary}
           onEditPrescription={() => handleStepChange(1)}
           onEditLens={() => handleStepChange(2)}
+          onEditThickness={() => handleStepChange(3)}
           productSlug={productSlug}
         />
       )}

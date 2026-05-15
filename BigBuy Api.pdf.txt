@@ -1,0 +1,5937 @@
+BigBuy API (1.0.0)
+Download OpenAPI specification :Download
+Generated SDK's
+Php
+Java
+Python
+Rate Limit
+In this section, you learn how to check your rate limits and request exceptions.
+Check your rate limits with BigBuy rate limit headers
+X-RateLimit-Limit - the rate limit ceiling that is applicable for the current request.
+For example:
+  HTTP/1.1 200 OK
+    X-RateLimit -Limit 1200
+Authentication
+BigBuy API of fers one form of authentication in header:
+:4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 1/123
+Authorization  Bearer API_KEY
+Attribute
+Attribute
+:
+Returns all attributes.
+Rate Limit
+Max Requests Period
+24 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+string
+es by default
+integer
+Default 0
+integer
+Default 0
+Responses
+200 Returned when successful
+—409 Returned when no attributes were found in cache.
+—415 Returned on invalid Content-Type header.format
+required
+isoCode
+page
+pageSize4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 2/123
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiAttributeApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | Response format, defaults to j
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogAttributes $format  $page $page
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling AttributeApi->getRestCatalogAttributes: '
+     * 
+     * ?>
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9G E T/rest/catalog/attributes.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+,
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all CopyContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 3/123
+[-
+{
+"id": 123456
+,
+"attributeGroup" : 14
+,
+"name": "Red"
+,
+"isoCode" : "en"
+}
+]
+Returns attribute.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string \d+
+string json
+QUER Y PARAMETERS
+string
+es by default
+Responses
+200 Returned when successful
+—404 Returned when no attribute was found.
+—415 Returned on invalid Content-Type header.id
+required
+format
+required
+isoCode4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 4/123
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiAttributeApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 'id_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogAttributeId $id $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling AttributeApi->getRestCatalogAttributeId: 
+     * 
+     * ?>
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/attribute/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Copy
+{
+"id": 123456
+,
+"attributeGroup" : 14
+,Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 5/123
+"name": "Red"
+,
+"isoCode" : "en"
+}
+Returns a single attribute all languages.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string \d+
+string json
+Responses
+200 Returned when successful
+—404 Returned when no attribute was found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o nid
+required
+format
+required
+G E T/rest/catalog/attributealllanguages/{id}.{format}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 6/123
+AttributeGroup<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiAttributeApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 'id_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogAttributealllanguages $id $form
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling AttributeApi->getRestCatalogAttributealll
+     * 
+     * ?>
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 123456
+,
+"attributeGroup" : 14
+,
+"name": "Red"
+,
+"isoCode" : "en"
+}
+]Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 7/123
+AttributeGroup
+Returns all attribute groups.
+Rate Limit
+Max Requests Period
+24 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+string
+es by default
+integer
+Default 0
+integer
+Default 0
+Responses
+200 Returned when successful
+—409 Returned when no attributeGroups were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.format
+required
+isoCode
+page
+pageSize4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 8/123
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiAttributeGroupApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | Response format, defaults to j
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogAttributegroups $format  $page 
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling AttributeGroupApi->getRestCatalogAttribut
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9G E T/rest/catalog/attributegroups.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+,
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all CopyContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 9/123
+[-
+{
+"id": 123456
+,
+"name": "Color"
+,
+"isoCode" : "en"
+}
+]
+Returns attribute group by id.
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string \d+
+string json
+QUER Y PARAMETERS
+string
+es by default
+Responses
+200 Returned when successful
+—404 Returned when no attributeGroup found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.id
+required
+format
+required
+isoCode4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 10/123
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiAttributeGroupApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 'id_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogAttributegroup $id $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling AttributeGroupApi->getRestCatalogAttribut
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/attributegroup/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+CopyContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 11/123
+{"id": 123456
+,
+"name": "Color"
+,
+"isoCode" : "en"
+}
+Returns single attribute group all languages.
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string \d+
+string json
+Responses
+200 Returned when successful
+—404 Returned when no attributeGroup found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samplesid
+required
+format
+required
+G E T/rest/catalog/attributegroupalllanguages/{id}.{format}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 12/123
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiAttributeGroupApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 'id_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogAttributegroupId $id $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling AttributeGroupApi->getRestCatalogAttribut
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 123456
+,
+"name": "Color"
+,
+"isoCode" : "en"
+}
+]Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 13/123
+Category
+Category
+Lists all categories.  Deprecated
+Deprecated: Use /taxonomies instead
+*
+Rate Limit
+Max Requests Period
+24 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+JSON or XML
+QUER Y PARAMETERS
+string
+es by default
+integer
+Default 0
+integer
+Default 0
+Responses
+200 Returned when successful
+—409 Returned when no categories were found in cache.format
+required
+isoCode
+page
+pageSize4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 14/123
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiCategoryApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogCategories $format  $iso_code  $
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling CategoryApi->getRestCatalogCategories: '
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9G E T/rest/catalog/categories.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+;
+{
+(
+,
+,
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/jsonContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 15/123
+Expand all Collapse all Copy
+[-
+{
+"id": 123456
+,
+"name": "Home and Garden"
+,
+"url": "home-garden"
+,
+"parentCategory" : 789456
+,
+"dateAdd" : "2016-05-13 11:35:40"
+,
+"dateUpd" : "2023-05-13 11:35:40"
+,
+"urlImages" :  … +
+[
+]
+,
+"isoCode" : "en"
+}
+]
+Returns the selected category by id.  Deprecated
+Deprecated: Use /taxonomy/{id} instead
+*
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string \d+
+string json
+Responses
+200 Returned when successful
+—404 Returned when no category found with id X.id
+required
+format
+required4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 16/123
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiCategoryApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 'id_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogCategory $id $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling CategoryApi->getRestCatalogCategory: '  $
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/category/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all CopyContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 17/123
+{"id": 123456
+,
+"name": "Home and Garden"
+,
+"url": "home-garden"
+,
+"parentCategory" : 789456
+,
+"dateAdd" : "2016-05-13 11:35:40"
+,
+"dateUpd" : "2023-05-13 11:35:40"
+,
+"urlImages" : -
+[
+"https://cdnbigbuy.com/images/category/2595_header.jpg "
+]
+,
+"isoCode" : "en"
+}
+Returns the selected category all languages.  Deprecated
+Deprecated: Use /taxonomyalllanguages/{id} instead
+*
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string \d+
+string json
+Responses
+200 Returned when successful
+—404 Returned when no category found with id X.
+—415 Returned on invalid Content-Type header.id
+required
+format
+required4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 18/123
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiCategoryApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 'id_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogCategoryAllLanguages $id $forma
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling CategoryApi->getRestCatalogCategoryAllLan
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/categoryalllanguages/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all CopyContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 19/123
+[-
+{
+"id": 123456
+,
+"name": "Home and Garden"
+,
+"url": "home-garden"
+,
+"parentCategory" : 789456
+,
+"dateAdd" : "2016-05-13 11:35:40"
+,
+"dateUpd" : "2023-05-13 11:35:40"
+,
+"urlImages" :  … +
+[
+]
+,
+"isoCode" : "en"
+}
+]
+Returns all products categories.  Deprecated
+Deprecated: Use /productstaxonomies instead
+*
+Rate Limit
+Max Requests Period
+2 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+integer
+Default 0
+integer
+Default 0
+integer
+Taxonomy Tree Idformat
+required
+page
+pageSize
+parentTaxonomy4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 20/123
+Responses
+200 Returned when successful
+—409 Returned when no productCategories were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiCategoryApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | Response format, defaults to j
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductsCategories $format  $pag
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling CategoryApi->getRestCatalogProductsCatego
+     * 
+     * ?>
+     * G E T/rest/catalog/productscategories.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+(
+)
+;
+}
+(
+)
+{
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 21/123
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 123456
+,
+"product" : 789456
+,
+"category" : 123456
+,
+"position" : 0
+}
+]
+Returns all categories for a given product.  Deprecated
+Deprecated: Use /producttaxonomies/{id} instead
+*
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+integer \d+
+Product id
+string json
+Responses
+200 Returned when successfulid
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 22/123
+—404 Returned when no productCategories found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiCategoryApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 56 // int | Product id
+     * $format = 'format_example'  // string | Response format, defaults to j
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductCategories $id $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling CategoryApi->getRestCatalogProductCategor
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/productcategories/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 23/123
+Language
+Languageapplication/json
+Copy
+{
+"id": 123456
+,
+"product" : 789456
+,
+"category" : 123456
+,
+"position" : 0
+}
+Returns all languages.
+Rate Limit
+Max Requests Period
+10 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+JSON or XML
+Responses
+200 Returned when successful
+—415 Returned on invalid Content-Type header.format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 24/123
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiLanguageApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogLanguages $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling LanguageApi->getRestCatalogLanguages: '  
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 1 5 4 2 9G E T/rest/catalog/languages.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+{
+(
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all CopyContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 25/123
+Manufacturer
+Manufacturer
+[-
+{
+"name": "English"
+,
+"isoCode" : "en"
+}
+]
+Returns all manufacturers.
+Rate Limit
+Max Requests Period
+5 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+integer
+Default 0
+integer
+Default 0
+integer
+Taxonomy Tree Id
+Responsesformat
+required
+page
+pageSize
+parentTaxonomy4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 26/123
+200 Returned when successful
+—409 Returned when no manufacturers were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiManufacturerApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogManufacturers $format  $page $p
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ManufacturerApi->getRestCatalogManufactur
+     * 
+     * ?>
+     * 
+Response samplesG E T/rest/catalog/manufacturers.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+,
+(
+)
+;
+}
+(
+)
+{
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 27/123
+2 0 0 4 0 9 4 1 5 4 2 9
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 1234
+,
+"name": "BigBuy"
+,
+"urlImage" : "https://cdnbigbuy.com/images/brand/1_mini.png "
+,
+"reference" : 1234
+}
+]
+Returns a single manufacturer .
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string \d+
+Manufacturer id
+string json
+Responses
+200 Returned when successful
+—404 Returned when no manufacturer found with id X.
+—415 Returned on invalid Content-Type header.id
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 28/123
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiManufacturerApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $id = 'id_example'  // string | Manufacturer id
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogManufacturer $format  $id
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ManufacturerApi->getRestCatalogManufactur
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/manufacturer/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Copy
+{
+"id": 1234
+,Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 29/123
+Compliance
+Compliance"name": "BigBuy"
+,
+"urlImage" : "https://cdnbigbuy.com/images/brand/1_mini.png "
+,
+"reference" : 1234
+}
+Get a single Product Compliance.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+productId
+string json
+QUER Y PARAMETERS
+string
+es by default
+Responses
+200 Returned when successful
+—404 Returned when no product compliances found with id X.id
+required
+format
+required
+isoCode4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 30/123
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiComplianceApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 'id_example'  // string | productId
+     * $format = 'format_example'  // string | JSON or XML
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductCompliancesId $id $forma
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ComplianceApi->getRestCatalogProductCompl
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/productcompliance/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+(
+)
+;
+}
+(
+)
+{
+}
+application/jsonContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 31/123
+Product
+Product
+Expand all Collapse all Copy
+{"id": 1234
+,
+"sku": "S12435678"
+,
+"generalProductSafetyRegulations" : -
+[
+ … +
+{
+}
+]
+,
+"productComplianceDocuments" : -
+[
+ … +
+{
+}
+]
+}
+New or republished products
+New or republished products in the last 7 days. Updated only once a day
+Rate Limit
+Max Requests Period
+2 1 h
+Maximum page size is 10000
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+integer
+Default 0format
+required
+page4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 32/123
+integer
+Default 0
+integer
+Taxonomy Tree Id
+Responses
+200 Returned when successful
+—409 Returned when no products were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiProductApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | Response format, defaults to j
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductNew $format  $page $pagepageSize
+parentTaxonomy
+G E T/rest/catalog/new-products.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+,4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 33/123
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ProductApi->getRestCatalogProductNew: '  
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all CopyContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 34/123
+[-
+{
+"manufacturer" : 1234
+,
+"id": 1234567
+,
+"sku": "S12435678"
+,
+"ean13": "7569000752751"
+,
+"weight" : 158
+,
+"height" : 23
+,
+"width": 55
+,
+"depth": 10
+,
+"dateUpd" : "2016-05-13 11:35:40"
+,
+"category" : 12450
+,
+"dateUpdDescription" : "2016-05-13 11:35:40"
+,
+"dateUpdImages" : "2016-05-13 11:35:40"
+,
+"dateUpdStock" : "2016-05-13 11:35:40"
+,
+"wholesalePrice" : "50.47"
+,
+"retailPrice" : "64.20"
+,
+"taxonomy" : 11548
+,
+"dateAdd" : "2016-05-13 11:35:40"
+,
+"video": "0"
+,
+"active" : 1
+,
+"attributes" : true
+,
+"categories" : true
+,
+"images" : true
+,
+"taxRate" : 21
+,
+"taxId": 21
+,
+"inShopsPrice" : 76
+,
+"condition" : "New"
+,
+"logisticClass" : "A"
+,
+"tags": true
+,
+"dateUpdProperties" : "2016-05-13 11:35:40"
+,
+"dateUpdCategories" : "2016-05-13 11:35:40"
+,
+"priceLargeQuantities" :  … +
+[
+]
+,
+"intrastat" : null
+,
+"partNumber" : "1234ABC"
+,
+"canon": 0
+}
+]
+Returns all products.
+Rate Limit4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 35/123
+Max Requests Period
+10 1 h
+Maximum page size is 10000
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+integer
+Default 0
+integer
+Default 0
+integer
+Taxonomy Tree Id
+Responses
+200 Returned when successful
+—409 Returned when no products were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o nformat
+required
+page
+pageSize
+parentTaxonomy
+G E T/rest/catalog/products.{format}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 36/123
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiProductApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | Response format, defaults to j
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProduct $format  $page $page_si
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ProductApi->getRestCatalogProduct: '  $e-
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+,
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all CopyContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 37/123
+[-
+{
+"manufacturer" : 1234
+,
+"id": 1234567
+,
+"sku": "S12435678"
+,
+"ean13": "7569000752751"
+,
+"weight" : 158
+,
+"height" : 23
+,
+"width": 55
+,
+"depth": 10
+,
+"dateUpd" : "2016-05-13 11:35:40"
+,
+"category" : 12450
+,
+"dateUpdDescription" : "2016-05-13 11:35:40"
+,
+"dateUpdImages" : "2016-05-13 11:35:40"
+,
+"dateUpdStock" : "2016-05-13 11:35:40"
+,
+"wholesalePrice" : "50.47"
+,
+"retailPrice" : "64.20"
+,
+"taxonomy" : 11548
+,
+"dateAdd" : "2016-05-13 11:35:40"
+,
+"video": "0"
+,
+"active" : 1
+,
+"attributes" : true
+,
+"categories" : true
+,
+"images" : true
+,
+"taxRate" : 21
+,
+"taxId": 21
+,
+"inShopsPrice" : 76
+,
+"condition" : "New"
+,
+"logisticClass" : "A"
+,
+"tags": true
+,
+"dateUpdProperties" : "2016-05-13 11:35:40"
+,
+"dateUpdCategories" : "2016-05-13 11:35:40"
+,
+"priceLargeQuantities" :  … +
+[
+]
+,
+"intrastat" : null
+,
+"partNumber" : "1234ABC"
+,
+"canon": 0
+}
+]
+Get a single product.
+Rate Limit4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 38/123
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+string json
+Responses
+200 Returned when successful
+—404 Returned when no product found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiProductApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Clientid
+required
+format
+required
+G E T/rest/catalog/product/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 39/123
+     * $config
+     * 
+     * $id = 'id_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductId $id $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ProductApi->getRestCatalogProductId: '  $
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all Copy
+{
+"manufacturer" : 1234
+,
+"id": 1234567
+,
+"sku": "S12435678"
+,
+"ean13": "7569000752751"
+,
+"weight" : 158
+,
+"height" : 23
+,
+"width": 55
+,
+"depth": 10
+,
+"dateUpd" : "2016-05-13 11:35:40"
+,
+"category" : 12450
+,
+"dateUpdDescription" : "2016-05-13 11:35:40"
+,
+"dateUpdImages" : "2016-05-13 11:35:40"
+,
+"dateUpdStock" : "2016-05-13 11:35:40"
+,
+"wholesalePrice" : "50.47"
+,
+"retailPrice" : "64.20"
+,
+"taxonomy" : 11548
+,
+"dateAdd" : "2016-05-13 11:35:40"
+,
+"video": "0"
+,
+"active" : 1
+,
+"attributes" : true
+,
+"categories" : true
+,
+"images" : true
+,
+"taxRate" : 21
+,Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 40/123
+"taxId": 21
+,
+"inShopsPrice" : 76
+,
+"condition" : "New"
+,
+"logisticClass" : "A"
+,
+"tags": true
+,
+"dateUpdProperties" : "2016-05-13 11:35:40"
+,
+"dateUpdCategories" : "2016-05-13 11:35:40"
+,
+"priceLargeQuantities" : -
+[
+ … +
+{
+}
+]
+,
+"intrastat" : null
+,
+"partNumber" : "1234ABC"
+,
+"canon": 0
+}
+Returns all products information.
+Rate Limit
+Max Requests Period
+24 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+string
+es by default
+string
+Default 0
+string
+Default 0
+integer
+Taxonomy Tree Idformat
+required
+isoCode
+pageSize
+page
+parentTaxonomy4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 41/123
+Responses
+200 Returned when successful
+—409 Returned when no products information were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiProductApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     * $page_size  = 'page_size_example'  // string | Default 0
+     * $page = 'page_example'  // string | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductsInformation $format  $is
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ProductApi->getRestCatalogProductsInforma
+     * G E T/rest/catalog/productsinformation.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+;
+{
+(
+,
+(
+)
+;
+}
+(
+)
+{
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 42/123
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"name": "Wire Scalp Massager"
+,
+"description" : "<p>Do you constantly live under the effects of stress?
+"url": "wire-scalp-massager"
+,
+"isoCode" : "en"
+,
+"dateUpdDescription" : "2016-05-13 11:35:40"
+}
+]
+Get a single product information.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+string json
+QUER Y PARAMETERSid
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 43/123
+string
+es by default
+Responses
+200 Returned when successful
+—404 Returned when no product found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiProductApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $id = 'id_example'  // string |
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductInformationId $format  $i
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ProductApi->getRestCatalogProductInformatisoCode
+G E T/rest/catalog/productinformation/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+(
+)
+;
+}
+(
+)
+{4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 44/123
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+}
+application/json
+Copy
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"name": "Wire Scalp Massager"
+,
+"description" : "<p>Do you constantly live under the effects of stress? No
+"url": "wire-scalp-massager"
+,
+"isoCode" : "en"
+,
+"dateUpdDescription" : "2016-05-13 11:35:40"
+}
+Get a single product information languages.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+product id
+string json
+Responsesid
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 45/123
+200 Returned when successful
+—404 Returned when no products information with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiProductApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $id = 'id_example'  // string | product id
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductInformationAllLanguagesId
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ProductApi->getRestCatalogProductInformat
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/productinformationalllanguages/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+)
+;
+}
+(
+)
+{
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 46/123
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"name": "Wire Scalp Massager"
+,
+"description" : "<p>Do you constantly live under the effects of stress?
+"url": "wire-scalp-massager"
+,
+"isoCode" : "en"
+,
+"dateUpdDescription" : "2016-05-13 11:35:40"
+}
+]
+Get a single product information by sku.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+product sku
+string json
+QUER Y PARAMETERS
+string
+es by default
+Responsessku
+required
+format
+required
+isoCodeContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 47/123
+200 Returned when successful
+—404 Returned when no product found with sku X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiProductApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $sku = 'sku_example'  // string | product sku
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductInformationBySku $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ProductApi->getRestCatalogProductInformat
+     * 
+     * ?>
+     * 
+Response samplesG E T/rest/catalog/productinformationbysku/{sku}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+(
+)
+;
+}
+(
+)
+{
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 48/123
+Image
+Image2 0 0 4 0 4 4 1 5 4 2 9
+application/json
+Copy
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"name": "Wire Scalp Massager"
+,
+"description" : "<p>Do you constantly live under the effects of stress? No
+"url": "wire-scalp-massager"
+,
+"isoCode" : "en"
+,
+"dateUpdDescription" : "2016-05-13 11:35:40"
+}
+Returns all products images.
+Rate Limit
+Max Requests Period
+10 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+string
+Default 0format
+required
+pageSizeContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 49/123
+string
+Default 0
+integer
+Taxonomy Tree Id
+Responses
+200 Returned when successful
+—409 Returned when no products images were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiImageApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | Response format, defaults to j
+     * $page_size  = 'page_size_example'  // string | Default 0
+     * $page = 'page_example'  // string | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductsimages $format  $page_sipage
+parentTaxonomy
+G E T/rest/catalog/productsimages.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 50/123
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ImageApi->getRestCatalogProductsimages: '
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 1234
+,
+"images" :  … +
+[
+]
+}
+]
+Get a single product images.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+Product Id
+string json
+Responsesid
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 51/123
+200 Returned when successful
+—404 Returned when no product images found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiImageApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $id = 'id_example'  // string | Product Id
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductimagesId $format  $id
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ImageApi->getRestCatalogProductimagesId: 
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/productimages/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 52/123
+Price
+Priceapplication/json
+Expand all Collapse all Copy
+{
+"id": 1234
+,
+"images" : -
+[
+ … +
+{
+}
+]
+}
+Returns all product pricing info.
+Rate Limit
+Max Requests Period
+10 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+none
+Include the volume discounts
+integer
+Default 0format
+required
+includePriceLargeQuantities
+pageContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 53/123
+integer
+Default 0
+integer
+First level taxonomy ID
+Responses
+200 Returned when successful
+—409 Returned when no results found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiPriceApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | Response format, defaults to j
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductprices $format  $page $ppageSize
+parentTaxonomy
+G E T/rest/catalog/productprices.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+,4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 54/123
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling PriceApi->getRestCatalogProductprices: '
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 1234
+,
+"sku": "S1243567"
+,
+"wholesalePrice" : 0.1
+,
+"retailPrice" : 0.1
+,
+"inShopsPrice" : 0.1
+,
+"priceLargeQuantities" :  … +
+[
+]
+}
+]
+Returns all product variation pricing info.
+Rate Limit
+Max Requests Period
+10 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERSformat
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 55/123
+none
+Include the volume discounts
+integer
+Default 0
+integer
+Default 0
+integer
+Taxonomy Tree Id
+Responses
+200 Returned when successful
+—409 Returned when no results found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiPriceApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * includePriceLargeQuantities
+page
+pageSize
+parentTaxonomy
+G E T/rest/catalog/productvariationprices.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 56/123
+Stock
+Stock     * $format = 'format_example'  // string | Response format, defaults to j
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductvariationprices $format  
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling PriceApi->getRestCatalogProductvariationp
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+;
+;
+;
+{
+(
+,
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 1234
+,
+"sku": "S1243567"
+,
+"wholesalePrice" : 0.1
+,
+"retailPrice" : 0.1
+,
+"inShopsPrice" : 0.1
+,
+"priceLargeQuantities" :  … +
+[
+]
+}
+]
+Returns all products stock by handling days.
+Rate LimitContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 57/123
+Max Requests Period
+10 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+integer
+Default 0
+integer
+Default 0
+integer
+Taxonomy Tree Id
+Responses
+200 Returned when successful
+—409 Returned when no products stock by handling days were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'format
+required
+page
+pageSize
+parentTaxonomy
+G E T/rest/catalog/productsstockbyhandlingdays.{format}
+Copy
+(
+)
+;4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 58/123
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiStockApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | Response format, defaults to j
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductsstockbyhandlingdays $for
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling StockApi->getRestCatalogProductsstockbyha
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"stocks" :  … +
+[
+]
+}
+]
+Get a single product stock by handling days.
+Rate LimitContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 59/123
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+string json
+Responses
+200 Returned when successful
+—404 Returned when no product stock found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiStockApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $configid
+required
+format
+required
+G E T/rest/catalog/productstockbyhandlingdays/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 60/123
+     * 
+     * $id = 'id_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductStockByHandlingDaysById $
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling StockApi->getRestCatalogProductStockByHan
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+)
+;
+;
+;
+{
+(
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all Copy
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"stocks" : -
+[
+ … +
+{
+}
+]
+}
+Returns all products variation stock by handling days.
+Rate Limit
+Max Requests Period
+10 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string jsonformat
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 61/123
+QUER Y PARAMETERS
+integer
+Default 0
+integer
+Default 0
+integer
+Taxonomy Tree Id
+Responses
+200 Returned when successful
+—409 Returned when no products variations stock were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiStockApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | Response format, defaults to jpage
+pageSize
+parentTaxonomy
+G E T/rest/catalog/productsvariationsstockbyhandlingdays.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 62/123
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductsvariationsstockbyhandlin
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling StockApi->getRestCatalogProductsvariation
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+;
+;
+{
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"stocks" :  … +
+[
+]
+}
+]
+Returns product variations stock by handling days by id.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+stringid
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 63/123
+string json
+Responses
+200 Returned when successful
+—404 Returned when no product variations stock found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiStockApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 'id_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductVariationsStockByHandling
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling StockApi->getRestCatalogProductVariations
+     * format
+required
+G E T/rest/catalog/productvariationsstockbyhandlingdays/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+)
+;
+}
+(
+)
+{
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 64/123
+Tag
+Tag     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+application/json
+Expand all Collapse all Copy
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"stocks" : -
+[
+ … +
+{
+}
+]
+}
+Lists all product tags.
+Rate Limit
+Max Requests Period
+24 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERSformat
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 65/123
+string
+es by default
+string
+Default 0
+string
+Default 0
+integer
+Taxonomy Tree Id
+Responses
+200 Returned when successful
+—409 Returned when no products tags were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiTagApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * isoCode
+pageSize
+page
+parentTaxonomy
+G E T/rest/catalog/productstags.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 66/123
+     * $format = 'format_example'  // string | JSON or XML
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     * $page_size  = 'page_size_example'  // string | Default 0
+     * $page = 'page_example'  // string | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductsTags $format  $iso_code
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling TagApi->getRestCatalogProductsTags: '  $e
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+;
+;
+;
+;
+{
+(
+,
+,
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"tag":  … +
+{
+}
+}
+]
+Get a single ProductT ag.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERSContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 67/123
+string
+productId
+string json
+QUER Y PARAMETERS
+string
+es by default
+Responses
+200 Returned when successful
+—404 Returned when no product tags found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiTagApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 'id_example'  // string | productIdid
+required
+format
+required
+isoCode
+G E T/rest/catalog/producttags/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 68/123
+     * $format = 'format_example'  // string | JSON or XML
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductTagsId $id $format  $iso
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling TagApi->getRestCatalogProductTagsId: '  $
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+;
+;
+{
+(
+,
+,
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all Copy
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"tag": -
+{
+"id": 123456
+,
+"name": "animals"
+,
+"linkRewrite" : "animals"
+,
+"language" : "en"
+}
+}
+Lists all tags.
+Rate Limit
+Max Requests Period
+24 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERSContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 69/123
+string json
+QUER Y PARAMETERS
+string
+es by default
+Responses
+200 Returned when successful
+—409 Returned when no tags were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiTagApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     *
+     * try format
+required
+isoCode
+G E T/rest/catalog/tags.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 70/123
+     * $result = $apiInstance ->getRestCatalogTags $format  $iso_code
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling TagApi->getRestCatalogTags: '  $e->getMes
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 123456
+,
+"name": "animals"
+,
+"linkRewrite" : "animals"
+,
+"language" : "en"
+}
+]
+Get a single Tag.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string \d+
+string json
+QUER Y PARAMETERSid
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 71/123
+string
+es by default
+Responses
+200 Returned when successful
+—404 Returned when no tag found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiTagApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $id = 'id_example'  // string |
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogTag $format  $id $iso_code
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling TagApi->getRestCatalogTag: '  $e->getMessisoCode
+G E T/rest/catalog/tag/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 72/123
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+}
+application/json
+Copy
+{
+"id": 123456
+,
+"name": "animals"
+,
+"linkRewrite" : "animals"
+,
+"language" : "en"
+}
+Get a single Tag languages.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string \d+
+string json
+Responses
+200 Returned when successfulid
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 73/123
+—404 Returned when no tag languages found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiTagApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $id = 'id_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogTagAllLanguages $format  $id
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling TagApi->getRestCatalogTagAllLanguages: '
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/tagalllanguages/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 74/123
+Taxonomy
+Taxonomyapplication/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 123456
+,
+"name": "animals"
+,
+"linkRewrite" : "animals"
+,
+"language" : "en"
+}
+]
+Returns all products taxonomies.
+Rate Limit
+Max Requests Period
+5 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+integer
+Default 0
+integer
+Default 0format
+required
+page
+pageSizeContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 75/123
+integer
+Taxonomy Tree Id
+Responses
+200 Returned when successful
+—409 Returned when no products taxonomies were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiTaxonomyApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | Response format, defaults to j
+     * $page = 56 // int | Default 0
+     * $page_size  = 56 // int | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductsTaxonomies $format  $pag
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling TaxonomyApi->getRestCatalogProductsTaxonoparentTaxonomy
+G E T/rest/catalog/productstaxonomies.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+(
+)
+;
+}
+(
+)
+{4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 76/123
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 123456
+,
+"taxonomy" : 123456
+,
+"product" : 654321
+}
+]
+Returns all taxonomies for a given product.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+integer \d+
+Product id
+string json
+Responsesid
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 77/123
+200 Returned when successful
+—404 Returned when no product taxonomies found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiTaxonomyApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 56 // int | Product id
+     * $format = 'format_example'  // string | Response format, defaults to j
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductTaxonomies $id $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling TaxonomyApi->getRestCatalogProductTaxonom
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/producttaxonomies/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 78/123
+application/json
+Copy
+{
+"id": 123456
+,
+"taxonomy" : 123456
+,
+"product" : 654321
+}
+Lists all taxonomies.
+Rate Limit
+Max Requests Period
+24 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+JSON or XML
+QUER Y PARAMETERS
+string
+es by default
+integer
+Send this parameter if only want to take first level categories
+Responses
+200 Returned when successful
+—409 Returned when no taxonomies were found in cache.
+—415 Returned on invalid Content-Type header.format
+required
+isoCode
+firstLevelContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 79/123
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiTaxonomyApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogTaxonomies $format  $iso_code
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling TaxonomyApi->getRestCatalogTaxonomies: '
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9G E T/rest/catalog/taxonomies.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all CopyContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 80/123
+[-
+{
+"id": 1234
+,
+"name": "Home and Garden"
+,
+"url": "home-garden"
+,
+"parentTaxonomy" : 6543
+,
+"dateAdd" : "2016-05-13 11:35:40"
+,
+"dateUpd" : "2016-05-13 11:35:40"
+,
+"urlImages" : "https://cdnbigbuy.com/images/home-garden-00.jpg "
+,
+"isoCode" : "en"
+}
+]
+Returns the selected taxonomy all languages.
+Rate Limit
+Max Requests Period
+24 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+JSON or XML
+string \d+
+QUER Y PARAMETERS
+string
+es by default
+Responses
+200 Returned when successful
+—404 Returned when no taxonomy found with id X.format
+required
+id
+required
+isoCode4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 81/123
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiTaxonomyApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $id = 'id_example'  // string |
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogTaxonomyalllanguages $format  $i
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling TaxonomyApi->getRestCatalogTaxonomyalllan
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/taxonomyalllanguages/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+(
+)
+;
+}
+(
+)
+{
+}
+application/jsonContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 82/123
+Variation
+Variation
+Expand all Collapse all Copy
+[-
+{
+"id": 1234
+,
+"name": "Home and Garden"
+,
+"url": "home-garden"
+,
+"parentTaxonomy" : 6543
+,
+"dateAdd" : "2016-05-13 11:35:40"
+,
+"dateUpd" : "2016-05-13 11:35:40"
+,
+"urlImages" : "https://cdnbigbuy.com/images/home-garden-00.jpg "
+,
+"isoCode" : "en"
+}
+]
+Returns all products variations.
+Rate Limit
+Max Requests Period
+10 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+string
+Default 0format
+required
+pageSize4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 83/123
+string
+Default 0
+integer
+Taxonomy Tree Id
+Responses
+200 Returned when successful
+—409 Returned when no products variations were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiVariationApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string |
+     * $page_size  = 'page_size_example'  // string | Default 0
+     * $page = 'page_example'  // string | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogProductsVariations $format  $pagpage
+parentTaxonomy
+G E T/rest/catalog/productsvariations.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 84/123
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling VariationApi->getRestCatalogProductsVaria
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"ean13": "7569000752751"
+,
+"extraWeight" : 10
+,
+"product" : 6543
+,
+"wholesalePrice" : 50
+,
+"retailPrice" : 64.55
+,
+"inShopsPrice" : 76
+,
+"width": 22.7
+,
+"height" : 10.56
+,
+"depth": 5.28
+,
+"priceLargeQuantities" :  … +
+[
+]
+,
+"logisticClass" : "A"
+,
+"partNumber" : "1234ABC"
+,
+"canon": 0
+}
+]
+Get a single product variations.
+Rate Limit
+Max Requests Period
+1 5 sContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 85/123
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+string json
+Responses
+200 Returned when successful
+Response samples
+2 0 0id
+required
+format
+required
+G E T/rest/catalog/productvariations/{id}.{format}
+application/json
+Expand all Collapse all CopyContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 86/123
+[-
+{
+"id": 1234
+,
+"sku": "S12435678"
+,
+"ean13": "7569000752751"
+,
+"extraWeight" : 10
+,
+"product" : 6543
+,
+"wholesalePrice" : 50
+,
+"retailPrice" : 64.55
+,
+"inShopsPrice" : 76
+,
+"width": 22.7
+,
+"height" : 10.56
+,
+"depth": 5.28
+,
+"priceLargeQuantities" :  … +
+[
+]
+,
+"logisticClass" : "A"
+,
+"partNumber" : "1234ABC"
+,
+"canon": 0
+}
+]
+Returns all variations.
+Rate Limit
+Max Requests Period
+10 1 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+string
+Default 0
+string
+Default 0format
+required
+pageSize
+page4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 87/123
+integer
+Taxonomy Tree Id
+Responses
+200 Returned when successful
+—409 Returned when no variations were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiVariationApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string |
+     * $page_size  = 'page_size_example'  // string | Default 0
+     * $page = 'page_example'  // string | Default 0
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogVariations $format  $page_size  
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling VariationApi->getRestCatalogVariations: 'parentTaxonomy
+G E T/rest/catalog/variations.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+,
+,
+(
+)
+;
+}
+(
+)
+{4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 88/123
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 1234
+,
+"attributes" :  … +
+[
+]
+}
+]
+Get a single variation.
+Rate Limit
+Max Requests Period
+1 5 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string \d+
+string json
+Responses
+200 Returned when successfulid
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 89/123
+—404 Returned when no variation found with id X.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiVariationApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id = 'id_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestCatalogVariation $id $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling VariationApi->getRestCatalogVariation: '
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/catalog/variation/{id}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 90/123
+Order
+Orderapplication/json
+Expand all Collapse all Copy
+{
+"id": 1234
+,
+"attributes" : -
+[
+ … +
+{
+}
+]
+}
+Submit an order
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+REQUEST  BODY  SCHEMA: application/json
+object  (CustomerOrder )
+Responsesformat
+required
+orderContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 91/123
+201 Returned when successful. To retrieve the created order ID, parse the location header.
+—400 Returned when validation errors has been found.
+—404 Returned when no carriers/products has been found.
+—409 Returned when there are constrain conﬂicts.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P a y l o a d P H P J a v a P y t h o n
+Response samples
+2 0 1 4 0 0 4 0 4 4 0 9 4 1 5 4 2 9P O S T/rest/order/create.{format}
+application/json
+Expand all Collapse all Copy
+{
+"order": -
+{
+"internalReference" : "123456789"
+,
+"language" : "en"
+,
+"paymentMethod" : "paypal"
+,
+"carriers" :  … +
+[
+]
+,
+"shippingAddress" :  … +
+{
+}
+,
+"products" :  … +
+[
+]
+}
+}
+application/json
+CopyContent type
+Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 92/123
+{"order_id" : "123456"
+}
+Check/simulate an order and return the total order to paid.
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+REQUEST  BODY  SCHEMA: application/json
+object  (CustomerOrder )
+Responses
+200 Returned when successful.
+—400 Returned when validation errors has been found.
+—404 Returned when no carriers/products has been found.
+—409 Returned when there are constrain conﬂicts.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.format
+required
+order4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 93/123
+Request samples
+P a y l o a d P H P J a v a P y t h o n
+Response samples
+2 0 0 4 0 0 4 0 4 4 0 9 4 1 5 4 2 9P O S T/rest/order/check.{format}
+application/json
+Expand all Collapse all Copy
+{
+"order": -
+{
+"internalReference" : "123456789"
+,
+"language" : "en"
+,
+"paymentMethod" : "paypal"
+,
+"carriers" :  … +
+[
+]
+,
+"shippingAddress" :  … +
+{
+}
+,
+"products" :  … +
+[
+]
+}
+}
+application/json
+Copy
+{
+"totalWithoutTaxesAndWithoutShippingCost" : 20.77
+,
+"totalWithoutTaxes" : 27.45
+,
+"total": 32.56
+}
+Get order information by customer reference.
+Rate LimitContent type
+Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 94/123
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+string json
+Responses
+200 Returned when successful
+—404 Returned when no order were found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiOrderApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $configreference
+required
+format
+required
+G E T/rest/order/reference/{reference}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 95/123
+     * 
+     * $reference  = 'reference_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestOrderOrderReference $reference  $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling OrderApi->getRestOrderOrderReference: '  
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+)
+;
+;
+;
+{
+(
+,
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Copy
+{
+"id": "123456"
+,
+"totalPaidTaxIncl" : "44.56"
+}
+Get order statuses.
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERSformat
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 96/123
+string
+isoCode language
+Responses
+200 Returned when successful
+—400 Returned when validation errors has been found.
+—404 Returned when not found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiOrderApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | Response format, defaults to j
+     * $language  = 'language_example'  // string | isoCode language
+     *
+     * try 
+     * $result = $apiInstance ->getRestOrderOrderStatuses $format  $language
+     * print_r $result
+     *  catch Exception  $e language
+G E T/rest/order/orderstatuses.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 97/123
+     * echo 'Exception when calling OrderApi->getRestOrderOrderStatuses: '  $
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 0 4 0 4 4 1 5 4 2 9
+,
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 123456
+,
+"name": "In process"
+}
+]
+Get order information.
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+string json
+Responses
+200 Returned when successfulorderId
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 98/123
+—404 Returned when no order were found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiOrderApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $order_id  = 'order_id_example'  // string |
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestOrderOrderId $order_id  $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling OrderApi->getRestOrderOrderId: '  $e->get
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9G E T/rest/order/{orderId}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+,
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 99/123
+application/json
+Expand all Collapse all Copy
+{
+"id": 123456
+,
+"internalReference" : "123456789"
+,
+"dateAdd" : "2023-05-13 11:35:40"
+,
+"totalPaidTaxIncl" : 64.59
+,
+"totalPaidTaxExcl" : 55.82
+,
+"totalShippingTaxExcl" : 5.23
+,
+"totalShippingTaxIncl" : 7.66
+,
+"status" : "In process"
+,
+"carriers" : -
+[
+ … +
+{
+}
+]
+,
+"shippingAddress" : -
+{
+"id": 123456
+,
+"firstName" : "Alejandro"
+,
+"lastName" : "Lopez Garcia"
+,
+"country" : "Spain"
+,
+"postcode" : 46011
+,
+"town": "Valencia"
+,
+"address" : "Road 17"
+,
+"phone": 123456789
+,
+"email": "example@gmail.com"
+,
+"vatNumber" : "21"
+,
+"companyName" : "Company"
+,
+"comment" : "Comment example"
+}
+,
+"products" : -
+[
+ … +
+{
+}
+]
+}
+Upload a base64-encoded invoice to an order in PENDING
+INVOICE status.
+Rate LimitContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 100/123
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+REQUEST  BODY  SCHEMA: application/json
+string
+string
+string
+Enum : "application/pdf"  "image/png"  "image/jpeg"
+number  <float>
+string
+object or null
+Responses
+—200 Returned when successful. To retrieve the created order ID, parse the location header
+—400 Returned when validation errors has been found.
+—409 Returned when there are constrain conﬂicts.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P a y l o a d P H P J a v a P y t h o nidOrder
+required
+file
+required
+mimeType
+required
+amount
+required
+concept
+required
+invoiceDetail
+P O S T/rest/order/upload_invoice4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 101/123
+Response samples
+2 0 0 4 0 0 4 0 9 4 1 5 4 2 9application/json
+Copy
+{
+"idOrder" : 123456
+,
+"file": "JVBERi0xLjMNCi...Xi48/JSVFT0YNCg=="
+,
+"mimeType" : "mimeType"
+,
+"amount" : 44.53
+,
+"concept" : "Concept example"
+,
+"invoiceDetail" : "Invoice detail"
+}
+application/json
+Copy
+[
+true
+]
+Submit an order multishipping.
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+REQUEST  BODY  SCHEMA: application/jsonformat
+requiredContent type
+Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 102/123
+object  (CustomerOrder )
+Responses
+201 Returned an order created.
+—400 Returned when validation errors has been found.
+—409 Returned when there are constrain conﬂicts.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P a y l o a d P H P J a v a P y t h o n
+Response samples
+2 0 1 4 0 0 4 0 9 4 1 5 4 2 9order
+P O S T/rest/order/create/multishipping.{format}
+application/json
+Expand all Collapse all Copy
+{
+"order": -
+{
+"internalReference" : "123456789"
+,
+"language" : "en"
+,
+"paymentMethod" : "paypal"
+,
+"carriers" :  … +
+[
+]
+,
+"shippingAddress" :  … +
+{
+}
+,
+"products" :  … +
+[
+]
+}
+}Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 103/123
+application/json
+Expand all Collapse all Copy
+{
+"orders" : -
+[
+ … +
+{
+}
+]
+,
+"errors" : -
+[
+ … +
+{
+}
+]
+}
+Check/simulate an order and return order multishipping.
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+REQUEST  BODY  SCHEMA: application/json
+object  (CustomerOrder )
+Responses
+200 Returned when successful.
+—400 Returned when validation errors has been found.
+—409 Returned when there are constrain conﬂicts.format
+required
+orderContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 104/123
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P a y l o a d P H P J a v a P y t h o n
+Response samples
+2 0 0 4 0 0 4 0 9 4 1 5 4 2 9P O S T/rest/order/check/multishipping.{format}
+application/json
+Expand all Collapse all Copy
+{
+"order": -
+{
+"internalReference" : "123456789"
+,
+"language" : "en"
+,
+"paymentMethod" : "paypal"
+,
+"carriers" :  … +
+[
+]
+,
+"shippingAddress" :  … +
+{
+}
+,
+"products" :  … +
+[
+]
+}
+}
+application/json
+Expand all Collapse all Copy
+{
+"orders" : -
+[
+ … +
+{
+}
+]
+,
+"errors" : -
+[
+ … +
+{
+}
+]
+}Content type
+Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 105/123
+Get delivery notes for the order
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+Responses
+200 Returned when successful.
+—403 Returned when order does not belong to the user
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'orderId
+required
+G E T/rest/order/delivery-notes/{orderId}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 106/123
+Shipping
+Shipping     *
+     * $apiInstance  = new Swagger ClientApiOrderApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $order_id  = 'order_id_example'  // string |
+     *
+     * try 
+     * $result = $apiInstance ->getRestOrderDeliveryNotesByOrder $order_id
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling OrderApi->getRestOrderDeliveryNotesByOrde
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 3 4 1 5 4 2 9
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+{
+(
+)
+;
+(
+)
+;
+}
+(
+)
+{
+}
+application/json
+Expand all Collapse all Copy
+{
+"reference" : "WH/OUT/0000001"
+,
+"order": "10000001"
+,
+"status" : "SHIPPED"
+,
+"carrier" : "GLS"
+,
+"numberOfPackages" : 2
+,
+"products" : -
+[
+ … +
+{
+}
+]
+}Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 107/123
+Get the list of available carriers.
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+Responses
+200 Returned when successful
+—404 Returned when no carriers were found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiShippingApiformat
+required
+G E T/rest/shipping/carriers.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 108/123
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     *
+     * try 
+     * $result = $apiInstance ->getRestShippingCarriers $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ShippingApi->getRestShippingCarriers: '  
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+\
+(
+)
+,
+)
+;
+;
+{
+(
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": "1234"
+,
+"name": "GLS"
+,
+"shippingServices" :  … +
+[
+]
+,
+"shippingCountries" :  … +
+[
+]
+,
+"excludedProductReferences" :  … +
+[
+]
+,
+"excludedCategoryIds" :  … +
+[
+]
+}
+]
+Returns the lowest shipping cost for a product reference when
+sent to the provided country .
+IMPORT ANT: Carriers that do not of fer proof of delivery (POD), such as Correos International or Postal
+Service, are excluded
+Rate LimitContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 109/123
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+REQUEST  BODY  SCHEMA: application/json
+object  (ProductCountry )
+Responses
+200 Returned when successful
+—400 Returned when validation errors has been found.
+—404 Returned when no carriers were found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P a y l o a d P H P J a v a P y t h o nformat
+required
+productCountry
+P O S T/rest/shipping/lowest-shipping-cost-by-country.{format}
+application/json
+Expand all Collapse all CopyContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 110/123
+Response samples
+2 0 0 4 0 0 4 0 4 4 1 5 4 2 9
+{"productCountry" : -
+{
+"reference" : "S12435678"
+,
+"countryIsoCode" : "en"
+}
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"shippingCost" : 4.56
+,
+"carrier" :  … +
+{
+}
+}
+]
+Returns the lowest shipping cost for every product when being
+shipped to the provided country .
+IMPORT ANT: Carriers that do not of fer proof of delivery (POD), such as Correos International or Postal
+Service, are excluded
+Rate Limit
+Max Requests Period
+36 6 h
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+example es
+string jsoncountryIsoCode
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 111/123
+Responses
+200 Returned when successful
+—409 Returned when no shippingCosts were found in cache.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiShippingApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     * $country_iso_code  = 'country_iso_code_example'  // string | example es
+     *
+     * try 
+     * $result = $apiInstance ->getRestShippingLowestShippingCostByCountryCoun
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling ShippingApi->getRestShippingLowestShippin
+     * 
+     * ?>
+     * G E T/rest/shipping/lowest-shipping-costs-by-country/{countryIsoCode}.{…
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+{
+(
+)
+;
+}
+(
+)
+{
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 112/123
+Response samples
+2 0 0 4 0 9 4 1 5 4 2 9
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"reference" : "S12435678"
+,
+"cost": "4.76"
+,
+"carrierId" : "1234"
+,
+"carrierName" : "GLS"
+}
+]
+Get shipping costs for an order .
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+REQUEST  BODY  SCHEMA: application/json
+object  (OrderCartShippingOption )
+Responses
+200 Returned when successfulformat
+required
+orderContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 113/123
+—400 Returned when validation errors has been found.
+—404 Returned when no carriers were found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P a y l o a d P H P J a v a P y t h o n
+Response samples
+2 0 0 4 0 0 4 0 4 4 1 5 4 2 9P O S T/rest/shipping/orders.{format}
+application/json
+Expand all Collapse all Copy
+{
+"order": -
+{
+"products" :  … +
+[
+]
+,
+"delivery" :  … +
+{
+}
+}
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"shippingOptions" :  … +
+[
+]
+}
+]Content type
+Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 114/123
+Tracking
+Tracking
+Get the list of available carriers.
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+Responses
+200 Returned when successful
+—404 Returned when no carriers were found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o nformat
+required
+G E T/rest/tracking/carriers.{format}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 115/123
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiTrackingApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     *
+     * try 
+     * $result = $apiInstance ->getRestTrackingCarriers $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling TrackingApi->getRestTrackingCarriers: '  
+     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+{
+(
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": "1234"
+,
+"name": "GLS"
+}
+]
+Get the list of available trackings for the passed orders.
+Rate LimitContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 116/123
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+QUER Y PARAMETERS
+string
+es by default
+REQUEST  BODY  SCHEMA: application/json
+object  (Track)
+Responses
+200 Returned when successful
+—400 Invalid order tracking format.
+—404 Returned when no carriers were found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P a y l o a d P H Pformat
+required
+isoCode
+track
+P O S T/rest/tracking/orders.{format}
+application/jsonContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 117/123
+Response samples
+2 0 0 4 0 0 4 0 4 4 1 5 4 2 9
+Expand all Collapse all Copy
+{"track": -
+{
+"orders" :  … +
+[
+]
+}
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 123456
+,
+"reference" : 789456123
+,
+"trackings" :  … +
+[
+]
+}
+]
+Get the list of available trackings.
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string
+Order id
+string json
+QUER Y PARAMETERSidOrder
+required
+format
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 118/123
+string
+es by default
+Responses
+200 Returned when successful
+—404 Returned when no trackings were found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiTrackingApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $id_order  = 'id_order_example'  // string | Order id
+     * $format = 'format_example'  // string |
+     * $iso_code  = 'iso_code_example'  // string | es by default
+     *
+     * try 
+     * $result = $apiInstance ->getRestTrackingOrderTrackingByOrderId $id_orde
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling TrackingApi->getRestTrackingOrderTrackingisoCode
+G E T/rest/tracking/order/{idOrder}.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+;
+;
+{
+(
+(
+)
+;
+}
+(
+)
+{4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 119/123
+User
+User     * 
+     * ?>
+     * 
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+}
+application/json
+Expand all Collapse all Copy
+[
+-
+{
+"id": 123456
+,
+"reference" : 789456123
+,
+"trackings" :  … +
+[
+]
+}
+]
+Get the ammount of money available in the purse.
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string jsonformat
+requiredContent type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 120/123
+Responses
+200 Returned when successful
+—404 Returned when not available ammount of money available were found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samples
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiUserApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string | JSON or XML
+     *
+     * try 
+     * $result = $apiInstance ->getRestUserPurse $format
+     * print_r $result
+     *  catch Exception  $e 
+     * echo 'Exception when calling UserApi->getRestUserPurse: '  $e->getMess
+     * 
+     * ?>
+Response samplesG E T/rest/user/purse.{format}
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+{
+(
+)
+;
+(
+)
+;
+}
+(
+)
+{
+,
+}4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 121/123
+2 0 0 4 0 4 4 1 5 4 2 9
+application/json
+Copy
+"12234"
+Get the auth status from user .
+Rate Limit
+Max Requests Period
+1 1 s
+AUTHORIZA TIONS: Bearer
+PATH PARAMETERS
+string json
+Responses
+—200 Returned when successful
+—404 Returned when not not user were found.
+—415 Returned on invalid Content-Type header.
+—429 Exceeded requests limits.
+Request samplesformat
+required
+G E T/rest/user/auth/status.{format}Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 122/123
+P H P J a v a P y t h o n
+<?php
+     * require_once __DIR__ . '/vendor/autoload.php'
+     * // Configure HTTP bearer authorization: Bearer
+     * $config = Swagger ClientConfiguration ::getDefaultConfiguration
+     * ->setAccessToken 'YOUR_ACCESS_TOKEN'
+     *
+     * $apiInstance  = new Swagger ClientApiUserApi
+     * // If you want use custom http client, pass your client which implemen
+     * // This is optional, `GuzzleHttp\Client` will be used as default.
+     * new GuzzleHttp Client
+     * $config
+     * 
+     * $format = 'format_example'  // string |
+     *
+     * try 
+     *     $apiInstance ->getRestUserAuthStatus $format
+     *  catch Exception  $e 
+     *     echo 'Exception when calling UserApi->getRestUserAuthStatus: '  $e
+     * 
+     * ?>
+Response samples
+2 0 0 4 0 4 4 1 5 4 2 9
+Copy
+(
+)
+;
+\
+\
+(
+)
+(
+)
+;
+\
+\
+\
+(
+\
+(
+)
+,
+)
+;
+;
+{
+(
+)
+;
+}
+(
+)
+{
+,
+}
+application/json
+Copy
+{
+"code": 200
+,
+"message" : "Returned when successful"
+}Content type4/18/26, 11:07 PM BigBuy Api
+https://api.bigbuy.eu/rest/doc#tag/Order/operation/get_rest_order_order_reference 123/123

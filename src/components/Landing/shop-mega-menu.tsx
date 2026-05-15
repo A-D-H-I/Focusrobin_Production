@@ -186,226 +186,86 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
       <div
         ref={menuRef}
         className={cn(
-          "w-full bg-white shadow-2xl rounded-lg border border-gray-200",
-          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8 p-4 sm:p-6 lg:p-8",
-          "max-h-[80vh] overflow-y-auto",
-          "scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent",
+          "w-full bg-white shadow-2xl rounded-xl border border-gray-100",
+          "flex gap-0 p-0 overflow-hidden",
+          "max-h-[80vh]",
           className
         )}
       >
-        <div className="space-y-4">
-          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text={title} /></h3>
-          <div className="space-y-2 sm:space-y-3">
-            <Link href={baseUrl} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
-              <TranslatableText text={`All ${title}`} />
+        {/* Left: Nav Links — slim column */}
+        <div className="flex-shrink-0 w-44 lg:w-52 bg-gray-50 border-r border-gray-100 p-5 lg:p-6 space-y-1 overflow-y-auto">
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+            <TranslatableText text={title} />
+          </h3>
+          {[
+            { href: baseUrl, label: `All ${title}` },
+            { href: `${baseUrl}/women`, label: `Women's` },
+            { href: `${baseUrl}/men`, label: `Men's` },
+            { href: `${baseUrl}/kids`, label: `Kids` },
+            { href: `${baseUrl}/unisex`, label: `Unisex` },
+            { href: `${baseUrl}?filter=bestsellers`, label: `Best Sellers` },
+            { href: `${baseUrl}/new-arrivals`, label: `New Arrivals` },
+          ].map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              onClick={onClose}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-colors font-medium group"
+            >
+              <span className="w-1 h-1 rounded-full bg-gray-300 group-hover:bg-teal-400 transition-colors flex-shrink-0" />
+              <TranslatableText text={label} />
             </Link>
-            <Link href={`${baseUrl}/women`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
-              <TranslatableText text={`Women's ${title}`} />
-            </Link>
-            <Link href={`${baseUrl}/men`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
-              <TranslatableText text={`Men's ${title}`} />
-            </Link>
-            <Link href={`${baseUrl}/kids`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
-              <TranslatableText text={`Kids ${type === 'eyeglasses' ? 'Eyeglasses' : 'Sunglasses'}`} />
-            </Link>
-            <Link href={`${baseUrl}/unisex`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
-              <TranslatableText text={`Unisex ${title}`} />
-            </Link>
-            <Link href={`${baseUrl}?filter=bestsellers`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
-              <TranslatableText text="Best Sellers" />
-            </Link>
-            <Link href={`${baseUrl}/new-arrivals`} onClick={onClose} className="block text-black hover:text-primary transition-colors text-xs sm:text-sm cursor-pointer">
-              <TranslatableText text="New Arrivals" />
-            </Link>
-          </div>
+          ))}
         </div>
 
+        {/* Right: Brands — fills all remaining space */}
+        <div className="flex-1 p-5 lg:p-6 overflow-y-auto">
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
+            <TranslatableText text="Shop by Brand" />
+          </h3>
 
-        <div className="space-y-4">
-          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text="Shop by Brand" /></h3>
           {isLoadingBrands ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
-              {[1, 2, 3, 4, 5, 6].map(function (i) {
-                return <div key={i} className="h-16 sm:h-20 bg-gray-200 rounded-lg animate-pulse" />;
-              })}
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+                <div key={i} className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+              ))}
             </div>
           ) : availableBrands.length === 0 ? (
-            <p className="text-xs sm:text-sm text-gray-500"><TranslatableText text="No brands available" /></p>
+            <p className="text-sm text-gray-400"><TranslatableText text="No brands available" /></p>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
-              {availableBrands.map(function (brandData, index) {
+            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2">
+              {availableBrands.map((brandData, index) => {
                 const hasImage = brandData.imageUrl && brandData.imageUrl.trim() !== '';
-
                 return (
                   <Link
                     key={brandData.brand + "-" + index}
                     href={`${baseUrl}?filter=${encodeURIComponent(brandData.brand)}`}
                     onClick={onClose}
-                    className="group flex flex-col items-center p-2 sm:p-3 bg-[#F5F5DC] rounded-lg hover:bg-[#E8E8D0] transition-colors cursor-pointer"
+                    className="group flex items-center gap-2 px-3 py-2.5 bg-gray-50 hover:bg-teal-50 border border-transparent hover:border-teal-200 rounded-lg transition-all duration-150 cursor-pointer min-w-0"
+                    title={brandData.brand}
                   >
-                    <div className="w-10 h-6 sm:w-12 sm:h-8 mb-1 sm:mb-2 flex items-center justify-center relative">
+                    {/* Logo or initials circle */}
+                    <div className="flex-shrink-0 w-7 h-7 rounded-md bg-white border border-gray-200 group-hover:border-teal-200 flex items-center justify-center overflow-hidden transition-colors">
                       {hasImage ? (
-                        <div className="relative w-full h-full">
+                        <div className="relative w-full h-full p-0.5">
                           <Image
                             src={normalizeImageUrl(brandData.imageUrl!)}
                             alt={brandData.brand}
                             fill
-                            className="object-contain"
-                            sizes="(max-width: 640px) 40px, 48px"
+                            className="object-contain p-0.5"
+                            sizes="28px"
                           />
                         </div>
                       ) : (
-                        // Fallback to text if no image
-                        <span className="text-xs font-medium text-gray-600 truncate max-w-full">
+                        <span className="text-[10px] font-bold text-gray-500 group-hover:text-teal-600 transition-colors">
                           {brandData.brand.substring(0, 2).toUpperCase()}
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] sm:text-xs text-black text-center leading-tight"><TranslatableText text={brandData.brand} /></span>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-        <div className="space-y-4">
-          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text="Shop by Frame Color" /></h3>
-          {isLoadingColors ? (
-            <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-3 gap-2 sm:gap-3">
-              {[1, 2, 3, 4, 5, 6].map(function (i) {
-                return <div key={i} className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 border-gray-300 bg-gray-200 animate-pulse" />;
-              })}
-            </div>
-          ) : availableColors.length === 0 ? (
-            <p className="text-xs sm:text-sm text-gray-500"><TranslatableText text="No colors available" /></p>
-          ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-3 gap-2 sm:gap-3">
-              {availableColors.map(function (color, index) {
-                const colorFamily = color.colorName; // This is actually the Family Name if grouped
-                const paletteColor = colorPalette[colorFamily] || colorPalette[colorFamily.toLowerCase()];
-
-                // Use palette color if available, otherwise fallback to hex
-                const displayColor = paletteColor || (color.colorHex.startsWith("#") ? color.colorHex : "#" + color.colorHex);
-
-                // Check if it's white/transparent to add border
-                const isLight = colorFamily === 'white' || colorFamily === 'transparent' || displayColor.toLowerCase() === '#ffffff' || displayColor.toLowerCase() === '#fff';
-
-                return (
-                  <Link
-                    key={color.colorHex + "-" + index}
-                    href={`${baseUrl}?color=${encodeURIComponent(color.colorName)}`}
-                    onClick={onClose}
-                    className="group relative flex justify-center cursor-pointer"
-                    title={color.colorName}
-                  >
-                    <div
-                      className={cn(
-                        "w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 transition-all hover:scale-110 hover:border-primary",
-                        isLight ? "bg-white border-gray-400" : "border-gray-300"
-                      )}
-                      style={{
-                        background: displayColor
-                      }}
-                    />
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-
-        <div className="space-y-4">
-          <h3 className="text-brand-h3 font-headline text-black mb-3 sm:mb-4"><TranslatableText text="Shop by Shape" /></h3>
-          {isLoadingShapes ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
-              {[1, 2, 3, 4, 5, 6].map(function (i) {
-                return <div key={i} className="h-16 sm:h-20 bg-gray-200 rounded-lg animate-pulse" />;
-              })}
-            </div>
-          ) : availableShapes.length === 0 ? (
-            <p className="text-xs sm:text-sm text-gray-500"><TranslatableText text="No shapes available" /></p>
-          ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-3 gap-2 sm:gap-3">
-              {availableShapes.map(function (shapeData, index) {
-                const shapeIcon = getShapeIcon(shapeData.shape);
-                const hasImage = shapeData.imageUrl && shapeData.imageUrl.trim() !== '';
-
-                return (
-                  <Link
-                    key={shapeData.shape + "-" + index}
-                    href={`${baseUrl}?glassShape=${encodeURIComponent(shapeData.shape.toLowerCase().replace(/\s+/g, "-"))}`}
-                    onClick={onClose}
-                    className="group flex flex-col items-center p-2 sm:p-3 bg-[#F5F5DC] rounded-lg hover:bg-[#E8E8D0] transition-colors cursor-pointer"
-                  >
-                    <div className="w-10 h-6 sm:w-12 sm:h-8 mb-1 sm:mb-2 flex items-center justify-center relative">
-                      {hasImage ? (
-                        <div className="relative w-full h-full">
-                          <Image
-                            src={normalizeImageUrl(shapeData.imageUrl!)}
-                            alt={shapeData.shape}
-                            fill
-                            className="object-contain"
-                            sizes="(max-width: 640px) 40px, 48px"
-                          />
-                        </div>
-                      ) : (
-                        // Fallback to SVG icons if no image
-                        <>
-                          {shapeIcon === "cat-eye" && (
-                            <svg viewBox="0 0 24 16" className="w-full h-full">
-                              <path d="M2 8 Q6 2, 12 8 Q18 14, 22 8" stroke="black" strokeWidth="1.5" fill="none" />
-                              <path d="M6 8 L12 4 L18 8" stroke="black" strokeWidth="1.5" fill="none" />
-                            </svg>
-                          )}
-                          {shapeIcon === "rectangle" && (
-                            <svg viewBox="0 0 24 16" className="w-full h-full">
-                              <rect x="4" y="4" width="16" height="8" stroke="black" strokeWidth="1.5" fill="none" />
-                            </svg>
-                          )}
-                          {shapeIcon === "square" && (
-                            <svg viewBox="0 0 24 16" className="w-full h-full">
-                              <rect x="6" y="2" width="12" height="12" stroke="black" strokeWidth="1.5" fill="none" />
-                            </svg>
-                          )}
-                          {shapeIcon === "butterfly" && (
-                            <svg viewBox="0 0 24 16" className="w-full h-full">
-                              <path d="M2 8 Q8 2, 12 8 Q16 14, 22 8" stroke="black" strokeWidth="1.5" fill="none" />
-                              <path d="M8 6 Q12 8, 16 6" stroke="black" strokeWidth="1.5" fill="none" />
-                            </svg>
-                          )}
-                          {shapeIcon === "round" && (
-                            <svg viewBox="0 0 24 16" className="w-full h-full">
-                              <circle cx="12" cy="8" r="6" stroke="black" strokeWidth="1.5" fill="none" />
-                            </svg>
-                          )}
-                          {shapeIcon === "geometric" && (
-                            <svg viewBox="0 0 24 16" className="w-full h-full">
-                              <polygon points="12,2 20,6 20,14 12,18 4,14 4,6" stroke="black" strokeWidth="1.5" fill="none" />
-                            </svg>
-                          )}
-                          {shapeIcon === "aviator" && (
-                            <svg viewBox="0 0 24 16" className="w-full h-full">
-                              <ellipse cx="8" cy="8" rx="6" ry="4" stroke="black" strokeWidth="1.5" fill="none" />
-                              <ellipse cx="16" cy="8" rx="6" ry="4" stroke="black" strokeWidth="1.5" fill="none" />
-                              <line x1="14" y1="8" x2="10" y2="8" stroke="black" strokeWidth="1.5" />
-                            </svg>
-                          )}
-                          {shapeIcon === "browline" && (
-                            <svg viewBox="0 0 24 16" className="w-full h-full">
-                              <path d="M4 6 L8 4 L12 6 L16 4 L20 6" stroke="black" strokeWidth="2" fill="none" />
-                              <path d="M4 10 L8 12 L12 10 L16 12 L20 10" stroke="black" strokeWidth="1.5" fill="none" />
-                            </svg>
-                          )}
-                          {shapeIcon === "oval" && (
-                            <svg viewBox="0 0 24 16" className="w-full h-full">
-                              <ellipse cx="12" cy="8" rx="8" ry="5" stroke="black" strokeWidth="1.5" fill="none" />
-                            </svg>
-                          )}
-                        </>
-                      )}
-                    </div>
-                    <span className="text-[10px] sm:text-xs text-black text-center leading-tight"><TranslatableText text={shapeData.shape} /></span>
+                    {/* Brand name */}
+                    <span className="text-xs font-medium text-gray-700 group-hover:text-teal-700 transition-colors truncate leading-tight">
+                      <TranslatableText text={brandData.brand} />
+                    </span>
                   </Link>
                 );
               })}
@@ -416,3 +276,4 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
     </div>
   );
 }
+

@@ -171,12 +171,12 @@ export async function addToCart(productSlugOrId: string, variantSkuOrId: string,
 
       // Find matching item based on prescription data
       const existingItem = existingItems.find(item => {
-        if (prescriptionData) {
-          const itemPrescriptionData = item.prescriptionData as any;
-          return itemPrescriptionData && isPrescriptionDataEqual(itemPrescriptionData, prescriptionData);
+        // NEVER merge items with prescription data. Each prescription addition is unique.
+        if (prescriptionData || item.prescriptionData) {
+          return false;
         } else {
           // No prescription - match items without prescription
-          return !item.prescriptionData;
+          return true;
         }
       });
 
@@ -529,7 +529,7 @@ export async function getCart() {
   const userId = (session.user as any)?.id;
 
   try {
-    // IDOR Protection: Only fetch cart for current user
+    // 1. Fetch only basic cart and items (no deep nested includes)
     const cart = await prisma.cart.findUnique({
       where: { userId },
       select: {
@@ -544,134 +544,98 @@ export async function getCart() {
             variantId: true,
             quantity: true,
             prescriptionData: true,
-            Product: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                brand: true,
-                basePrice: true,
-                compareAtPrice: true,
-                discountPct: true,
-                cashbackAmount: true,
-                gender: true,
-                ProductVariant: {
-                  select: {
-                    id: true,
-                    name: true,
-                    sku: true,
-                    colorHex: true,
-                    colorFamily: true,
-                    textureImageUrl: true,
-                    price: true,
-                    stock: true,
-                    ProductAsset: {
-                      where: { isPrimary: true },
-                      select: {
-                        id: true,
-                        url: true,
-                        type: true,
-                        isPrimary: true,
-                      },
-                    },
-                  },
-                },
-                Category: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
-            PrescriptionGlasses: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                brand: true,
-                basePrice: true,
-                compareAtPrice: true,
-                discountPct: true,
-                cashbackAmount: true,
-                gender: true,
-                PrescriptionGlassesVariant: {
-                  select: {
-                    id: true,
-                    name: true,
-                    sku: true,
-                    colorHex: true,
-                    textureImageUrl: true,
-                    price: true,
-                    stock: true,
-                    PrescriptionGlassesAsset: {
-                      where: { isPrimary: true },
-                      select: {
-                        id: true,
-                        url: true,
-                        type: true,
-                        isPrimary: true,
-                      },
-                    },
-                  },
-                },
-                Category: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
-                },
-              },
-            },
           },
         },
       },
     });
 
-    if (!cart) {
-      console.log('[getCart] No cart found for user:', userId);
+    if (!cart || !cart.items || cart.items.length === 0) {
+      console.log('[getCart] No cart found or empty for user:', userId);
       return { items: [] };
     }
 
-    // CRITICAL: Use JSON.parse(JSON.stringify()) to convert ALL Prisma types
-    // (Decimal, Date, BigInt) to plain serializable values.
-    // This is the only reliable way to prevent "Decimal objects are not supported" errors.
-    const serializedCart = JSON.parse(JSON.stringify(cart));
+    // 2. Extract unique IDs to fetch exactly what we need
+    const productIds = Array.from(new Set(cart.items.filter(i => i.productId).map(i => i.productId as string)));
+    const prescriptionGlassesIds = Array.from(new Set(cart.items.filter(i => i.prescriptionGlassesId).map(i => i.prescriptionGlassesId as string)));
+    const variantIds = Array.from(new Set(cart.items.map(i => i.variantId)));
 
-    console.log('[getCart] Found cart with', serializedCart.items.length, 'items');
+    // 3. Fetch products and specific variants in parallel
+    const [products, prescriptionGlasses, productVariants, prescriptionVariants] = await Promise.all([
+      productIds.length > 0 ? prisma.product.findMany({
+        where: { id: { in: productIds } },
+        select: { id: true, name: true, slug: true, brand: true, basePrice: true, compareAtPrice: true, discountPct: true, cashbackAmount: true, gender: true, Category: { select: { id: true, name: true } } }
+      }) : [],
+      prescriptionGlassesIds.length > 0 ? prisma.prescriptionGlasses.findMany({
+        where: { id: { in: prescriptionGlassesIds } },
+        select: { id: true, name: true, slug: true, brand: true, basePrice: true, compareAtPrice: true, discountPct: true, cashbackAmount: true, gender: true, Category: { select: { id: true, name: true } } }
+      }) : [],
+      variantIds.length > 0 ? prisma.productVariant.findMany({
+        where: { id: { in: variantIds } },
+        select: { id: true, name: true, sku: true, colorHex: true, colorFamily: true, textureImageUrl: true, price: true, stock: true, ProductAsset: { where: { isPrimary: true }, select: { id: true, url: true, type: true, isPrimary: true } } }
+      }) : [],
+      variantIds.length > 0 ? prisma.prescriptionGlassesVariant.findMany({
+        where: { id: { in: variantIds } },
+        select: { id: true, name: true, sku: true, colorHex: true, textureImageUrl: true, price: true, stock: true, PrescriptionGlassesAsset: { where: { isPrimary: true }, select: { id: true, url: true, type: true, isPrimary: true } } }
+      }) : []
+    ]);
 
-    return {
-      items: serializedCart.items.map((item: any) => {
-        const isPrescription = !!item.prescriptionGlassesId;
-        const productData = isPrescription ? item.PrescriptionGlasses : item.Product;
-        const variants = isPrescription
-          ? (item.PrescriptionGlasses?.PrescriptionGlassesVariant || [])
-          : (item.Product?.ProductVariant || []);
+    // Create lookup maps for fast access
+    const productMap = new Map(products.map(p => [p.id, p]));
+    const prescriptionMap = new Map(prescriptionGlasses.map(p => [p.id, p]));
+    const productVariantMap = new Map(productVariants.map(v => [v.id, v]));
+    const prescriptionVariantMap = new Map(prescriptionVariants.map(v => [v.id, v]));
 
-        return {
-          id: item.id,
-          productId: item.productId || item.prescriptionGlassesId,
-          prescriptionGlassesId: item.prescriptionGlassesId || null,
-          variantId: item.variantId,
-          quantity: item.quantity,
-          prescriptionData: item.prescriptionData,
-          Product: productData ? {
-            ...productData,
-            brand: productData.brand || 'FocusRobin',
-            cashbackAmount: productData.cashbackAmount ? Number(productData.cashbackAmount) : 0,
-            basePrice: productData.basePrice ? Number(productData.basePrice) : 0,
-            ProductVariant: variants
-              .filter((variant: any) => variant.id === item.variantId)
-              .map((variant: any) => ({
-                ...variant,
-                price: variant.price ? Number(variant.price) : null,
-                stock: variant.stock !== null && variant.stock !== undefined ? Number(variant.stock) : null,
-                ProductAsset: isPrescription ? (variant.PrescriptionGlassesAsset || []) : (variant.ProductAsset || []),
-              })),
-          } : null,
-        };
-      }),
-    };
+    // 4. Construct final payload in the exact shape the frontend mapper expects
+    // CRITICAL: Serialize to prevent Decimal/Date errors
+    const serializedCartItems = JSON.parse(JSON.stringify(cart.items));
+    
+    const mappedItems = serializedCartItems.map((item: any) => {
+      const isPrescription = !!item.prescriptionGlassesId;
+      
+      const rawProduct = isPrescription 
+        ? prescriptionMap.get(item.prescriptionGlassesId) 
+        : productMap.get(item.productId);
+        
+      const rawVariant = isPrescription
+        ? prescriptionVariantMap.get(item.variantId)
+        : productVariantMap.get(item.variantId);
+
+      // If either product or variant was deleted from DB but remains in cart, skip it
+      if (!rawProduct || !rawVariant) {
+         return null; 
+      }
+
+      const productData = JSON.parse(JSON.stringify(rawProduct));
+      const variantData = JSON.parse(JSON.stringify(rawVariant));
+
+      return {
+        id: item.id,
+        productId: item.productId || item.prescriptionGlassesId,
+        prescriptionGlassesId: item.prescriptionGlassesId || null,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        prescriptionData: item.prescriptionData,
+        Product: {
+          ...productData,
+          brand: productData.brand || 'FocusRobin',
+          cashbackAmount: productData.cashbackAmount ? Number(productData.cashbackAmount) : 0,
+          basePrice: productData.basePrice ? Number(productData.basePrice) : 0,
+          ProductVariant: [
+            {
+              ...variantData,
+              price: variantData.price ? Number(variantData.price) : null,
+              stock: variantData.stock !== null && variantData.stock !== undefined ? Number(variantData.stock) : null,
+              // The frontend mapper expects `ProductAsset` even for prescription glasses
+              ProductAsset: isPrescription ? (variantData.PrescriptionGlassesAsset || []) : (variantData.ProductAsset || []),
+            }
+          ],
+        },
+      };
+    }).filter(Boolean); // Remove nulls
+
+    console.log('[getCart] Found cart with', mappedItems.length, 'items (Optimized)');
+
+    return { items: mappedItems };
   } catch (error) {
     console.error("[getCart] Error fetching cart:", error);
     return { items: [] };

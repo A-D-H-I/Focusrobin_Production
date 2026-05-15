@@ -36,6 +36,15 @@ export default async function AdminUsersPage() {
                   Category: true,
                 },
               },
+              PrescriptionGlasses: {
+                include: {
+                  PrescriptionGlassesVariant: {
+                    include: {
+                      PrescriptionGlassesAsset: true,
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -50,6 +59,15 @@ export default async function AdminUsersPage() {
                 },
               },
               Category: true,
+            },
+          },
+          PrescriptionGlasses: {
+            include: {
+              PrescriptionGlassesVariant: {
+                include: {
+                  PrescriptionGlassesAsset: true,
+                },
+              },
             },
           },
         },

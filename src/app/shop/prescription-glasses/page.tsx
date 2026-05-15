@@ -6,12 +6,13 @@ import { normalizeImageUrl } from "@/lib/normalize-image-url";
 import { getPrescriptionGlassesGlassShapes } from "@/app/actions/getPrescriptionGlassesGlassShapes";
 import { getPrescriptionGlassesGenderCounts } from "@/app/actions/getPrescriptionGlassesGenderCounts";
 import { getPrescriptionGlassesMaterials } from "@/app/actions/getPrescriptionGlassesMaterials";
-import { getAvailableFrameColors } from "@/app/actions/getAvailableColors";
+
 import { getPrescriptionGlassesPriceRange } from "@/app/actions/getPrescriptionGlassesPriceRange";
 import { getAvailableBrands, type AvailableBrand } from "@/app/actions/getAvailableBrands";
 import { Gender, Prisma } from "@prisma/client";
 
-export const revalidate = 0; // Disable caching for real-time updates
+// ISR: Cache for 5 minutes, rebuilt in the background after expiry
+export const revalidate = 300;
 
 export default async function PrescriptionGlassesPage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
     const searchParamsValue = await searchParams;
@@ -24,6 +25,7 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
     const minPriceParam = searchParamsValue.minPrice as string | undefined;
     const maxPriceParam = searchParamsValue.maxPrice as string | undefined;
     const filterType = searchParamsValue.filter as string | undefined;
+    const searchQuery = searchParamsValue.search as string | undefined;
 
     const whereClause: any = {};
     const andConditions: any[] = [];
@@ -156,6 +158,59 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
         whereClause.PrescriptionGlassesVariant = { some: { OR: colorConditions } };
     }
 
+    // Add search condition if provided
+    if (searchQuery && searchQuery.trim()) {
+        const searchTerm = searchQuery.trim();
+        const searchCondition = {
+            OR: [
+                {
+                    name: {
+                        contains: searchTerm,
+                        mode: 'insensitive' as Prisma.QueryMode,
+                    },
+                },
+                {
+                    description: {
+                        contains: searchTerm,
+                        mode: 'insensitive' as Prisma.QueryMode,
+                    },
+                },
+                {
+                    Category: {
+                        name: {
+                            contains: searchTerm,
+                            mode: 'insensitive' as Prisma.QueryMode,
+                        },
+                    },
+                },
+                {
+                    PrescriptionGlassesVariant: {
+                        some: {
+                            name: {
+                                contains: searchTerm,
+                                mode: 'insensitive' as Prisma.QueryMode,
+                            },
+                        },
+                    },
+                },
+            ],
+        };
+
+        const hasOtherFilters = andConditions.length > 0 ||
+            whereClause.gender ||
+            whereClause.glassShape ||
+            whereClause.frameMaterial ||
+            whereClause.PrescriptionGlassesVariant ||
+            whereClause.isNewlyAdded !== undefined ||
+            whereClause.isUniqueDesign !== undefined;
+
+        if (hasOtherFilters) {
+            andConditions.push(searchCondition);
+        } else {
+            whereClause.OR = searchCondition.OR;
+        }
+    }
+
     if (andConditions.length > 0) {
         whereClause.AND = andConditions;
     }
@@ -164,10 +219,7 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
     const [
         prismaProducts,
         priceRange,
-        glassShapes,
         genderCounts,
-        materials,
-        colors,
         brands
     ] = await Promise.all([
         prisma.prescriptionGlasses.findMany({
@@ -190,10 +242,7 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
             },
         }),
         getPrescriptionGlassesPriceRange(),
-        getPrescriptionGlassesGlassShapes(),
         getPrescriptionGlassesGenderCounts(),
-        getPrescriptionGlassesMaterials(),
-        getAvailableFrameColors('eyeglasses'),
         getAvailableBrands('eyeglasses'),
     ]);
 
@@ -232,12 +281,21 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
         const variants: ProductColorVariant[] = p.PrescriptionGlassesVariant.map(v => {
             // Find assets
             const assets = v.PrescriptionGlassesAsset;
-            const thumbnail = assets.find(a => a.type === 'GALLERY' && a.isPrimary)?.url || assets.find(a => a.type === 'GALLERY')?.url || '';
+            // Prefer GALLERY, fall back to NO_BG (BigBuy products only have NO_BG)
+            const thumbnail =
+              assets.find(a => a.type === 'GALLERY' && a.isPrimary)?.url ||
+              assets.find(a => a.type === 'GALLERY')?.url ||
+              assets.find(a => a.type === 'NO_BG' && a.isPrimary)?.url ||
+              assets.find(a => a.type === 'NO_BG')?.url ||
+              assets[0]?.url || '';
             const tilted = assets.find(a => a.type === 'HOVER')?.url || '';
             const nobg = assets.find(a => a.type === 'NO_BG')?.url;
             const tryOn = assets.find(a => a.type === 'TRY_ON_2D')?.url;
-            // Collect all gallery images
+            // Collect gallery images — fall back to NO_BG images for BigBuy
             const galleryImages = assets.filter(a => a.type === 'GALLERY').map(a => a.url);
+            const allImages = galleryImages.length > 0
+              ? galleryImages
+              : assets.filter(a => a.type === 'NO_BG').map(a => a.url);
 
             let stock = v.stock;
 
@@ -249,7 +307,7 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
                 thumbnail: normalizeImageUrl(thumbnail),
                 tilted: normalizeImageUrl(tilted),
                 nobg: nobg ? normalizeImageUrl(nobg) : undefined,
-                images: galleryImages.map(normalizeImageUrl),
+                images: allImages.map(normalizeImageUrl),
                 tryOn: tryOn ? normalizeImageUrl(tryOn) : undefined,
                 textureImageUrl: v.textureImageUrl ? normalizeImageUrl(v.textureImageUrl) : undefined,
             };
@@ -264,26 +322,17 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
             pm = pm * 1.015;
             effectiveBase = pm;
         }
-        const discountPct = p.discountPct || 0;
-        const finalPriceVal = effectiveBase * (1 - discountPct / 100);
+        const discountPctFromDb = p.discountPct || 0;
+        const finalPriceVal = discountPctFromDb > 0 
+          ? effectiveBase * (1 - discountPctFromDb / 100)
+          : effectiveBase;
 
         // Cast to any to access new fields
         const pAny = p as any;
 
-        const compareAtPriceRaw = pAny.compareAtPrice;
-        let originalPrice: string | undefined;
-        let computedDiscountPct: number | undefined = discountPct > 0 ? discountPct : undefined;
-      
-        if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
-          let compareAt = Number(compareAtPriceRaw);
-          originalPrice = `€${compareAt.toFixed(2)}`;
-          
-          if (compareAt > finalPriceVal) {
-            computedDiscountPct = Math.round(((compareAt - finalPriceVal) / compareAt) * 100);
-          }
-        } else if (discountPct > 0) {
-          originalPrice = `€${effectiveBase.toFixed(2)}`;
-        }
+        const originalPriceValue = finalPriceVal * 1.30;
+        const originalPrice = `€${originalPriceValue.toFixed(2)}`;
+        const computedDiscountPct = undefined; // User requested to hide percentage badge
 
         return {
             id: p.id,
@@ -322,15 +371,19 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
         } as any;
     });
 
+    // Determine page title based on search
+    let pageTitle = "Prescription Glasses";
+    if (searchQuery && searchQuery.trim()) {
+        pageTitle = `Search Results for "${searchQuery.trim()}"`;
+    }
+
     return (
         <ShopPageClient
             products={products}
-            title="Prescription Glasses"
+            title={pageTitle}
+            searchQuery={searchQuery}
             priceRange={priceRange}
-            glassShapes={glassShapes}
             genderCounts={genderCounts}
-            materials={materials}
-            colors={colors}
             brands={brands}
         />
     );

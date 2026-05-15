@@ -27,6 +27,7 @@ interface Step7SummaryProps {
   onBack: () => void;
   onEditPrescription: () => void;
   onEditLens: () => void;
+  onEditThickness?: () => void;
   productSlug: string;
 }
 
@@ -41,12 +42,20 @@ export default function Step7Summary({
   onBack,
   onEditPrescription,
   onEditLens,
+  onEditThickness,
   productSlug,
 }: Step7SummaryProps) {
   const { breakdown, totalNet } = rxPriceResult;
   const { data: session } = useSession();
   const [prescriptionData, setPrescriptionData] = useState(initialPrescriptionData);
   const [rxConfig, setRxConfig] = useState(initialRxConfig);
+  
+  // Calculate the base lenses price by separating the thickness upgrade
+  // The `breakdown.lensesPair` already includes the 60€ upgrade
+  const thicknessUpgradePrice = rxConfig.lensThickness === "THINNER" ? 60.00 : 0;
+  const baseLensesPairPrice = breakdown.lensesPair - thicknessUpgradePrice;
+
+  const standardIndex = rxConfig.lensBundle === "PHOTOCHROMIC" ? "1.56" : "1.60";
 
   // Load prescription data from database/localStorage when component mounts
   // BUT: If a PDF was uploaded (isPdfMode=true), skip loading and use the props directly
@@ -315,6 +324,16 @@ export default function Step7Summary({
             <span className="text-muted-foreground">Frame Type:</span>
             <span className="font-medium">{FRAME_TYPE_LABELS[rxConfig.frameType]}</span>
           </div>
+
+          {/* Thickness */}
+          {rxConfig.lensThickness && (
+            <div className="flex justify-between border-t pt-2 mt-2">
+              <span className="text-muted-foreground">Lens Thickness:</span>
+              <span className="font-medium">
+                {rxConfig.lensThickness === 'THINNER' ? 'Thinner Lens' : `${standardIndex} Standard Lens`}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -332,7 +351,7 @@ export default function Step7Summary({
             <p className="text-sm font-medium text-muted-foreground">Prescription Lenses</p>
             <div className="flex justify-between text-sm pl-4">
               <span>Lenses (pair)</span>
-              <span>{formatPrice(breakdown.lensesPair)}</span>
+              <span>{formatPrice(baseLensesPairPrice)}</span>
             </div>
             {rxConfig.lensType === "TINTED" && rxConfig.tintType && (
               <div className="flex justify-between text-sm pl-4">
@@ -342,6 +361,12 @@ export default function Step7Summary({
                     rxConfig.tintType === "FULL_TINT_CATALOG" ? 6.00 : 12.00
                   )}
                 </span>
+              </div>
+            )}
+            {rxConfig.lensThickness === "THINNER" && (
+              <div className="flex justify-between text-sm pl-4">
+                <span>Thinner Lens Upgrade</span>
+                <span>{formatPrice(60.00)}</span>
               </div>
             )}
           </div>

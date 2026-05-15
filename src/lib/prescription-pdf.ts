@@ -2,7 +2,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import sharp from 'sharp';
-import { LENS_BUNDLE_LABELS, LensBundle, BUNDLE_BOD_MAPPING, isValidBundle } from './lensPricing';
+import { LENS_BUNDLE_LABELS, LensBundle, BUNDLE_BOD_MAPPING, isValidBundle, COATING_LABELS } from './lensPricing';
 
 /**
  * Helper function to check if prescription data contains actual prescription values
@@ -133,6 +133,10 @@ export interface PrescriptionPDFData {
   photochromicColor?: string;
   polarizedColor?: string;
   frameType: string;
+  // Lens thickness
+  lensThickness?: 'STANDARD' | 'THINNER';
+  // Power category
+  powerCategory?: 'NORMAL' | 'HIGH';
   // Price breakdown
   lensesPair?: number;
   edgingFee?: number;
@@ -174,12 +178,7 @@ function formatLensType(lensType: string): string {
  * Format coating for display
  */
 function formatCoating(coating: string): string {
-  const coatings: Record<string, string> = {
-    'UC': 'Uncoated',
-    'BLUE_PRO': 'Blue Light Protection',
-    'SERICUM_UV': 'Sericum UV Protection',
-  };
-  return coatings[coating] || coating;
+  return COATING_LABELS[coating] || coating;
 }
 
 /**
@@ -195,6 +194,22 @@ function formatFrameType(frameType: string): string {
   };
   return types[frameType] || frameType;
 }
+
+/**
+ * Helper to sanitize text for PDF-Lib standard fonts (WinAnsi encoding)
+ * Removes diacritics/accents from characters (e.g., 'č' -> 'c')
+ */
+const sanitizeText = (text: string | null | undefined): string => {
+  if (!text) return '';
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/[\u2026]/g, '...')
+    .replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
+};
 
 /**
  * Generate a professional prescription PDF
@@ -329,7 +344,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     color: grayColor,
   });
 
-  page.drawText(data.customerName, {
+  page.drawText(sanitizeText(data.customerName), {
     x: 60,
     y: yPos - 32,
     size: 11,
@@ -337,7 +352,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     color: blackColor,
   });
 
-  page.drawText(data.customerEmail, {
+  page.drawText(sanitizeText(data.customerEmail), {
     x: 60,
     y: yPos - 45,
     size: 9,
@@ -365,9 +380,10 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
   });
 
   // Truncate product name if too long
-  const productName = data.productName.length > 35
-    ? data.productName.substring(0, 35) + '...'
-    : data.productName;
+  const sanitizedProductName = sanitizeText(data.productName);
+  const productName = sanitizedProductName.length > 35
+    ? sanitizedProductName.substring(0, 35) + '...'
+    : sanitizedProductName;
 
   page.drawText(productName, {
     x: 315,
@@ -384,6 +400,13 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
     font: helvetica,
     color: grayColor,
   });
+
+  // Table dimensions - defined here to be available for both Prescription Values and Prism Values logic
+  const tableX = 50;
+  const tableWidth = 495;
+  const rowHeight = 28;
+  let headerX = 0;
+  let cellX = 0;
 
   // === PRESCRIPTION VALUES TABLE ===
 
@@ -440,13 +463,7 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
       (data.os.cyl && data.os.cyl !== '0.00' && data.os.cyl !== '0' && data.os.cyl !== '+0.00') ||
       (data.os.axis && data.os.axis !== '0' && data.os.axis !== '0°');
 
-    // Table dimensions - defined here to be available for both Prescription Values and Prism Values logic
-    const tableX = 50;
-    const tableWidth = 495;
     const colWidths = [80, 85, 85, 85, 80, 80]; // Eye, SPH, CYL, AXIS, ADD, PD
-    const rowHeight = 28;
-    let headerX = 0;
-    let cellX = 0;
 
     // Manual Entry: Always show prescription values table
     // Even if values are 0.00, we should display them if this is a prescription item
@@ -707,10 +724,22 @@ export async function generatePrescriptionPDF(data: PrescriptionPDFData): Promis
   yPos -= 25;
 
   // Configuration grid
+  
+  // Determine display text for Lens Thickness/Index
+  const bundle = data.lensBundle || data.lensType;
+  const standardIndex = bundle === "PHOTOCHROMIC" ? "1.56" : "1.60";
+  let displayIndex = data.lensIndex || standardIndex;
+  
+  const lensThickness = data.lensThickness;
+  
+  if (lensThickness === "THINNER") {
+     displayIndex = "Thinner";
+  } else if (lensThickness === "STANDARD") {
+     displayIndex = `Standard - ${standardIndex}`;
+  }
   const configItems: [string, string][] = [
-    ['Lens Option', formatLensType(data.lensBundle || data.lensType)],
-    ['Lens Index', data.lensIndex],
-    ['Coating', formatCoating(data.coating)],
+    ['Lens Option', formatLensType(bundle)],
+    ['Lens Index', displayIndex],
     ['Frame Type', formatFrameType(data.frameType)],
   ];
 
@@ -1014,7 +1043,9 @@ export async function extractPrescriptionFromOrderItem(
     lensIndex: (prescriptionData.rxConfig?.lensBundle && isValidBundle(prescriptionData.rxConfig.lensBundle))
       ? BUNDLE_BOD_MAPPING[prescriptionData.rxConfig.lensBundle as LensBundle]?.index || prescriptionData.rxConfig?.lensIndex || '1.56'
       : prescriptionData.rxConfig?.lensIndex || '1.56',
-    coating: prescriptionData.rxConfig?.coating || 'UC',
+    coating: (prescriptionData.rxConfig?.lensBundle && isValidBundle(prescriptionData.rxConfig.lensBundle))
+      ? BUNDLE_BOD_MAPPING[prescriptionData.rxConfig.lensBundle as LensBundle]?.coating || prescriptionData.rxConfig?.coating || 'UC'
+      : prescriptionData.rxConfig?.coating || 'UC',
     tintType: prescriptionData.rxConfig?.tintType,
     tintColor: prescriptionData.rxConfig?.tintColor,
     tintShadePercent: prescriptionData.rxConfig?.tintShadePercent,
@@ -1022,6 +1053,8 @@ export async function extractPrescriptionFromOrderItem(
     photochromicColor: prescriptionData.rxConfig?.photochromicColor,
     polarizedColor: prescriptionData.rxConfig?.polarizedColor,
     frameType: prescriptionData.rxConfig?.frameType || 'FULL_FRAME',
+    lensThickness: prescriptionData.rxConfig?.lensThickness,
+    powerCategory: prescriptionData.rxConfig?.powerCategory,
     lensesPair: prescriptionData.rxPriceBreakdown?.lensesPair,
     edgingFee: prescriptionData.rxPriceBreakdown?.edgingFee,
     rxRetailNet: prescriptionData.rxPriceBreakdown?.rxRetailNet,

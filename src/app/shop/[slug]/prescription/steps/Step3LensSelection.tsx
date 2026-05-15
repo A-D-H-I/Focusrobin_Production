@@ -83,7 +83,8 @@ export default function Step3LensSelection({
           const isSelected = rxConfig.lensBundle === option.value;
           const Icon = option.icon;
           // Use dynamic price from context, fallback to static if not found (though context defaults to static)
-          const price = bundlePrices[option.value] ?? getBundlePrice(option.value);
+          const basePrice = bundlePrices[option.value] ?? getBundlePrice(option.value);
+          const price = rxConfig.powerCategory === 'HIGH' ? basePrice * 2 : basePrice;
           const label = LENS_BUNDLE_LABELS[option.value];
           const details = LENS_BUNDLE_DETAILS[option.value];
 

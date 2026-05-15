@@ -676,6 +676,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
 
       let sessionParams: Stripe.Checkout.SessionCreateParams = {
         mode: 'payment',
+        payment_method_types: ['card'], // Explicitly set to 'card' to disable Stripe Link
         customer_email: session.user.email || undefined,
         line_items: stripeLineItems,
         metadata: {

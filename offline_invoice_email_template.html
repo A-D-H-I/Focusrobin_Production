@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background: linear-gradient(135deg, #4DCECA 0%, #2A9D9A 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+      }
+      .content {
+        background: #f9f9f9;
+        padding: 30px;
+        border-radius: 0 0 8px 8px;
+        /* For correct display of grid/flex items offline */
+        box-sizing: border-box;
+      }
+      .success-badge {
+        background: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        display: inline-block;
+        margin: 20px 0;
+        font-weight: bold;
+      }
+      .order-details {
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        margin: 20px 0;
+        border-left: 4px solid #4DCECA;
+      }
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #eee;
+      }
+      .detail-row:last-child {
+        border-bottom: none;
+      }
+      .detail-label {
+        font-weight: bold;
+        color: #666;
+      }
+      .document-notice {
+        background: #e3f2fd;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+        border-left: 4px solid #2196F3;
+      }
+      .items-list {
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+      .item {
+        padding: 10px 0;
+        border-bottom: 1px solid #eee;
+      }
+      .item:last-child {
+        border-bottom: none;
+      }
+      .footer {
+        text-align: center;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #ddd;
+        color: #666;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1 style="margin: 0;">🎉 Order Confirmed!</h1>
+    </div>
+    <div class="content">
+      <p>Dear [Customer Name],</p>
+      
+      <div class="success-badge">✓ Payment Successful</div>
+      
+      <p>Thank you for your purchase! Your payment has been successfully processed and your order is confirmed.</p>
+      
+      <div class="order-details">
+        <h3 style="margin-top: 0; color: #2A9D9A;">Order Summary</h3>
+        <div class="detail-row">
+          <span class="detail-label">Order Number:</span>
+          <span><strong>[Order Number]</strong></span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Order Date:</span>
+          <span>[Order Date]</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Total Amount Paid:</span>
+          <span style="font-weight: bold; color: #2A9D9A; font-size: 18px;">[Currency] [Total Amount]</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Payment Method:</span>
+          <span>[Payment Method (e.g., Stripe)]</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Payment Status:</span>
+          <span style="color: #4CAF50; font-weight: bold;">✓ Completed</span>
+        </div>
+      </div>
+      
+      <div class="document-notice">
+        <strong>📄 Important Documents Attached:</strong>
+        <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+          <li><strong>Payment Receipt</strong> - Confirmation of your payment</li>
+          <li><strong>Invoice</strong> - Detailed breakdown of your order</li>
+        </ul>
+        <p style="margin: 10px 0 0 0; font-size: 14px;">Both documents are included in the attached PDF file.</p>
+      </div>
+      
+      <div class="items-list">
+        <h3 style="margin-top: 0; color: #2A9D9A;">Order Items</h3>
+        
+        <!-- Example Item Block -->
+        <div class="item">
+          <div style="font-weight: bold;">[Item Name]</div>
+          <div style="font-size: 14px; color: #666;">[Item Variant] • SKU: [Item SKU]</div>
+          <!-- Optional Prescription Label -->
+          <div style="font-size: 12px; color: #2A9D9A; font-weight: bold;">📋 Includes Prescription Lenses</div>
+          <div style="font-size: 14px; margin-top: 5px;">
+            Quantity: [Qty] × [Currency] [Unit Price] = 
+            <strong>[Currency] [Item Subtotal]</strong>
+          </div>
+        </div>
+        
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 2px solid #2A9D9A;">
+          <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+            <span>Subtotal:</span>
+            <span>[Currency] [Subtotal Amount]</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin: 5px 0;">
+            <span>Shipping:</span>
+            <span>[Currency] [Shipping Amount]</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin: 10px 0 0 0; font-size: 18px; font-weight: bold; color: #2A9D9A;">
+            <span>Total:</span>
+            <span>[Currency] [Total Amount]</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="order-details">
+        <h3 style="margin-top: 0; color: #2A9D9A;">📦 Shipping Address</h3>
+        <p style="margin: 0; line-height: 1.8;">
+          <strong>[Shipping Name]</strong><br>
+          [Address Line 1]<br>
+          [Address Line 2 (Optional)]<br>
+          [City], [Postal Code]<br>
+          [State]<br>
+          [Country]
+        </p>
+      </div>
+      
+      <p style="background: #fff3cd; padding: 15px; border-radius: 5px; border-left: 4px solid #ffc107;">
+        <strong>What's Next?</strong><br>
+        Your order is being processed and will be shipped soon. You'll receive another email with tracking information once your order has been dispatched.
+      </p>
+      
+      <p>If you have any questions or concerns about your order, please don't hesitate to contact our support team.</p>
+      
+      <p>Thank you for choosing FocusRobin!</p>
+      
+      <p style="margin-top: 30px;">
+        Best regards,<br>
+        <strong>The FocusRobin Team</strong>
+      </p>
+    </div>
+    <div class="footer">
+      <p>This is an automated email. Please do not reply to this message.</p>
+      <p style="margin-top: 10px;">Keep this email and the attached documents for your records.</p>
+    </div>
+  </body>
+</html>

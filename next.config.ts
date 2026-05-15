@@ -230,6 +230,18 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'www.bigbuy.eu',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.bigbuy.eu',
+        port: '',
+        pathname: '/**',
+      },
     ],
     // Allow unoptimized images for local file paths and network access
     // This ensures images work when accessing via network IP

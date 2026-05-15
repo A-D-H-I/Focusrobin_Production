@@ -26,6 +26,8 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
       <TabsContent value="details" className="py-4 sm:py-8 px-2">
         <div className="space-y-6 sm:space-y-8">
 
+          {/* Only show dimension diagram for FocusRobin products with real measurements */}
+          {product.frameWidth > 0 && (
           <ProductDimensions
             dimensions={{
               frameWidth: product.frameWidth,
@@ -35,6 +37,9 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
               templeLength: product.templeLength,
             }}
           />
+          )}
+          {/* Only show Specifications table for FocusRobin products with real data */}
+          {product.frameMaterial !== 'Unknown' && (
           <div>
             <h3 className="text-brand-h3 font-headline text-foreground mb-4 text-center"><TranslatableText text="Specifications" /></h3>
             <div className="overflow-x-auto">
@@ -82,6 +87,7 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
               </Table>
             </div>
           </div>
+          )}
         </div>
       </TabsContent>
 
@@ -90,7 +96,7 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
           {product.description ? (
             <div className="prose max-w-none text-foreground/80">
               <h3 className="text-brand-h3 font-headline text-foreground mb-4"><TranslatableText text="Description" /></h3>
-              <p>{product.description}</p>
+              <div dangerouslySetInnerHTML={{ __html: product.description }} />
             </div>
           ) : (
             <p className="text-muted-foreground text-center"><TranslatableText text="No description available." /></p>

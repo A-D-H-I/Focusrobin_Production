@@ -9,6 +9,8 @@ import { Plus, Edit, Search } from 'lucide-react';
 import { normalizeImageUrl } from '@/lib/normalize-image-url';
 import { DeletePrescriptionGlassesButton } from './DeletePrescriptionGlassesButton';
 import { Input } from '@/components/ui/input';
+import { CSVImportPanel } from '@/components/admin/CSVImportPanel';
+import { BigBuySyncButtons } from '@/components/admin/BigBuySyncButtons';
 import {
   Select,
   SelectContent,
@@ -143,6 +145,17 @@ export function AdminPrescriptionGlassesListClient({ prescriptionGlasses }: { pr
         </Link>
       </div>
 
+      {/* BigBuy Sync Buttons — always visible */}
+      <BigBuySyncButtons />
+
+      {/* BigBuy CSV Import Panel (collapsible) */}
+      <div className="mb-6">
+        <CSVImportPanel
+          categoryType="PRESCRIPTION"
+          onImportComplete={() => window.location.reload()}
+        />
+      </div>
+
       {/* Filters and Search */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
         <div className="relative flex-1 w-full">
@@ -242,11 +255,13 @@ export function AdminPrescriptionGlassesListClient({ prescriptionGlasses }: { pr
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedGlasses.map((glasses) => {
-            // Get first variant's first gallery image
+            // Get first variant's first gallery image (fall back to NO_BG for BigBuy products)
             const firstVariant = glasses.PrescriptionGlassesVariant?.[0];
-            const firstGalleryAsset = firstVariant?.PrescriptionGlassesAsset?.find(
-              (a: any) => a.type === 'GALLERY'
-            );
+            const assets = firstVariant?.PrescriptionGlassesAsset || [];
+            const firstGalleryAsset =
+              assets.find((a: any) => a.type === 'GALLERY') ||
+              assets.find((a: any) => a.type === 'NO_BG') ||
+              assets[0];
             const imageUrl = firstGalleryAsset?.url || '/placeholder.png';
 
             // Calculate the final price with margin (matching admin form logic)

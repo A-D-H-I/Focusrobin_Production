@@ -1,0 +1,2821 @@
+User
+guide
+BigBuy
+API
+
+In
+this
+guide,
+you
+will
+ﬁnd
+the
+basic
+aspects
+to
+learn
+in
+order
+to
+use
+BigBuy's
+API
+Contents
+1
+-
+Intr oduction
+2
+-
+A uthentication
+3
+-
+Obtain
+BigBuy ' s
+catalogue
+4
+-
+Pr oduct
+tax onomies
+5
+-
+Obtain
+pr oducts
+6
+-
+Pr oduct
+Information
+6.1
+-
+Response
+7
+-
+Pr oduct
+v ariations
+7.1
+-
+Response
+8
+-
+Pr oduct
+attributes
+8.1
+-
+Response
+8.2
+-
+Response
+8.3
+-
+Response
+9
+-
+Pr oduct
+images
+10
+-
+St ock
+update
+10.1
+-
+Pr oduct
+st ock
+10.2
+-
+St ock
+v ariation
+11
+-
+How
+t o
+pr ocess
+or ders
+with
+the
+Or ders
+API?
+12
+-
+Choosing
+the
+carrier
+for
+the
+or der
+User
+guide
+-
+BigBuy
+API
+1
+
+Introduction
+Thanks
+t o
+this
+initial
+guide,
+y ou
+will
+be
+able
+t o
+ﬁnd
+out
+how
+BigBuy ’ s
+API
+is
+structur ed
+t o 
+mak e
+it
+easier
+for
+y ou
+t o
+use.
+Befor e
+continuing,
+we
+r ecommend
+y ou
+familiarise
+y ourself
+with
+our
+API,
+in
+addition
+t o
+its 
+technical
+documentation
+at
+the
+following
+link
+.
+Ref er ence
+material
+for
+the
+API:
+https:/ /api.bigbuy .eu/r est/doc
+Authentication
+All
+r equests
+t o
+BigBuy ’ s
+API
+must
+contain
+the
+following
+header:
+A uthorization:
+Bear er
+API_KEY
+API_KEY
+is
+pr o vided
+upon
+r equest
+using
+the
+contact
+form.
+The
+base
+URL
+of
+the
+API
+is
+https:/ /api.bigbuy .eu
+and
+https:/ /api.sandbo x.bigbuy .eu
+for 
+the
+test
+API.
+Obtain
+BigBuy’ s
+catalogue
+BigBuy ’ s
+catalogue
+contains
+all
+of
+the
+information
+and
+structur e
+of
+all
+of
+its
+pr oducts.
+As
+well
+as
+the
+pr oducts,
+we
+ha v e
+the
+following
+r ele v ant
+entities:
+-
+taxonomies
+:
+the
+products
+are
+classified
+by
+taxonomies
+(categories) 
+-
+tags
+:
+tags
+of
+the
+product 
+-
+manufactur ers
+:
+information
+about
+product
+manufacturers 
+-
+attributes/attributesGr oup
+:
+attributes
+of
+products 
+-
+images:
+product
+images 
+-
+stock:
+stock
+of
+all
+products
+and
+variations 
+-
+variations:
+product
+variations
+User
+guide
+-
+BigBuy
+API
+2
+
+Product
+taxonomies
+All
+of
+BigBuy ' s
+pr oducts
+ar e
+classiﬁed
+in
+a
+tax onomy .
+T o
+obtain
+the
+full
+tr ee
+of 
+tax onomies,
+we
+will
+use
+the
+following
+endpoint:
+GE T
+/r est/catalog/tax onomies.json
+Response
+[
+{
+"id"
+:
+2
+,
+"name"
+:
+"Acampada
+y
+senderismo"
+,
+"url"
+:
+"deportes-y-aire-libre-acampada-y-senderismo"
+,
+"parentTaxonomy"
+:
+19756
+,
+"dateAdd"
+:
+"2021-10-20
+13:53:25"
+,
+"dateUpd"
+:
+"2023-03-01
+16:18:08"
+,
+"urlImages"
+:
+"https://cdnbigbuy.com/images/8435310192985_R02.jpg"
+,
+"isoCode"
+:
+"es"
+},
+...
+]
+In
+or der
+t o
+obtain
+only
+ﬁrst
+le v el
+tax onomies
+(those
+situated
+at
+the
+r oot
+of
+the
+tr ee
+of 
+tax onomies),
+we
+will
+pr o vide
+the
+ﬁrstLe v el
+par ameter:
+GE T
+/r est/catalog/tax onomies.json?ﬁrstLe v el
+With
+these
+ﬁrst
+le v el
+tax onomies
+we
+will
+be
+able
+t o
+use
+the
+r est
+of
+the
+calls
+fr om
+the 
+catalogue
+b y
+only
+ﬁltering
+the
+pr oducts
+classiﬁed
+within
+one
+of
+these
+ﬁrst
+le v el 
+tax onomies.
+User
+guide
+-
+BigBuy
+API
+3
+
+Obtain
+products
+Once
+the
+ﬁrst
+le v el
+tax onomies
+ha v e
+been
+obtained,
+we
+will
+be
+able
+t o
+obtain
+the
+BigBuy 
+pr oducts
+corr esponding
+t o
+each
+of
+the
+tax onomies
+until
+the
+catalogue
+is
+complete.
+GE T
+/r est/catalog/pr oducts.json?par entT ax onomy=ID_T AX ONOM Y
+Response
+[
+{
+"manufacturer"
+:
+2976
+,
+"id"
+:
+216701
+,
+"sku"
+:
+"S4600179"
+,
+ean13"
+"7613036867405"
+,
+"weight"
+:
+0,355
+,
+"height"
+:
+15
+,
+"width"
+:
+15
+,
+"depth"
+:
+15
+,
+"dateUpd"
+:
+"2023-02-27
+18:40:19"
+,
+"category"
+:
+3157
+,
+"dateUpdDescription"
+:
+"2023-02-27
+18:40:19"
+,
+"dateUpdImages"
+:
+"2021-10-28
+17:44:05"
+,
+"dateUpdStock"
+:
+"2023-02-27
+18:40:19"
+,
+"wholesalePrice"
+:
+8.98
+,
+"retailPrice"
+:
+9.98
+,
+"dateAdd"
+:
+"2023-02-27
+18:40:19"
+,
+"video"
+:
+"0"
+,
+"active"
+:
+1
+,
+"attributes"
+:
+false
+,
+"categories"
+:
+true
+,
+"images"
+:
+true
+,
+"taxRate"
+:
+10
+,
+"taxId"
+:
+2
+,
+"inShopsPrice"
+:
+13.31
+,
+"condition"
+:
+"NEW"
+,
+"logisticClass"
+:
+"A"
+,
+"tags"
+:
+true
+,
+"dateUpdProperties"
+:
+null
+,
+"dateUpdCategories"
+:
+null
+,
+"priceLargeQuantities"
+:
+null
+,
+"intrastat"
+:
+"84733080"
+},
+…
+]
+User
+guide
+-
+BigBuy
+API
+4
+
+Product
+Information
+T o
+obtain
+the
+text
+information,
+such
+as
+the
+description,
+name,
+etc.
+the
+following 
+endpoint
+will
+be
+used.
+W e
+should
+specify
+both
+the
+ﬁrst
+le v el
+tax onomy
+and
+the
+desir ed 
+language.
+GE T
+/r est/catalog/pr oductsinformation.json?isoCode=es&par entT ax onomy=ID_T AX
+Response
+[
+{
+"id"
+:
+63272
+,
+"sku"
+:
+"S0412092"
+,
+"name"
+:
+"Coffee
+Capsules
+Nescafé
+Dolce
+Gusto
+98423
+Lungo
+(16
+uds)"
+,
+"description"
+:
+"From
+now
+on
+you
+can
+easily
+and
+quickly
+prepare
+delicious
+coffee
+with
+the
+most
+natural,
+pure
+and
+authentic
+flavor,
+thanks
+to
+the
+new
+<b>Coffee
+Capsules
+Nescafé
+Dolce
+Gusto
+98423
+Lungo
+(16
+uds)</b>!<br><ul><li>Type:
+<ul><li>Capsules</li><li>Lungo</li></ul></li><li>Contains:
+16
+uds</li><li>Quantity:
+0,2
+kg</li><li>Carbohydrates
+(g):
+0,3</li><li>Proteins
+(g):
+0,2</li><li>Energy
+(kcal):
+1</li></ul>"
+,
+"url"
+:
+"coffee-capsules-nescafe-dolce-gusto-98423-lungo-16-uds_63272"
+,
+"isoCode"
+:
+"en"
+,
+"dateUpdDescription"
+:
+"2022-06-29
+14:18:13"
+},
+...
+]
+User
+guide
+-
+BigBuy
+API
+5
+
+Product
+variations
+Now ,
+for
+the
+pr oducts
+that
+ha v e
+attributes
+(siz es,
+colours....),
+we
+ha v e
+t o
+obtain
+their 
+v ariations.
+A
+v ariation
+is
+just
+a
+combination
+of
+one
+or
+mor e
+attributes.
+Examples:
+P er fume
+S0554780
+has
+the
+following
+v ariations
+(only
+1
+gr oup
+of
+attributes):
+●
+S0548923
+-
+Gr oup
+of
+attributes:
+Capacity .
+A ttribute:
+100ml 
+●
+S0548924
+-
+Gr oup
+of
+attributes:
+Capacity .
+A ttribute:
+30ml
+T -shir t
+S1405630
+has
+the
+following
+v ariations
+(2
+gr oups
+of
+attributes):
+●
+S1405665
+○
+Gr oup
+of
+attributes:
+Colour .
+A ttribute:
+Gr een 
+○
+Gr oup
+of
+attributes:
+Siz e.
+A ttribute:
+XXL 
+●
+S1405659
+○
+Gr oup
+of
+attributes:
+Colour .
+A ttribute:
+Red 
+○
+Gr oup
+of
+attributes:
+Siz e.
+A ttribute:
+XL 
+●
+...
+Each
+possible
+v ariation
+of
+a
+pr oduct
+has
+its
+own
+SKU,
+EAN
+and
+speciﬁc
+price.
+F or
+example,
+ham
+ma y
+v ar y
+in
+price
+accor ding
+t o
+the
+attributes
+selected,
+because
+it
+has 
+the
+k g
+(Kilogr ammes)
+attribute
+and,
+accor ding
+t o
+the
+K g
+selected,
+we
+ha v e
+one
+price
+or 
+another .
+Request
+t o
+obtain
+all
+of
+the
+v ariations
+of
+the
+catalogue
+classiﬁed
+within
+a
+ﬁrst
+le v el 
+tax onomy:
+GE T
+/r est/catalog/pr oductsv ariations.json
+?par entT ax onomy=ID_T AX ONOM Y
+Y ou
+will
+see
+each
+of
+them
+has
+its
+own
+identiﬁer
+(id)
+and
+a
+pr oduct
+identiﬁer
+(pr oduct)
+associated
+with
+it.
+User
+guide
+-
+BigBuy
+API
+6
+
+Response
+[
+{
+"id"
+:
+1135492
+,
+"sku"
+:
+"S1455910"
+,
+"ean13"
+:
+"4899888483472"
+,
+"extraWeight"
+:
+2.5
+,
+"product"
+:
+453293
+,
+"wholesalePrice"
+:
+17.35
+,
+"retailPrice"
+:
+21.16
+,
+"inShopsPrice"
+:
+26.45
+,
+"width"
+:
+16
+,
+"height"
+:
+16
+,
+"depth"
+:
+22
+,
+"priceLargeQuantities"
+:
+[
+{
+"id"
+:
+6257354
+,
+"quantity"
+:
+6
+,
+"price"
+:
+16.61
+},
+{
+"id"
+:
+6257355
+,
+"quantity"
+:
+12
+,
+"price"
+:
+16.32
+}
+],
+"logisticClass"
+:
+"A"
+,
+"ean13Packaging"
+:
+null
+,
+"intrastat"
+:
+null
+},
+...
+]
+User
+guide
+-
+BigBuy
+API
+7
+
+Product
+attributes
+Request
+t o
+obtain
+the
+r elationship
+between
+v ariation
+and
+attribute:
+GE T
+/r est/catalog/v ariations.json?par entT ax onomy=ID_T AX ONOM Y
+By
+obtaining
+the
+r esult,
+we
+will
+check
+that
+for
+each
+v ariation
+id
+we
+ha v e
+the
+attributes
+it 
+consists
+of,
+identiﬁed
+with
+its
+own
+id.
+Response
+[
+{
+"id"
+:
+1116685
+,
+"attributes"
+:
+[
+{
+"id"
+:
+25237
+}
+]
+},
+{
+"id"
+:
+1116686
+,
+"attributes"
+:
+[
+{
+"id"
+:
+25238
+}
+]
+},
+...
+]
+T o
+complete
+the
+attributes
+of
+pr oducts
+in
+our
+catalogue,
+we
+just
+need
+t o
+know
+the
+name
+of
+each
+one
+of
+them
+in
+the
+language
+we
+desir e.
+User
+guide
+-
+BigBuy
+API
+8
+
+GE T
+/r est/catalog/attributes.json?isoCode=ISO_CODE&par entT ax onomy=ID_T AX
+Response
+[
+{
+"id"
+:
+1898
+,
+"attributeGroup"
+:
+150
+,
+"name"
+:
+"
+1
+-
+Black
+1,5
+g"
+,
+"isoCode"
+:
+EN:
+},
+{
+"id"
+:
+1892
+,
+"attributeGroup"
+:
+150
+,
+"name"
+:
+"
+12
+-
+Black"
+,
+"isoCode"
+:
+"en"
+}
+,
+...
+]
+As
+y ou
+can
+see,
+we
+obtain
+the
+id
+and
+the
+name
+of
+each
+attribute,
+but
+we
+also
+obtain
+the 
+gr oup
+of
+attributes
+it
+belongs
+t o.
+W e
+can
+see
+this
+at:
+GE T 
+/r est/catalog/attributesgr oups.json?isoCode=ISO_CODE&par entT ax onomy=ID_T AX
+W e
+will
+r eceiv e
+a
+structur e
+with
+all
+of
+the
+attribute
+gr oups
+and
+their
+id
+and
+name
+(name):
+Response
+[
+{
+"id"
+:
+2
+,
+"name"
+:
+Quantity
+"isoCode"
+:
+"en"
+},
+{
+"id"
+:
+3
+,
+"name"
+:
+"Capacity"
+,
+"isoCode"
+:
+"en"
+},
+...
+]
+The
+fr equency
+with
+which
+we
+r ecommend
+carr ying
+out
+the
+abo v e
+load/update 
+pr ocesses
+is
+once
+a
+da y
+or
+e v er y
+8
+hours.
+User
+guide
+-
+BigBuy
+API
+9
+
+Product
+images
+In
+this
+call,
+we
+will
+be
+able
+t o
+obtain
+all
+of
+the
+information
+r elating
+t o
+the
+images
+of
+each 
+of
+the
+BigBuy
+pr oducts.
+T o
+obtain
+mor e
+information
+about
+the
+images
+assigned
+t o
+pr oducts:
+GE T
+/r est/catalog/pr oductsimages.{format}?par entT ax onomy=ID_T AX ONOM Y
+Response:
+[
+{
+"id"
+:
+63272
+,
+images
+[
+{
+"id"
+:
+1050714
+,
+"isCover"
+:
+"TRUE"
+"name"
+:
+"5011546498423_0_P00"
+,
+"url"
+:
+"https://cdnbigbuy.com/images/5011546498423_0_P00.jpg"
+,
+"logo"
+:
+false
+,
+"whiteBackground"
+:
+false
+}
+]
+},
+{
+"id"
+:
+63274
+,
+"images"
+:
+[
+{
+"id"
+:
+1050715
+,
+"isCover"
+:
+true
+,
+"name"
+:
+"7613031526406_0_P00"
+,
+"url"
+:
+"https://cdnbigbuy.com/images/7613031526406_0_P00.jpg"
+,
+"logo"
+:
+false
+,
+"whiteBackground"
+:
+false
+}
+]
+},
+...
+]
+User
+guide
+-
+BigBuy
+API
+1 0
+
+Stock
+update
+In
+the
+st ock
+update,
+for
+the
+same
+pr oduct
+or
+v ariation,
+we
+will
+obtain
+diff er ent
+types
+of
+st ock
+accor ding
+t o
+their
+pr epar ation
+time.
+This
+will
+enable
+us
+t o
+choose
+which
+st ock
+we
+ar e
+inter ested
+in.
+If
+we
+ar e
+inter ested
+in
+e v er ything,
+we
+will
+limit
+ourselv es
+t o
+adding
+all
+of
+the
+st ock
+for
+one
+pr oduct
+t o
+obtain
+the
+t otal
+st ock.
+The
+st ock
+update
+is
+divided
+int o
+two
+par ts:
+Pr oduct
+st ock
+W e
+will
+r eceiv e
+st ock
+of
+the
+pr oduct
+accor ding
+t o
+its
+pr epar ation
+time:
+/r est/catalog/pr oductsst ockb yhandlingda ys.json
+?par entT ax onomy=ID_T AX ONOM Y
+,
+W e
+will
+check
+that
+the
+structur e
+is
+an
+arr a y
+in
+which
+each
+item
+is
+identiﬁed
+with
+its 
+pr oduct
+id
+(id).
+Response
+[
+{
+" i d "
+:
+6 3 2 7 2
+,
+" s k u "
+:
+" S 0 4 1 2 0 9 2 "
+,
+" s t o c k s "
+:
+[
+{
+" q u a n t i t y "
+:
+5
+,
+" m i n H a n d l i n g D a y s "
+:
+0
+,
+/ /
+S t o c k
+0 - 2 4 h
+" m a x H a n d l i n g D a y s "
+:
+1
+,
+" w a r e h o u s e "
+:
+1
+} ,
+{
+" q u a n t i t y "
+:
+1 9 3
+,
+" m i n H a n d l i n g D a y s "
+:
+1
+,
+/ /
+S t o c k
+2 4 - 4 8 h
+" m a x H a n d l i n g D a y s "
+:
+2
+,
+" w a r e h o u s e "
+:
+1
+} ,
+{
+" q u a n t i t y "
+:
+0
+,
+" m i n H a n d l i n g D a y s "
+:
+2
+,
+/ /
+S t o c k
+2 - 4
+d í a s
+" m a x H a n d l i n g D a y s "
+:
+4
+,
+" w a r e h o u s e "
+:
+1
+}
+]
+} ,
+. . .
+]
+User
+guide
+-
+BigBuy
+API
+1 1
+
+St ock
+v ariation
+W e
+will
+r eceiv e
+st ock
+fr om
+all
+of
+the
+pr oduct
+v ariations
+in
+the
+catalogue,
+since
+the 
+pr oducts
+with
+v ariations
+ma y
+ha v e
+diff er ent
+st ock
+depending
+on
+their
+v ariation.
+/r est/catalog/pr oductsv ariationsst ockb yhandlingda ys.json
+?par entT ax onomy=ID_T AX O 
+NOM Y
+,
+W e
+will
+obtain
+exactly
+the
+same
+structur e
+as
+the
+pr e vious
+one,
+ex cept
+that,
+in
+this
+case, 
+id
+r ef ers
+t o
+the
+v ariation
+id.
+Response
+[
+{
+" i d "
+:
+1 1 1 6 6 8 5
+,
+" s k u "
+:
+" V 2 2 0 0 1 9 4 "
+,
+" s t o c k s "
+:
+[
+{
+" q u a n t i t y "
+:
+2
+,
+" m i n H a n d l i n g D a y s "
+:
+0
+,
+" m a x H a n d l i n g D a y s "
+:
+1
+,
+" w a r e h o u s e "
+:
+1
+} ,
+{
+" q u a n t i t y "
+:
+5 0 0
+,
+" m i n H a n d l i n g D a y s "
+:
+1
+,
+" m a x H a n d l i n g D a y s "
+:
+2
+,
+" w a r e h o u s e "
+:
+1
+}
+]
+} ,
+. . .
+]
+W e
+r ecommend
+carr ying
+out
+this
+pr ocess
+e v er y
+10-15
+minutes
+t o
+be
+able
+t o
+k eep
+st ock 
+updated.
+User
+guide
+-
+BigBuy
+API
+1 2
+
+How
+to
+process
+orders
+with
+the
+Orders
+API?
+Each
+client
+has
+the
+option
+of
+personalising
+their
+shipping,
+choosing
+the
+carriers
+the y 
+want
+t o
+work
+with
+or
+choosing
+the
+desir ed
+deliv er y
+option.
+Or der
+r equest
+{
+"order"
+:
+{
+"internalReference"
+:
+"12345890194"
+,
+"language"
+:
+"es"
+,
+"paymentMethod"
+:
+"bankwire"
+,
+"carriers"
+:
+[
+{
+"name"
+:
+"gls"
+},
+{
+"name"
+:
+"seur"
+}
+],
+"shippingAddress"
+:
+{
+"firstName"
+:
+"John"
+,
+"lastName"
+:
+"Doe"
+,
+"country"
+:
+"FR"
+,
+"postcode"
+:
+"75004"
+,
+"town"
+:
+"Paris"
+,
+"address"
+:
+"850
+Rue
+des
+Juges
+Consuls"
+,
+"phone"
+:
+"123456789"
+,
+"email"
+:
+"email@email.com"
+,
+"comment"
+:
+""
+},
+"products"
+:
+[
+{
+"reference"
+:
+"H4510100"
+,
+"quantity"
+:
+1
+}
+]
+}
+}
+User
+guide
+-
+BigBuy
+API
+1 3
+
+In
+the
+r equest,
+we
+should
+include
+the
+following
+ﬁelds:
+●
+internalRef er ence
+-
+Y our
+internal
+identiﬁer
+for
+the
+or der 
+●
+language
+●
+pa ymentMethod
+-
+bankwir e,
+pa ypal,
+mone ybo x… 
+●
+carriers
+-
+Contains
+an
+arr a y
+with
+the
+carriers
+a v ailable
+for
+the
+or der 
+○
+name
+-
+Carrier
+name
+(T ypical
+v alues:
+chr ono,
+corr eos,
+gls,
+ups,
+dhl,
+tnt, 
+seur ,
+corr eos
+international,
+pallet
+deliv er y ,
+dachser ,
+dhl
+fr eight,
+postal 
+ser vice,
+standar d
+shipment,
+db
+schenk er) 
+●
+shippingAddr ess
+-
+Shipping
+details 
+○
+ﬁrstName
+-
+Recipient' s
+ﬁrst
+name 
+○
+lastName
+-
+Recipient' s
+last
+name 
+○
+countr y 
+○
+postcode
+○
+t own
+○
+addr ess
+-
+Shipping
+addr ess 
+○
+phone
+-
+Recipient’ s
+telephone 
+○
+email
+-
+Recipient’ s
+email
+addr ess 
+○
+comment
+-
+Additional
+comments
+if
+r equir ed 
+●
+pr oducts
+-
+Arr a y
+of
+pr oducts
+selected 
+○
+r ef er ence
+-
+Pr oduct
+r ef er ence 
+○
+quantity
+With
+this
+information,
+we
+can
+now
+v alidate
+an
+or der
+and
+r egister
+it
+on
+BigBuy
+t o
+be
+able 
+t o
+pr ocess
+it.
+W e
+will
+send
+the
+r equest
+described
+abo v e,
+ﬁrst
+t o
+the
+“ check”
+endpoint
+and
+then
+t o
+the 
+“ cr eate ”
+endpoint
+if
+e v er ything
+has
+gone
+well
+during
+the
+check.
+●
+Check
+:
+v alidation
+of
+the
+or der
+and
+r eturn
+of
+the
+t otal.
+It
+does
+not
+cr eate
+the
+or der . 
+If
+we
+obtain
+a
+positiv e
+r esponse,
+then
+we
+will
+be
+able
+t o
+cr eate
+the
+or der
+b y 
+calling
+“ cr eate ”.
+POST
+/r est/or der/check/multishipping.{format}
+User
+guide
+-
+BigBuy
+API
+1 4
+
+Response
+{
+"orders"
+:
+[
+{
+"productReferences"
+:
+[
+"F1520215"
+],
+"totalWithoutTaxesAndWithoutShippingCost"
+:
+503.8
+,
+"totalWithoutTaxes"
+:
+509.15
+,
+"total"
+:
+616.07
+,
+"warehouse"
+:
+1
+}
+],
+"errors"
+:
+[]
+}
+●
+Create
+:
+once
+a
+positive
+response
+has
+been
+obtained
+from
+the
+previous
+endpoint
+(Check), 
+we
+will
+be
+able
+to
+register
+it
+on
+BigBuy .
+POST
+/rest/order/cr eate/multishipping.{format}
+Response
+{
+"orders"
+:
+[
+{
+"productReferences"
+:
+[
+"F1520215"
+],
+"id"
+:
+"15012345"
+,
+"warehouse"
+:
+1,
+"url"
+:
+"/rest/order/15012345"
+}
+],
+"errors"
+:
+[]
+}
+If
+an
+order
+request
+contains
+products
+that
+belong
+to
+different
+warehouses,
+then
+as
+many
+orders
+as 
+warehouses
+will
+be
+created.
+User
+guide
+-
+BigBuy
+API
+1 5
+
+Or ders
+that
+ar e
+corr ectly
+cr eated
+ar e
+displa y ed
+under
+the
+“ or ders”
+ﬁeld
+of
+the
+r esponse 
+and
+those
+with
+any
+err ors
+will
+be
+displa y ed
+under
+the
+“ err ors”
+ﬁeld.
+Example:
+{
+"orders"
+:
+[],
+"errors"
+:
+[
+{
+"status"
+:
+409
+,
+"code"
+:
+"ER003"
+,
+"message"
+:
+"{\"info\":\"Products
+have
+no
+stock.\",\"data\":{\"skus\":["H1500113"]}}"
+,
+}
+]
+}
+T wo
+of
+the
+most
+common
+err ors
+that
+can
+arise
+ar e
+that
+the
+pr oduct
+is
+no
+longer
+activ e 
+or
+the
+pr oduct
+is
+not
+in
+st ock.
+In
+both
+cases,
+if
+ther e
+is
+any
+other
+pr oduct
+in
+the 
+catalogue
+with
+the
+same
+EAN
+and
+this
+is
+a v ailable
+and
+with
+st ock,
+this
+additional 
+information
+will
+be
+displa y ed
+so
+that
+the
+user
+can
+tr y
+t o
+place
+the
+or der
+using
+the 
+alternativ e
+pr oduct
+in
+the
+“ err or_detail”
+ﬁeld.
+It
+is
+also
+impor tant
+t o
+look
+car efully
+at
+the 
+“ condition ”
+of
+the
+pr oduct.
+{
+"orders"
+:
+[],
+"errors"
+:
+[
+{
+"status"
+:
+409
+,
+"code"
+:
+"ER003"
+,
+"message"
+:
+"{\"info\":\"Products
+have
+no
+stock.\",\"data\":{\"skus\":["H1500113"]}}"
+,
+"productReferences"
+:
+[
+"H1500113"
+],
+"warehouse"
+:
+1
+,
+"error_detail"
+:
+[
+{
+"requested"
+:
+"H1500113"
+,
+"alternatives"
+:
+[
+{
+"reference"
+:
+"S0110525"
+,
+"stock"
+:
+78
+,
+"price"
+:
+456.81
+,
+"condition"
+:
+"NEW"
+}
+]
+}
+]
+}
+]
+User
+guide
+-
+BigBuy
+API
+1 6
+
+}
+In
+any
+case,
+it
+is
+impor tant
+t o
+ﬁrst
+do
+the
+check
+call
+in
+or der
+t o
+ﬁnd
+out
+in
+adv ance 
+whether
+ther e
+will
+be
+pr oblems
+in
+placing
+the
+or der .
+In
+the
+e v ent
+that
+the
+or der
+contains 
+pr oducts
+fr om
+mor e
+than
+one
+war ehouse
+and
+we
+tr y
+t o
+place
+the
+or der
+dir ectly
+with 
+cr eate
+,
+we
+could
+ﬁnd
+ourselv es
+in
+the
+situation
+wher e
+the
+or der
+is
+only
+par tially
+cr eated.
+Example:
+{
+"orders"
+:
+[
+{
+"productReferences"
+:
+[
+"F1520215",
+"V0720216"
+],
+"id"
+:
+"15012345"
+,
+"warehouse"
+:
+1,
+"url"
+:
+"/rest/order/15012345"
+}
+],
+"errors"
+:
+[
+{
+"status"
+:
+409
+,
+"code"
+:
+"ER003"
+,
+"message"
+:
+"{\"info\":\"Products
+have
+no
+stock.\",\"data\":{\"skus\":["H1500113"]}}"
+,
+"productReferences"
+:
+[
+"H1500113"
+],
+"warehouse"
+:
+2
+}
+]
+}
+In
+this
+case,
+the
+or der
+contains
+pr oducts
+fr om
+2
+war ehouses,
+but
+it
+has
+only
+been 
+possible
+t o
+cr eate
+the
+ﬁrst
+or der .
+User
+guide
+-
+BigBuy
+API
+1 7
+
+Choosing
+the
+carrier
+for
+the
+order
+BigBuy
+will
+choose
+the
+cheapest
+carrier
+fr om
+all
+of
+those
+pr o vided
+in
+the
+or der
+cr eation 
+r equest
+.
+If
+we
+want
+t o
+ex clude
+a
+carrier ,
+we
+will
+ha v e
+t o
+lea v e
+it
+off
+the
+list
+of
+carriers 
+permitted
+when
+cr eating
+the
+or der .
+With
+BigBuy ' s
+shipping
+API,
+it
+is
+possible
+t o
+ﬁnd
+out
+all
+of
+the
+possible
+shipping
+options 
+(carriers)
+for
+an
+or der
+befor e
+cr eating
+it.
+T o
+do
+so,
+we
+pr o vide
+a
+set
+of
+pr oducts
+as
+well 
+as
+destination
+countr y
+and
+postcode.
+POST
+/rest/shipping/orders.{format}
+Request:
+{
+"order"
+:
+{
+"delivery"
+:
+{
+"isoCountry"
+:
+"SE"
+,
+"postcode"
+:
+"132
+51"
+},
+"products"
+:
+[
+{
+"reference"
+:
+"S6483140"
+,
+"quantity"
+:
+1
+}
+]
+}
+}
+User
+guide
+-
+BigBuy
+API
+1 8
+
+Response
+{
+"shippingOptions"
+:
+[
+{
+"shippingService"
+:
+{
+"id"
+:
+"180"
+,
+"delay"
+:
+"4-6
+days"
+,
+"name"
+:
+"GLS"
+,
+"transportMethod"
+:
+"van"
+,
+"serviceName"
+:
+"GLS"
+},
+"cost"
+:
+9.68
+,
+"weight"
+:
+0.05
+},
+{
+"shippingService"
+:
+{
+"id"
+:
+"62"
+,
+"delay"
+:
+"4-5
+days"
+,
+"name"
+:
+"SEUR"
+,
+"transportMethod"
+:
+"van"
+,
+"serviceName"
+:
+"SEUR"
+},
+"cost"
+:
+12.62
+,
+"weight"
+:
+0.05
+},
+...
+]
+]
+The
+“ ser viceName ”
+ﬁeld
+of
+each
+option
+a v ailable
+will
+be
+the
+one
+we
+will
+be
+able
+t o 
+pr o vide
+in
+the
+r equest
+t o
+cr eate
+an
+or der
+within
+the
+“ carriers”
+section.
+{
+"order"
+:
+{
+"internalReference"
+:
+"12345890194"
+,
+...
+"carriers"
+:
+[
+{
+"name"
+:
+"gls"
+},
+...
+],
+...
+}
+}
+User
+guide
+-
+BigBuy
+API
+1 9
+
+W e
+can
+obtain
+the
+full
+list
+of
+carriers
+and
+ser vices
+for
+or ders
+in
+the
+following
+endpoint:
+GE T
+/r est
+/shipping/carriers.{format}
+In
+the
+r esponse,
+we
+will
+ﬁnd
+all
+of
+the
+carriers
+a v ailable
+with
+their
+ser vices,
+in
+addition
+t o 
+the
+countries
+the y
+deliv er
+t o,
+block ed
+pr oducts
+or
+tax onomies
+for
+that
+carrier ,
+etc.
+User
+guide
+-
+BigBuy
+API
+2 0
+

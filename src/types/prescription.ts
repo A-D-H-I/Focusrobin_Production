@@ -39,6 +39,8 @@ export type RxConfigData = {
     tintColor?: TintColor;
     photochromicColor?: PhotochromicColor;
     frameType: FrameType;
+    powerCategory?: 'NORMAL' | 'HIGH';
+    lensThickness?: 'STANDARD' | 'THINNER';
 
     // Legacy fields kept for compatibility
     lensType?: string;

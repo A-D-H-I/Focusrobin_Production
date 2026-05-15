@@ -2,7 +2,8 @@
 
 import { prisma } from '@/lib/prisma';
 import { Gender, AssetType } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { calculateRetailPrice, calculateFinalPrice } from '@/lib/price-utils';
 import { requireAdmin, safeAction } from "@/lib/security";
 import { z } from "zod";
 
@@ -294,6 +295,10 @@ export async function createProduct(formData: FormData) {
         description: productValidation.data.description || null,
         basePrice: productValidation.data.basePrice,
         compareAtPrice: productValidation.data.compareAtPrice ?? null,
+        calculatedRetailPrice: calculateFinalPrice(
+          calculateRetailPrice(productValidation.data.basePrice, productValidation.data.brand ?? 'FocusRobin'),
+          productValidation.data.discountPct || 0
+        ),
         discountPct: productValidation.data.discountPct || 0,
         cashbackAmount: productValidation.data.cashbackAmount || 0,
         gender: genders,
@@ -393,6 +398,13 @@ export async function createProduct(formData: FormData) {
 
     revalidatePath('/admin/add');
     revalidatePath('/shop');
+    revalidateTag('products');
+    revalidateTag('prices');
+    revalidateTag('shapes');
+    revalidateTag('brands');
+    revalidateTag('materials');
+    revalidateTag('colors');
+    revalidateTag('genders');
 
     return { success: true, productId: product.id };
   });

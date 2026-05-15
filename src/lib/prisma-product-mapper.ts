@@ -1,5 +1,6 @@
 import { Product, ProductColorVariant } from './productData';
 import { Prisma } from '@prisma/client';
+import { calculateRetailPrice } from './price-utils';
 
 /**
  * Converts Google Drive share link to direct image URL
@@ -137,47 +138,23 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     };
   });
 
-  // Apply margin calculation if not FocusRobin
-  const isFocusRobin = (prismaProduct.brand || '').trim().toLowerCase() === 'focusrobin';
+  // Apply margin calculation using centralized price utility
   const rawBasePrice = prismaProduct.basePrice != null ? Number(prismaProduct.basePrice) : 0;
+  const effectiveBasePrice = calculateRetailPrice(rawBasePrice, prismaProduct.brand || 'FocusRobin');
 
-  let effectiveBasePrice = rawBasePrice;
-  if (!isFocusRobin && rawBasePrice > 0) {
-    // Base Price + 10% Margin + 13.5 EUR handling + 21% VAT
-    let priceWithMargin = (rawBasePrice * 1.10) + 13.5;
-    priceWithMargin = priceWithMargin * 1.21;
-    // + 1.5% Stripe fee
-    priceWithMargin = priceWithMargin * 1.015;
-    effectiveBasePrice = priceWithMargin;
-  }
-
-  // Calculate price with discount using the effective base price
   const basePrice = effectiveBasePrice;
-  const discountPct = prismaProduct.discountPct || 0;
-  const hasDiscount = discountPct > 0;
-
-  // Determine originalPrice (crossed-out price)
-  // Priority: compareAtPrice from DB > discountPct calculation
-  const compareAtPriceRaw = (prismaProduct as any).compareAtPrice;
-  let originalPrice: string | undefined;
-  let computedDiscountPct: number | undefined = hasDiscount ? discountPct : undefined;
-  
-  const discountedPrice = hasDiscount
-    ? basePrice * (1 - discountPct / 100)
+  const discountPctFromDb = prismaProduct.discountPct || 0;
+  const discountedPrice = discountPctFromDb > 0 
+    ? basePrice * (1 - discountPctFromDb / 100)
     : basePrice;
 
-  if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
-    // Use manual compare-at price directly with NO margins applied
-    let compareAt = Number(compareAtPriceRaw);
-    originalPrice = `€${compareAt.toFixed(2)}`;
-    
-    // Calculate new discount pct based on exactly the compare at and the final selling price
-    if (compareAt > discountedPrice) {
-      computedDiscountPct = Math.round(((compareAt - discountedPrice) / compareAt) * 100);
-    }
-  } else if (hasDiscount) {
-    originalPrice = `€${basePrice.toFixed(2)}`;
-  }
+  // The original crossed-out price must be 30% higher than the final selling price
+  const originalPriceValue = discountedPrice * 1.30;
+  const originalPrice = `€${originalPriceValue.toFixed(2)}`;
+  
+  // The UI discount badge will naturally show ~23% (since 30% markup is a 23% discount)
+  // User requested: do not show the percentage badge, just the crossed out price
+  const computedDiscountPct = undefined;
 
   const finalPrice = `€${discountedPrice.toFixed(2)}`;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Footer from "@/components/Landing/footer";
@@ -146,8 +146,44 @@ export default function CheckoutPage() {
     )
     : null;
 
+  // Ref callback: fires the instant the checkout content div is mounted into the DOM
+  const scrollRef = useCallback((node: HTMLDivElement | null) => {
+    if (node) {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, []);
+
+  // useLayoutEffect runs synchronously BEFORE the browser paints — 
+  // this is the earliest we can force scroll after React commits to the DOM
+  useLayoutEffect(() => {
+    if (typeof window !== 'undefined' && 'scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    return () => {
+      if (typeof window !== 'undefined' && 'scrollRestoration' in history) {
+        history.scrollRestoration = 'auto';
+      }
+    };
+  }, [sessionStatus, isCartLoading]);
+
+  // Scroll to top when Stripe embedded checkout starts loading
+  useLayoutEffect(() => {
+    if (clientSecret) {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, [clientSecret]);
+
   // Handle cancelled payment - refund wallet if needed (for both Stripe and PayPal)
   useEffect(() => {
+
     const cancelled = searchParams.get('cancelled');
     const orderId = searchParams.get('orderId');
     const paymentMethod = searchParams.get('paymentMethod'); // 'paypal' or null (Stripe)
@@ -704,7 +740,7 @@ export default function CheckoutPage() {
   // Show loading state while session is being checked or cart is initializing
   if (sessionStatus === "loading" || isCartLoading) {
     return (
-      <div className="flex flex-col min-h-screen bg-brand-white">
+      <div ref={scrollRef} className="flex flex-col min-h-screen bg-brand-white">
         <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16 flex items-center justify-center min-h-[50vh]">
           <div className="flex flex-col items-center gap-4">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-brand-teal border-t-transparent"></div>
@@ -719,7 +755,7 @@ export default function CheckoutPage() {
   // Redirect to sign in if not authenticated (after loading completes)
   if (sessionStatus === "unauthenticated") {
     return (
-      <div className="flex flex-col min-h-screen bg-brand-white">
+      <div ref={scrollRef} className="flex flex-col min-h-screen bg-brand-white">
         <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
           <div className="container mx-auto px-4 sm:px-6">
             <h1 className="text-brand-h1 font-headline text-brand-blue mb-8">
@@ -746,7 +782,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-brand-white">
+    <div ref={scrollRef} className="flex flex-col min-h-screen bg-brand-white">
       <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] pb-16">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
@@ -773,7 +809,7 @@ export default function CheckoutPage() {
                 {/* Left Column - Checkout Form */}
                 <div className="lg:col-span-2 space-y-6">
                   {clientSecret ? (
-                    <div id="checkout" className="bg-white p-6 rounded-lg border border-gray-200">
+                    <div id="checkout" className="bg-white p-6 rounded-lg border border-gray-200" style={{ minHeight: '60vh' }}>
                       <EmbeddedCheckoutProvider
                         stripe={stripePromise}
                         options={{ clientSecret }}

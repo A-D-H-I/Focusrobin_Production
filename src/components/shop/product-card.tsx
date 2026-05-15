@@ -92,9 +92,8 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
   const badgeType = getBadgeType(product);
 
   // Calculate discount percentage
-  const discountPct = originalPriceInEur && priceInEur < originalPriceInEur
-    ? Math.round(((originalPriceInEur - priceInEur) / originalPriceInEur) * 100)
-    : product.discountPct;
+  // User requested to hide percentage badge
+  const discountPct = undefined;
 
   // Determine which image to display
   const displayVariant = hoveredVariant || selectedVariant;
@@ -236,35 +235,37 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                   )}
                 </div>
 
-                {/* Color Swatches */}
-                <div className="flex items-center gap-2 mt-3">
-                  {product.variants.slice(0, 4).map((variant) => (
-                    <button
-                      key={variant.hex}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setSelectedVariant(variant);
-                        setHoveredVariant(null);
-                        onColorClick?.(variant);
-                      }}
-                      onMouseEnter={() => setHoveredVariant(variant)}
-                      onMouseLeave={() => setHoveredVariant(null)}
-                      className={cn(
-                        "h-5 w-5 rounded-full border-2 transition-all cursor-pointer",
-                        selectedVariant?.hex === variant.hex
-                          ? "border-teal-primary ring-2 ring-offset-1 ring-teal-primary/50 scale-110"
-                          : "border-border hover:scale-110",
-                        variant.textureImageUrl && "bg-cover bg-center"
-                      )}
-                      style={{
-                        backgroundColor: variant.hex,
-                        backgroundImage: variant.textureImageUrl ? `url(${variant.textureImageUrl})` : undefined
-                      }}
-                      title={variant.name}
-                    />
-                  ))}
-                </div>
+                {/* Color Swatches - only for FocusRobin products */}
+                {showTryOn && (
+                  <div className="flex items-center gap-2 mt-3">
+                    {product.variants.slice(0, 4).map((variant) => (
+                      <button
+                        key={variant.hex}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedVariant(variant);
+                          setHoveredVariant(null);
+                          onColorClick?.(variant);
+                        }}
+                        onMouseEnter={() => setHoveredVariant(variant)}
+                        onMouseLeave={() => setHoveredVariant(null)}
+                        className={cn(
+                          "h-5 w-5 rounded-full border-2 transition-all cursor-pointer",
+                          selectedVariant?.hex === variant.hex
+                            ? "border-teal-primary ring-2 ring-offset-1 ring-teal-primary/50 scale-110"
+                            : "border-border hover:scale-110",
+                          variant.textureImageUrl && "bg-cover bg-center"
+                        )}
+                        style={{
+                          backgroundColor: variant.hex,
+                          backgroundImage: variant.textureImageUrl ? `url(${variant.textureImageUrl})` : undefined
+                        }}
+                        title={variant.name}
+                      />
+                    ))}
+                  </div>
+                )}
 
                 {/* Cashback Badge */}
                 {cashbackInEur !== null && cashbackInEur > 0 && (
@@ -427,35 +428,37 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
               )}
             </div>
 
-            {/* Color Swatches */}
-            <div className="flex items-center gap-1.5 mb-1.5">
-              {product.variants.slice(0, 5).map((variant) => (
-                <button
-                  key={variant.hex}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setSelectedVariant(variant);
-                    setHoveredVariant(null);
-                    onColorClick?.(variant);
-                  }}
-                  onMouseEnter={() => setHoveredVariant(variant)}
-                  onMouseLeave={() => setHoveredVariant(null)}
-                  className={cn(
-                    "h-4 w-4 rounded-full border-2 transition-all cursor-pointer",
-                    selectedVariant?.hex === variant.hex
-                      ? "border-teal-primary ring-1 ring-offset-1 ring-teal-primary/50 scale-110"
-                      : "border-border hover:scale-110",
-                    variant.textureImageUrl && "bg-cover bg-center"
-                  )}
-                  style={{
-                    backgroundColor: variant.hex,
-                    backgroundImage: variant.textureImageUrl ? `url(${variant.textureImageUrl})` : undefined
-                  }}
-                  title={variant.name}
-                />
-              ))}
-            </div>
+            {/* Color Swatches - only for FocusRobin products */}
+            {showTryOn && (
+              <div className="flex items-center gap-1.5 mb-1.5">
+                {product.variants.slice(0, 5).map((variant) => (
+                  <button
+                    key={variant.hex}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setSelectedVariant(variant);
+                      setHoveredVariant(null);
+                      onColorClick?.(variant);
+                    }}
+                    onMouseEnter={() => setHoveredVariant(variant)}
+                    onMouseLeave={() => setHoveredVariant(null)}
+                    className={cn(
+                      "h-4 w-4 rounded-full border-2 transition-all cursor-pointer",
+                      selectedVariant?.hex === variant.hex
+                        ? "border-teal-primary ring-1 ring-offset-1 ring-teal-primary/50 scale-110"
+                        : "border-border hover:scale-110",
+                      variant.textureImageUrl && "bg-cover bg-center"
+                    )}
+                    style={{
+                      backgroundColor: variant.hex,
+                      backgroundImage: variant.textureImageUrl ? `url(${variant.textureImageUrl})` : undefined
+                    }}
+                    title={variant.name}
+                  />
+                ))}
+              </div>
+            )}
 
             {/* Cashback Badge */}
             <div className="mb-1.5 flex flex-wrap gap-2">

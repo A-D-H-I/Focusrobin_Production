@@ -269,7 +269,7 @@ export function generateProductStructuredData(product: {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
-    description: product.description || defaultDescription,
+    description: product.description ? product.description.replace(/<[^>]*>?/gm, '') : defaultDescription,
     image: product.image || `${baseUrl}/Symbol Wide Primary light (Teal).svg`,
     brand: {
       '@type': 'Brand',

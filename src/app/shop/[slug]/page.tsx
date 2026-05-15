@@ -18,10 +18,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { getPriceRange } from "@/app/actions/getPriceRange";
-import { getAvailableGlassShapes } from "@/app/actions/getAvailableGlassShapes";
 import { getAvailableGenderCounts } from "@/app/actions/getAvailableGenderCounts";
-import { getAvailableMaterials } from "@/app/actions/getAvailableMaterials";
-import { getAvailableFrameColors } from "@/app/actions/getAvailableColors";
 import { getAvailableBrands } from "@/app/actions/getAvailableBrands";
 
 // Helper to get OG image with fallback
@@ -233,12 +230,9 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
     const bannerAlt = customPage.name || 'Shop page banner';
 
     // Fetch filters for the collection
-    const [priceRange, glassShapes, genderCounts, materials, colors, brands] = await Promise.all([
+    const [priceRange, genderCounts, brands] = await Promise.all([
       getPriceRange(),
-      getAvailableGlassShapes(),
       getAvailableGenderCounts(),
-      getAvailableMaterials(),
-      getAvailableFrameColors(),
       getAvailableBrands()
     ]);
 
@@ -285,10 +279,7 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
                   products={products}
                   title={customPage.name}
                   priceRange={priceRange}
-                  glassShapes={glassShapes}
                   genderCounts={genderCounts}
-                  materials={materials}
-                  colors={colors}
                   brands={brands}
                 />
               ) : (
@@ -378,11 +369,17 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
 
       const variants = prescriptionGlass.PrescriptionGlassesVariant.map((v: any) => {
         const assets = v.PrescriptionGlassesAsset;
-        const thumbnail = assets.find((a: any) => a.type === 'GALLERY' && a.isPrimary)?.url || assets.find((a: any) => a.type === 'GALLERY')?.url || '';
+        const thumbnail =
+          assets.find((a: any) => a.type === 'GALLERY' && a.isPrimary)?.url ||
+          assets.find((a: any) => a.type === 'GALLERY')?.url ||
+          assets.find((a: any) => a.type === 'NO_BG' && a.isPrimary)?.url ||
+          assets.find((a: any) => a.type === 'NO_BG')?.url ||
+          assets[0]?.url || '';
         const tilted = assets.find((a: any) => a.type === 'HOVER')?.url || '';
         const nobg = assets.find((a: any) => a.type === 'NO_BG')?.url;
         const tryOn = assets.find((a: any) => a.type === 'TRY_ON_2D')?.url;
-        const images = assets.filter((a: any) => a.type === 'GALLERY').map((a: any) => a.url);
+        const galleryImgs = assets.filter((a: any) => a.type === 'GALLERY').map((a: any) => a.url);
+        const images = galleryImgs.length > 0 ? galleryImgs : assets.filter((a: any) => a.type === 'NO_BG').map((a: any) => a.url);
 
         return {
           name: v.name,

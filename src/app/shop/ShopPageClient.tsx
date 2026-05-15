@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, Suspense } from "react";
+import { useState, useMemo, useEffect, useCallback, Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react";
@@ -22,10 +22,7 @@ import {
 import FilterSidebar from "@/components/shop/filter-sidebar";
 import ProductGrid from "@/components/shop/product-grid";
 import type { Product } from "@/lib/productData";
-import { type AvailableGlassShape } from "@/app/actions/getAvailableGlassShapes";
 import { type GenderCount } from "@/app/actions/getAvailableGenderCounts";
-import { type AvailableMaterial } from "@/app/actions/getAvailableMaterials";
-import { type AvailableColor } from "@/app/actions/getAvailableColors";
 import { type AvailableBrand } from "@/app/actions/getAvailableBrands";
 import { type PriceRange } from "@/app/actions/getPriceRange";
 
@@ -34,11 +31,7 @@ interface ShopPageClientProps {
   title?: string;
   searchQuery?: string;
   priceRange: PriceRange;
-  glassShapes: AvailableGlassShape[];
   genderCounts: GenderCount[];
-  materials: AvailableMaterial[];
-
-  colors: AvailableColor[];
   brands: AvailableBrand[];
   banner?: React.ReactNode;
 }
@@ -48,29 +41,31 @@ export default function ShopPageClient({
   title = "All Products",
   searchQuery,
   priceRange,
-  glassShapes = [],
   genderCounts = [],
-  materials = [],
-
-  colors = [],
   brands = [],
   banner
 }: ShopPageClientProps) {
   const searchParams = useSearchParams();
   const [filtersApplied, setFiltersApplied] = useState(0);
   const [sortBy, setSortBy] = useState<string>("recommend");
+  const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const ITEMS_PER_PAGE = 50;
+
+  // Callback for FilterSidebar to close the mobile sheet before navigating
+  const handleMobileFilterClose = useCallback(() => {
+    setMobileFilterOpen(false);
+  }, []);
 
   // Count applied filters from URL params
   useEffect(() => {
     let count = 0;
     if (searchParams.get('gender')) count += searchParams.getAll('gender').length;
-    if (searchParams.get('color')) count += searchParams.getAll('color').length;
     if (searchParams.get('brand')) count += searchParams.getAll('brand').length;
     if (searchParams.get('filter')) count += 1;
-    if (searchParams.get('glassShape')) count += searchParams.getAll('glassShape').length;
-    if (searchParams.get('material')) count += searchParams.getAll('material').length;
     if (searchParams.get('minPrice') || searchParams.get('maxPrice')) count += 1;
-    if (searchParams.get('search')) count += 1; // Count search as a filter
+    if (searchParams.get('search')) count += 1;
     setFiltersApplied(count);
   }, [searchParams]);
 
@@ -122,28 +117,44 @@ export default function ShopPageClient({
     }
   }, [products, sortBy, originalOrder]);
 
+  // Reset to page 1 if products, filters or sorting change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [sortedProducts.length, filtersApplied, sortBy]);
+
+  const totalPages = Math.ceil(sortedProducts.length / ITEMS_PER_PAGE);
+  const currentProducts = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [sortedProducts, currentPage]);
+
+  // Determine if search is active (hide filters for cross-category search)
+  const isSearchActive = !!(searchQuery && searchQuery.trim());
+
   return (
     <div className="container mx-auto px-4">
       {/* On desktop: fixed-height layout so only products scroll, not filters */}
       <div className="flex flex-col md:flex-row gap-8 py-8 md:h-[calc(100vh-7rem)]">
-        {/* Desktop Filter Sidebar - static, does NOT scroll with page */}
+        {/* Desktop Filter Sidebar - hidden during search since results span both product categories */}
+        {!isSearchActive && (
         <div className="hidden md:block md:w-72 lg:w-80 flex-shrink-0 h-full">
           <div className="h-full overflow-y-auto pr-2 pb-8 hide-scrollbar">
             <Suspense fallback={<div className="text-muted-foreground">Loading filters...</div>}>
               <FilterSidebar
                 priceRange={priceRange}
-                glassShapes={glassShapes}
                 genderCounts={genderCounts}
-                materials={materials}
-                colors={colors}
                 brands={brands}
               />
             </Suspense>
           </div>
         </div>
+        )}
 
         {/* Main Content - ONLY this column scrolls on desktop */}
-        <div className="w-full md:flex-1 min-w-0 md:h-full md:overflow-y-auto md:pr-1 hide-scrollbar">
+        <div 
+          ref={scrollContainerRef}
+          className="w-full md:flex-1 min-w-0 md:h-full md:overflow-y-auto md:pr-1 hide-scrollbar"
+        >
           {/* Banner Section - scrolls with products */}
           {banner && (
             <div className="mb-6">
@@ -198,8 +209,9 @@ export default function ShopPageClient({
           {/* Mobile Controls */}
           <div className="md:hidden mb-6 space-y-4">
             <div className="flex gap-3">
-              {/* Filter Button */}
-              <Sheet>
+              {/* Filter Button - hidden during search */}
+              {!isSearchActive && (
+              <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
                 <SheetTrigger asChild>
                   <Button variant="outline" className="flex-1 h-10">
                     <Filter className="mr-2 h-4 w-4" />
@@ -220,18 +232,16 @@ export default function ShopPageClient({
                       <Suspense fallback={<div className="text-muted-foreground">Loading filters...</div>}>
                         <FilterSidebar
                           priceRange={priceRange}
-                          glassShapes={glassShapes}
                           genderCounts={genderCounts}
-                          materials={materials}
-
-                          colors={colors}
                           brands={brands}
+                          onNavigate={handleMobileFilterClose}
                         />
                       </Suspense>
                     </div>
                   </ScrollArea>
                 </SheetContent>
               </Sheet>
+              )}
 
               {/* Sort Dropdown - Mobile */}
               <Select value={sortBy} onValueChange={setSortBy}>
@@ -250,7 +260,40 @@ export default function ShopPageClient({
 
           {/* Products Grid */}
           {sortedProducts.length > 0 ? (
-            <ProductGrid products={sortedProducts} viewMode="grid" />
+            <>
+              <ProductGrid products={currentProducts} viewMode="grid" />
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center space-x-4 mt-12 mb-8">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setCurrentPage(prev => Math.max(1, prev - 1));
+                      if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }} 
+                    disabled={currentPage === 1}
+                  >
+                    Previous
+                  </Button>
+                  <div className="text-sm font-medium">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setCurrentPage(prev => Math.min(totalPages, prev + 1));
+                      if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }} 
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              )}
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="bg-muted/30 rounded-full p-6 mb-4">

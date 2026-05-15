@@ -9,6 +9,7 @@ export const revalidate = 0;
 /**
  * GET endpoint for product search suggestions
  * Returns up to 8 product suggestions based on search query
+ * Searches both sunglasses (Product) and prescription glasses (PrescriptionGlasses)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -21,74 +22,141 @@ export async function GET(request: NextRequest) {
 
     const searchTerm = query.trim();
 
-    // Optimized search - prioritize name matches first for faster results
-    const products = await prisma.product.findMany({
-      where: {
-        OR: [
-          // Prioritize name matches (most common search)
-          {
-            name: {
-              contains: searchTerm,
-              mode: 'insensitive' as Prisma.QueryMode,
-            },
-          },
-          {
-            description: {
-              contains: searchTerm,
-              mode: 'insensitive' as Prisma.QueryMode,
-            },
-          },
-          {
-            Category: {
+    // Search both sunglasses and prescription glasses in parallel
+    const [sunglassesProducts, prescriptionProducts] = await Promise.all([
+      // Sunglasses (Product model)
+      prisma.product.findMany({
+        where: {
+          OR: [
+            {
               name: {
                 contains: searchTerm,
                 mode: 'insensitive' as Prisma.QueryMode,
               },
             },
-          },
-          {
-            ProductVariant: {
-              some: {
+            {
+              description: {
+                contains: searchTerm,
+                mode: 'insensitive' as Prisma.QueryMode,
+              },
+            },
+            {
+              Category: {
                 name: {
                   contains: searchTerm,
                   mode: 'insensitive' as Prisma.QueryMode,
                 },
               },
             },
-          },
-        ],
-      },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        basePrice: true,
-        Category: {
-          select: {
-            name: true,
-          },
-        },
-        ProductVariant: {
-          select: {
-            ProductAsset: {
-              where: { isPrimary: true },
-              take: 1,
-              select: {
-                url: true,
+            {
+              ProductVariant: {
+                some: {
+                  name: {
+                    contains: searchTerm,
+                    mode: 'insensitive' as Prisma.QueryMode,
+                  },
+                },
               },
             },
-          },
-          take: 1,
+          ],
         },
-      },
-      take: 8, // Limit to 8 suggestions
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          basePrice: true,
+          Category: {
+            select: {
+              name: true,
+            },
+          },
+          ProductVariant: {
+            select: {
+              ProductAsset: {
+                where: { isPrimary: true },
+                take: 1,
+                select: {
+                  url: true,
+                },
+              },
+            },
+            take: 1,
+          },
+        },
+        take: 5, // Take 5 from sunglasses to leave room for prescription
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
 
-    // Format suggestions
-    const suggestions = products.map((product) => {
+      // Prescription Glasses (PrescriptionGlasses model)
+      prisma.prescriptionGlasses.findMany({
+        where: {
+          OR: [
+            {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive' as Prisma.QueryMode,
+              },
+            },
+            {
+              description: {
+                contains: searchTerm,
+                mode: 'insensitive' as Prisma.QueryMode,
+              },
+            },
+            {
+              Category: {
+                name: {
+                  contains: searchTerm,
+                  mode: 'insensitive' as Prisma.QueryMode,
+                },
+              },
+            },
+            {
+              PrescriptionGlassesVariant: {
+                some: {
+                  name: {
+                    contains: searchTerm,
+                    mode: 'insensitive' as Prisma.QueryMode,
+                  },
+                },
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          basePrice: true,
+          Category: {
+            select: {
+              name: true,
+            },
+          },
+          PrescriptionGlassesVariant: {
+            select: {
+              PrescriptionGlassesAsset: {
+                where: { isPrimary: true },
+                take: 1,
+                select: {
+                  url: true,
+                },
+              },
+            },
+            take: 1,
+          },
+        },
+        take: 5, // Take 5 from prescription glasses
+        orderBy: {
+          createdAt: 'desc',
+        },
+      }),
+    ]);
+
+    // Format sunglasses suggestions
+    const sunglassesSuggestions = sunglassesProducts.map((product) => {
       const variant = product.ProductVariant[0];
       const rawImage = variant?.ProductAsset[0]?.url || null;
       const image = rawImage ? normalizeImageUrl(rawImage) : null;
@@ -97,13 +165,35 @@ export async function GET(request: NextRequest) {
         id: product.id,
         name: product.name,
         slug: product.slug,
-        category: product.Category?.name || null,
+        category: product.Category?.name || 'Sunglasses',
         image: image,
         price: Number(product.basePrice),
+        productType: 'sunglasses' as const,
       };
     });
 
-    return NextResponse.json({ suggestions });
+    // Format prescription glasses suggestions
+    const prescriptionSuggestions = prescriptionProducts.map((product) => {
+      const variant = product.PrescriptionGlassesVariant[0];
+      const rawImage = variant?.PrescriptionGlassesAsset[0]?.url || null;
+      const image = rawImage ? normalizeImageUrl(rawImage) : null;
+      
+      return {
+        id: product.id,
+        name: product.name,
+        slug: product.slug,
+        category: product.Category?.name || 'Eyeglasses',
+        image: image,
+        price: Number(product.basePrice),
+        productType: 'eyeglasses' as const,
+      };
+    });
+
+    // Combine and limit to 8 total suggestions
+    const allSuggestions = [...sunglassesSuggestions, ...prescriptionSuggestions]
+      .slice(0, 8);
+
+    return NextResponse.json({ suggestions: allSuggestions });
   } catch (error: any) {
     console.error("Error fetching search suggestions:", error);
     return NextResponse.json(

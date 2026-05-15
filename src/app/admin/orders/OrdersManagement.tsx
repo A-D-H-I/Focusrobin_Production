@@ -1002,6 +1002,22 @@ export default function OrdersManagement({
                                       <span className="font-medium text-blue-700">Frame Type:</span>{' '}
                                       <span>{FRAME_TYPE_LABELS[prescription.rxConfig.frameType as keyof typeof FRAME_TYPE_LABELS] || prescription.rxConfig.frameType}</span>
                                     </div>
+                                    {prescription.rxConfig.powerCategory && (
+                                      <div>
+                                        <span className="font-medium text-blue-700">Power Category:</span>{' '}
+                                        <span>{prescription.rxConfig.powerCategory === 'HIGH' ? '⚡ High Power (2x)' : 'Normal Power'}</span>
+                                      </div>
+                                    )}
+                                    {prescription.rxConfig.lensThickness && (
+                                      <div>
+                                        <span className="font-medium text-blue-700">Lens Thickness:</span>{' '}
+                                        <span>
+                                          {prescription.rxConfig.lensThickness === 'THINNER'
+                                            ? 'Thinner Lens (+€60)'
+                                            : `${prescription.rxConfig.lensBundle === 'PHOTOCHROMIC' ? '1.56' : '1.60'} Standard Lens`}
+                                        </span>
+                                      </div>
+                                    )}
                                     {(prescription.rxConfig.lensType === "TINTED" || prescription.rxConfig.lensBundle === "SUNGLASSES_TINT" || prescription.rxConfig.lensBundle === "SUNGLASSES_GRADIENT") && (
                                       <>
                                         <div>

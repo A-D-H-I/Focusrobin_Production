@@ -238,6 +238,7 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
                 quality={85}
                 priority
                 fetchPriority="high"
+                unoptimized
               />
             </div>
           </div>
@@ -261,6 +262,7 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
                     sizes="(min-width: 1024px) 25vw, 50vw"
                     quality={85}
                     loading="lazy"
+                    unoptimized
                   />
                 </div>
               </div>
@@ -325,6 +327,7 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
                 sizes="100vw"
                 quality={90}
                 priority
+                unoptimized
               />
             </div>
           </div>
@@ -359,6 +362,7 @@ export default function ProductGalleryDesktopStack({ product, selectedVariant }:
                         className="object-cover"
                         sizes="80px"
                         quality={60}
+                        unoptimized
                       />
                     </div>
                     {/* Active Indicator */}

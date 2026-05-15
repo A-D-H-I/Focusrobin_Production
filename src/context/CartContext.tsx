@@ -482,12 +482,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
           const productMatch = item.product.id === product.id && item.variant.hex === variant.hex;
           if (!productMatch) return false;
           
-          // Check prescription data match using deep comparison
-          if (prescriptionData) {
-            return item.prescriptionData && isPrescriptionDataEqual(item.prescriptionData, prescriptionData);
+          // NEVER merge items if they have prescription data. Each prescription is a unique pair.
+          if (prescriptionData || item.prescriptionData) {
+            return false;
           } else {
             // No prescription - match items without prescription
-            return !item.prescriptionData;
+            return true;
           }
         }
       );

@@ -27,7 +27,8 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   const [selectedColor, setSelectedColor] = useState(product.variants[0]?.hex || '#000000');
   const [internalSelectedVariant, setInternalSelectedVariant] = useState(product.variants[0]);
   const selectedVariant = externalSelectedVariant || internalSelectedVariant;
-  const showTryOn = (product.brand || 'FocusRobin').trim().toLowerCase() === 'focusrobin';
+  const isFocusRobin = (product.brand || 'FocusRobin').trim().toLowerCase() === 'focusrobin';
+  const showTryOn = isFocusRobin;
   const [quantity, setQuantity] = useState(1);
   const [prescriptionData, setPrescriptionData] = useState<any>(null);
 
@@ -266,33 +267,35 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
         </span>
       </div>
 
-      {/* Color Selection */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-base font-medium">
-            <TranslatableText text="Color" />: {selectedVariant?.name || 'Default'}
-          </span>
+      {/* Color Selection - Only for FocusRobin products */}
+      {isFocusRobin && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-base font-medium">
+              <TranslatableText text="Color" />: {selectedVariant?.name || 'Default'}
+            </span>
+          </div>
+          <div className="flex gap-2 p-1">
+            {product.variants.map((variant, idx) => (
+              <button
+                key={`color-${idx}-${variant.name}`}
+                onClick={() => handleColorSelect(variant)}
+                className={cn(
+                  "w-8 h-8 rounded-full border-2 transition-all bg-cover bg-center",
+                  selectedColor === variant.hex
+                    ? "border-foreground scale-110 shadow-md ring-1 ring-offset-1 ring-primary/50"
+                    : "border-border hover:border-muted-foreground hover:scale-105"
+                )}
+                style={{
+                  backgroundColor: variant.hex,
+                  backgroundImage: variant.textureImageUrl ? `url(${variant.textureImageUrl})` : undefined
+                }}
+                title={variant.name}
+              />
+            ))}
+          </div>
         </div>
-        <div className="flex gap-2 p-1">
-          {product.variants.map((variant, idx) => (
-            <button
-              key={`color-${idx}-${variant.name}`}
-              onClick={() => handleColorSelect(variant)}
-              className={cn(
-                "w-8 h-8 rounded-full border-2 transition-all bg-cover bg-center",
-                selectedColor === variant.hex
-                  ? "border-foreground scale-110 shadow-md ring-1 ring-offset-1 ring-primary/50"
-                  : "border-border hover:border-muted-foreground hover:scale-105"
-              )}
-              style={{
-                backgroundColor: variant.hex,
-                backgroundImage: variant.textureImageUrl ? `url(${variant.textureImageUrl})` : undefined
-              }}
-              title={variant.name}
-            />
-          ))}
-        </div>
-      </div>
+      )}
 
       {/* Features Grid - Combined with Warranty and Fast Delivery */}
       <div className="rounded-lg border bg-muted/30 p-2.5 sm:p-3 overflow-hidden">

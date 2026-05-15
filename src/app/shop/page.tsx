@@ -5,18 +5,15 @@ import { mapPrismaProductToProduct } from "@/lib/prisma-product-mapper";
 import ShopPageClient from "./ShopPageClient";
 import { Gender } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
-import { unstable_noStore as noStore } from 'next/cache';
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import { calculateRetailPrice } from "@/lib/price-utils";
 import { getPriceRange } from "@/app/actions/getPriceRange";
-import { getAvailableGlassShapes } from "@/app/actions/getAvailableGlassShapes";
+import type { Product, ProductColorVariant } from "@/lib/productData";
 import { getAvailableGenderCounts } from "@/app/actions/getAvailableGenderCounts";
-import { getAvailableMaterials } from "@/app/actions/getAvailableMaterials";
-import { getAvailableFrameColors } from "@/app/actions/getAvailableColors";
 import { getAvailableBrands, type AvailableBrand } from "@/app/actions/getAvailableBrands";
 
-// Force dynamic rendering to ensure filters work properly
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+// ISR: Cache shop pages for 5 minutes, rebuilt in the background after expiry
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Shop Sunglasses & Prescription Glasses Online | FocusRobin Lithuania',
@@ -78,8 +75,6 @@ interface ShopPageProps {
 }
 
 export default async function ShopPage({ searchParams }: ShopPageProps) {
-  // Prevent caching to ensure filters always work
-  noStore();
 
   // Await searchParams (required in Next.js 15)
   const params = await searchParams;
@@ -379,10 +374,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   const [
     prismaProductsResult,
     priceRange,
-    glassShapes,
     genderCounts,
-    materials,
-    colors,
     sgBrands
   ] = await Promise.all([
     prisma.product.findMany({
@@ -430,13 +422,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       orderBy: {
         createdAt: 'desc',
       },
-      take: 100, // Safety limit
     }),
     getPriceRange(),
-    getAvailableGlassShapes(),
     getAvailableGenderCounts(),
-    getAvailableMaterials(),
-    getAvailableFrameColors(),
     getAvailableBrands('sunglasses'),
   ]);
 
@@ -450,16 +438,8 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     const maxPrice = maxPriceParam ? parseFloat(maxPriceParam) : undefined;
 
     prismaProducts = prismaProducts.filter((product: any) => {
-      const isFocusRobin = (product.brand || '').trim().toLowerCase() === 'focusrobin';
       const rawBasePrice = Number(product.basePrice);
-
-      let basePrice = rawBasePrice;
-      if (!isFocusRobin && rawBasePrice > 0) {
-        let priceWithMargin = (rawBasePrice * 1.10) + 13.5;
-        priceWithMargin = priceWithMargin * 1.21;
-        priceWithMargin = priceWithMargin * 1.015;
-        basePrice = priceWithMargin;
-      }
+      const basePrice = calculateRetailPrice(rawBasePrice, product.brand || 'FocusRobin');
 
       const discountPct = product.discountPct || 0;
       const finalPrice = basePrice * (1 - discountPct / 100);
@@ -498,9 +478,152 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
   }
 
   // Map Prisma products to frontend Product type
-  const products = prismaProducts.map(mapPrismaProductToProduct);
+  let products = prismaProducts.map(mapPrismaProductToProduct);
 
-  // Products are already sorted by createdAt desc, which shows recently added first
+  // When searching, also include prescription glasses results
+  if (searchQuery && searchQuery.trim()) {
+    const searchTerm = searchQuery.trim();
+    const prescriptionResults = await prisma.prescriptionGlasses.findMany({
+      where: {
+        OR: [
+          {
+            name: {
+              contains: searchTerm,
+              mode: 'insensitive' as Prisma.QueryMode,
+            },
+          },
+          {
+            description: {
+              contains: searchTerm,
+              mode: 'insensitive' as Prisma.QueryMode,
+            },
+          },
+          {
+            Category: {
+              name: {
+                contains: searchTerm,
+                mode: 'insensitive' as Prisma.QueryMode,
+              },
+            },
+          },
+          {
+            PrescriptionGlassesVariant: {
+              some: {
+                name: {
+                  contains: searchTerm,
+                  mode: 'insensitive' as Prisma.QueryMode,
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        PrescriptionGlassesVariant: {
+          include: {
+            PrescriptionGlassesAsset: true,
+          },
+        },
+        Category: true,
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 50,
+    });
+
+    // Map prescription glasses to the same Product interface
+    const prescriptionProducts: Product[] = prescriptionResults.map((p: any) => {
+      const variants: ProductColorVariant[] = p.PrescriptionGlassesVariant.map((v: any) => {
+        const assets = v.PrescriptionGlassesAsset;
+        // Prefer GALLERY, fall back to NO_BG (BigBuy products only have NO_BG assets)
+        const thumbnail =
+          assets.find((a: any) => a.type === 'GALLERY' && a.isPrimary)?.url ||
+          assets.find((a: any) => a.type === 'GALLERY')?.url ||
+          assets.find((a: any) => a.type === 'NO_BG' && a.isPrimary)?.url ||
+          assets.find((a: any) => a.type === 'NO_BG')?.url ||
+          assets[0]?.url || '';
+        const tilted = assets.find((a: any) => a.type === 'HOVER')?.url || '';
+        const nobg = assets.find((a: any) => a.type === 'NO_BG')?.url;
+        const tryOn = assets.find((a: any) => a.type === 'TRY_ON_2D')?.url;
+        const galleryImages = assets.filter((a: any) => a.type === 'GALLERY').map((a: any) => a.url);
+        const allImages = galleryImages.length > 0
+          ? galleryImages
+          : assets.filter((a: any) => a.type === 'NO_BG').map((a: any) => a.url);
+
+        return {
+          name: v.name,
+          hex: v.colorHex,
+          sku: v.sku,
+          stock: v.stock,
+          thumbnail: normalizeImageUrl(thumbnail),
+          tilted: normalizeImageUrl(tilted),
+          nobg: nobg ? normalizeImageUrl(nobg) : undefined,
+          images: allImages.map(normalizeImageUrl),
+          tryOn: tryOn ? normalizeImageUrl(tryOn) : undefined,
+          textureImageUrl: v.textureImageUrl ? normalizeImageUrl(v.textureImageUrl) : undefined,
+        };
+      });
+
+      const isFocusRobin = (p.brand || '').trim().toLowerCase() === 'focusrobin';
+      const rawBase = Number(p.basePrice);
+      let effectiveBase = rawBase;
+      if (!isFocusRobin && rawBase > 0) {
+        let pm = (rawBase * 1.10) + 13.5;
+        pm = pm * 1.21;
+        pm = pm * 1.015;
+        effectiveBase = pm;
+      }
+      const discountPctFromDb = p.discountPct || 0;
+      const finalPriceVal = discountPctFromDb > 0 
+        ? effectiveBase * (1 - discountPctFromDb / 100)
+        : effectiveBase;
+
+      const originalPriceValue = finalPriceVal * 1.30;
+      const originalPrice = `€${originalPriceValue.toFixed(2)}`;
+      const computedDiscountPct = undefined; // User requested to hide percentage badge
+
+      return {
+        id: p.id,
+        slug: p.slug,
+        name: p.name,
+        brand: p.brand || '',
+        price: `€${finalPriceVal.toFixed(2)}`,
+        originalPrice: originalPrice && originalPrice !== `€${finalPriceVal.toFixed(2)}` ? originalPrice : undefined,
+        discountPct: computedDiscountPct,
+        cashback: Number(p.cashbackAmount).toFixed(2),
+        variants: variants,
+        categories: [p.Category.name],
+        description: p.description || '',
+        lensMaterial: p.lensMaterial || undefined,
+        frameMaterial: p.frameMaterial || undefined,
+        uvProtection: p.uvProtection || undefined,
+        averageRating: p.averageRating,
+        reviewCount: p.reviewCount,
+        size: {
+          lensWidth: p.lensWidth.toString(),
+          bridge: p.bridgeWidth.toString(),
+          temple: p.templeLength.toString()
+        },
+        weight: p.weightBg,
+        frameWidth: p.frameWidth,
+        lensHeight: p.lensHeight,
+        bridgeWidth: p.bridgeWidth,
+        templeLength: p.templeLength,
+        isPolarized: p.isPolarized ?? true,
+        isUVProtection: p.isUVProtection ?? true,
+        isHydrophobic: p.isHydrophobic ?? true,
+        isAntiScratch: p.isAntiScratch ?? false,
+        isBioBased: p.isBioBased ?? true,
+        customFeatures: p.customFeatures || []
+      } as any;
+    });
+
+    // Merge: add prescription glasses that aren't already in the results (by id)
+    const existingIds = new Set(products.map((p: any) => p.id));
+    const uniquePrescriptionProducts = prescriptionProducts.filter(p => !existingIds.has(p.id));
+    products = [...products, ...uniquePrescriptionProducts];
+  }
 
   // Determine page title based on filter
   let pageTitle = "All Products";
@@ -570,10 +693,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           title={pageTitle}
           searchQuery={searchQuery}
           priceRange={priceRange}
-          glassShapes={glassShapes}
           genderCounts={genderCounts}
-          materials={materials}
-          colors={colors}
           brands={brands}
         />
 

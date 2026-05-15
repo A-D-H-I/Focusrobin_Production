@@ -2,7 +2,8 @@
 
 import { prisma } from '@/lib/prisma';
 import { Gender, AssetType } from '@prisma/client';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { calculateRetailPrice, calculateFinalPrice } from '@/lib/price-utils';
 import { requireAdmin, safeAction } from "@/lib/security";
 import { z } from "zod";
 import { deleteFromS3 } from '@/lib/s3';
@@ -306,6 +307,10 @@ export async function createPrescriptionGlasses(formData: FormData) {
         description: validation.data.description || null,
         basePrice: validation.data.basePrice,
         compareAtPrice: (validation.data as any).compareAtPrice ?? null,
+        calculatedRetailPrice: calculateFinalPrice(
+          calculateRetailPrice(validation.data.basePrice, validation.data.brand ?? 'FocusRobin'),
+          validation.data.discountPct || 0
+        ),
         discountPct: validation.data.discountPct || 0,
         cashbackAmount: validation.data.cashbackAmount || 0,
         linkedProductId: linkedProductId,
@@ -412,6 +417,13 @@ export async function createPrescriptionGlasses(formData: FormData) {
 
     revalidatePath('/shop/prescription-glasses');
     revalidatePath('/admin/prescription-glasses');
+    revalidateTag('products');
+    revalidateTag('prices');
+    revalidateTag('shapes');
+    revalidateTag('brands');
+    revalidateTag('materials');
+    revalidateTag('colors');
+    revalidateTag('genders');
 
     return { success: true, prescriptionGlassesId: prescriptionGlasses.id };
   });
@@ -477,6 +489,13 @@ export async function deletePrescriptionGlasses(id: string) {
 
     revalidatePath('/shop/prescription-glasses');
     revalidatePath('/admin/prescription-glasses');
+    revalidateTag('products');
+    revalidateTag('prices');
+    revalidateTag('shapes');
+    revalidateTag('brands');
+    revalidateTag('materials');
+    revalidateTag('colors');
+    revalidateTag('genders');
 
     return { success: true };
   });
@@ -611,6 +630,10 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
         description,
         basePrice,
         compareAtPrice: compareAtPriceUpdate,
+        calculatedRetailPrice: calculateFinalPrice(
+          calculateRetailPrice(basePrice, brand),
+          discountPct
+        ),
         discountPct,
         cashbackAmount,
         linkedProductId,
@@ -761,6 +784,13 @@ export async function updatePrescriptionGlasses(id: string, formData: FormData) 
     revalidatePath('/shop/prescription-glasses');
     revalidatePath('/admin/prescription-glasses');
     revalidatePath(`/shop/${slug}`);
+    revalidateTag('products');
+    revalidateTag('prices');
+    revalidateTag('shapes');
+    revalidateTag('brands');
+    revalidateTag('materials');
+    revalidateTag('colors');
+    revalidateTag('genders');
 
     return { success: true };
   });

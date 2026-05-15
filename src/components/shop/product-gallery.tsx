@@ -156,6 +156,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
                 className="object-cover"
                 sizes="(max-width: 768px) 80px, 160px"
                 loading={index === 0 ? "eager" : "lazy"}
+                unoptimized
               />
             </div>
           ))}
@@ -179,6 +180,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
                   className="object-contain"
                   sizes="(max-width: 768px) 100vw, 50vw"
                   quality={85}
+                  unoptimized
                 />
               </div>
             ) : (
@@ -245,6 +247,7 @@ export default function ProductGallery({ product, selectedVariant }: ProductGall
                 sizes="100vw"
                 quality={100}
                 priority
+                unoptimized
               />
             </div>
           </div>

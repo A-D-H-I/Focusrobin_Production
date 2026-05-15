@@ -433,7 +433,7 @@ export default function CartPage() {
                           {formatPrice(total)}
                         </span>
                       </div>
-                      <Link href="/checkout" prefetch={true} className="block">
+                      <Link href="/checkout" prefetch={true} scroll={true} className="block">
                         <Button
                           size="lg"
                           className="w-full bg-brand-teal text-white hover:bg-brand-teal/90 font-semibold py-3.5 text-base disabled:opacity-50 disabled:cursor-not-allowed"
@@ -546,7 +546,7 @@ export default function CartPage() {
                           </div>
                         </div>
                       )}
-                      <Link href="/checkout" prefetch={true} className="block">
+                      <Link href="/checkout" prefetch={true} scroll={true} className="block">
                         <Button
                           size="lg"
                           className="w-full bg-brand-teal text-white hover:bg-brand-teal/90 font-semibold py-6 text-lg disabled:opacity-50 disabled:cursor-not-allowed"

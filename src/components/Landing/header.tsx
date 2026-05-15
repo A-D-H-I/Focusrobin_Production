@@ -372,7 +372,7 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
     return () => clearTimeout(timer);
   }, [isSidebarOpen]);
 
-  // Debounced search suggestions - reduced delay for faster response
+  // Debounced search suggestions with AbortController to cancel stale requests
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) {
       setSearchSuggestions([]);
@@ -385,22 +385,34 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
     setIsLoadingSuggestions(true);
     setShowSuggestions(true);
 
+    // AbortController cancels the previous in-flight request when the user types again
+    const abortController = new AbortController();
+
     const timeoutId = setTimeout(async () => {
       try {
         const response = await fetch(`/api/search/suggestions?q=${encodeURIComponent(searchQuery.trim())}`, {
-          cache: 'no-store', // Prevent caching for fresh results
+          cache: 'no-store',
+          signal: abortController.signal,
         });
         const data = await response.json();
         setSearchSuggestions(data.suggestions || []);
-      } catch (error) {
-        console.error('Error fetching suggestions:', error);
-        setSearchSuggestions([]);
+      } catch (error: any) {
+        // Don't log abort errors — they are expected when the user types fast
+        if (error?.name !== 'AbortError') {
+          console.error('Error fetching suggestions:', error);
+          setSearchSuggestions([]);
+        }
       } finally {
-        setIsLoadingSuggestions(false);
+        if (!abortController.signal.aborted) {
+          setIsLoadingSuggestions(false);
+        }
       }
-    }, 150); // Reduced to 150ms for faster response
+    }, 300); // 300ms debounce — balances responsiveness vs DB load
 
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      abortController.abort();
+    };
   }, [searchQuery]);
 
   // Close suggestions when clicking outside
@@ -432,8 +444,11 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
       } catch (trackError) {
         console.error('[Header] Meta Pixel tracking error:', trackError);
       }
-      // Navigate to shop page with search query
-      window.location.href = `/shop?search=${encodeURIComponent(searchQuery.trim())}`;
+      // Navigate to shop page with search query, preserving the current category context
+      const searchBasePath = pathname?.includes('/prescription-glasses')
+        ? '/shop/prescription-glasses'
+        : '/shop';
+      window.location.href = `${searchBasePath}?search=${encodeURIComponent(searchQuery.trim())}`;
     }
   };
 
@@ -1190,7 +1205,7 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
 
                       {/* Search Suggestions Dropdown - Mobile */}
                       {showSuggestions && (searchSuggestions.length > 0 || isLoadingSuggestions) && (
-                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-border rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-border rounded-lg shadow-lg z-[200] max-h-96 overflow-y-auto">
                           {isLoadingSuggestions ? (
                             <div className="p-4 text-center text-muted-foreground">
                               <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
@@ -1356,24 +1371,6 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
                                       <TranslatableText text="New Arrivals" />
                                     </Link>
 
-                                    {/* Shop By Shape - Sunglasses */}
-                                    <div className="pt-4 pb-1 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                                      <TranslatableText text="Shop by Shape" />
-                                    </div>
-                                    {sunglassesShapes.length > 0 && sunglassesShapes.map((shape) => (
-                                      <Link
-                                        key={shape.shape}
-                                        href={`/shop?glassShape=${encodeURIComponent(shape.shape.toLowerCase().replace(/\s+/g, "-"))}`}
-                                        className="block text-lg hover:text-primary transition-colors text-foreground py-1 pl-2"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setIsSidebarOpen(false);
-                                        }}
-                                      >
-                                        <TranslatableText text={shape.shape} />
-                                      </Link>
-                                    ))}
-
                                     {/* Shop By Brand - Sunglasses */}
                                     {sunglassesBrands.length > 0 && (
                                       <>
@@ -1460,24 +1457,6 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
                                     }}>
                                       <TranslatableText text="New Arrivals" />
                                     </Link>
-
-                                    {/* Shop By Shape - Eyeglasses */}
-                                    <div className="pt-4 pb-1 text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                                      <TranslatableText text="Shop by Shape" />
-                                    </div>
-                                    {eyeglassesShapes.length > 0 && eyeglassesShapes.map((shape) => (
-                                      <Link
-                                        key={shape.shape}
-                                        href={`/shop/prescription-glasses?glassShape=${encodeURIComponent(shape.shape.toLowerCase().replace(/\s+/g, "-"))}`}
-                                        className="block text-lg hover:text-primary transition-colors text-foreground py-1 pl-2"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setIsSidebarOpen(false);
-                                        }}
-                                      >
-                                        <TranslatableText text={shape.shape} />
-                                      </Link>
-                                    ))}
 
                                     {/* Shop By Brand - Eyeglasses */}
                                     {eyeglassesBrands.length > 0 && (

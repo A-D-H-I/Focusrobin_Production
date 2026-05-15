@@ -58,6 +58,26 @@ export interface InvoiceData {
 }
 
 /**
+ * Helper to sanitize text for PDF-Lib standard fonts (WinAnsi encoding)
+ * Removes diacritics/accents from characters (e.g., 'č' -> 'c')
+ */
+const sanitizeText = (text: string | null | undefined): string => {
+  if (!text) return '';
+  // Convert characters with diacritics to base characters and remove the combining marks
+  // Additionally, replace unsupported characters with their closest ASCII equivalent or strip them
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    // Replace smart quotes and other common unsupported characters
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/[\u2026]/g, '...')
+    // Remove any remaining non-ASCII characters that aren't common punctuation
+    .replace(/[^\x20-\x7E\xA0-\xFF]/g, '');
+};
+
+/**
  * Generate PDF Invoice matching the new template design
  * Single page invoice with dark blue/yellow theme, no discounts shown
  */
@@ -142,7 +162,7 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       font: helveticaBold,
       color: blackColor,
     });
-    page.drawText(invoiceData.orderNumber, {
+    page.drawText(sanitizeText(invoiceData.orderNumber), {
       x: 150,
       y: yPos,
       size: 11,
@@ -183,26 +203,26 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
 
     // Add business info first if it's a business purchase
     if (invoiceData.isBusinessPurchase && invoiceData.businessName) {
-      billingLines.push(invoiceData.businessName);
+      billingLines.push(sanitizeText(invoiceData.businessName));
       if (invoiceData.businessNumber) {
-        billingLines.push(`Reg. No: ${invoiceData.businessNumber}`);
+        billingLines.push(`Reg. No: ${sanitizeText(invoiceData.businessNumber)}`);
       }
       if (invoiceData.vatNumber) {
-        billingLines.push(`VAT: ${invoiceData.vatNumber}`);
+        billingLines.push(`VAT: ${sanitizeText(invoiceData.vatNumber)}`);
       }
     }
 
     // Add customer name and address
-    billingLines.push(invoiceData.customerName);
-    billingLines.push(invoiceData.shippingAddress.addressLine1);
+    billingLines.push(sanitizeText(invoiceData.customerName));
+    billingLines.push(sanitizeText(invoiceData.shippingAddress.addressLine1));
     if (invoiceData.shippingAddress.addressLine2) {
-      billingLines.push(invoiceData.shippingAddress.addressLine2);
+      billingLines.push(sanitizeText(invoiceData.shippingAddress.addressLine2));
     }
-    billingLines.push(`${invoiceData.shippingAddress.city}, ${invoiceData.shippingAddress.postalCode}`);
+    billingLines.push(`${sanitizeText(invoiceData.shippingAddress.city)}, ${sanitizeText(invoiceData.shippingAddress.postalCode)}`);
     if (invoiceData.shippingAddress.state) {
-      billingLines.push(invoiceData.shippingAddress.state);
+      billingLines.push(sanitizeText(invoiceData.shippingAddress.state));
     }
-    billingLines.push(invoiceData.shippingAddress.country);
+    billingLines.push(sanitizeText(invoiceData.shippingAddress.country));
 
     billingLines.forEach((line) => {
       page.drawText(line, {
@@ -272,7 +292,9 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
     invoiceData.items.forEach((item, index) => {
       const isEven = index % 2 === 0;
       const rowColor = isEven ? lightGray : whiteColor;
-      const rowHeight = 35;
+      const hasRx = item.hasPrescription && item.prescriptionData?.rxConfig?.lensBundle;
+      const rowHeight = hasRx ? 45 : 35;
+      const centerY = yPos - (rowHeight / 2) - 3; // Approx vertical center for text
 
       // Draw row background
       page.drawRectangle({
@@ -286,7 +308,7 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       // Item number
       page.drawText((index + 1).toString(), {
         x: 60,
-        y: yPos - 20, // Adjusted vertical center approx
+        y: centerY,
         size: 10,
         font: helvetica,
         color: blackColor,
@@ -297,7 +319,7 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       const skuText = item.sku ? ` (${item.sku})` : '';
 
       // Line 1: Product Name + Variant + SKU
-      const mainDescription = `${item.name}${colorText}${skuText}`;
+      const mainDescription = sanitizeText(`${item.name}${colorText}${skuText}`);
       const displayMain = mainDescription.length > 45 ? mainDescription.substring(0, 45) + '...' : mainDescription;
 
       page.drawText(displayMain, {
@@ -308,28 +330,39 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
         color: blackColor,
       });
 
-      // Line 2: Lens Info (if applicable)
-      if (item.hasPrescription && item.prescriptionData?.rxConfig?.lensBundle) {
+      // Line 2 & 3: Lens Info (if applicable)
+      if (hasRx) {
         const lensDesc = getFriendlyLensDescription(item.prescriptionData.rxConfig);
         if (lensDesc) {
-          // Prepend "Prescription: "
-          const fullLensDesc = `Prescription: ${lensDesc}`;
-          // Shorten lens desc if needed
-          const displayLens = fullLensDesc.length > 65 ? fullLensDesc.substring(0, 65) + '...' : fullLensDesc;
-          page.drawText(displayLens, {
+          const parts = lensDesc.split(' - ');
+          const topPart = `Rx: ${parts[0]}`;
+          const bottomPart = parts.slice(1).join(' - ');
+
+          page.drawText(topPart.length > 70 ? topPart.substring(0, 70) + '...' : topPart, {
             x: 120,
             y: yPos - 26,
             size: 9, // Smaller font for detail
             font: helvetica,
             color: rgb(0.3, 0.3, 0.3), // Dark gray
           });
+
+          if (bottomPart) {
+            const displayBottom = bottomPart.length > 80 ? bottomPart.substring(0, 80) + '...' : bottomPart;
+            page.drawText(displayBottom, {
+              x: 120,
+              y: yPos - 36,
+              size: 8, // Even smaller for description
+              font: helvetica,
+              color: rgb(0.4, 0.4, 0.4),
+            });
+          }
         }
       }
 
       // Price
       page.drawText(`${invoiceData.currency} ${item.price.toFixed(2)}`, {
         x: 350,
-        y: yPos - 20,
+        y: centerY,
         size: 10,
         font: helvetica,
         color: blackColor,
@@ -338,7 +371,7 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       // Quantity
       page.drawText(item.quantity.toString(), {
         x: 420,
-        y: yPos - 20,
+        y: centerY,
         size: 10,
         font: helvetica,
         color: blackColor,
@@ -347,7 +380,7 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
       // Total
       page.drawText(`${invoiceData.currency} ${item.total.toFixed(2)}`, {
         x: 480,
-        y: yPos - 20,
+        y: centerY,
         size: 10,
         font: helvetica,
         color: blackColor,
@@ -436,7 +469,7 @@ export async function generateInvoicePDF(invoiceData: InvoiceData): Promise<Buff
     });
 
     yPos -= 20;
-    page.drawText(invoiceData.paymentMethod || 'Online Payment', {
+    page.drawText(sanitizeText(invoiceData.paymentMethod) || 'Online Payment', {
       x: 50,
       y: yPos,
       size: 10,

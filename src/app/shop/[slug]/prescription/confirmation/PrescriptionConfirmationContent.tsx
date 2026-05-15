@@ -53,14 +53,16 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
     }
 
     // Otherwise, calculate it from rxConfig (Fallback)
-    const bundlePrice = getBundlePrice(rxConfig.lensBundle);
+    const baseBundlePrice = getBundlePrice(rxConfig.lensBundle);
+    const bundlePrice = rxConfig.powerCategory === 'HIGH' ? baseBundlePrice * 2 : baseBundlePrice;
+    const thicknessPrice = rxConfig.lensThickness === 'THINNER' ? 60 : 0;
 
     // Calculate totals
-    const rxRetailNet = bundlePrice;
+    const rxRetailNet = bundlePrice + thicknessPrice;
     const totalNet = framePrice + rxRetailNet;
 
     return {
-      lensesPair: bundlePrice,
+      lensesPair: bundlePrice + thicknessPrice,
       edgingFee: 0,
       profit: 0, // Bundled price logic
       rxRetailNet,
@@ -281,9 +283,7 @@ export default function PrescriptionConfirmationContent({ product, productSlug }
         sessionStorage.setItem(sessionKey, JSON.stringify(fullData));
       }
 
-      if (typeof window !== 'undefined') {
-        window.location.href = '/cart';
-      }
+      router.push('/cart');
     } catch (error) {
       console.error('[CONFIRMATION] Error adding to cart:', error);
       setIsAddingToCart(false);

@@ -945,7 +945,8 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                                 </TableHeader>
                                 <TableBody>
                                   {user.cart.items.map((item: any) => {
-                                    const product = item.Product;
+                                    const product = item.Product || item.PrescriptionGlasses;
+                                    const isPrescription = !item.Product && !!item.PrescriptionGlasses;
 
                                     if (!product) {
                                       return (
@@ -968,7 +969,8 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                                       );
                                     }
 
-                                    const variant = product.ProductVariant?.find((v: any) => v.id === item.variantId);
+                                    const variants = isPrescription ? product.PrescriptionGlassesVariant : product.ProductVariant;
+                                    const variant = variants?.find((v: any) => v.id === item.variantId);
                                     const price = Number(product.basePrice);
                                     const hasPrescription = !!item.prescriptionData;
                                     const rxData = item.prescriptionData;
@@ -1181,7 +1183,8 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                               </h3>
                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {user.wishlist.map((wishlistItem: any) => {
-                                  const product = wishlistItem.Product;
+                                  const product = wishlistItem.Product || wishlistItem.PrescriptionGlasses;
+                                  const isPrescription = !wishlistItem.Product && !!wishlistItem.PrescriptionGlasses;
 
                                   if (!product) {
                                     return (
@@ -1205,8 +1208,10 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                                     );
                                   }
 
-                                  const variant = product.ProductVariant?.[0];
-                                  const asset = variant?.ProductAsset?.find((a: any) => a.type === 'GALLERY') || variant?.ProductAsset?.[0];
+                                  const variants = isPrescription ? product.PrescriptionGlassesVariant : product.ProductVariant;
+                                  const variant = variants?.[0];
+                                  const assets = isPrescription ? variant?.PrescriptionGlassesAsset : variant?.ProductAsset;
+                                  const asset = assets?.find((a: any) => a.type === 'GALLERY') || assets?.[0];
                                   return (
                                     <div key={wishlistItem.id} className="border rounded-lg p-3">
                                       <div className="flex items-center gap-3">

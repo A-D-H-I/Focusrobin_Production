@@ -106,27 +106,27 @@ export const LENS_BUNDLE_LABELS: Record<LensBundle, string> = {
 // Bundle Details (Description + Best For + Features)
 export const LENS_BUNDLE_DETAILS: Record<LensBundle, { description: string; bestFor: string; features: string[] }> = {
   BASIC: {
-    description: "1.60 Thinner Lens. Includes AR multicoat to reduce reflections.",
+    description: "Includes AR multicoat to reduce reflections.",
     bestFor: "Everyday indoor use.",
     features: ["Anti-Reflective", "Scratch Resistant", "Water Resistant"],
   },
   BLUE_FILTER: {
-    description: "1.60 Thinner Lens with Blue 420 filter + premium AR.",
+    description: "Includes Blue 420 filter + premium AR.",
     bestFor: "Screen use and digital protection.",
     features: ["Blue Light Filter", "Premium Anti-Reflective", "Scratch Resistant", "Smudge/Water Resistant"],
   },
   PHOTOCHROMIC: {
-    description: "1.56 Standard Lens (Organic Foto). Clear indoors, dark outdoors. Includes AR multicoat.",
+    description: "Clear indoors, dark outdoors. Includes AR multicoat.",
     bestFor: "Indoor/outdoor lifestyle.",
     features: ["Light Adaptive", "Anti-Reflective", "Scratch Resistant", "UV Protection"],
   },
   SUNGLASSES_TINT: {
-    description: "1.60 Thinner Lens with 85% full tint + UV protection.",
+    description: "Includes 85% full tint + UV protection.",
     bestFor: "Bright sunny days.",
-    features: ["Full Sun Tint", "100% UV Protection", "Scratch Resistant", "Thin & Light"],
+    features: ["Full Sun Tint", "100% UV Protection", "Scratch Resistant"],
   },
   SUNGLASSES_GRADIENT: {
-    description: "1.60 Thinner Lens with gradient tint (Dark top → Light bottom) + Clarus II inside coating.",
+    description: "Includes gradient tint (Dark top to Light bottom) + Clarus II inside coating.",
     bestFor: "Driving and fashion.",
     features: ["Gradient Tint", "Backside Anti-Reflective", "Scratch Resistant", "UV Protection"],
   },
@@ -234,13 +234,28 @@ export function getFriendlyLensDescription(selection: Partial<LensSelection> | s
   const label = LENS_BUNDLE_LABELS[bundle as LensBundle];
   const details = LENS_BUNDLE_DETAILS[bundle as LensBundle];
 
-  // Extract "1.60 Thinner Lens" part from description (usually the first sentence/part)
   const lensTypeDesc = details.description.split('.')[0] || details.description;
 
+  let thicknessText = "";
   let description = `${label} - ${lensTypeDesc}`;
 
-  // IF object input, append color details
+  // IF object input, append color details and thickness
   if (typeof selection === 'object' && selection !== null) {
+    // Lens Thickness
+    const standardIndex = bundle === "PHOTOCHROMIC" ? "1.56" : "1.60";
+    const lensThickness = (selection as any).lensThickness;
+    
+    if (lensThickness === "THINNER") {
+      thicknessText = "Thinner Lens - ";
+    } else if (lensThickness === "STANDARD") {
+      thicknessText = `${standardIndex} Standard Lens - `;
+    }
+
+    // Rewrite description if thickness is available
+    if (thicknessText) {
+      description = `${label} | ${thicknessText}${lensTypeDesc}`;
+    }
+
     // Photochromic Color
     if (bundle === "PHOTOCHROMIC" && selection.photochromicColor) {
       description += ` (${selection.photochromicColor})`;

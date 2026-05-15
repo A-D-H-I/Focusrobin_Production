@@ -8,6 +8,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Eye, Edit, Plus, Search } from 'lucide-react';
 import { DeleteProductButton } from '@/components/admin/DeleteProductButton';
 import { Input } from '@/components/ui/input';
+import { CSVImportPanel } from '@/components/admin/CSVImportPanel';
+import { BigBuySyncButtons } from '@/components/admin/BigBuySyncButtons';
 import {
   Select,
   SelectContent,
@@ -184,6 +186,17 @@ export function AdminProductListClient({ products, prismaProducts }: { products:
               Add New Product
             </Button>
           </Link>
+        </div>
+
+        {/* BigBuy Sync Buttons — always visible */}
+        <BigBuySyncButtons />
+
+        {/* BigBuy CSV Import Panel (collapsible) */}
+        <div className="mb-6">
+          <CSVImportPanel
+            categoryType="SUNGLASSES"
+            onImportComplete={() => window.location.reload()}
+          />
         </div>
 
         {/* Filters and Search */}

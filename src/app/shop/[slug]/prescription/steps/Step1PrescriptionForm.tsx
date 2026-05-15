@@ -18,12 +18,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ArrowLeft, Upload, ArrowRight, HelpCircle, Loader2, CheckCircle, X } from "lucide-react";
-import type { PrescriptionData } from "@/types/prescription";
+import type { PrescriptionData, RxConfigData } from "@/types/prescription";
 import { type RxPriceResult } from "@/lib/pricing/rx167";
 import { useToast } from "@/hooks/use-toast";
 
 interface Step1PrescriptionFormProps {
   prescriptionData: PrescriptionData;
+  rxConfig?: RxConfigData;
   onDataUpdate: (data: Partial<PrescriptionData>) => void;
   onNext: () => void | Promise<void>;
   onBack: () => void;
@@ -32,17 +33,26 @@ interface Step1PrescriptionFormProps {
   formatPrice: (price: number) => string;
 }
 
-// Generate prescription values for dropdowns
-const generatePrescriptionValues = () => {
+// Generate prescription values for dropdowns based on category
+const getSphValues = (category?: 'NORMAL' | 'HIGH') => {
+  const max = category === 'NORMAL' ? 6 : 20;
   const values: string[] = [];
-  for (let i = -20; i <= 20; i += 0.25) {
+  for (let i = -max; i <= max; i += 0.25) {
     const val = i.toFixed(2);
     values.push(val.startsWith('-') ? val : `+${val}`);
   }
   return values;
 };
 
-const prescriptionValues = generatePrescriptionValues();
+const getCylValues = () => {
+  const max = 10;
+  const values: string[] = [];
+  for (let i = -max; i <= max; i += 0.25) {
+    const val = i.toFixed(2);
+    values.push(val.startsWith('-') ? val : `+${val}`);
+  }
+  return values;
+};
 const axisValues = ["0", ...Array.from({ length: 180 }, (_, i) => (i + 1).toString())]; // Include 0 as first option
 const pdValues = Array.from({ length: 100 }, (_, i) => ((i + 40) / 2).toFixed(2));
 
@@ -61,6 +71,7 @@ const verticalBaseDirections = ["UP", "DOWN"];
 
 export default function Step1PrescriptionForm({
   prescriptionData,
+  rxConfig,
   onDataUpdate,
   onNext,
   onBack,
@@ -175,6 +186,10 @@ export default function Step1PrescriptionForm({
     });
     return filled;
   }, [hasPdfUploaded, prescriptionData.hasTwoPDs, prescriptionData.pd, prescriptionData.pdOd, prescriptionData.pdOs]);
+
+  // Generate values based on selected category
+  const sphValues = useMemo(() => getSphValues(rxConfig?.powerCategory), [rxConfig?.powerCategory]);
+  const cylValues = useMemo(() => getCylValues(), []);
 
   // Debug: Log the state to help troubleshoot
   useEffect(() => {
@@ -315,7 +330,7 @@ export default function Step1PrescriptionForm({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="max-h-[200px]">
-                        {prescriptionValues.map((val) => (
+                        {sphValues.map((val) => (
                           <SelectItem key={val} value={val}>
                             {val}
                           </SelectItem>
@@ -332,7 +347,7 @@ export default function Step1PrescriptionForm({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="max-h-[200px]">
-                        {prescriptionValues.map((val) => (
+                        {cylValues.map((val) => (
                           <SelectItem key={val} value={val}>
                             {val}
                           </SelectItem>
@@ -369,7 +384,7 @@ export default function Step1PrescriptionForm({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="max-h-[200px]">
-                        {prescriptionValues.map((val) => (
+                        {sphValues.map((val) => (
                           <SelectItem key={val} value={val}>
                             {val}
                           </SelectItem>
@@ -386,7 +401,7 @@ export default function Step1PrescriptionForm({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="max-h-[200px]">
-                        {prescriptionValues.map((val) => (
+                        {cylValues.map((val) => (
                           <SelectItem key={val} value={val}>
                             {val}
                           </SelectItem>
@@ -433,7 +448,7 @@ export default function Step1PrescriptionForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-[200px]">
-                      {prescriptionValues.map((val) => (
+                      {sphValues.map((val) => (
                         <SelectItem key={val} value={val}>
                           {val}
                         </SelectItem>
@@ -452,7 +467,7 @@ export default function Step1PrescriptionForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-[200px]">
-                      {prescriptionValues.map((val) => (
+                      {cylValues.map((val) => (
                         <SelectItem key={val} value={val}>
                           {val}
                         </SelectItem>
@@ -497,7 +512,7 @@ export default function Step1PrescriptionForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-[200px]">
-                      {prescriptionValues.map((val) => (
+                      {sphValues.map((val) => (
                         <SelectItem key={val} value={val}>
                           {val}
                         </SelectItem>
@@ -516,7 +531,7 @@ export default function Step1PrescriptionForm({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="max-h-[200px]">
-                      {prescriptionValues.map((val) => (
+                      {cylValues.map((val) => (
                         <SelectItem key={val} value={val}>
                           {val}
                         </SelectItem>

@@ -1,42 +1,27 @@
 /**
  * Maps Prisma PrescriptionGlasses data to frontend Product type
  */
-export function mapPrismaPrescriptionGlassesToProduct(prismaGlasses: any): any {
-  // Apply margin calculation if not FocusRobin
-  const isFocusRobin = (prismaGlasses.brand || '').trim().toLowerCase() === 'focusrobin';
-  const rawBasePrice = prismaGlasses.basePrice != null ? Number(prismaGlasses.basePrice) : 0;
+import { calculateRetailPrice } from './price-utils';
 
-  let effectiveBasePrice = rawBasePrice;
-  if (!isFocusRobin && rawBasePrice > 0) {
-    // Base Price + 10% Margin + 13.5 EUR handling + 21% VAT
-    let priceWithMargin = (rawBasePrice * 1.10) + 13.5;
-    priceWithMargin = priceWithMargin * 1.21;
-    // + 1.5% Stripe fee
-    priceWithMargin = priceWithMargin * 1.015;
-    effectiveBasePrice = priceWithMargin;
-  }
+export function mapPrismaPrescriptionGlassesToProduct(prismaGlasses: any): any {
+  // Apply margin calculation using centralized price utility
+  const rawBasePrice = prismaGlasses.basePrice != null ? Number(prismaGlasses.basePrice) : 0;
+  const effectiveBasePrice = calculateRetailPrice(rawBasePrice, prismaGlasses.brand || 'FocusRobin');
 
   const basePrice = effectiveBasePrice;
-  const discountPct = prismaGlasses.discountPct || 0;
-  const finalPrice = basePrice * (1 - discountPct / 100);
+  const discountPctFromDb = prismaGlasses.discountPct || 0;
+  const finalPrice = discountPctFromDb > 0 
+    ? basePrice * (1 - discountPctFromDb / 100)
+    : basePrice;
   const cashback = prismaGlasses.cashbackAmount ? Number(prismaGlasses.cashbackAmount) : 0;
 
-  // Determine originalPrice (crossed-out price)
-  const compareAtPriceRaw = prismaGlasses.compareAtPrice;
-  let originalPrice: string | undefined;
-  let computedDiscountPct: number | undefined = discountPct > 0 ? discountPct : undefined;
-
-  if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
-    // Use manual compare-at price directly with NO margins
-    let compareAt = Number(compareAtPriceRaw);
-    originalPrice = `€${compareAt.toFixed(2)}`;
-    
-    if (compareAt > finalPrice) {
-      computedDiscountPct = Math.round(((compareAt - finalPrice) / compareAt) * 100);
-    }
-  } else if (discountPct > 0) {
-    originalPrice = `€${basePrice.toFixed(2)}`;
-  }
+  // The original crossed-out price must be 30% higher than the final selling price
+  const originalPriceValue = finalPrice * 1.30;
+  const originalPrice = `€${originalPriceValue.toFixed(2)}`;
+  
+  // The UI discount badge will naturally show ~23%
+  // User requested: do not show the percentage badge, just the crossed out price
+  const computedDiscountPct = undefined;
 
   // Map variants
   const variants = (prismaGlasses.PrescriptionGlassesVariant || []).map((variant: any) => {

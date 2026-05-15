@@ -1,0 +1,265 @@
+Fetching taxonomies from BigBuy...
+Total taxonomies fetched: 13078
+
+Found 261 matching taxonomies:
+ID: 301 | Name: Glasses Cases | Parent: 298 | URL: storage-and-organisers-glasses-cases
+ID: 438 | Name: Insoles | Parent: 425 | URL: accessories-and-shoe-care-insoles
+ID: 439 | Name: Comfort | Parent: 438 | URL: insoles-comfort
+ID: 440 | Name: Sport | Parent: 438 | URL: insoles-sport
+ID: 441 | Name: Orthotic | Parent: 438 | URL: insoles-orthotic
+ID: 521 | Name: Isolation Pads | Parent: 519 | URL: speaker-accessories-isolation-pads
+ID: 588 | Name: 3D Glasses | Parent: 518 | URL: 3d-glasses
+ID: 978 | Name: Glass decoration | Parent: 976 | URL: art-and-handicrafts-glass-decoration
+ID: 3376 | Name: Handlebar Consoles | Parent: 3367 | URL: accessories-handlebar-consoles
+ID: 3392 | Name: Parasols & Sun Covers | Parent: 3367 | URL: accessories-parasols-sun-covers
+ID: 3449 | Name: Safety Glasses | Parent: 3433 | URL: safety-glasses_3449
+ID: 4065 | Name: Solar Chargers | Parent: 4058 | URL: chargers-solar-chargers
+ID: 4382 | Name: Solenoids | Parent: 4353 | URL: replacement-parts-for-lawnmowers-solenoids
+ID: 4406 | Name: Solar and wind energy | Parent: 4396 | URL: portable-power-generators-solar-and-wind-energy
+ID: 4408 | Name: Energy Controllers | Parent: 4406 | URL: solar-and-wind-energy-energy-controllers
+ID: 4409 | Name: Solar Panels | Parent: 4406 | URL: solar-and-wind-energy-solar-panels
+ID: 4788 | Name: Glass Cutting Tools | Parent: 4781 | URL: cutting-tools-glass-cutting-tools
+ID: 5032 | Name: Cutlery, crockery and glassware | Parent: 19656 | URL: home-and-cooking-cutlery-crockery-and-glassware
+ID: 5033 | Name: Glassware | Parent: 5032 | URL: cutlery-crockery-and-glassware-glassware
+ID: 5034 | Name: Water Glasses | Parent: 5033 | URL: glassware-water-glasses
+ID: 5035 | Name: Champagne flute | Parent: 5033 | URL: glassware-champagne-flute
+ID: 5042 | Name: Cognac Glasses | Parent: 5033 | URL: glassware-cognac-glasses
+ID: 5043 | Name: Cocktail Glasses | Parent: 5033 | URL: glassware-cocktail-glasses
+ID: 5044 | Name: Martini Glasses | Parent: 5033 | URL: glassware-martini-glasses
+ID: 5045 | Name: Punch Bowls | Parent: 5033 | URL: glassware-punch-bowls
+ID: 5046 | Name: Wine glasses | Parent: 5033 | URL: glassware-wine-glasses
+ID: 5047 | Name: White Wine Glasses | Parent: 5046 | URL: wine-glasses-white-wine-glasses
+ID: 5048 | Name: Sherry Glasses | Parent: 5046 | URL: wine-glasses-sherry-glasses
+ID: 5049 | Name: Port Glasses | Parent: 5046 | URL: wine-glasses-port-glasses
+ID: 5050 | Name: Red Wine Glasses | Parent: 5046 | URL: wine-glasses-red-wine-glasses
+ID: 5051 | Name: Wine Tasting Glasses | Parent: 5046 | URL: wine-glasses-wine-tasting-glasses
+ID: 5052 | Name: Cordial & Liqueur Glasses | Parent: 5033 | URL: glassware-cordial-liqueur-glasses
+ID: 5053 | Name: Beer Mugs | Parent: 5033 | URL: glassware-beer-mugs
+ID: 5055 | Name: Jugs and decanters | Parent: 5033 | URL: glassware-jugs-and-decanters
+ID: 5061 | Name: Drinkware Sets | Parent: 5033 | URL: glassware-drinkware-sets
+ID: 5062 | Name: Tumblers | Parent: 5033 | URL: glassware-tumblers
+ID: 5063 | Name: Beer Glasses | Parent: 5033 | URL: glassware-beer-glasses
+ID: 5064 | Name: Shot Glasses | Parent: 5033 | URL: glassware-shot-glasses
+ID: 5065 | Name: Margarita Glasses | Parent: 5033 | URL: glassware-margarita-glasses
+ID: 5066 | Name: Cider Glasses | Parent: 5033 | URL: glassware-cider-glasses
+ID: 5067 | Name: Highball Glasses | Parent: 5033 | URL: glassware-highball-glasses
+ID: 5068 | Name: Irish Coffee Glasses | Parent: 5033 | URL: glassware-irish-coffee-glasses
+ID: 5069 | Name: Tea and Coffee Glasses | Parent: 5033 | URL: glassware-tea-and-coffee-glasses
+ID: 5070 | Name: Cutlery | Parent: 5032 | URL: cutlery-crockery-and-glassware-cutlery
+ID: 5140 | Name: Dinnerware sets | Parent: 5032 | URL: cutlery-crockery-and-glassware-dinnerware-sets
+ID: 5146 | Name: Napkin Rings | Parent: 5032 | URL: cutlery-crockery-and-glassware-napkin-rings
+ID: 5147 | Name: Dinnerware | Parent: 5032 | URL: cutlery-crockery-and-glassware-dinnerware
+ID: 5218 | Name: Disposable tableware | Parent: 5032 | URL: cutlery-crockery-and-glassware-disposable-tableware
+ID: 5405 | Name: Cleaners & Soaking Solutions | Parent: 5400 | URL: contact-lens-care-and-accessories-cleaners-soaking-solutions
+ID: 5406 | Name: Reading Glasses | Parent: 5399 | URL: eye-care-reading-glasses
+ID: 5557 | Name: Glass Cleaners | Parent: 5551 | URL: home-cleaning-products-glass-cleaners
+ID: 5741 | Name: Indoor Fountain Stones & Sea Glass | Parent: 5737 | URL: indoor-fountain-accessories-indoor-fountain-stones-sea-glass
+ID: 5904 | Name: Stained Glass Panels | Parent: 5684 | URL: home-decor-stained-glass-panels
+ID: 7789 | Name: Solid Rivets | Parent: 7785 | URL: rivets-solid-rivets
+ID: 9007 | Name: Solid Surface Bits | Parent: 9002 | URL: router-bits-solid-surface-bits
+ID: 9025 | Name: Soldering accessories | Parent: 8945 | URL: accessories-for-electric-tools-soldering-accessories_9025
+ID: 9027 | Name: Arc Welding Accessories | Parent: 9025 | URL: soldering-accessories-arc-welding-accessories
+ID: 9028 | Name: Alloy soldering accessories | Parent: 8945 | URL: accessories-for-electric-tools-alloy-soldering-accessories
+ID: 9030 | Name: Solder | Parent: 8945 | URL: accessories-for-electric-tools-solder
+ID: 9152 | Name: Soldering equipment | Parent: 9138 | URL: electric-tools-soldering-equipment
+ID: 9153 | Name: Plasma Cutters | Parent: 9152 | URL: soldering-equipment-plasma-cutters
+ID: 9155 | Name: Electrodes | Parent: 9152 | URL: soldering-equipment-electrodes
+ID: 9156 | Name: Gas welding equipment | Parent: 9152 | URL: soldering-equipment-gas-welding-equipment
+ID: 9157 | Name: Arc Welding Equipment | Parent: 9152 | URL: soldering-equipment-arc-welding-equipment
+ID: 9158 | Name: MIG Welding Equipment | Parent: 9152 | URL: soldering-equipment-mig-welding-equipment
+ID: 9159 | Name: Spot Welding Equipment | Parent: 9152 | URL: soldering-equipment-spot-welding-equipment
+ID: 9160 | Name: TIG Welding Equipment | Parent: 9152 | URL: soldering-equipment-tig-welding-equipment
+ID: 9161 | Name: Soldering Stations | Parent: 9152 | URL: soldering-equipment-soldering-stations
+ID: 9175 | Name: Guns and solders | Parent: 9152 | URL: soldering-equipment-guns-and-solders
+ID: 9177 | Name: Pistols | Parent: 9175 | URL: guns-and-solders-pistols
+ID: 9179 | Name: Tips | Parent: 9152 | URL: soldering-equipment-tips
+ID: 9180 | Name: Welders | Parent: 9152 | URL: soldering-equipment-welders
+ID: 9181 | Name: Brazing Torches | Parent: 9152 | URL: soldering-equipment-brazing-torches
+ID: 9182 | Name: Holding Devices | Parent: 9152 | URL: soldering-equipment-holding-devices
+ID: 9316 | Name: Glass Cutters | Parent: 9307 | URL: shears-glass-cutters
+ID: 9728 | Name: Nasal Moisturising & Irrigation Solutions | Parent: 9725 | URL: ear-and-nasal-care-nasal-moisturising-irrigation-solutions
+ID: 10106 | Name: Glasses and accessories | Parent: 10096 | URL: accessories-glasses-and-accessories_10106
+ID: 10107 | Name: Glasses Chains & Lanyards | Parent: 10106 | URL: glasses-and-accessories-glasses-chains-lanyards_10107
+ID: 10108 | Name: Slipcovers | Parent: 10106 | URL: glasses-and-accessories-slipcovers_10108
+ID: 10109 | Name: Sunglasses | Parent: 10106 | URL: glasses-and-accessories-sunglasses_10109
+ID: 10110 | Name: Prescription Eyewear Frames | Parent: 10106 | URL: glasses-and-accessories-prescription-eyewear-frames
+ID: 11209 | Name: Plug & Play Games Consoles | Parent: 11190 | URL: electronic-toys-plug-play-games-consoles
+ID: 11362 | Name: Glass Bottles | Parent: 11361 | URL: baby-s-bottles-glass-bottles
+ID: 11390 | Name: Glasses | Parent: 11384 | URL: tableware-and-cutlery-glasses
+ID: 11829 | Name: Magnifying Glasses | Parent: 11818 | URL: desk-accessories-and-storage-products-magnifying-glasses
+ID: 12517 | Name: Sunglasses | Parent: 12515 | URL: goggles-sunglasses
+ID: 12685 | Name: Glass Cabinets | Parent: 12680 | URL: dining-room-glass-cabinets
+ID: 12794 | Name: Consoles | Parent: 12793 | URL: tables-consoles
+ID: 12815 | Name: Glass Cabinets | Parent: 12787 | URL: lounge-glass-cabinets
+ID: 12830 | Name: Glasses and accessories | Parent: 12818 | URL: accessories-glasses-and-accessories_12830
+ID: 12831 | Name: Glasses Chains & Lanyards | Parent: 12830 | URL: glasses-chains-lanyards_12831
+ID: 12832 | Name: Slipcovers | Parent: 12830 | URL: glasses-and-accessories-slipcovers_12832
+ID: 12833 | Name: Sunglasses | Parent: 12830 | URL: glasses-and-accessories-sunglasses_12833
+ID: 12834 | Name: Prescription Eyewear Frames | Parent: 12830 | URL: glasses-and-accessories-prescription-eyewear-frames_12834
+ID: 13301 | Name: Nintendo DS | Parent: 19672 | URL: plug-play-games-consoles-nintendo-ds
+ID: 13314 | Name: Consoles | Parent: 13301 | URL: nintendo-ds-consoles
+ID: 13372 | Name: Nintendo Switch | Parent: 19672 | URL: plug-play-games-consoles-nintendo-switch
+ID: 13374 | Name: Consoles | Parent: 13372 | URL: nintendo-switch-consoles
+ID: 13382 | Name: Glasses and accessories | Parent: 13377 | URL: accessories-glasses-and-accessories_13382
+ID: 13385 | Name: Sunglasses | Parent: 13382 | URL: glasses-and-accessories-sunglasses_13385
+ID: 13386 | Name: Prescription Eyewear Frames | Parent: 13382 | URL: glasses-and-accessories-prescription-eyewear-frames_13386
+ID: 13508 | Name: Glasses and accessories | Parent: 13500 | URL: accessories-glasses-and-accessories_13508
+ID: 13509 | Name: Glasses Chains & Lanyards | Parent: 13508 | URL: glasses-and-accessories-glasses-chains-lanyards
+ID: 13511 | Name: Sunglasses | Parent: 13508 | URL: glasses-and-accessories-sunglasses_13511
+ID: 13512 | Name: Prescription Eyewear Frames | Parent: 13508 | URL: glasses-and-accessories-prescription-eyewear-frames_13512
+ID: 13964 | Name: Solo Microwaves | Parent: 13960 | URL: microwaves-solo-microwaves
+ID: 14109 | Name: Solid perfumes | Parent: 14091 | URL: perfumes-and-fragrances-solid-perfumes
+ID: 14433 | Name: Replacement Mirror Glasses | Parent: 14431 | URL: rear-view-mirrors-and-replacement-parts-replacement-mirror-glasses
+ID: 14961 | Name: Paints, dyes and solvents | Parent: 14921 | URL: paints-tools-and-wall-treatments-paints-dyes-and-solvents
+ID: 14962 | Name: Oils | Parent: 14961 | URL: paints-dyes-and-solvents-oils
+ID: 14963 | Name: Varnish | Parent: 14961 | URL: paints-dyes-and-solvents-varnish
+ID: 14964 | Name: Wax | Parent: 14961 | URL: paints-dyes-and-solvents-wax
+ID: 14965 | Name: Kitchen & Bathroom Paint | Parent: 14961 | URL: paints-dyes-and-solvents-kitchen-bathroom-paint
+ID: 14966 | Name: Stain | Parent: 14961 | URL: paints-dyes-and-solvents-stain
+ID: 14967 | Name: Paint Thinners & Solvents | Parent: 14961 | URL: paints-dyes-and-solvents-paint-thinners-solvents
+ID: 14968 | Name: Latex Paint | Parent: 14961 | URL: paints-dyes-and-solvents-latex-paint
+ID: 14969 | Name: Mildew Paint | Parent: 14961 | URL: paints-dyes-and-solvents-mildew-paint
+ID: 14970 | Name: Primer | Parent: 14961 | URL: paints-dyes-and-solvents-primer
+ID: 14971 | Name: House Paint | Parent: 14961 | URL: paints-dyes-and-solvents-house-paint
+ID: 14973 | Name: Wall Paint | Parent: 14961 | URL: paints-dyes-and-solvents-wall-paint
+ID: 14974 | Name: Metal Paint | Parent: 14961 | URL: paints-dyes-and-solvents-metal-paint
+ID: 14975 | Name: Pool Paint | Parent: 14961 | URL: paints-dyes-and-solvents-pool-paint
+ID: 14976 | Name: Roof Coatings & Paints | Parent: 14961 | URL: paints-dyes-and-solvents-roof-coatings-paints
+ID: 14977 | Name: Spray Paint | Parent: 14961 | URL: paints-dyes-and-solvents-spray-paint
+ID: 14996 | Name: Solar Blankets | Parent: 14991 | URL: covers-and-accessories-solar-blankets
+ID: 15179 | Name: PlayStation 3 | Parent: 19672 | URL: plug-play-games-consoles-playstation-3
+ID: 15259 | Name: PlayStation 4 | Parent: 19672 | URL: plug-play-games-consoles-playstation-4
+ID: 15279 | Name: Consoles | Parent: 15259 | URL: playstation-4-consoles
+ID: 15340 | Name: PlayStation Vita | Parent: 19672 | URL: plug-play-games-consoles-playstation-vita
+ID: 15356 | Name: Consoles | Parent: 15340 | URL: playstation-vita-consoles
+ID: 15474 | Name: Safety Glasses | Parent: 15473 | URL: eye-protection-safety-glasses
+ID: 15903 | Name: Solvents | Parent: 15896 | URL: chemical-products-for-the-laboratory-solvents
+ID: 16325 | Name: Stemware and glasses | Parent: 16324 | URL: kitchen-and-dining-room-stemware-and-glasses
+ID: 16410 | Name: Sunglasses | Parent: 16408 | URL: footwear-and-accessories-sunglasses
+ID: 16569 | Name: Glasses case | Parent: 16565 | URL: accessories-glasses-case
+ID: 17287 | Name: Precursor systems and micro consoles | Parent: 19672 | URL: plug-play-games-consoles-precursor-systems-and-micro-consoles
+ID: 17288 | Name: 3DO | Parent: 17287 | URL: precursor-systems-and-micro-consoles-3do
+ID: 17291 | Name: Atari 2600 | Parent: 17287 | URL: precursor-systems-and-micro-consoles-atari-2600
+ID: 17297 | Name: Atari 7800 | Parent: 17287 | URL: precursor-systems-and-micro-consoles-atari-7800
+ID: 17321 | Name: Game Boy | Parent: 17287 | URL: precursor-systems-and-micro-consoles-game-boy
+ID: 17330 | Name: PDA Games | Parent: 17287 | URL: precursor-systems-and-micro-consoles-pda-games
+ID: 17340 | Name: Nintendo NES | Parent: 17287 | URL: precursor-systems-and-micro-consoles-nintendo-nes
+ID: 17341 | Name: Consoles and accessories | Parent: 17340 | URL: nintendo-nes-consoles-and-accessories
+ID: 17347 | Name: PlayStation - Psone | Parent: 17287 | URL: precursor-systems-and-micro-consoles-playstation-psone
+ID: 17350 | Name: Sega CD | Parent: 17287 | URL: precursor-systems-and-micro-consoles-sega-cd
+ID: 17368 | Name: Steam machines | Parent: 17287 | URL: precursor-systems-and-micro-consoles-steam-machines
+ID: 17370 | Name: Consoles | Parent: 17368 | URL: steam-machines-consoles
+ID: 17372 | Name: Super Nintendo | Parent: 17287 | URL: precursor-systems-and-micro-consoles-super-nintendo
+ID: 17373 | Name: Consoles and accessories | Parent: 17372 | URL: super-nintendo-consoles-and-accessories
+ID: 17375 | Name: TurboGrafx 16 | Parent: 17287 | URL: precursor-systems-and-micro-consoles-turbografx-16
+ID: 17380 | Name: Xbox | Parent: 17287 | URL: precursor-systems-and-micro-consoles-xbox
+ID: 17381 | Name: Consoles and accessories | Parent: 17380 | URL: xbox-consoles-and-accessories
+ID: 17436 | Name: Sony PSP | Parent: 19672 | URL: plug-play-games-consoles-sony-psp
+ID: 17991 | Name: Sterilisation Solutions | Parent: 17985 | URL: sterilisation-and-infection-prevention-sterilisation-solutions
+ID: 18960 | Name: Glass Markers & Charms | Parent: 18942 | URL: bar-utensils-glass-markers-charms
+ID: 19045 | Name: Wii U | Parent: 19672 | URL: plug-play-games-consoles-wii-u
+ID: 19121 | Name: Wii | Parent: 19672 | URL: plug-play-games-consoles-wii
+ID: 19196 | Name: Xbox 360 | Parent: 19672 | URL: plug-play-games-consoles-xbox-360
+ID: 19215 | Name: Consoles | Parent: 19196 | URL: xbox-360-consoles
+ID: 19271 | Name: XBox One | Parent: 19672 | URL: plug-play-games-consoles-xbox-one
+ID: 19292 | Name: Consoles | Parent: 19271 | URL: xbox-one-consoles
+ID: 19672 | Name: Plug & Play Games Consoles | Parent: 19653 | URL: electronics-plug-play-games-consoles
+ID: 19696 | Name: Solar and wind energy | Parent: 19658 | URL: industry-companies-and-science-solar-and-wind-energy
+ID: 19752 | Name: Mac | Parent: 19672 | URL: plug-play-games-consoles-mac
+ID: 19753 | Name: Nintendo 3DS & 2DS | Parent: 19672 | URL: plug-play-games-consoles-nintendo-3ds-2ds
+ID: 19754 | Name: PC | Parent: 19672 | URL: plug-play-games-consoles-pc
+ID: 19941 | Name: Glass cleaners | Parent: 19691 | URL: vacuuming-cleaning-and-floor-and-window-care-glass-cleaners
+ID: 19986 | Name: Deep-cycle batteries | Parent: 19696 | URL: solar-and-wind-energy-deep-cycle-batteries
+ID: 19987 | Name: Electrical components and safety devices | Parent: 19696 | URL: solar-and-wind-energy-electrical-components-and-safety-devices
+ID: 19988 | Name: Power inverters | Parent: 19696 | URL: solar-and-wind-energy-power-inverters
+ID: 19989 | Name: Power meters | Parent: 19696 | URL: solar-and-wind-energy-power-meters
+ID: 19996 | Name: Energy Controllers | Parent: 19696 | URL: solar-and-wind-energy-energy-controllers_19996
+ID: 19997 | Name: Solar Panels | Parent: 19696 | URL: solar-and-wind-energy-solar-panels_19997
+ID: 20097 | Name: Solar energy | Parent: 19759 | URL: learning-and-education-solar-energy
+ID: 20506 | Name: Consoles | Parent: 19753 | URL: consoles
+ID: 20514 | Name: PlayStation 2 | Parent: 17287 | URL: precursor-systems-and-micro-consoles-playstation-2
+ID: 20997 | Name: Soldering Accessories | Parent: 8945 | URL: accessories-for-electric-tools-soldering-accessories
+ID: 21039 | Name: Soldering and desoldering equipment | Parent: 9138 | URL: electric-tools-soldering-and-desoldering-equipment
+ID: 21395 | Name: 3D Glasses | Parent: 19921 | URL: accessories-3d-glasses
+ID: 21625 | Name: Iron Soles | Parent: 19973 | URL: ironing-accessories-iron-soles
+ID: 21743 | Name: Microcrystalline solar panels | Parent: 19997 | URL: solar-panels-microcrystalline-solar-panels
+ID: 21744 | Name: Polycrystalline solar panels | Parent: 19997 | URL: solar-panels-polycrystalline-solar-panels
+ID: 21798 | Name: Solvents and cleaners | Parent: 20006 | URL: cleaning-materials-solvents-and-cleaners
+ID: 22029 | Name: Sterilisation Solutions | Parent: 20057 | URL: infection-control-sterilisation-solutions
+ID: 22207 | Name: Solar Lights | Parent: 20071 | URL: outdoor-lighting-solar-lights
+ID: 22222 | Name: Solar Blankets | Parent: 14980 | URL: heaters-and-accessories-solar-blankets
+ID: 22355 | Name: Solitaires | Parent: 16424 | URL: brain-teasers-solitaires
+ID: 22742 | Name: Itching solutions | Parent: 20278 | URL: health-items-itching-solutions_22742
+ID: 22852 | Name: Digestion solutions | Parent: 20306 | URL: health-items-digestion-solutions
+ID: 22853 | Name: Itching solutions | Parent: 20306 | URL: health-items-itching-solutions
+ID: 23021 | Name: Glasses and accessories | Parent: 20365 | URL: accessories-glasses-and-accessories_23021
+ID: 23089 | Name: Glasses and accessories | Parent: 20381 | URL: accessories-glasses-and-accessories_23089
+ID: 23180 | Name: Glasses and accessories | Parent: 20400 | URL: accessories-glasses-and-accessories
+ID: 23230 | Name: Glasses and accessories | Parent: 20416 | URL: accessories-glasses-and-accessories_23230
+ID: 23307 | Name: Liquid Solutions | Parent: 20437 | URL: vapour-inhalers-nebulisers-and-accessories-liquid-solutions
+ID: 23647 | Name: Consoles | Parent: 17291 | URL: atari-2600-consoles
+ID: 23651 | Name: Consoles | Parent: 17297 | URL: atari-7800-consoles
+ID: 23663 | Name: Consoles | Parent: 17321 | URL: game-boy-consoles
+ID: 23684 | Name: Consoles | Parent: 17350 | URL: sega-cd-consoles
+ID: 23696 | Name: Consoles | Parent: 17372 | URL: super-nintendo-consoles
+ID: 23700 | Name: Consoles | Parent: 17380 | URL: xbox-consoles
+ID: 25115 | Name: Desoldering accessories | Parent: 20997 | URL: soldering-accessories-desoldering-accessories
+ID: 25116 | Name: Solders, fluxes and pastes | Parent: 20997 | URL: soldering-accessories-solders-fluxes-and-pastes
+ID: 25118 | Name: Replacement gas | Parent: 20997 | URL: soldering-accessories-replacement-gas
+ID: 25120 | Name: Flux removers and cleaners | Parent: 20997 | URL: soldering-accessories-flux-removers-and-cleaners
+ID: 25121 | Name: Welding mask | Parent: 20997 | URL: soldering-accessories-welding-mask
+ID: 25122 | Name: Welding fumes extraction | Parent: 20997 | URL: soldering-accessories-welding-fumes-extraction
+ID: 25168 | Name: Gas Welding Equipment | Parent: 9152 | URL: soldering-equipment-gas-welding-equipment_25168
+ID: 25173 | Name: Soldering pumps | Parent: 21039 | URL: soldering-and-desoldering-equipment-soldering-pumps
+ID: 25179 | Name: Guns and solders | Parent: 21039 | URL: soldering-and-desoldering-equipment-guns-and-solders
+ID: 25180 | Name: Holding Devices | Parent: 21039 | URL: soldering-and-desoldering-equipment-holding-devices
+ID: 25433 | Name: Glasses | Parent: 21265 | URL: accessories-glasses_25433
+ID: 25497 | Name: Glasses | Parent: 21299 | URL: accessories-glasses
+ID: 25552 | Name: Isolation Pads | Parent: 21329 | URL: speaker-accessories-isolation-pads_25552
+ID: 25635 | Name: External solid state hard drives | Parent: 21355 | URL: external-data-storage-external-solid-state-hard-drives
+ID: 25639 | Name: Solid disc drives | Parent: 21357 | URL: internal-data-storage-solid-disc-drives
+ID: 25653 | Name: External optical drive units | Parent: 21361 | URL: external-devices-external-optical-drive-units
+ID: 25667 | Name: Internal optical disc units | Parent: 21360 | URL: internal-devices-internal-optical-disc-units
+ID: 25686 | Name: Solid Ink Sticks | Parent: 21377 | URL: printer-accessories-solid-ink-sticks
+ID: 25710 | Name: Optical Cables | Parent: 21390 | URL: cables-optical-cables
+ID: 25925 | Name: Solo Microwaves | Parent: 21509 | URL: microwaves-solo-microwaves_25925
+ID: 26050 | Name: Parasols | Parent: 21576 | URL: garden-furniture-covers-parasols
+ID: 26077 | Name: Parasol Stands & Bases | Parent: 21565 | URL: sunshades-marquees-and-awnings-parasol-stands-bases
+ID: 26081 | Name: Parasols | Parent: 21565 | URL: sunshades-marquees-and-awnings-parasols
+ID: 26130 | Name: Glasses | Parent: 21712 | URL: tableware-glasses
+ID: 26261 | Name: Degreasers | Parent: 21798 | URL: solvents-and-cleaners-degreasers
+ID: 26262 | Name: Disinfectants | Parent: 21798 | URL: solvents-and-cleaners-disinfectants
+ID: 26263 | Name: All-purpose Cleaners | Parent: 21798 | URL: solvents-and-cleaners-all-purpose-cleaners
+ID: 26308 | Name: Safety Glasses | Parent: 21823 | URL: protective-equipment-safety-glasses
+ID: 27309 | Name: Glasses Chains & Lanyards | Parent: 23021 | URL: glasses-and-accessories-glasses-chains-lanyards_27309
+ID: 27310 | Name: Glasses Cases | Parent: 23021 | URL: glasses-and-accessories-glasses-cases_27310
+ID: 27311 | Name: Sunglasses | Parent: 23021 | URL: glasses-and-accessories-sunglasses_27311
+ID: 27312 | Name: Frames | Parent: 23021 | URL: glasses-and-accessories-frames_27312
+ID: 27344 | Name: Sunglasses | Parent: 23089 | URL: glasses-and-accessories-sunglasses_27344
+ID: 27345 | Name: Frames | Parent: 23089 | URL: glasses-and-accessories-frames_27345
+ID: 27437 | Name: Sunglasses | Parent: 23180 | URL: glasses-and-accessories-sunglasses
+ID: 27438 | Name: Frames | Parent: 23180 | URL: glasses-and-accessories-frames
+ID: 27449 | Name: Sunglasses | Parent: 23230 | URL: glasses-and-accessories-sunglasses_27449
+ID: 29051 | Name: Solder bars for arc welders | Parent: 9027 | URL: arc-welding-accessories-solder-bars-for-arc-welders
+ID: 29056 | Name: Clips | Parent: 25115 | URL: desoldering-accessories-clips
+ID: 29066 | Name: Solder | Parent: 25116 | URL: solders-fluxes-and-pastes-solder
+ID: 29068 | Name: Soldering pastes | Parent: 25116 | URL: solders-fluxes-and-pastes-soldering-pastes
+ID: 29084 | Name: Guns | Parent: 25179 | URL: guns-and-solders-guns
+ID: 29085 | Name: Irons | Parent: 25179 | URL: guns-and-solders-irons
+ID: 29636 | Name: Goggles | Parent: 25497 | URL: glasses-goggles_29636
+ID: 29638 | Name: Goggles | Parent: 25497 | URL: glasses-goggles
+ID: 29826 | Name: CD and DVD units | Parent: 25653 | URL: external-optical-drive-units-cd-and-dvd-units
+ID: 29827 | Name: Disc recorders | Parent: 25653 | URL: external-optical-drive-units-disc-recorders
+ID: 29828 | Name: Blu-ray units | Parent: 25653 | URL: external-optical-drive-units-blu-ray-units
+ID: 29835 | Name: CD and DVD units | Parent: 25667 | URL: internal-optical-disc-units-cd-and-dvd-units
+ID: 29836 | Name: Blu-ray units | Parent: 25667 | URL: internal-optical-disc-units-blu-ray-units
+ID: 29922 | Name: Straws | Parent: 26130 | URL: glasses-straws
+ID: 31188 | Name: Eyewear | Parent: 29885 | URL: party-hats-masks-and-accessories-eyewear
+ID: 31562 | Name: PlayStation 5 | Parent: 19672 | URL: plug-play-games-consoles-playstation-5
+ID: 31626 | Name: Consoles | Parent: 31562 | URL: playstation-5-consoles
+ID: 31696 | Name: Xbox Series | Parent: 19672 | URL: plug-play-games-consoles-xbox-series
+ID: 31758 | Name: Consoles | Parent: 31696 | URL: xbox-series-consoles
+ID: 31866 | Name: Sunglasses | Parent: 31868 | URL: glasses-and-accessories-sunglasses_31866
+ID: 31868 | Name: Glasses and accessories | Parent: 31867 | URL: accessories-glasses-and-accessories_31868
+ID: 31922 | Name: Nintendo Switch 2 | Parent: 19672 | URL: plug-play-games-consoles-nintendo-switch-2
+ID: 31956 | Name: Consoles | Parent: 31922 | URL: nintendo-switch-2-consoles

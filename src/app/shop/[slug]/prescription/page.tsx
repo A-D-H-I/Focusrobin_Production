@@ -94,11 +94,17 @@ export default async function PrescriptionPage({ params }: { params: Promise<{ s
   if (isPrescriptionGlass) {
     const variants = prismaProduct.PrescriptionGlassesVariant.map((v: any) => {
       const assets = v.PrescriptionGlassesAsset;
-      const thumbnail = assets.find((a: any) => a.type === 'GALLERY' && a.isPrimary)?.url || assets.find((a: any) => a.type === 'GALLERY')?.url || '';
+      const thumbnail =
+        assets.find((a: any) => a.type === 'GALLERY' && a.isPrimary)?.url ||
+        assets.find((a: any) => a.type === 'GALLERY')?.url ||
+        assets.find((a: any) => a.type === 'NO_BG' && a.isPrimary)?.url ||
+        assets.find((a: any) => a.type === 'NO_BG')?.url ||
+        assets[0]?.url || '';
       const tilted = assets.find((a: any) => a.type === 'HOVER')?.url || '';
       const nobg = assets.find((a: any) => a.type === 'NO_BG')?.url;
       const tryOn = assets.find((a: any) => a.type === 'TRY_ON_2D')?.url;
-      const images = assets.filter((a: any) => a.type === 'GALLERY').map((a: any) => a.url);
+      const galleryImgs = assets.filter((a: any) => a.type === 'GALLERY').map((a: any) => a.url);
+      const images = galleryImgs.length > 0 ? galleryImgs : assets.filter((a: any) => a.type === 'NO_BG').map((a: any) => a.url);
 
       // Helper to convert Google Drive links
       const normalizeUrl = (u: string) => {
