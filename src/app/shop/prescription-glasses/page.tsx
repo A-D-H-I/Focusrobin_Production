@@ -330,8 +330,20 @@ export default async function PrescriptionGlassesPage({ searchParams }: { search
         // Cast to any to access new fields
         const pAny = p as any;
 
-        const originalPriceValue = finalPriceVal * 1.30;
-        const originalPrice = `€${originalPriceValue.toFixed(2)}`;
+        const isFocusRobinCheck = (p.brand || 'FocusRobin').trim().toLowerCase() === 'focusrobin';
+      let originalPriceValue: number | undefined = undefined;
+      const compareAtPriceRaw = (p as any).compareAtPrice;
+      
+      if (!isFocusRobinCheck) {
+        originalPriceValue = finalPriceVal * 1.30;
+      } else {
+        if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
+          originalPriceValue = Number(compareAtPriceRaw);
+        } else if (discountPctFromDb > 0) {
+          originalPriceValue = effectiveBase;
+        }
+      }
+      const originalPrice = originalPriceValue ? `€${originalPriceValue.toFixed(2)}` : undefined;
         const computedDiscountPct = undefined; // User requested to hide percentage badge
 
         return {

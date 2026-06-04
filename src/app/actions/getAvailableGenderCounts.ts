@@ -23,12 +23,14 @@ export async function getAvailableGenderCounts(type: 'sunglasses' | 'eyeglasses'
 
         if (type === 'eyeglasses') {
           products = await prisma.prescriptionGlasses.findMany({
+            where: { PrescriptionGlassesVariant: { some: { stock: { gt: 0 } } } },
             select: {
               gender: true,
             },
           });
         } else {
           products = await prisma.product.findMany({
+            where: { ProductVariant: { some: { stock: { gt: 0 } } } },
             select: {
               gender: true,
             },

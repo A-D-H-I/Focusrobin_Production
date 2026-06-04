@@ -1364,12 +1364,6 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
                                     }}>
                                       <TranslatableText text="Best Sellers" />
                                     </Link>
-                                    <Link href="/shop?filter=new-arrivals" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
-                                      e.stopPropagation();
-                                      setIsSidebarOpen(false);
-                                    }}>
-                                      <TranslatableText text="New Arrivals" />
-                                    </Link>
 
                                     {/* Shop By Brand - Sunglasses */}
                                     {sunglassesBrands.length > 0 && (
@@ -1450,12 +1444,6 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
                                       setIsSidebarOpen(false);
                                     }}>
                                       <TranslatableText text="Best Sellers" />
-                                    </Link>
-                                    <Link href="/shop/prescription-glasses?filter=new-arrivals" className="block text-lg hover:text-primary transition-colors text-foreground py-1" onClick={(e) => {
-                                      e.stopPropagation();
-                                      setIsSidebarOpen(false);
-                                    }}>
-                                      <TranslatableText text="New Arrivals" />
                                     </Link>
 
                                     {/* Shop By Brand - Eyeglasses */}

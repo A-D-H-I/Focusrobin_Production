@@ -97,7 +97,9 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     : undefined;
 
   // Build where clause for filtering
-  const whereClause: any = {};
+  const whereClause: any = {
+    ProductVariant: { some: { stock: { gt: 0 } } }
+  };
   const andConditions: any[] = [];
 
 
@@ -461,6 +463,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
       if (newlyAddedCount === 0) {
         // No products marked as newly added, show recent products instead
         prismaProducts = (await prisma.product.findMany({
+          where: { ProductVariant: { some: { stock: { gt: 0 } } } },
           include: {
             ProductVariant: {
               include: {
@@ -485,6 +488,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
     const searchTerm = searchQuery.trim();
     const prescriptionResults = await prisma.prescriptionGlasses.findMany({
       where: {
+        PrescriptionGlassesVariant: { some: { stock: { gt: 0 } } },
         OR: [
           {
             name: {
@@ -579,8 +583,20 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
         ? effectiveBase * (1 - discountPctFromDb / 100)
         : effectiveBase;
 
-      const originalPriceValue = finalPriceVal * 1.30;
-      const originalPrice = `€${originalPriceValue.toFixed(2)}`;
+      let originalPriceValue: number | undefined = undefined;
+      const compareAtPriceRaw = (p as any).compareAtPrice;
+      
+      if (!isFocusRobin) {
+        originalPriceValue = finalPriceVal * 1.30;
+      } else {
+        if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
+          originalPriceValue = Number(compareAtPriceRaw);
+        } else if (discountPctFromDb > 0) {
+          originalPriceValue = effectiveBase;
+        }
+      }
+      
+      const originalPrice = originalPriceValue ? `€${originalPriceValue.toFixed(2)}` : undefined;
       const computedDiscountPct = undefined; // User requested to hide percentage badge
 
       return {

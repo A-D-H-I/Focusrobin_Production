@@ -64,6 +64,7 @@ export default async function Home() {
     const prismaProducts = (await prisma.product.findMany({
       where: {
         isUniqueDesign: true,
+        ProductVariant: { some: { stock: { gt: 0 } } },
       },
       include: {
         ProductVariant: {
@@ -92,6 +93,7 @@ export default async function Home() {
       if (uniqueDesignCount === 0 && allProducts > 0) {
         console.log('No unique designs selected. Showing recent products as fallback.');
         const fallbackProducts = (await prisma.product.findMany({
+          where: { ProductVariant: { some: { stock: { gt: 0 } } } },
           include: {
             ProductVariant: {
               include: {
@@ -115,6 +117,7 @@ export default async function Home() {
       console.warn('Database migration not run yet. Fetching recent products instead.');
       try {
         const prismaProducts = (await prisma.product.findMany({
+          where: { ProductVariant: { some: { stock: { gt: 0 } } } },
           include: {
             ProductVariant: {
               include: {
@@ -144,6 +147,7 @@ export default async function Home() {
     const prismaProducts = (await prisma.product.findMany({
       where: {
         isNewlyAdded: true,
+        ProductVariant: { some: { stock: { gt: 0 } } },
       },
       include: {
         ProductVariant: {
@@ -172,6 +176,7 @@ export default async function Home() {
       if (newlyAddedCount === 0 && allProducts > 0) {
         console.log('No newly added products selected. Showing recent products as fallback.');
         const fallbackProducts = (await prisma.product.findMany({
+          where: { ProductVariant: { some: { stock: { gt: 0 } } } },
           include: {
             ProductVariant: {
               include: {
@@ -195,6 +200,7 @@ export default async function Home() {
       console.warn('Database migration not run yet. Fetching recent products instead.');
       try {
         const prismaProducts = (await prisma.product.findMany({
+          where: { ProductVariant: { some: { stock: { gt: 0 } } } },
           include: {
             ProductVariant: {
               include: {

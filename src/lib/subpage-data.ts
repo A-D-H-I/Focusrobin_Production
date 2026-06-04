@@ -304,7 +304,10 @@ export async function getSunglassesSubpageData(
   // 1. Fetch ALL products for this gender (only gender filter applied)
   const [allGenderedProducts, priceRange] = await Promise.all([
     prisma.product.findMany({
-      where: { gender: { has: baseGender } },
+      where: { 
+        gender: { has: baseGender },
+        ProductVariant: { some: { stock: { gt: 0 } } },
+      },
       include: {
         ProductVariant: {
           include: { ProductAsset: true },
@@ -389,11 +392,23 @@ function mapPrescriptionToProduct(p: any): Product {
     ? effectiveBase * (1 - discountPctFromDb / 100)
     : effectiveBase;
 
-  const originalPriceValue = finalPriceVal * 1.30;
-  const originalPrice = `€${originalPriceValue.toFixed(2)}`;
-  const computedDiscountPct = undefined; // User requested to hide the percentage badge
-
   const pAny = p as any;
+  const isFocusRobin = (p.brand || 'FocusRobin').trim().toLowerCase() === 'focusrobin';
+  let originalPriceValue: number | undefined = undefined;
+  const compareAtPriceRaw = pAny.compareAtPrice;
+  
+  if (!isFocusRobin) {
+    originalPriceValue = finalPriceVal * 1.30;
+  } else {
+    if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
+      originalPriceValue = Number(compareAtPriceRaw);
+    } else if (discountPctFromDb > 0) {
+      originalPriceValue = effectiveBase;
+    }
+  }
+  
+  const originalPrice = originalPriceValue ? `€${originalPriceValue.toFixed(2)}` : undefined;
+  const computedDiscountPct = undefined; // User requested to hide the percentage badge
 
   return {
     id: p.id,
@@ -440,10 +455,10 @@ export async function getPrescriptionSubpageData(
 ): Promise<SubpageData> {
   // 1. Build the base where clause (gender-only OR custom like isNewlyAdded)
   const baseFilter = baseWhere
-    ? baseWhere
+    ? { ...baseWhere, PrescriptionGlassesVariant: { some: { stock: { gt: 0 } } } }
     : baseGender
-    ? { gender: { has: baseGender } }
-    : {};
+    ? { gender: { has: baseGender }, PrescriptionGlassesVariant: { some: { stock: { gt: 0 } } } }
+    : { PrescriptionGlassesVariant: { some: { stock: { gt: 0 } } } };
 
   // Fetch ALL products matching the base filter (no shape/material/brand filters)
   const [allBaseProducts, priceRange] = await Promise.all([

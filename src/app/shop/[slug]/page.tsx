@@ -183,6 +183,7 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
             slug: {
               in: productSlugs,
             },
+            ProductVariant: { some: { stock: { gt: 0 } } },
           },
           include: {
             ProductVariant: {
@@ -412,14 +413,18 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
       let originalPriceStr: string | undefined;
       let computedDiscountPct: number | undefined = discountPctRaw > 0 ? discountPctRaw : undefined;
 
-      if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
-        const compareAt = Number(compareAtPriceRaw);
-        originalPriceStr = `€${compareAt.toFixed(2)}`;
-        if (compareAt > price) {
-          computedDiscountPct = Math.round(((compareAt - price) / compareAt) * 100);
+      if (!isFocusRobin) {
+        originalPriceStr = `€${(price * 1.30).toFixed(2)}`;
+      } else {
+        if (compareAtPriceRaw != null && Number(compareAtPriceRaw) > 0) {
+          const compareAt = Number(compareAtPriceRaw);
+          originalPriceStr = `€${compareAt.toFixed(2)}`;
+          if (compareAt > price) {
+            computedDiscountPct = Math.round(((compareAt - price) / compareAt) * 100);
+          }
+        } else if (discountPctRaw > 0) {
+          originalPriceStr = `€${effectiveBasePrice.toFixed(2)}`;
         }
-      } else if (discountPctRaw > 0) {
-        originalPriceStr = `€${effectiveBasePrice.toFixed(2)}`;
       }
 
       const product = {
@@ -619,6 +624,7 @@ export default async function ShopSlugPage({ params, searchParams }: { params: P
     where: {
       AND: [
         { id: { not: prismaProduct.id } },
+        { ProductVariant: { some: { stock: { gt: 0 } } } },
         currentProductGenders.length > 0 ? {
           gender: { hasSome: currentProductGenders },
         } : {},

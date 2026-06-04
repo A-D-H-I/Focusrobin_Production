@@ -25,6 +25,7 @@ export async function getAvailableBrands(type: 'sunglasses' | 'eyeglasses' = 'su
                     // @ts-ignore - brand field exists in DB
                     brandCounts = await prisma.prescriptionGlasses.groupBy({
                         by: ['brand'],
+                        where: { PrescriptionGlassesVariant: { some: { stock: { gt: 0 } } } },
                         _count: {
                             _all: true
                         }
@@ -34,6 +35,7 @@ export async function getAvailableBrands(type: 'sunglasses' | 'eyeglasses' = 'su
                     // @ts-ignore - brand field exists in DB
                     brandCounts = await prisma.product.groupBy({
                         by: ['brand'],
+                        where: { ProductVariant: { some: { stock: { gt: 0 } } } },
                         _count: {
                             _all: true
                         }

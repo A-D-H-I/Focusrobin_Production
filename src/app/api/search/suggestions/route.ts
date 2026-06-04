@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
       // Sunglasses (Product model)
       prisma.product.findMany({
         where: {
+          ProductVariant: { some: { stock: { gt: 0 } } },
           OR: [
             {
               name: {
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
                     contains: searchTerm,
                     mode: 'insensitive' as Prisma.QueryMode,
                   },
+                  stock: { gt: 0 },
                 },
               },
             },
@@ -92,6 +94,7 @@ export async function GET(request: NextRequest) {
       // Prescription Glasses (PrescriptionGlasses model)
       prisma.prescriptionGlasses.findMany({
         where: {
+          PrescriptionGlassesVariant: { some: { stock: { gt: 0 } } },
           OR: [
             {
               name: {
@@ -120,6 +123,7 @@ export async function GET(request: NextRequest) {
                     contains: searchTerm,
                     mode: 'insensitive' as Prisma.QueryMode,
                   },
+                  stock: { gt: 0 },
                 },
               },
             },

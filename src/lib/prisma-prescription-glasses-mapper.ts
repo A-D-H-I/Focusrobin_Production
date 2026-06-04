@@ -15,9 +15,20 @@ export function mapPrismaPrescriptionGlassesToProduct(prismaGlasses: any): any {
     : basePrice;
   const cashback = prismaGlasses.cashbackAmount ? Number(prismaGlasses.cashbackAmount) : 0;
 
-  // The original crossed-out price must be 30% higher than the final selling price
-  const originalPriceValue = finalPrice * 1.30;
-  const originalPrice = `€${originalPriceValue.toFixed(2)}`;
+  const isFocusRobin = (prismaGlasses.brand || 'FocusRobin').trim().toLowerCase() === 'focusrobin';
+  let originalPriceValue: number | undefined = undefined;
+  
+  if (!isFocusRobin) {
+    originalPriceValue = finalPrice * 1.30;
+  } else {
+    if (prismaGlasses.compareAtPrice && Number(prismaGlasses.compareAtPrice) > 0) {
+      originalPriceValue = Number(prismaGlasses.compareAtPrice);
+    } else if (discountPctFromDb > 0) {
+      originalPriceValue = basePrice;
+    }
+  }
+  
+  const originalPrice = originalPriceValue ? `€${originalPriceValue.toFixed(2)}` : undefined;
   
   // The UI discount badge will naturally show ~23%
   // User requested: do not show the percentage badge, just the crossed out price

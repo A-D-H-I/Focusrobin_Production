@@ -23,6 +23,7 @@ export async function getAvailableMaterials(type: 'sunglasses' | 'eyeglasses' = 
           // @ts-ignore
           materialCounts = await prisma.prescriptionGlasses.groupBy({
             by: ['frameMaterial'] as const,
+            where: { PrescriptionGlassesVariant: { some: { stock: { gt: 0 } } } },
             _count: {
               _all: true
             }
@@ -31,6 +32,7 @@ export async function getAvailableMaterials(type: 'sunglasses' | 'eyeglasses' = 
           // @ts-ignore
           materialCounts = await prisma.product.groupBy({
             by: ['frameMaterial'] as const,
+            where: { ProductVariant: { some: { stock: { gt: 0 } } } },
             _count: {
               _all: true
             }

@@ -148,9 +148,22 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
     ? basePrice * (1 - discountPctFromDb / 100)
     : basePrice;
 
-  // The original crossed-out price must be 30% higher than the final selling price
-  const originalPriceValue = discountedPrice * 1.30;
-  const originalPrice = `€${originalPriceValue.toFixed(2)}`;
+  const isFocusRobin = (prismaProduct.brand || 'FocusRobin').trim().toLowerCase() === 'focusrobin';
+  let originalPriceValue: number | undefined = undefined;
+  
+  if (!isFocusRobin) {
+    originalPriceValue = discountedPrice * 1.30;
+  } else {
+    // @ts-ignore
+    if (prismaProduct.compareAtPrice && Number(prismaProduct.compareAtPrice) > 0) {
+      // @ts-ignore
+      originalPriceValue = Number(prismaProduct.compareAtPrice);
+    } else if (discountPctFromDb > 0) {
+      originalPriceValue = basePrice;
+    }
+  }
+  
+  const originalPrice = originalPriceValue ? `€${originalPriceValue.toFixed(2)}` : undefined;
   
   // The UI discount badge will naturally show ~23% (since 30% markup is a 23% discount)
   // User requested: do not show the percentage badge, just the crossed out price

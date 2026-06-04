@@ -204,7 +204,6 @@ export default function ShopMegaMenu(props: ShopMegaMenuProps) {
             { href: `${baseUrl}/kids`, label: `Kids` },
             { href: `${baseUrl}/unisex`, label: `Unisex` },
             { href: `${baseUrl}?filter=bestsellers`, label: `Best Sellers` },
-            { href: `${baseUrl}/new-arrivals`, label: `New Arrivals` },
           ].map(({ href, label }) => (
             <Link
               key={href}

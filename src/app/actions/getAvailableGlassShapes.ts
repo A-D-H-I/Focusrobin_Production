@@ -25,14 +25,14 @@ export async function getAvailableGlassShapes(type: 'sunglasses' | 'eyeglasses' 
           shapeCounts = await prisma.prescriptionGlasses.groupBy({
             by: ['glassShape'],
             _count: { _all: true },
-            where: { glassShape: { not: null } }
+            where: { glassShape: { not: null }, PrescriptionGlassesVariant: { some: { stock: { gt: 0 } } } }
           });
         } else {
           // @ts-ignore
           shapeCounts = await prisma.product.groupBy({
             by: ['glassShape'],
             _count: { _all: true },
-            where: { glassShape: { not: null } }
+            where: { glassShape: { not: null }, ProductVariant: { some: { stock: { gt: 0 } } } }
           });
         }
 

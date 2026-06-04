@@ -35,6 +35,7 @@ export async function getProductsByGlassShape(): Promise<ShapeProduct[]> {
         glassShape: {
           not: null,
         },
+        ProductVariant: { some: { stock: { gt: 0 } } },
       },
       select: {
         id: true,

@@ -34,14 +34,14 @@ export async function getAvailableFrameColors(type: 'sunglasses' | 'eyeglasses' 
           variantCounts = await prisma.prescriptionGlassesVariant.groupBy({
             by: ['colorFamily'],
             _count: { _all: true },
-            where: { colorFamily: { not: null } }
+            where: { colorFamily: { not: null }, stock: { gt: 0 } }
           });
         } else {
           // @ts-ignore
           variantCounts = await prisma.productVariant.groupBy({
             by: ['colorFamily'],
             _count: { _all: true },
-            where: { colorFamily: { not: null } }
+            where: { colorFamily: { not: null }, stock: { gt: 0 } }
           });
         }
 
@@ -51,13 +51,13 @@ export async function getAvailableFrameColors(type: 'sunglasses' | 'eyeglasses' 
 
         if (type === 'eyeglasses') {
           textures = await prisma.prescriptionGlassesVariant.findMany({
-            where: { colorFamily: { not: null } },
+            where: { colorFamily: { not: null }, stock: { gt: 0 } },
             distinct: ['colorFamily'],
             select: { colorFamily: true, textureImageUrl: true }
           });
         } else {
           textures = await prisma.productVariant.findMany({
-            where: { colorFamily: { not: null } },
+            where: { colorFamily: { not: null }, stock: { gt: 0 } },
             distinct: ['colorFamily'],
             select: { colorFamily: true, textureImageUrl: true }
           });
