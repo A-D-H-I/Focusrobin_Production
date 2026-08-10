@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import { calculateRetailPrice } from "@/lib/price-utils";
 import type { Prisma } from "@prisma/client";
 
 export const dynamic = 'force-dynamic';
@@ -66,7 +67,9 @@ export async function GET(request: NextRequest) {
           id: true,
           name: true,
           slug: true,
+          brand: true,
           basePrice: true,
+          calculatedRetailPrice: true,
           Category: {
             select: {
               name: true,
@@ -133,7 +136,9 @@ export async function GET(request: NextRequest) {
           id: true,
           name: true,
           slug: true,
+          brand: true,
           basePrice: true,
+          calculatedRetailPrice: true,
           Category: {
             select: {
               name: true,
@@ -165,13 +170,17 @@ export async function GET(request: NextRequest) {
       const rawImage = variant?.ProductAsset[0]?.url || null;
       const image = rawImage ? normalizeImageUrl(rawImage) : null;
       
+      const price = product.calculatedRetailPrice
+        ? Number(product.calculatedRetailPrice)
+        : calculateRetailPrice(Number(product.basePrice), product.brand);
+
       return {
         id: product.id,
         name: product.name,
         slug: product.slug,
         category: product.Category?.name || 'Sunglasses',
         image: image,
-        price: Number(product.basePrice),
+        price,
         productType: 'sunglasses' as const,
       };
     });
@@ -182,13 +191,17 @@ export async function GET(request: NextRequest) {
       const rawImage = variant?.PrescriptionGlassesAsset[0]?.url || null;
       const image = rawImage ? normalizeImageUrl(rawImage) : null;
       
+      const price = product.calculatedRetailPrice
+        ? Number(product.calculatedRetailPrice)
+        : calculateRetailPrice(Number(product.basePrice), product.brand);
+
       return {
         id: product.id,
         name: product.name,
         slug: product.slug,
         category: product.Category?.name || 'Eyeglasses',
         image: image,
-        price: Number(product.basePrice),
+        price,
         productType: 'eyeglasses' as const,
       };
     });

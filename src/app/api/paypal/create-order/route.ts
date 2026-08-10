@@ -3,6 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { createPayPalOrder } from '@/lib/paypal';
 import { getShippingProvider } from '@/lib/shipping-provider';
+import { calculateRetailPrice } from '@/lib/price-utils';
 
 interface CreatePayPalOrderRequest {
   shippingAddress: {
@@ -137,6 +138,7 @@ export async function POST(request: Request) {
                 id: true,
                 name: true,
                 slug: true,
+                brand: true,
                 basePrice: true,
                 discountPct: true,
                 ProductVariant: {
@@ -160,6 +162,7 @@ export async function POST(request: Request) {
                 id: true,
                 name: true,
                 slug: true,
+                brand: true,
                 basePrice: true,
                 discountPct: true,
                 PrescriptionGlassesVariant: {
@@ -252,7 +255,7 @@ export async function POST(request: Request) {
       } else {
         const basePrice = variant.price
           ? Number(variant.price)
-          : Number(product.basePrice);
+          : calculateRetailPrice(Number(product.basePrice), (product as any).brand);
         const discountPct = product.discountPct || 0;
         price = basePrice * (1 - discountPct / 100);
       }
@@ -307,7 +310,7 @@ export async function POST(request: Request) {
           // Get base frame price (before any prescription lenses)
           const basePrice = variant.price
             ? Number(variant.price)
-            : Number(product.basePrice);
+            : calculateRetailPrice(Number(product.basePrice), (product as any).brand);
           const discountPct = product.discountPct || 0;
           const framePrice = basePrice * (1 - discountPct / 100);
           frameSubtotal += framePrice * orderItem.quantity;

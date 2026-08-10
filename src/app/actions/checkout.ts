@@ -6,6 +6,7 @@ import Stripe from 'stripe';
 import { requireAuth, safeAction } from "@/lib/security";
 import { rateLimit, getIdentifier } from "@/lib/rate-limit";
 import { getShippingProvider } from "@/lib/shipping-provider";
+import { calculateRetailPrice } from "@/lib/price-utils";
 
 interface CheckoutData {
   shippingAddress: {
@@ -127,6 +128,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
                 id: true,
                 name: true,
                 slug: true,
+                brand: true,
                 basePrice: true,
                 discountPct: true,
                 ProductVariant: {
@@ -150,6 +152,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
                 id: true,
                 name: true,
                 slug: true,
+                brand: true,
                 basePrice: true,
                 discountPct: true,
                 PrescriptionGlassesVariant: {
@@ -261,7 +264,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
         // No prescription or no totalNet - use regular frame price
         const basePrice = variant.price
           ? Number(variant.price)
-          : Number(product.basePrice);
+          : calculateRetailPrice(Number(product.basePrice), (product as any).brand);
         const discountPct = product.discountPct || 0;
         price = basePrice * (1 - discountPct / 100);
         console.log(`[CHECKOUT] Item ${product.name}: Using frame price €${price} (base: €${basePrice}, discount: ${discountPct}%)`);
@@ -337,7 +340,7 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
           // Get base frame price (before any prescription lenses)
           const basePrice = variant.price
             ? Number(variant.price)
-            : Number(product.basePrice);
+            : calculateRetailPrice(Number(product.basePrice), (product as any).brand);
           const discountPct = product.discountPct || 0;
           const framePrice = basePrice * (1 - discountPct / 100);
           frameSubtotal += framePrice * orderItem.quantity;

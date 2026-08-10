@@ -6,13 +6,7 @@
  * should be made here and nowhere else.
  *
  * Formula (for non-FocusRobin brands):
- *   (basePrice × 1.10 + 13.5) × 1.21 × 1.015
- *
- * Breakdown:
- *   - 10% margin
- *   - €13.50 handling fee
- *   - 21% VAT
- *   - 1.5% Stripe processing fee
+ *   basePrice × 2.5
  */
 
 /**
@@ -21,7 +15,7 @@
  * For FocusRobin-branded products, the base price IS the retail price
  * (no margin markup applied).
  *
- * For third-party brands (e.g., BigBuy imports), the margin formula is applied.
+ * For third-party brands (e.g., BigBuy/Blueberry imports), the margin formula is applied.
  *
  * @param basePrice - The raw base/wholesale price
  * @param brand     - The product brand name
@@ -34,14 +28,7 @@ export function calculateRetailPrice(basePrice: number, brand: string): number {
     return basePrice;
   }
 
-  // Base Price + 10% Margin + €13.50 handling
-  let price = basePrice * 1.1 + 13.5;
-  // + 21% VAT
-  price = price * 1.21;
-  // + 1.5% Stripe fee
-  price = price * 1.015;
-
-  return price;
+  return basePrice * 2.5;
 }
 
 /**

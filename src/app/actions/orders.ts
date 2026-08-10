@@ -5,6 +5,7 @@ import { getShippingProvider } from '@/lib/shipping-provider';
 import { requireAuth, requireAdmin, safeAction } from "@/lib/security";
 import { rateLimit, getIdentifier } from "@/lib/rate-limit";
 import { createOrderSchema, updateOrderStatusSchema, updatePaymentStatusSchema, updateTrackingSchema } from "@/lib/validations";
+import { calculateRetailPrice } from "@/lib/price-utils";
 import { z } from "zod";
 
 // Helper function to convert Google Drive links
@@ -151,7 +152,7 @@ export async function createOrder(orderData: CreateOrderData) {
       }
 
       // Calculate price with product discount applied
-      const basePrice = Number(cartItem.Product.basePrice);
+      const basePrice = calculateRetailPrice(Number(cartItem.Product.basePrice), cartItem.Product.brand);
       const variantPrice = variant.price ? Number(variant.price) : null;
       const basePriceBeforeDiscount = variantPrice || basePrice;
       const discountPct = cartItem.Product.discountPct || 0;
