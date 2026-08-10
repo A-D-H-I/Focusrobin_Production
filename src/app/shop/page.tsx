@@ -405,6 +405,7 @@ export default async function ShopPage({ searchParams }: ShopPageProps) {
           select: {
             id: true,
             name: true,
+            sku: true,
             // price removed
             stock: true,
             colorHex: true,

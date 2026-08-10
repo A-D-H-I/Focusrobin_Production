@@ -18,7 +18,13 @@
     "get-ip": "node scripts/get-local-ip.js",
     "postinstall": "prisma generate",
     "db:migrate": "prisma migrate deploy",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:migrate:dev": "dotenv -e .env.local -- prisma migrate dev",
+    "db:push:dev": "dotenv -e .env.local -- prisma db push",
+    "db:seed:dev": "dotenv -e .env.local -- tsx prisma/seed.ts",
+    "blueberry:sync:dev": "dotenv -e .env.local -- tsx scripts/sync-blueberry.ts",
+    "blueberry:stock:dev": "dotenv -e .env.local -- tsx scripts/blueberry-stock-sync.ts",
+    "blueberry:watch:dev": "dotenv -e .env.local -- tsx scripts/blueberry-scheduler.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.44",
@@ -105,11 +111,15 @@
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/node-cron": "^3.0.11",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "dotenv-cli": "^11.0.0",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
+    "exceljs": "^4.4.0",
     "genkit-cli": "^1.20.0",
+    "node-cron": "^4.6.0",
     "postcss": "^8",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.1",

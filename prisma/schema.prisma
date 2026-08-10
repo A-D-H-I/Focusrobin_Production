@@ -51,6 +51,7 @@ model Product {
   confidenceScore           Int?
   discountPct               Int?                  @default(0)
   cashbackAmount            Decimal?              @default(0) @db.Decimal(10, 2)
+  supplier                  Supplier              @default(BIGBUY)
   gender                    Gender[]
   tags                      String[]
   frameWidth                Float
@@ -98,6 +99,7 @@ model Product {
   @@index([isNewlyAdded])
   @@index([isUniqueDesign])
   @@index([calculatedRetailPrice])
+  @@index([supplier])
 }
 
 model PrescriptionGlasses {
@@ -113,6 +115,7 @@ model PrescriptionGlasses {
   confidenceScore            Int?
   discountPct                Int?                         @default(0)
   cashbackAmount             Decimal?                     @default(0) @db.Decimal(10, 2)
+  supplier                   Supplier                     @default(BIGBUY)
   linkedProductId            String?
   useSharedStock             Boolean                      @default(false)
   gender                     Gender[]
@@ -156,6 +159,7 @@ model PrescriptionGlasses {
   @@index([frameMaterial])
   @@index([isNewlyAdded])
   @@index([calculatedRetailPrice])
+  @@index([supplier])
 }
 
 model PrescriptionHighlight {
@@ -961,4 +965,10 @@ enum ProductStatus {
   PUBLISHED
   NEEDS_REVIEW
   DRAFT
+}
+
+enum Supplier {
+  BIGBUY
+  BLUEBERRY
+  MANUAL
 }

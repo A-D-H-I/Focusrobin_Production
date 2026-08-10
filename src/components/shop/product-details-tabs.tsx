@@ -96,7 +96,7 @@ export default function ProductDetailsTabs({ product, selectedVariant }: Product
           {product.description ? (
             <div className="prose max-w-none text-foreground/80">
               <h3 className="text-brand-h3 font-headline text-foreground mb-4"><TranslatableText text="Description" /></h3>
-              <div dangerouslySetInnerHTML={{ __html: product.description }} />
+              <div className="overflow-x-auto [&_table]:w-full" dangerouslySetInnerHTML={{ __html: product.description }} />
             </div>
           ) : (
             <p className="text-muted-foreground text-center"><TranslatableText text="No description available." /></p>

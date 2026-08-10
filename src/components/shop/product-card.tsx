@@ -363,11 +363,10 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                   loading={priority ? undefined : "lazy"}
                   className={cn(
                     "object-cover transition-opacity duration-300 ease-in-out",
-                    // If we have a tilted image to show, we might want to fade this out, 
-                    // or just let the tilted one cover only if opaque.
-                    // For simple "change", just keeping it is fine as tilted covers it.
-                    // But if tilted has transparency, we might need opacity switch.
-                    // Assuming no transparency for now, or standard crossfade behavior.
+                    // Fade the base image out as the tilted one fades in — otherwise
+                    // transparent-background product photos (e.g. PNGs) show both
+                    // images stacked at once on hover.
+                    !hoveredVariant && selectedVariant?.tilted && "group-hover:opacity-0"
                   )}
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   unoptimized
