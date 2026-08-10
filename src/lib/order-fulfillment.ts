@@ -8,6 +8,7 @@ import { uploadInvoiceToDropbox, getOrCreateInvoicesFolder } from '@/lib/dropbox
 import { sendOrderConfirmationWithDocuments } from '@/lib/invoice-email';
 import { generatePrescriptionPDF, extractPrescriptionFromOrderItem, hasValidPrescriptionValues, PrescriptionPDFData } from '@/lib/prescription-pdf';
 import { getInvoiceDataFromOrder, InvoiceData } from '@/lib/invoice';
+import { placeBlueberryOrderIfNeeded } from '@/lib/blueberry-order';
 
 /**
  * Generate combined PDF with Payment Receipt + Invoice using pdf-lib
@@ -523,11 +524,12 @@ async function deductWalletBalance(userId: string, amount: number, orderId: stri
 
 /**
  * Finalize order fulfillment:
- * 1. Deduct wallet balance (NEW)
+ * 1. Deduct wallet balance
  * 2. Update stock
  * 3. Clear cart
  * 4. Calculate and award cashback
- * 5. Generate invoice and send email
+ * 5. Place Blueberry wholesale order if applicable
+ * 6. Generate invoice and send email
  */
 export async function finalizeOrder(orderId: string) {
     console.log(`[Order Fulfillment] Finalizing order ${orderId}...`);
@@ -540,13 +542,20 @@ export async function finalizeOrder(orderId: string) {
                         Product: {
                             select: {
                                 cashbackAmount: true,
+                                supplier: true,
                             },
                         },
                         PrescriptionGlasses: {
                             select: {
                                 cashbackAmount: true,
+                                supplier: true,
                             },
                         }
+                    },
+                },
+                User: {
+                    select: {
+                        email: true,
                     },
                 },
             },
@@ -670,7 +679,11 @@ export async function finalizeOrder(orderId: string) {
             }
         }
 
-        // 5. Generate and send invoices (async)
+        // 5. Place a real Blueberry wholesale order for any Blueberry-sourced items (awaited,
+        //    never throws - failures are recorded on the order and alert an admin, see blueberry-order.ts)
+        await placeBlueberryOrderIfNeeded(order as any);
+
+        // 6. Generate and send invoices (async)
         // This runs in the background
         processSuccessfulOrder(orderId, order.orderNumber).catch((err) => {
             console.error(`[Order Fulfillment] Invoice processing failed:`, err);

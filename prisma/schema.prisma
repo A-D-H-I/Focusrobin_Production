@@ -696,6 +696,11 @@ model Order {
   updatedAt             DateTime      @updatedAt
   shippedAt             DateTime?
   deliveredAt           DateTime?
+  blueberryOrderStatus   BlueberryOrderStatus @default(NOT_APPLICABLE)
+  blueberryOrderId       String?              @unique
+  blueberryOrderedAt     DateTime?
+  blueberryOrderError    String?
+  blueberryOrderAttempts Int                  @default(0)
   PromoCode             PromoCode?    @relation(fields: [promoCodeId], references: [id])
   User                  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   items                 OrderItem[]
@@ -705,6 +710,7 @@ model Order {
   @@index([orderNumber])
   @@index([status])
   @@index([createdAt])
+  @@index([blueberryOrderStatus])
 }
 
 model OrderItem {
@@ -971,4 +977,11 @@ enum Supplier {
   BIGBUY
   BLUEBERRY
   MANUAL
+}
+
+enum BlueberryOrderStatus {
+  NOT_APPLICABLE
+  PENDING
+  PLACED
+  FAILED
 }
