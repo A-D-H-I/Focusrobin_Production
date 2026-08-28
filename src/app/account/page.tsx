@@ -99,6 +99,43 @@ const SCHENGEN_COUNTRIES = [
   'Switzerland',
 ];
 
+// International calling code for each country in SCHENGEN_COUNTRIES above.
+const COUNTRY_CALLING_CODES: Record<string, string> = {
+  'Austria': '+43',
+  'Belgium': '+32',
+  'Croatia': '+385',
+  'Czech Republic': '+420',
+  'Denmark': '+45',
+  'Estonia': '+372',
+  'Finland': '+358',
+  'France': '+33',
+  'Germany': '+49',
+  'Greece': '+30',
+  'Hungary': '+36',
+  'Iceland': '+354',
+  'Ireland': '+353',
+  'Italy': '+39',
+  'Latvia': '+371',
+  'Liechtenstein': '+423',
+  'Lithuania': '+370',
+  'Luxembourg': '+352',
+  'Malta': '+356',
+  'Netherlands': '+31',
+  'Norway': '+47',
+  'Poland': '+48',
+  'Portugal': '+351',
+  'Slovakia': '+421',
+  'Slovenia': '+386',
+  'Spain': '+34',
+  'Sweden': '+46',
+  'Switzerland': '+41',
+};
+
+// Strips a leading "+<digits>" calling code, if present, leaving just the local number.
+function stripCallingCode(phone: string): string {
+  return (phone || '').replace(/^\+\d{1,4}[\s-]*/, '').trim();
+}
+
 export default function AccountPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -214,9 +251,21 @@ export default function AccountPage() {
     city: '',
     state: '',
     postalCode: '',
-    country: 'Ireland',
+    country: 'Lithuania',
     isDefault: false,
   });
+
+  // Keep the phone number's calling code in sync with the selected country -
+  // the code itself is not user-editable, only the local number is.
+  useEffect(() => {
+    const code = COUNTRY_CALLING_CODES[addressForm.country];
+    if (!code) return;
+    setAddressForm((prev) => {
+      if (prev.phone.startsWith(code)) return prev;
+      const local = stripCallingCode(prev.phone);
+      return { ...prev, phone: local ? `${code} ${local}` : code };
+    });
+  }, [addressForm.country]);
 
   // Fetch wallet data
   useEffect(() => {
@@ -1544,7 +1593,7 @@ export default function AccountPage() {
                           city: '',
                           state: '',
                           postalCode: '',
-                          country: 'Ireland',
+                          country: 'Lithuania',
                           isDefault: false,
                         });
                         setIsAddressDialogOpen(true);
@@ -1575,7 +1624,7 @@ export default function AccountPage() {
                             city: '',
                             state: '',
                             postalCode: '',
-                            country: 'Ireland',
+                            country: 'Lithuania',
                             isDefault: false,
                           });
                           setIsAddressDialogOpen(true);
@@ -1742,13 +1791,23 @@ export default function AccountPage() {
                         </div>
                         <div>
                           <Label htmlFor="phone">Phone Number *</Label>
-                          <Input
-                            id="phone"
-                            value={addressForm.phone}
-                            onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-                            placeholder="+353 123 456 7890"
-                            required
-                          />
+                          <div className="flex">
+                            <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-200 bg-gray-50 text-sm text-gray-600 select-none">
+                              {COUNTRY_CALLING_CODES[addressForm.country] || '+'}
+                            </span>
+                            <Input
+                              id="phone"
+                              className="rounded-l-none"
+                              value={stripCallingCode(addressForm.phone)}
+                              onChange={(e) => {
+                                const code = COUNTRY_CALLING_CODES[addressForm.country] || '';
+                                const local = e.target.value.replace(/[^\d\s-]/g, '');
+                                setAddressForm({ ...addressForm, phone: local ? `${code} ${local}` : code });
+                              }}
+                              placeholder="123 456 7890"
+                              required
+                            />
+                          </div>
                         </div>
                         <div>
                           <Label htmlFor="addressLine1">Address Line 1 *</Label>

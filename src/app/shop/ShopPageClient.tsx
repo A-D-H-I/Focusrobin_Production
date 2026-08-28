@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback, Suspense, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Filter } from "lucide-react";
 import {
@@ -46,12 +46,19 @@ export default function ShopPageClient({
   banner
 }: ShopPageClientProps) {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [filtersApplied, setFiltersApplied] = useState(0);
   const [sortBy, setSortBy] = useState<string>("recommend");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const ITEMS_PER_PAGE = 50;
+
+  // Key used to persist/restore scroll position across navigation (e.g. visiting
+  // a product then pressing back) - unique per route + filter/sort/page state.
+  const scrollStorageKey = `shop-scroll:${pathname}?${searchParams.toString()}`;
+  const hasRestoredScroll = useRef(false);
+  const isFirstPageEffect = useRef(true);
 
   // Callback for FilterSidebar to close the mobile sheet before navigating
   const handleMobileFilterClose = useCallback(() => {
@@ -121,6 +128,54 @@ export default function ShopPageClient({
   useEffect(() => {
     setCurrentPage(1);
   }, [sortedProducts.length, filtersApplied, sortBy]);
+
+  // Restore scroll position on mount (e.g. returning here via the browser
+  // back button after viewing a product) - only if we have a saved position
+  // for this exact route+filter state. Runs once per mount.
+  useEffect(() => {
+    if (hasRestoredScroll.current) return;
+    hasRestoredScroll.current = true;
+    const saved = sessionStorage.getItem(scrollStorageKey);
+    if (!saved) return;
+    const top = parseInt(saved, 10);
+    if (!Number.isFinite(top) || top <= 0) return;
+    // Wait a frame so the product grid has actually rendered before scrolling.
+    requestAnimationFrame(() => {
+      scrollContainerRef.current?.scrollTo({ top, behavior: "auto" });
+      window.scrollTo({ top, behavior: "auto" });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist scroll position as the user scrolls, so it can be restored above.
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    const save = () => {
+      const top = container && container.scrollHeight > container.clientHeight
+        ? container.scrollTop
+        : window.scrollY;
+      sessionStorage.setItem(scrollStorageKey, String(top));
+    };
+    container?.addEventListener("scroll", save, { passive: true });
+    window.addEventListener("scroll", save, { passive: true });
+    return () => {
+      container?.removeEventListener("scroll", save);
+      window.removeEventListener("scroll", save);
+    };
+  }, [scrollStorageKey]);
+
+  // Scroll to top when the page number changes via pagination (not on the
+  // initial mount, which may instead be restoring a saved scroll position above).
+  // Runs after the new page's products have rendered, avoiding a scroll
+  // animation that gets interrupted by the content-height change.
+  useEffect(() => {
+    if (isFirstPageEffect.current) {
+      isFirstPageEffect.current = false;
+      return;
+    }
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
 
   const totalPages = Math.ceil(sortedProducts.length / ITEMS_PER_PAGE);
   const currentProducts = useMemo(() => {
@@ -266,13 +321,9 @@ export default function ShopPageClient({
               {/* Pagination Controls */}
               {totalPages > 1 && (
                 <div className="flex justify-center items-center space-x-4 mt-12 mb-8">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setCurrentPage(prev => Math.max(1, prev - 1));
-                      if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }} 
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
                   >
                     Previous
@@ -280,13 +331,9 @@ export default function ShopPageClient({
                   <div className="text-sm font-medium">
                     Page {currentPage} of {totalPages}
                   </div>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      setCurrentPage(prev => Math.min(totalPages, prev + 1));
-                      if (scrollContainerRef.current) scrollContainerRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-                      window.scrollTo({ top: 0, behavior: 'smooth' });
-                    }} 
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
                   >
                     Next

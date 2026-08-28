@@ -77,6 +77,46 @@ const SCHENGEN_COUNTRIES = [
   'Switzerland',
 ];
 
+// International calling code for each country in SCHENGEN_COUNTRIES above.
+// Kept as its own map (not derived) so the phone prefix is always exact.
+const COUNTRY_CALLING_CODES: Record<string, string> = {
+  'Austria': '+43',
+  'Belgium': '+32',
+  'Croatia': '+385',
+  'Czech Republic': '+420',
+  'Denmark': '+45',
+  'Estonia': '+372',
+  'Finland': '+358',
+  'France': '+33',
+  'Germany': '+49',
+  'Greece': '+30',
+  'Hungary': '+36',
+  'Iceland': '+354',
+  'Ireland': '+353',
+  'Italy': '+39',
+  'Latvia': '+371',
+  'Liechtenstein': '+423',
+  'Lithuania': '+370',
+  'Luxembourg': '+352',
+  'Malta': '+356',
+  'Netherlands': '+31',
+  'Norway': '+47',
+  'Poland': '+48',
+  'Portugal': '+351',
+  'Slovakia': '+421',
+  'Slovenia': '+386',
+  'Spain': '+34',
+  'Sweden': '+46',
+  'Switzerland': '+41',
+};
+
+// Strips a leading "+<digits>" calling code, if present, leaving just the
+// local number. A bare digit string with no "+" is left untouched, since
+// that's already a local number (not code+local) - e.g. legacy saved data.
+function stripCallingCode(phone: string): string {
+  return (phone || '').replace(/^\+\d{1,4}[\s-]*/, '').trim();
+}
+
 export default function CheckoutPage() {
   const { data: session, status: sessionStatus } = useSession();
   const searchParams = useSearchParams();
@@ -113,8 +153,20 @@ export default function CheckoutPage() {
     city: "",
     state: "",
     postalCode: "",
-    country: "Ireland",
+    country: "Lithuania",
   });
+  // Keep the phone number's calling code in sync with the selected country -
+  // the code itself is not user-editable, only the local number is.
+  useEffect(() => {
+    const code = COUNTRY_CALLING_CODES[shippingForm.country];
+    if (!code) return;
+    setShippingForm((prev) => {
+      if (prev.phone.startsWith(code)) return prev;
+      const local = stripCallingCode(prev.phone);
+      return { ...prev, phone: local ? `${code} ${local}` : code };
+    });
+  }, [shippingForm.country]);
+
   const [paymentMethod, setPaymentMethod] = useState<"stripe" | "paypal">("stripe");
   const [isBusinessPurchase, setIsBusinessPurchase] = useState(false);
   const [businessForm, setBusinessForm] = useState({
@@ -452,7 +504,7 @@ export default function CheckoutPage() {
         city: "",
         state: "",
         postalCode: "",
-        country: "Ireland",
+        country: "Lithuania",
       });
     } else {
       setUseSavedAddress(true);
@@ -876,15 +928,27 @@ export default function CheckoutPage() {
                               <Label htmlFor="shippingPhone" className="text-brand-blue font-semibold mb-2 block">
                                 Phone Number <span className="text-red-500">*</span>
                               </Label>
-                              <Input
-                                id="shippingPhone"
-                                type="tel"
-                                value={shippingForm.phone}
-                                onChange={(e) => setShippingForm({ ...shippingForm, phone: e.target.value })}
-                                className="bg-white border-gray-200 focus:border-brand-teal"
-                                placeholder="+370 609 66069"
-                                required
-                              />
+                              <div className="flex">
+                                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-200 bg-gray-50 text-sm text-gray-600 select-none">
+                                  {COUNTRY_CALLING_CODES[shippingForm.country] || '+'}
+                                </span>
+                                <Input
+                                  id="shippingPhone"
+                                  type="tel"
+                                  value={stripCallingCode(shippingForm.phone)}
+                                  onChange={(e) => {
+                                    const code = COUNTRY_CALLING_CODES[shippingForm.country] || '';
+                                    const local = e.target.value.replace(/[^\d\s-]/g, '');
+                                    setShippingForm({ ...shippingForm, phone: local ? `${code} ${local}` : code });
+                                  }}
+                                  className="rounded-l-none bg-white border-gray-200 focus:border-brand-teal"
+                                  placeholder="609 66069"
+                                  required
+                                />
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Country code is set automatically based on the selected country below.
+                              </p>
                             </div>
 
                             <div>
