@@ -1324,7 +1324,7 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
                                     e.stopPropagation();
                                     setMobileSunglassesOpen(prev => !prev);
                                   }}
-                                  className="font-body text-xl font-bold hover:text-primary active:text-primary transition-colors text-foreground py-2 flex-shrink-0 w-full text-left flex items-center justify-between cursor-pointer relative z-10 touch-manipulation select-none"
+                                  className="font-body text-lg font-bold hover:text-primary active:text-primary transition-colors text-foreground py-2 flex-shrink-0 w-full text-left flex items-center justify-between cursor-pointer relative z-10 touch-manipulation select-none"
                                   style={{ WebkitTapHighlightColor: 'transparent' }}
                                 >
                                   <span><TranslatableText text={link.label} /></span>
@@ -1405,7 +1405,7 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
                                     e.stopPropagation();
                                     setMobileEyeglassesOpen(prev => !prev);
                                   }}
-                                  className="font-body text-xl font-bold hover:text-primary active:text-primary transition-colors text-foreground py-2 flex-shrink-0 w-full text-left flex items-center justify-between cursor-pointer relative z-10 touch-manipulation select-none"
+                                  className="font-body text-lg font-bold hover:text-primary active:text-primary transition-colors text-foreground py-2 flex-shrink-0 w-full text-left flex items-center justify-between cursor-pointer relative z-10 touch-manipulation select-none"
                                   style={{ WebkitTapHighlightColor: 'transparent' }}
                                 >
                                   <span><TranslatableText text={link.label} /></span>
@@ -1480,7 +1480,7 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
                             )}
                             <Link
                               href={link.href}
-                              className="font-body text-xl font-bold hover:text-primary transition-colors text-foreground py-2 flex-shrink-0"
+                              className="font-body text-lg font-bold hover:text-primary transition-colors text-foreground py-2 flex-shrink-0"
                               onClick={() => setIsSidebarOpen(false)}
                             >
                               <TranslatableText text={link.label} />
