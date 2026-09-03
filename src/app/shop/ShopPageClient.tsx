@@ -50,13 +50,24 @@ export default function ShopPageClient({
   const [filtersApplied, setFiltersApplied] = useState(0);
   const [sortBy, setSortBy] = useState<string>("recommend");
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const ITEMS_PER_PAGE = 50;
 
-  // Key used to persist/restore scroll position across navigation (e.g. visiting
-  // a product then pressing back) - unique per route + filter/sort/page state.
+  // Key used to persist/restore page + scroll position across navigation (e.g.
+  // visiting a product then pressing back) - unique per route + filter/sort state.
   const scrollStorageKey = `shop-scroll:${pathname}?${searchParams.toString()}`;
+  const pageStorageKey = `${scrollStorageKey}:page`;
+
+  // Restore the page number synchronously on first render (not in an effect) so
+  // the correct page's products are already showing before anything paints or
+  // scrolls - avoids a visible flash back to page 1 then a jump to the real page.
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (typeof window === "undefined") return 1;
+    const saved = sessionStorage.getItem(pageStorageKey);
+    const page = saved ? parseInt(saved, 10) : 1;
+    return Number.isFinite(page) && page >= 1 ? page : 1;
+  });
+
   const hasRestoredScroll = useRef(false);
   const isFirstPageEffect = useRef(true);
 
@@ -124,10 +135,29 @@ export default function ShopPageClient({
     }
   }, [products, sortBy, originalOrder]);
 
-  // Reset to page 1 if products, filters or sorting change
+  // Reset to page 1 when the viewed collection's identity (URL filters/search,
+  // or sort order) actually changes - not on mount, and not when unrelated
+  // state (like filtersApplied settling a render after mount) merely re-fires
+  // this effect without the identity itself having changed.
+  const prevFilterIdentityRef = useRef<string | null>(null);
   useEffect(() => {
-    setCurrentPage(1);
-  }, [sortedProducts.length, filtersApplied, sortBy]);
+    const identity = `${scrollStorageKey}|${sortBy}`;
+    if (prevFilterIdentityRef.current === null) {
+      // First run (mount) - just record it, don't reset a possibly-restored page.
+      prevFilterIdentityRef.current = identity;
+      return;
+    }
+    if (prevFilterIdentityRef.current !== identity) {
+      prevFilterIdentityRef.current = identity;
+      setCurrentPage(1);
+    }
+  }, [scrollStorageKey, sortBy]);
+
+  // Persist the current page number so returning here (e.g. back button from
+  // a product) restores the actual page the user was on, not just page 1.
+  useEffect(() => {
+    sessionStorage.setItem(pageStorageKey, String(currentPage));
+  }, [currentPage, pageStorageKey]);
 
   // Restore scroll position on mount (e.g. returning here via the browser
   // back button after viewing a product) - only if we have a saved position
@@ -318,26 +348,28 @@ export default function ShopPageClient({
             <>
               <ProductGrid products={currentProducts} viewMode="grid" />
               
-              {/* Pagination Controls */}
+              {/* Pagination Controls - sticky/floating so Next/Previous stay reachable without scrolling */}
               {totalPages > 1 && (
-                <div className="flex justify-center items-center space-x-4 mt-12 mb-8">
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </Button>
-                  <div className="text-sm font-medium">
-                    Page {currentPage} of {totalPages}
+                <div className="sticky bottom-4 z-20 flex justify-center mt-12 mb-8">
+                  <div className="flex justify-center items-center space-x-4 bg-background/95 backdrop-blur border border-border shadow-lg rounded-full px-4 py-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <div className="text-sm font-medium">
+                      Page {currentPage} of {totalPages}
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </Button>
                 </div>
               )}
             </>

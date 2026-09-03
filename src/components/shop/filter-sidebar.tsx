@@ -300,8 +300,8 @@ export default function FilterSidebar({
         <span className="text-white font-semibold text-lg"><TranslatableText text="Filters" /></span>
       </div>
 
-      {/* Apply and Clear Buttons */}
-      <div className="mb-6 space-y-3 pb-4 border-b border-border/50">
+      {/* Apply and Clear Buttons - sticky so they stay reachable while scrolling through filters */}
+      <div className="sticky top-0 z-20 bg-background mb-6 space-y-3 pb-4 border-b border-border/50">
         <Button
           onClick={handleApplyFilters}
           className="w-full bg-teal-primary hover:bg-teal-primary/90 text-white font-semibold h-11"

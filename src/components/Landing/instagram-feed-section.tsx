@@ -19,11 +19,11 @@ interface InstagramFeedSectionProps {
   instagramImages: InstagramImageData[];
 }
 
-function CommunityImage({ 
-  item, 
+function CommunityImage({
+  item,
   index
-}: { 
-  item: InstagramImageData; 
+}: {
+  item: InstagramImageData;
   index: number;
 }) {
   const { ref, inView } = useInView({
@@ -35,7 +35,7 @@ function CommunityImage({
     <div
       ref={ref}
       className={cn(
-        "transition-all duration-700 ease-in-out", 
+        "transition-all duration-700 ease-in-out",
         inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
       )}
       style={{ transitionDelay: `${index * 100}ms` }}
@@ -115,7 +115,7 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
 
     const handleUserScroll = () => {
       setIsUserScrolling(true);
-      
+
       // Clear existing timeout
       if (autoScrollTimeoutRef.current) {
         clearTimeout(autoScrollTimeoutRef.current);
@@ -142,20 +142,20 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
   }, []);
 
   return (
-    <section className="w-full bg-white overflow-hidden py-12 md:py-16"> 
+    <section className="w-full bg-white overflow-hidden py-12 md:py-16">
       <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
         {/* Header Section - Centered */}
         <div className="flex flex-col items-center mb-8 md:mb-12">
           {/* Instagram Camera Logo Outline */}
           <div className="mb-4">
-            <svg 
-              width="40" 
-              height="40" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
               strokeLinejoin="round"
               className="text-gray-800"
             >
@@ -164,12 +164,12 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
               <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
             </svg>
           </div>
-          
+
           {/* Title */}
           <h2 className="text-brand-h2 font-headline text-gray-800 mb-2 text-center">
             <TranslatableText text="Follow Us on Instagram" />
           </h2>
-          
+
           {/* Tagline */}
           <p className="text-base md:text-lg text-gray-600 text-center">
             @focusrobin • <TranslatableText text="Join our community and share your style" />
@@ -178,7 +178,7 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
 
       {/* Image Grid Section - Full Width Edge-to-Edge */}
       <div className="w-full mb-8 md:mb-12 overflow-hidden">
-          <div 
+          <div
           ref={scrollContainerRef}
             className="overflow-x-auto overflow-y-hidden scroll-smooth snap-x snap-mandatory w-full"
             style={{
@@ -190,8 +190,8 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
           >
           <div className="flex gap-0 md:gap-4 pb-2 md:px-6">
               {instagramImages.map((item, index) => (
-                <div 
-                  key={item.id} 
+                <div
+                  key={item.id}
                 className="flex-shrink-0 w-[50vw] sm:w-[40vw] md:w-[250px] snap-start"
                 >
                   <CommunityImage item={item} index={index} />
@@ -199,8 +199,8 @@ export default function InstagramFeedSection({ instagramImages }: InstagramFeedS
               ))}
             {/* Duplicate images for seamless loop */}
             {instagramImages.map((item, index) => (
-              <div 
-                key={`duplicate-${item.id}`} 
+              <div
+                key={`duplicate-${item.id}`}
                 className="flex-shrink-0 w-[50vw] sm:w-[40vw] md:w-[250px] snap-start"
               >
                 <CommunityImage item={item} index={index + instagramImages.length} />
