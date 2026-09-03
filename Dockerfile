@@ -59,6 +59,14 @@ COPY --from=builder /app/prisma ./prisma
 # Copy Google credentials file if it exists (for translation API)
 COPY --from=builder /app/google-credentials.json* ./
 
+# Next.js's standalone output automatically copies .env/.env.production into
+# .next/standalone at build time regardless of .dockerignore, which would
+# otherwise bake production secrets into this image layer. Runtime env vars
+# are supplied via docker-compose's env_file at container start instead, so
+# strip any that made it in here as a hard safety net.
+RUN rm -f ./.env ./.env.local ./.env.development ./.env.development.local \
+  ./.env.production ./.env.production.local ./.env.test ./.env.test.local
+
 # Install Prisma CLI globally to run migrations (pin version to match package.json)
 RUN npm install -g prisma@5.22.0
 
