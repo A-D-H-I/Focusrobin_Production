@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
-import Stripe from 'stripe';
+import stripe from '@/lib/stripe';
 import { finalizeOrder } from '@/lib/order-fulfillment';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-11-17.clover',
-});
 
 /**
  * Verify Stripe checkout session status for an order
