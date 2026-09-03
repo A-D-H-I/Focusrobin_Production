@@ -158,7 +158,7 @@ export default function CartPage() {
                                 href={`/shop/${item.product.slug}`}
                                 className="block"
                               >
-                                <h3 className="text-base font-semibold text-brand-blue mb-0.5 hover:text-brand-teal transition-colors truncate">
+                                <h3 className="text-base font-semibold text-brand-blue mb-0.5 hover:text-brand-teal transition-colors line-clamp-2 break-words">
                                   {item.product.name}
                                 </h3>
                               </Link>

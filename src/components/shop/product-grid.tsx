@@ -9,9 +9,10 @@ import { cn } from "@/lib/utils";
 interface ProductGridProps {
     products: Product[];
     viewMode?: "grid" | "list";
+    onCardClick?: (productId: string) => void;
 }
 
-export default function ProductGrid({ products, viewMode = "grid" }: ProductGridProps) {
+export default function ProductGrid({ products, viewMode = "grid", onCardClick }: ProductGridProps) {
     const searchParams = useSearchParams();
     const viewedProductId = searchParams.get('viewed');
     
@@ -46,11 +47,12 @@ export default function ProductGrid({ products, viewMode = "grid" }: ProductGrid
       "overflow-x-hidden"
     )}>
       {sortedProducts.map((product, index) => (
-        <ProductCard 
-          key={product.id} 
-          product={product} 
+        <ProductCard
+          key={product.id}
+          product={product}
           priority={index < 6}
           viewMode={viewMode}
+          onCardClick={onCardClick}
         />
       ))}
     </div>

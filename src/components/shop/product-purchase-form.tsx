@@ -223,8 +223,8 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   return (
     <div className="space-y-3 overflow-hidden w-full">
       {/* Product Name */}
-      <div className="overflow-hidden">
-        <h1 className="text-3xl lg:text-4xl font-headline tracking-tight truncate">{product.name}</h1>
+      <div>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-headline tracking-tight break-words">{product.name}</h1>
       </div>
 
       {/* Price Section */}
@@ -301,20 +301,20 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       <div className="rounded-lg border bg-muted/30 p-2.5 sm:p-3 overflow-hidden">
         <div className="grid grid-cols-2 gap-2">
           {dynamicFeatures.map((feature, index) => (
-            <div key={index} className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-              <feature.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
-              <span className="text-xs sm:text-sm text-foreground/80 truncate">{feature.text}</span>
+            <div key={index} className="flex items-start gap-1.5 min-w-0">
+              <feature.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0 mt-0.5" />
+              <span className="text-xs sm:text-sm text-foreground/80 break-words">{feature.text}</span>
             </div>
           ))}
           {/* Warranty */}
-          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-            <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-foreground/80 truncate">{product.warranty || "2 Years Warranty"}</span>
+          <div className="flex items-start gap-1.5 min-w-0">
+            <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0 mt-0.5" />
+            <span className="text-xs sm:text-sm text-foreground/80 break-words">{product.warranty || "2 Years Warranty"}</span>
           </div>
           {/* Fast Delivery */}
-          <div className="flex items-center gap-1.5 min-w-0 overflow-hidden">
-            <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0" />
-            <span className="text-xs sm:text-sm text-foreground/80 truncate">Fast Delivery</span>
+          <div className="flex items-start gap-1.5 min-w-0">
+            <Truck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-primary flex-shrink-0 mt-0.5" />
+            <span className="text-xs sm:text-sm text-foreground/80 break-words">Fast Delivery</span>
           </div>
         </div>
       </div>

@@ -57,6 +57,7 @@ export default function ShopPageClient({
   // visiting a product then pressing back) - unique per route + filter/sort state.
   const scrollStorageKey = `shop-scroll:${pathname}?${searchParams.toString()}`;
   const pageStorageKey = `${scrollStorageKey}:page`;
+  const lastProductStorageKey = `${scrollStorageKey}:lastProduct`;
 
   // Restore the page number synchronously on first render (not in an effect) so
   // the correct page's products are already showing before anything paints or
@@ -71,10 +72,58 @@ export default function ShopPageClient({
   const hasRestoredScroll = useRef(false);
   const isFirstPageEffect = useRef(true);
 
+  // Whether the products container is the actual scrolling element right now
+  // (desktop: `md:overflow-y-auto md:h-full` makes it its own scroll box) vs.
+  // the whole page scrolling instead (mobile: no such classes apply below the
+  // `md:` breakpoint, so window/html/body scroll). This is tied directly to
+  // Tailwind's `md:` breakpoint (768px) - NOT to measuring the container's
+  // scrollHeight/clientHeight, which depends on layout having fully settled
+  // and was flaky immediately after a back-navigation (still resolving flex
+  // sizing), causing restoration to occasionally pick the wrong element.
+  const isDesktopScrollColumn = () =>
+    typeof window !== "undefined" && window.matchMedia("(min-width: 768px)").matches;
+
+  // Scrolls whichever element actually owns scrolling to `top`. Scrolling
+  // BOTH unconditionally is wrong: forcing window/html/body to the
+  // container's (much larger) offset on desktop overshoots the outer page's
+  // real scroll range and the browser clamps it to the bottom of the page.
+  const scrollOwnerTo = useCallback((top: number, behavior: ScrollBehavior) => {
+    if (isDesktopScrollColumn()) {
+      scrollContainerRef.current?.scrollTo({ top, behavior });
+    } else {
+      window.scrollTo({ top, behavior });
+      document.documentElement.scrollTo({ top, behavior });
+      document.body.scrollTo({ top, behavior });
+    }
+  }, []);
+
+  // Take manual control of scroll restoration - the browser's own native
+  // restoration on back/forward navigation can race with (and override) our
+  // sessionStorage-based restore below, especially on slower mobile devices.
+  useEffect(() => {
+    if (typeof window !== "undefined" && "scrollRestoration" in window.history) {
+      const previous = window.history.scrollRestoration;
+      window.history.scrollRestoration = "manual";
+      return () => {
+        window.history.scrollRestoration = previous;
+      };
+    }
+  }, []);
+
   // Callback for FilterSidebar to close the mobile sheet before navigating
   const handleMobileFilterClose = useCallback(() => {
     setMobileFilterOpen(false);
   }, []);
+
+  // Remember exactly which product card was clicked so that on returning here
+  // (browser back) we can scroll that specific card back into view via
+  // scrollIntoView, instead of restoring a raw pixel offset - scrollIntoView
+  // is handled natively by the browser regardless of which element actually
+  // owns scrolling, sidestepping the desktop-vs-mobile scroll-container
+  // ambiguity that made pixel-offset restoration unreliable.
+  const handleProductCardClick = useCallback((productId: string) => {
+    sessionStorage.setItem(lastProductStorageKey, productId);
+  }, [lastProductStorageKey]);
 
   // Count applied filters from URL params
   useEffect(() => {
@@ -159,38 +208,112 @@ export default function ShopPageClient({
     sessionStorage.setItem(pageStorageKey, String(currentPage));
   }, [currentPage, pageStorageKey]);
 
-  // Restore scroll position on mount (e.g. returning here via the browser
-  // back button after viewing a product) - only if we have a saved position
-  // for this exact route+filter state. Runs once per mount.
+  // Refs so the restore logic below always reads the current keys, even when
+  // triggered from a long-lived event listener registered only once.
+  const pageStorageKeyRef = useRef(pageStorageKey);
+  const scrollStorageKeyRef = useRef(scrollStorageKey);
+  const lastProductStorageKeyRef = useRef(lastProductStorageKey);
+  pageStorageKeyRef.current = pageStorageKey;
+  scrollStorageKeyRef.current = scrollStorageKey;
+  lastProductStorageKeyRef.current = lastProductStorageKey;
+
+  // Restores the page returned to (e.g. via the browser back button after
+  // viewing a product). Prefers scrolling the actual clicked product card
+  // back into view via scrollIntoView - the browser resolves this correctly
+  // regardless of which element actually owns scrolling (the products
+  // container on desktop vs. the whole page on mobile), which is exactly the
+  // distinction that made restoring a raw pixel offset unreliable. Falls back
+  // to the saved pixel offset only if no product-card position was recorded.
+  const restoreScroll = useCallback(() => {
+    const savedPage = sessionStorage.getItem(pageStorageKeyRef.current);
+    if (savedPage) {
+      const page = parseInt(savedPage, 10);
+      if (Number.isFinite(page) && page >= 1) {
+        setCurrentPage(page);
+      }
+    }
+
+    const savedProductId = sessionStorage.getItem(lastProductStorageKeyRef.current);
+    const savedTop = sessionStorage.getItem(scrollStorageKeyRef.current);
+    const fallbackTop = savedTop ? parseInt(savedTop, 10) : NaN;
+
+    const tryScrollToProduct = (): boolean => {
+      if (!savedProductId) return false;
+      const el = document.querySelector(`[data-product-id="${CSS.escape(savedProductId)}"]`);
+      if (!el) return false;
+      el.scrollIntoView({ block: "center", behavior: "auto" });
+      return true;
+    };
+
+    const applyScroll = () => {
+      if (!tryScrollToProduct() && Number.isFinite(fallbackTop) && fallbackTop > 0) {
+        scrollOwnerTo(fallbackTop, "auto");
+      }
+    };
+
+    // Double rAF plus a delayed retry: give slower devices time to finish
+    // painting the restored page's grid (and settle any late image-driven
+    // layout shift) before the scroll position is considered final.
+    requestAnimationFrame(() => {
+      applyScroll();
+      requestAnimationFrame(applyScroll);
+    });
+    const retryTimer = setTimeout(applyScroll, 300);
+    return () => clearTimeout(retryTimer);
+  }, [scrollOwnerTo]);
+
+  // Runs once per mount.
   useEffect(() => {
     if (hasRestoredScroll.current) return;
     hasRestoredScroll.current = true;
-    const saved = sessionStorage.getItem(scrollStorageKey);
-    if (!saved) return;
-    const top = parseInt(saved, 10);
-    if (!Number.isFinite(top) || top <= 0) return;
-    // Wait a frame so the product grid has actually rendered before scrolling.
-    requestAnimationFrame(() => {
-      scrollContainerRef.current?.scrollTo({ top, behavior: "auto" });
-      window.scrollTo({ top, behavior: "auto" });
-    });
+    return restoreScroll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Fallback for browser back/forward navigation where this component
+  // instance is reused from Next.js's router cache instead of being freshly
+  // mounted (common on mobile) - in that case the mount-only effect above
+  // never re-runs, so nothing re-applies the saved position. Listening for
+  // popstate/pageshow catches that case regardless of whether a remount
+  // happened.
+  useEffect(() => {
+    window.addEventListener("popstate", restoreScroll);
+    window.addEventListener("pageshow", restoreScroll);
+    return () => {
+      window.removeEventListener("popstate", restoreScroll);
+      window.removeEventListener("pageshow", restoreScroll);
+    };
+  }, [restoreScroll]);
+
   // Persist scroll position as the user scrolls, so it can be restored above.
+  // Also save on pagehide/visibilitychange (not just "scroll"): mobile
+  // browsers throttle/coalesce scroll events during momentum scrolling, so if
+  // the user taps a product right after flicking the list, the last "scroll"
+  // event may not have fired yet and sessionStorage can be left holding a
+  // stale, earlier position - pagehide/visibilitychange fire reliably right
+  // as the page is actually being left, guaranteeing one final accurate save.
   useEffect(() => {
     const container = scrollContainerRef.current;
     const save = () => {
-      const top = container && container.scrollHeight > container.clientHeight
+      const top = isDesktopScrollColumn() && container
         ? container.scrollTop
-        : window.scrollY;
+        : Math.max(window.scrollY, document.documentElement.scrollTop, document.body.scrollTop);
       sessionStorage.setItem(scrollStorageKey, String(top));
+    };
+    const saveIfHidden = () => {
+      if (document.visibilityState === "hidden") save();
     };
     container?.addEventListener("scroll", save, { passive: true });
     window.addEventListener("scroll", save, { passive: true });
+    document.addEventListener("scroll", save, { passive: true });
+    window.addEventListener("pagehide", save);
+    document.addEventListener("visibilitychange", saveIfHidden);
     return () => {
       container?.removeEventListener("scroll", save);
       window.removeEventListener("scroll", save);
+      document.removeEventListener("scroll", save);
+      window.removeEventListener("pagehide", save);
+      document.removeEventListener("visibilitychange", saveIfHidden);
     };
   }, [scrollStorageKey]);
 
@@ -203,9 +326,8 @@ export default function ShopPageClient({
       isFirstPageEffect.current = false;
       return;
     }
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [currentPage]);
+    scrollOwnerTo(0, "smooth");
+  }, [currentPage, scrollOwnerTo]);
 
   const totalPages = Math.ceil(sortedProducts.length / ITEMS_PER_PAGE);
   const currentProducts = useMemo(() => {
@@ -346,24 +468,34 @@ export default function ShopPageClient({
           {/* Products Grid */}
           {sortedProducts.length > 0 ? (
             <>
-              <ProductGrid products={currentProducts} viewMode="grid" />
+              <ProductGrid products={currentProducts} viewMode="grid" onCardClick={handleProductCardClick} />
               
-              {/* Pagination Controls - sticky/floating so Next/Previous stay reachable without scrolling */}
+              {/* Pagination Controls - fixed/floating so Next/Previous stay reachable without
+                  scrolling. Deliberately `fixed` (viewport-relative) rather than `sticky`:
+                  sticky depends on which ancestor owns scrolling, which differs between the
+                  desktop (own scroll column) and mobile (page-level scroll) layouts above,
+                  and silently fails to stick on mobile browsers as a result. */}
               {totalPages > 1 && (
-                <div className="sticky bottom-4 z-20 flex justify-center mt-12 mb-8">
-                  <div className="flex justify-center items-center space-x-4 bg-background/95 backdrop-blur border border-border shadow-lg rounded-full px-4 py-2">
+                <>
+                <div className="h-24" aria-hidden="true" />
+                <div className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-20 flex justify-center px-2 max-w-[calc(100vw-1rem)]">
+                  <div className="flex justify-center items-center gap-2 sm:gap-4 bg-background/95 backdrop-blur border border-border shadow-lg rounded-full px-2.5 py-1.5 sm:px-4 sm:py-2">
                     <Button
                       variant="outline"
+                      size="sm"
+                      className="h-8 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm"
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
                     >
                       Previous
                     </Button>
-                    <div className="text-sm font-medium">
+                    <div className="text-xs sm:text-sm font-medium whitespace-nowrap">
                       Page {currentPage} of {totalPages}
                     </div>
                     <Button
                       variant="outline"
+                      size="sm"
+                      className="h-8 px-2.5 text-xs sm:h-9 sm:px-3 sm:text-sm"
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
                     >
@@ -371,6 +503,7 @@ export default function ShopPageClient({
                     </Button>
                   </div>
                 </div>
+                </>
               )}
             </>
           ) : (

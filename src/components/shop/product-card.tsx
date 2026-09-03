@@ -21,6 +21,7 @@ type ProductCardProps = {
   onColorClick?: (variant: ProductColorVariant) => void;
   priority?: boolean;
   viewMode?: "grid" | "list";
+  onCardClick?: (productId: string) => void;
 };
 
 // Badge types with their styles
@@ -68,7 +69,7 @@ function StarRating({ rating, count }: { rating: number; count?: number }) {
   );
 }
 
-function ProductCard({ product, onColorClick, priority = false, viewMode = "grid" }: ProductCardProps) {
+function ProductCard({ product, onColorClick, priority = false, viewMode = "grid", onCardClick }: ProductCardProps) {
   const router = useRouter();
 
   // Guard clause: If product has no variants, don't render the card (prevent crash)
@@ -174,6 +175,8 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
         href={`/shop/${safeSlug}`}
         prefetch={true}
         className="block"
+        data-product-id={product.id}
+        onClick={() => onCardClick?.(product.id)}
       >
         <Card className="overflow-hidden group relative border border-border/50 shadow-sm hover:shadow-lg transition-all duration-300 h-full">
           <CardContent className="p-0 flex flex-row h-full">
@@ -209,7 +212,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                 <p className="text-sm sm:text-base md:text-lg font-medium text-teal-primary uppercase tracking-wide mb-1">
                   {brandName}
                 </p>
-                <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-headline text-foreground mb-1 sm:mb-2 line-clamp-1 break-words overflow-hidden text-ellipsis">
+                <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-headline text-foreground mb-1 sm:mb-2 line-clamp-2 break-words">
                   {product.name}
                 </h3>
 
@@ -325,6 +328,8 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
       href={`/shop/${safeSlug}`}
       prefetch={true}
       className="block h-full"
+      data-product-id={product.id}
+      onClick={() => onCardClick?.(product.id)}
     >
       <Card className="overflow-hidden group relative border border-border/50 shadow-sm hover:shadow-lg transition-all duration-300 h-full rounded-xl">
         <CardContent className="p-0 flex flex-col h-full">
@@ -397,7 +402,7 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
             </p>
 
             {/* Product Name */}
-            <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-headline text-foreground mb-1 line-clamp-1 break-words overflow-hidden text-ellipsis leading-tight">
+            <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-headline text-foreground mb-1 line-clamp-2 break-words leading-tight">
               {product.name}
             </h3>
 
