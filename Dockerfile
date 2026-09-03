@@ -31,6 +31,14 @@ COPY . .
 ENV NEXT_STANDALONE=true
 ENV NODE_ENV=production
 
+# auth.ts throws at module load if no secret is set, which Next.js's build
+# hits while statically generating pages (e.g. /_not-found) that import it.
+# Passed as a build ARG so it's available for this step only - it lives in
+# the discarded builder stage and never reaches the runner stage/final image,
+# unlike copying .env.production in (which is what caused the secret leak).
+ARG AUTH_SECRET
+ENV AUTH_SECRET=$AUTH_SECRET
+
 # Generate Prisma client (now that we have all files)
 RUN npx prisma generate
 
