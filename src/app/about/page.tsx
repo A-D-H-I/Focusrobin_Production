@@ -21,9 +21,6 @@ export const metadata: Metadata = {
     'apie FocusRobin',
     'Lietuvos akinių prekės ženklas',
   ],
-  alternates: {
-    canonical: 'https://focusrobin.lt/about',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_IE',
@@ -60,7 +57,7 @@ export default function AboutPage() {
     name: 'FocusRobin',
     alternateName: ['Focus Robin', 'FocusRobin Lithuania', 'FocusRobin Lietuva'],
     url: 'https://focusrobin.lt',
-    logo: 'https://focusrobin.lt/Symbol Wide Primary light (Teal).svg',
+    logo: 'https://focusrobin.lt/Symbol%20Wide%20Primary%20light%20(Teal).svg',
     description: 'FocusRobin is Lithuania\'s premium online eyewear store offering designer sunglasses and prescription glasses with fast delivery across Lithuania and Europe.',
     address: {
       '@type': 'PostalAddress',

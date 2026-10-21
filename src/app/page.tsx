@@ -44,9 +44,6 @@ export async function generateMetadata(): Promise<Metadata> {
       'saulės akiniai',
       'korekciniai akiniai',
     ],
-    alternates: {
-      canonical: 'https://focusrobin.lt',
-    },
     ...createPageMetadata({
       title,
       description,
@@ -385,7 +382,7 @@ export default async function Home() {
     name: 'FocusRobin',
     alternateName: ['Focus Robin', 'FocusRobin Lithuania', 'FocusRobin Lietuva'],
     url: 'https://focusrobin.lt',
-    logo: 'https://focusrobin.lt/Symbol Wide Primary light (Teal).svg',
+    logo: 'https://focusrobin.lt/Symbol%20Wide%20Primary%20light%20(Teal).svg',
     description: 'FocusRobin is Lithuania\'s premier online eyewear store. Shop premium polarized sunglasses and prescription glasses with UV400 protection. Fast delivery to Vilnius, Kaunas, Klaipėda and EU.',
     address: {
       '@type': 'PostalAddress',
@@ -415,7 +412,7 @@ export default async function Home() {
     name: 'FocusRobin - Sunglasses & Prescription Glasses Lithuania',
     alternateName: ['FocusRobin', 'Focus Robin', 'FocusRobin Lietuva'],
     url: 'https://focusrobin.lt',
-    logo: 'https://focusrobin.lt/Symbol Wide Primary light (Teal).svg',
+    logo: 'https://focusrobin.lt/Symbol%20Wide%20Primary%20light%20(Teal).svg',
     image: 'https://focusrobin.lt/og.png',
     description: 'FocusRobin offers premium polarized sunglasses and prescription glasses online in Lithuania. Fast delivery to Vilnius, Kaunas, Klaipėda. Shop designer eyewear with UV400 protection.',
     priceRange: '€€',

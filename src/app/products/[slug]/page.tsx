@@ -19,6 +19,7 @@ import {
 import Link from "next/link";
 import ProductPageContent from "./ProductPageContent";
 import { normalizeImageUrl } from "@/lib/normalize-image-url";
+import { buildProductSchema } from '@/lib/product-structured-data';
 
 // Helper to get OG image with fallback
 function getOGImageUrl(productImage?: string): string {
@@ -27,7 +28,7 @@ function getOGImageUrl(productImage?: string): string {
     return normalized.startsWith('http') ? normalized : `https://focusrobin.lt${normalized}`;
   }
   // TODO: Add /og.png (1200x630) for better social sharing
-  return 'https://focusrobin.lt/Symbol Wide Primary light (Teal).svg';
+  return 'https://focusrobin.lt/Symbol%20Wide%20Primary%20light%20(Teal).svg';
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -92,9 +93,6 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     title: seoTitle,
     description,
     keywords: productKeywords,
-    alternates: {
-      canonical: `https://focusrobin.lt/shop/${slug}`,
-    },
     openGraph: {
       type: 'website',
       title: seoTitle,
@@ -218,55 +216,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   }));
 
   // Build structured data
-  const productImage = product.variants[0]?.thumbnail || product.variants[0]?.images[0];
-  const productImages = product.variants.flatMap(v => v.images || [v.thumbnail]).filter(Boolean);
-  const allImages = productImages.length > 0
-    ? productImages.map(img => {
-      const normalized = normalizeImageUrl(img);
-      return normalized.startsWith('http') ? normalized : `https://focusrobin.lt${normalized}`;
-    })
-    : ['https://focusrobin.lt/Symbol Wide Primary light (Teal).svg'];
-
-  // Calculate price - TODO: Use actual price from product data if available
-  const basePrice = Number(product.price.replace(/[^\d.]/g, '')) || 0;
-  const priceCurrency = 'EUR';
-
-  // Product schema
-  const productSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    description: product.description || `${product.name} - Premium sunglasses by FocusRobin`,
-    image: allImages,
-    brand: {
-      '@type': 'Brand',
-      name: 'FocusRobin',
-    },
-    // Only include offers if we have real price data
-    ...(basePrice > 0 && {
-      offers: {
-        '@type': 'Offer',
-        url: `https://focusrobin.lt/shop/${slug}`,
-        priceCurrency,
-        price: basePrice.toFixed(2),
-        availability: product.variants.some(v => (v.stock ?? 0) > 0)
-          ? 'https://schema.org/InStock'
-          : 'https://schema.org/OutOfStock',
-        seller: {
-          '@type': 'Organization',
-          name: 'FocusRobin',
-        },
-      },
-    }),
-    // Aggregate rating if available
-    ...(product.averageRating && product.reviewCount ? {
-      aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: product.averageRating.toString(),
-        reviewCount: product.reviewCount.toString(),
-      },
-    } : {}),
-  };
+  const productSchema = buildProductSchema(product, { slug, kind: 'sunglasses' });
 
   // Breadcrumb schema
   const breadcrumbSchema = {
