@@ -1,56 +1,51 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { supportedLanguages, supportedLanguageCodes, type Language } from '@/lib/languageData';
+import { createContext, useContext, ReactNode, useCallback } from 'react';
+import { supportedLanguages, type Language } from '@/lib/languageData';
+import { isLocale, localizePath, LOCALE_COOKIE, type Locale } from '@/i18n/config';
+import { translate, type Messages } from '@/i18n/messages';
 
 interface LanguageContextType {
-  language: string;
+  language: Locale;
   setLanguage: (language: string) => void;
   currentLanguage: Language | undefined;
+  /** Kept for backwards compatibility; the language is known at render time now */
   isLoading: boolean;
+  /** Translate an English source string using the active catalog */
+  t: (text: string) => string;
+  /** Prefix an internal path with the active locale ("/shop" -> "/lt/shop") */
+  localizeHref: (href: string) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-const LANGUAGE_STORAGE_KEY = 'focusrobin-language';
+const ONE_YEAR = 60 * 60 * 24 * 365;
 
-// Default language
-const DEFAULT_LANGUAGE = 'en';
+interface LanguageProviderProps {
+  children: ReactNode;
+  /** Locale resolved by middleware from the URL (/lt, /ru or none) */
+  initialLanguage: Locale;
+  messages: Messages;
+}
 
-export const LanguageProvider = ({ children }: { children: ReactNode }) => {
-  const [language, setLanguageState] = useState(DEFAULT_LANGUAGE);
-  const [isLoading, setIsLoading] = useState(true);
+export const LanguageProvider = ({ children, initialLanguage, messages }: LanguageProviderProps) => {
+  const language = initialLanguage;
 
-  // Load language preference from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem(LANGUAGE_STORAGE_KEY);
-      if (saved && supportedLanguageCodes.includes(saved)) {
-        setLanguageState(saved);
-      } else {
-        // Try to detect language from browser
-        const browserLang = navigator.language.split('-')[0];
-        if (supportedLanguageCodes.includes(browserLang)) {
-          setLanguageState(browserLang);
-        }
-      }
-      setIsLoading(false);
-    }
-  }, []);
+  const t = useCallback((text: string) => translate(messages, text), [messages]);
 
-  // Save language preference to localStorage
+  const localizeHref = useCallback((href: string) => {
+    if (!href.startsWith('/') || href.startsWith('//')) return href;
+    const [path, query = ''] = href.split(/(?=[?#])/);
+    return localizePath(path, language) + query;
+  }, [language]);
+
+  // Switching language moves to the localized URL; the server renders the new language
   const setLanguage = useCallback((newLanguage: string) => {
-    if (supportedLanguageCodes.includes(newLanguage)) {
-      setLanguageState(newLanguage);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(LANGUAGE_STORAGE_KEY, newLanguage);
-        // Dispatch custom event to notify components of language change
-        window.dispatchEvent(new CustomEvent('languageChanged', { 
-          detail: { language: newLanguage } 
-        }));
-      }
-    }
-  }, []);
+    if (!isLocale(newLanguage) || newLanguage === language) return;
+    document.cookie = `${LOCALE_COOKIE}=${newLanguage}; path=/; max-age=${ONE_YEAR}; samesite=lax`;
+    const { pathname, search, hash } = window.location;
+    window.location.assign(localizePath(pathname, newLanguage) + search + hash);
+  }, [language]);
 
   const currentLanguage = supportedLanguages.find(lang => lang.code === language);
 
@@ -59,7 +54,9 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
       language,
       setLanguage,
       currentLanguage,
-      isLoading,
+      isLoading: false,
+      t,
+      localizeHref,
     }}>
       {children}
     </LanguageContext.Provider>
@@ -73,4 +70,3 @@ export const useLanguage = () => {
   }
   return context;
 };
-

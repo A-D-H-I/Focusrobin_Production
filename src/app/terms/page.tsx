@@ -8,9 +8,6 @@ import TranslatableText from "@/components/ui/TranslatableText";
 export const metadata: Metadata = {
   title: 'Terms of Service | FocusRobin',
   description: 'Read FocusRobin\'s Terms of Service. Learn about our policies for purchases, shipping, returns, privacy, and customer rights. Governed by Lithuanian law.',
-  alternates: {
-    canonical: 'https://focusrobin.lt/terms',
-  },
 };
 
 export default function TermsPage() {

@@ -18,9 +18,6 @@ export const metadata: Metadata = {
     'designer sunglasses women',
     'UV400 sunglasses women',
   ],
-  alternates: {
-    canonical: 'https://focusrobin.lt/shop/women',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_IE',

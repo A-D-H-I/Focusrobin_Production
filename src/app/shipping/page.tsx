@@ -7,9 +7,6 @@ import Link from 'next/link';
 export const metadata: Metadata = {
   title: 'Shipping Information',
   description: 'Learn about FocusRobin\'s shipping options. Fast delivery to Lithuania (Vilnius, Kaunas, Klaipėda) and EU/Schengen countries. Free shipping available.',
-  alternates: {
-    canonical: 'https://focusrobin.lt/shipping',
-  },
 };
 
 export default function ShippingPage() {

@@ -17,6 +17,9 @@ import { GoogleAnalytics } from "@/components/analytics/GoogleAnalytics";
 import { CookieConsentProvider } from "@/context/CookieConsentContext";
 import { CookieConsentBanner } from "@/components/cookie/CookieConsentBanner";
 import { PageTranslationProvider } from "@/components/providers/PageTranslationProvider";
+import { getLocale, getRequestPathname, buildAlternates } from "@/i18n/server";
+import { getMessages } from "@/i18n/messages";
+import { locales, ogLocales } from "@/i18n/config";
 import './globals.css';
 
 const chillax = localFont({
@@ -41,7 +44,7 @@ export const viewport: Viewport = {
 };
 
 // Explicitly type metadata to exclude viewport (which is exported separately above)
-export const metadata: Omit<Metadata, 'viewport'> = {
+const baseMetadata: Omit<Metadata, 'viewport'> = {
   metadataBase: new URL('https://focusrobin.lt'),
   title: {
     default: 'FocusRobin - Premium Sunglasses & Prescription Glasses | Lithuania',
@@ -184,11 +187,24 @@ export const metadata: Omit<Metadata, 'viewport'> = {
   other: {
     'google-site-verification': 'verification_code_placeholder',
   },
-  alternates: {
-    canonical: 'https://focusrobin.lt',
-  },
   // Icons are handled by the file convention (src/app/icon.svg)
 };
+
+// Canonical + hreflang are computed per request so /lt and /ru pages point at themselves
+export async function generateMetadata(): Promise<Omit<Metadata, 'viewport'>> {
+  const [locale, pathname] = await Promise.all([getLocale(), getRequestPathname()]);
+  const alternates = buildAlternates(pathname, locale);
+  return {
+    ...baseMetadata,
+    alternates,
+    openGraph: {
+      ...baseMetadata.openGraph,
+      locale: ogLocales[locale],
+      alternateLocale: locales.filter((l) => l !== locale).map((l) => ogLocales[l]),
+      url: alternates?.canonical as string,
+    },
+  };
+}
 
 import Header from "@/components/Landing/header";
 import { getScrollingBanners } from "@/app/actions/scrollingBanner";
@@ -206,15 +222,17 @@ export default async function RootLayout({
     ? bannersResult.banners.map((b: any) => b.text)
     : [];
 
+  const locale = await getLocale();
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${chillax.variable} font-body antialiased`}>
         <CookieConsentProvider>
           <GoogleAnalytics />
           <MicrosoftClarity />
           <MetaPixel />
           <SessionProvider>
-            <LanguageProvider>
+            <LanguageProvider initialLanguage={locale} messages={getMessages(locale)}>
               <PageTranslationProvider>
                 <CurrencyProvider>
                   <CartProvider>

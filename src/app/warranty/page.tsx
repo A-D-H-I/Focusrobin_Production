@@ -18,9 +18,6 @@ export const metadata: Metadata = {
     'garantija',
     'akinių remontas',
   ],
-  alternates: {
-    canonical: 'https://focusrobin.lt/warranty',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_IE',

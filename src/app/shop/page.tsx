@@ -57,9 +57,6 @@ export const metadata: Metadata = {
     'eyewear Vilnius',
     'saulės akiniai Vilnius',
   ],
-  alternates: {
-    canonical: 'https://focusrobin.lt/shop',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_IE',

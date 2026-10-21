@@ -7,6 +7,18 @@ import { NextResponse } from "next/server";
 const { auth } = NextAuth(authConfig);
 import type { NextRequest } from "next/server";
 import { generateCSRFToken } from "./lib/csrf";
+import {
+  defaultLocale,
+  isLocale,
+  isLocalizablePath,
+  localizePath,
+  matchAcceptLanguage,
+  splitLocale,
+  LOCALE_COOKIE,
+  LOCALE_HEADER,
+  PATHNAME_HEADER,
+  type Locale,
+} from "./i18n/config";
 
 /**
  * Enterprise-Grade Security Middleware
@@ -121,8 +133,68 @@ function isValidSession(session: any): session is { user: { id: string; role?: s
   );
 }
 
+/**
+ * Resolve the locale for this request.
+ * - /lt/... and /ru/... are rewritten to the unprefixed route with x-locale set
+ * - /en/... redirects to the unprefixed (default) URL
+ * - unprefixed page requests redirect to the visitor's saved (or browser) language
+ * Returns either a redirect, or a `next()` that continues the request with locale headers.
+ */
+function resolveLocale(request: NextRequest) {
+  const { locale: urlLocale, pathname } = splitLocale(request.nextUrl.pathname);
+  const localizable = isLocalizablePath(pathname);
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
+
+  const redirectTo = (target: string, locale: Locale) => {
+    const url = request.nextUrl.clone();
+    url.pathname = target;
+    const response = NextResponse.redirect(url);
+    response.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+    return response;
+  };
+
+  if (urlLocale && (urlLocale === defaultLocale || !localizable)) {
+    return { pathname, redirect: redirectTo(pathname, urlLocale) };
+  }
+
+  if (!urlLocale && localizable && request.method === "GET") {
+    const preferred = isLocale(cookieLocale)
+      ? cookieLocale
+      : matchAcceptLanguage(request.headers.get("accept-language"));
+    if (preferred && preferred !== defaultLocale) {
+      return { pathname, redirect: redirectTo(localizePath(pathname, preferred), preferred) };
+    }
+  }
+
+  const locale: Locale = urlLocale ?? defaultLocale;
+  const next = () => {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set(LOCALE_HEADER, locale);
+    requestHeaders.set(PATHNAME_HEADER, pathname);
+    let response: NextResponse;
+    if (urlLocale) {
+      const url = request.nextUrl.clone();
+      url.pathname = pathname;
+      response = NextResponse.rewrite(url, { request: { headers: requestHeaders } });
+    } else {
+      response = NextResponse.next({ request: { headers: requestHeaders } });
+    }
+    // Remember the language of a localized URL so unprefixed links stay in that language
+    if (urlLocale && cookieLocale !== urlLocale) {
+      response.cookies.set(LOCALE_COOKIE, urlLocale, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+    }
+    return response;
+  };
+
+  return { pathname, redirect: null, next };
+}
+
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const localeRouting = resolveLocale(request);
+  if (localeRouting.redirect) {
+    return addSecurityHeaders(localeRouting.redirect);
+  }
+  const { pathname, next } = localeRouting;
   const clientIP = getClientIP(request);
 
   // Debug: Log all admin route requests
@@ -144,7 +216,7 @@ export async function middleware(request: NextRequest) {
 
   // Allow NextAuth API routes to pass through (required for auth to work)
   if (pathname.startsWith("/api/auth")) {
-    const response = NextResponse.next();
+    const response = next();
     return addSecurityHeaders(response);
   }
 
@@ -161,7 +233,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.json({ error: "Admin access required" }, { status: 403 });
     }
 
-    const response = NextResponse.next();
+    const response = next();
     return await addSecurityHeaders(response);
   }
 
@@ -178,7 +250,7 @@ export async function middleware(request: NextRequest) {
       return await forbidden(request, "Admin access required");
     }
 
-    const response = NextResponse.next();
+    const response = next();
     return await addSecurityHeaders(response);
   }
 
@@ -227,7 +299,7 @@ export async function middleware(request: NextRequest) {
 
     // Admin authenticated and authorized - allow access
     console.log(`[Security] ALLOWED: Admin access granted for ${pathname}, userId: ${userId}`);
-    const response = NextResponse.next();
+    const response = next();
     return await addSecurityHeaders(response, true); // Set CSRF for admin pages
   }
 
@@ -241,7 +313,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // User is authenticated
-    const response = NextResponse.next();
+    const response = next();
     return await addSecurityHeaders(response, true); // Set CSRF for user pages
   }
 
@@ -253,14 +325,14 @@ export async function middleware(request: NextRequest) {
       return await secureRedirect(request, "/");
     }
 
-    const response = NextResponse.next();
+    const response = next();
     return await addSecurityHeaders(response, true); // Set CSRF for checkout pages
   }
 
   // === Public routes - add security headers ===
   // Set CSRF cookie for non-API routes (pages)
   const isPageRequest = !pathname.startsWith("/api/");
-  const response = NextResponse.next();
+  const response = next();
   return await addSecurityHeaders(response, isPageRequest);
 }
 

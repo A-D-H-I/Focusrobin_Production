@@ -15,9 +15,6 @@ export const metadata: Metadata = {
     'warranty information',
     'dažnai užduodami klausimai',
   ],
-  alternates: {
-    canonical: 'https://focusrobin.lt/faq',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_IE',

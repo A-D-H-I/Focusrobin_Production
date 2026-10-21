@@ -18,9 +18,6 @@ export const metadata: Metadata = {
     'designer sunglasses men',
     'UV400 sunglasses men',
   ],
-  alternates: {
-    canonical: 'https://focusrobin.lt/shop/men',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_IE',

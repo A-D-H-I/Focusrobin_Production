@@ -17,9 +17,6 @@ export const metadata: Metadata = {
     'grąžinimai',
     'pinigų grąžinimas',
   ],
-  alternates: {
-    canonical: 'https://focusrobin.lt/returns',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_IE',

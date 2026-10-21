@@ -15,9 +15,6 @@ export const metadata: Metadata = {
     'personal data',
     'privatumo politika',
   ],
-  alternates: {
-    canonical: 'https://focusrobin.lt/privacy',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_IE',

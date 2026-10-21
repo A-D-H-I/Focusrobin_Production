@@ -18,9 +18,6 @@ export const metadata: Metadata = {
     'safe sunglasses for kids',
     'durable kids eyewear',
   ],
-  alternates: {
-    canonical: 'https://focusrobin.lt/shop/kids',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_IE',

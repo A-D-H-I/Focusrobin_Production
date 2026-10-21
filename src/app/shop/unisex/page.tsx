@@ -17,9 +17,6 @@ export const metadata: Metadata = {
     'polarized unisex sunglasses',
     'designer unisex eyewear',
   ],
-  alternates: {
-    canonical: 'https://focusrobin.lt/shop/unisex',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_IE',
