@@ -1,12 +1,12 @@
 import NextAuth from "next-auth";
-import { authConfig } from "./src/auth.config";
+import { authConfig } from "./auth.config";
 import { NextResponse } from "next/server";
 
 // Initialize auth for middleware (Edge Runtime)
 // This avoids importing Prisma keys or Node.js modules
 const { auth } = NextAuth(authConfig);
 import type { NextRequest } from "next/server";
-import { generateCSRFToken } from "./src/lib/csrf";
+import { generateCSRFToken } from "./lib/csrf";
 
 /**
  * Enterprise-Grade Security Middleware

@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from "@/lib/security";
 
 export async function GET(req: NextRequest) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
   try {
     const { searchParams } = new URL(req.url);
     const days = parseInt(searchParams.get('days') || '30');

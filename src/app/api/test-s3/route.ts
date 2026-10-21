@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { testS3Connection } from "@/lib/s3";
+import { requireAdmin } from "@/lib/security";
 
 export async function GET() {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
   try {
     console.log("[S3 Test] Starting S3 connection test...");
     

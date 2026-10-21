@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import https from 'https';
+import { requireAdmin } from "@/lib/security";
 
 const API_KEY = process.env.BIGBUY_API_KEY;
 
@@ -32,6 +33,11 @@ function fetchBigBuy(path: string): Promise<{ status: number; data: any }> {
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
 export async function POST(_req: NextRequest) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
   try {
     const products = await prisma.product.findMany({
       include: { ProductVariant: true },

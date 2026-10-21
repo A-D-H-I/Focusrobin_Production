@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from "@/lib/security";
 
 // ─── Price Calculation ────────────────────────────────────────────────────────
 function calculateRetailPrice(basePrice: number): number {
@@ -153,6 +154,11 @@ function parseCSVText(text: string) {
 
 // ─── POST: Import selected brands from CSV ─────────────────────────────────────
 export async function POST(request: NextRequest) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;

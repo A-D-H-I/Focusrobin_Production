@@ -1,11 +1,17 @@
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 import { auth } from "@/auth";
+import { requireAdmin } from "@/lib/security";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
   try {
     // Check authentication (admin only for security)
     const session = await auth();

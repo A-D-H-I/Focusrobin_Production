@@ -2,12 +2,18 @@ import { NextResponse } from "next/server";
 import { isTranslationAvailable } from "@/lib/translation";
 import { readFileSync } from "fs";
 import path from "path";
+import { requireAdmin } from "@/lib/security";
 
 /**
  * Test endpoint to verify translation setup
  * GET /api/translate/test
  */
 export async function GET() {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
   const results: Record<string, any> = {
     timestamp: new Date().toISOString(),
     checks: {},

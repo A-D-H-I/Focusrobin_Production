@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from "@/lib/security";
 
 // ─── Name Cleaning ────────────────────────────────────────────────────────────
 const PREFIXES_TO_STRIP = [
@@ -106,6 +107,11 @@ function parseCSVText(text: string): Array<{
 
 // ─── GET: Parse CSV and return available brands ───────────────────────────────
 export async function POST(request: NextRequest) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File | null;

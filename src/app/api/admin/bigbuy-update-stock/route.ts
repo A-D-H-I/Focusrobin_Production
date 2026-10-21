@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import https from 'https';
+import { requireAdmin } from "@/lib/security";
 
 const API_KEY = process.env.BIGBUY_API_KEY;
 
@@ -40,6 +41,11 @@ function calcRetailPrice(wholesalePrice: number): number {
 }
 
 export async function POST(_req: NextRequest) {
+  try {
+    await requireAdmin();
+  } catch {
+    return NextResponse.json({ error: "Admin access required" }, { status: 403 });
+  }
   try {
     // Step 1: Download full catalog to build SKU → {BigBuy ID, wholesale price} map
     console.log('[Stock Update] Downloading BigBuy catalog...');
