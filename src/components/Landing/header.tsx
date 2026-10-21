@@ -113,7 +113,6 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
   const sunglassesMenuRef = useRef<HTMLDivElement>(null);
   const eyeglassesMenuRef = useRef<HTMLDivElement>(null);
   const sidebarSearchInputRef = useRef<HTMLInputElement>(null);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   // Search State
   const [searchSuggestions, setSearchSuggestions] = useState<any[]>([]);
@@ -418,7 +417,10 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
   // Close suggestions when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+      // Each search box (inline, desktop overlay, mobile sidebar) is marked with data-search-root;
+      // closing on mousedown inside any of them would unmount the dropdown before the click lands.
+      const target = event.target as Element | null;
+      if (!target?.closest?.('[data-search-root]')) {
         setShowSuggestions(false);
       }
     }
@@ -608,7 +610,7 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
             {/* Right Section - Search, Language, Currency, Icons */}
             < div className="flex justify-end items-center space-x-3 xl:space-x-5 z-10 flex-1" >
               {/* Search Input with Suggestions */}
-              < div ref={searchContainerRef} className="relative hidden xl:block" >
+              < div data-search-root className="relative hidden xl:block" >
                 <form onSubmit={handleSearch} className="relative">
                   <Search
                     className={cn(
@@ -906,7 +908,7 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
                     : "bg-background/95"
                 )}>
                   <div className="container mx-auto px-4 sm:px-6">
-                    <div className="relative max-w-md mx-auto">
+                    <div data-search-root className="relative max-w-md mx-auto">
                       <form onSubmit={handleSearch} className="relative">
                         <Search className={cn(
                           "absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors duration-300",
@@ -1175,7 +1177,7 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
                     </div>
 
                     {/* Search Input for Mobile - Pill-shaped */}
-                    <div className="mb-8 flex-shrink-0 relative">
+                    <div data-search-root className="mb-8 flex-shrink-0 relative">
                       <form onSubmit={handleSearch} className="relative">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground z-10" />
                         <Input
