@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Footer from "@/components/Landing/footer";
@@ -23,6 +23,9 @@ import {
   CreditCard,
   Building,
 } from "lucide-react";
+import { usePromo } from "@/context/PromoContext";
+import { computePromoDiscount, fillMessage } from "@/lib/promo";
+import { cartItemsToPromoLines } from "@/lib/promo-client";
 import { useCart } from "@/context/CartContext";
 import { useCurrency } from "@/context/CurrencyContext";
 import Link from "next/link";
@@ -100,10 +103,6 @@ export default function CheckoutPage() {
   const [totalCashback, setTotalCashback] = useState<number>(0);
   const [promoCode, setPromoCode] = useState<string>("");
   const [promoCodeError, setPromoCodeError] = useState<string>("");
-  const [promoDiscount, setPromoDiscount] = useState<number>(0);
-  const [promoDiscountPercentage, setPromoDiscountPercentage] = useState<number | null>(null);
-  const [promoCashback, setPromoCashback] = useState<number>(0);
-  const [appliedPromoCode, setAppliedPromoCode] = useState<{ id: string; code: string } | null>(null);
   const [isValidatingPromo, setIsValidatingPromo] = useState(false);
   const [shippingForm, setShippingForm] = useState({
     name: "",
@@ -128,6 +127,26 @@ export default function CheckoutPage() {
 
   const subtotal = getCartTotal();
   const shipping = 0; // Free shipping
+
+  // Promo code (shared with cart and product pages); the discount is computed with the
+  // same rules the server uses when it creates the order
+  const { appliedPromo, applyCode, removePromo } = usePromo();
+  const promoResult = useMemo(
+    () => (appliedPromo ? computePromoDiscount(appliedPromo, cartItemsToPromoLines(cartItems)) : null),
+    [appliedPromo, cartItems]
+  );
+  const promoApplies = !!(appliedPromo && promoResult?.applied);
+  const promoDiscount = promoApplies ? promoResult!.discount : 0;
+  const promoCashback = promoApplies ? promoResult!.cashback : 0;
+  const promoDiscountPercentage = promoApplies
+    ? (appliedPromo!.applyToFramesOnly ? appliedPromo!.bulkFrameDiscountPercentage : appliedPromo!.discountPercentage)
+    : null;
+  const appliedPromoCode = promoApplies ? { id: appliedPromo!.id, code: appliedPromo!.code } : null;
+  // A remembered code that doesn't fit this cart (e.g. minimum spend) explains why
+  const promoNotApplicableReason =
+    appliedPromo && promoResult && !promoResult.applied && promoResult.reason
+      ? fillMessage(promoResult.reason, promoResult.reasonParams)
+      : null;
   // Apply promo discount first, then wallet discount
   const afterPromoDiscount = Math.max(0, subtotal + shipping - promoDiscount);
   const walletDiscount = useWallet ? Math.min(walletAmount, afterPromoDiscount) : 0;
@@ -284,93 +303,19 @@ export default function CheckoutPage() {
     }
   }, [useWallet, walletBalance, subtotal, shipping, promoDiscount]);
 
-  // Calculate frame quantity and frame subtotal
-  // IMPORTANT: Count ALL frames (both regular frames AND frames from prescription glasses)
-  // Discount applies to frame prices only, not prescription lens prices
-  const calculateFrameStats = () => {
-    if (!cartItems || cartItems.length === 0) {
-      return { frameQuantity: 0, frameSubtotal: 0 };
-    }
-
-    let frameQuantity = 0;
-    let frameSubtotal = 0;
-
-    for (const item of cartItems) {
-      // Count ALL frames (every item has a frame, whether it's regular or prescription)
-      frameQuantity += item.quantity;
-
-      // Extract frame price (base product price, before prescription lenses)
-      const framePrice = parseEurPrice(item.product.price);
-
-      // For ALL items (both regular and prescription), count only the frame price
-      // The frame price is the base product price, which is the same for both types
-      frameSubtotal += framePrice * item.quantity;
-    }
-
-    return { frameQuantity, frameSubtotal };
-  };
-
   // Validate and apply promo code
   const handleApplyPromoCode = async () => {
-    if (!promoCode.trim()) {
-      setPromoCodeError("Please enter a promo code");
-      return;
-    }
-
     setIsValidatingPromo(true);
     setPromoCodeError("");
-
-    try {
-      const { frameQuantity, frameSubtotal } = calculateFrameStats();
-
-      const response = await fetch("/api/promo-codes/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: promoCode.trim(),
-          subtotal: subtotal,
-          frameQuantity: frameQuantity,
-          frameSubtotal: frameSubtotal,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setPromoDiscount(data.promoCode.discountAmount || 0);
-        setPromoDiscountPercentage(data.promoCode.discountPercentage || null);
-        setPromoCashback(data.promoCode.cashbackAmount || 0);
-        setAppliedPromoCode({
-          id: data.promoCode.id,
-          code: data.promoCode.code,
-        });
-        setPromoCodeError("");
-      } else {
-        setPromoCodeError(data.error || "Invalid promo code");
-        setPromoDiscount(0);
-        setPromoDiscountPercentage(null);
-        setPromoCashback(0);
-        setAppliedPromoCode(null);
-      }
-    } catch (error) {
-      console.error("Error validating promo code:", error);
-      setPromoCodeError("Failed to validate promo code. Please try again.");
-      setPromoDiscount(0);
-      setPromoDiscountPercentage(null);
-      setPromoCashback(0);
-      setAppliedPromoCode(null);
-    } finally {
-      setIsValidatingPromo(false);
-    }
+    const error = await applyCode(promoCode);
+    setPromoCodeError(error || "");
+    setIsValidatingPromo(false);
   };
 
   const handleRemovePromoCode = () => {
     setPromoCode("");
     setPromoCodeError("");
-    setPromoDiscount(0);
-    setPromoDiscountPercentage(null);
-    setPromoCashback(0);
-    setAppliedPromoCode(null);
+    removePromo();
   };
 
   const loadWalletBalance = async () => {
@@ -1274,6 +1219,14 @@ export default function CheckoutPage() {
                         )}
                         {promoCodeError && (
                           <p className="text-xs text-red-600">{promoCodeError}</p>
+                        )}
+                        {promoNotApplicableReason && (
+                          <p className="text-xs text-amber-700">
+                            {appliedPromo?.code}: {promoNotApplicableReason}{" "}
+                            <button type="button" onClick={handleRemovePromoCode} className="underline">
+                              Remove
+                            </button>
+                          </p>
                         )}
                         {promoDiscount > 0 && (
                           <div className="flex justify-between text-sm text-green-600">

@@ -5,6 +5,9 @@
  * English string to src/i18n/messages/en.json (the source catalog). Translations in
  * lt.json / ru.json are keyed by that same English text.
  *
+ * Also collects literal first arguments of t('...') calls (useLanguage().t) and the
+ * RUNTIME_MESSAGES below, which reach t() as variables.
+ *
  * Literal values (text="Shop now", text={cond ? "A" : "B"}) are collected directly.
  * Non-literal values (text={item.title}) are resolved by collecting string literals
  * assigned to a property of the same name (title: "...") in the same file.
@@ -22,6 +25,23 @@ const SRC = path.join(ROOT, 'src');
 const MESSAGES_DIR = path.join(SRC, 'i18n', 'messages');
 const TARGET_LOCALES = ['lt', 'ru'];
 const SKIP_DIRS = ['app/test-translation', 'components/examples', 'app/admin', 'app/api'];
+
+// Messages produced by shared code or APIs and translated with t(variable) in the UI
+const RUNTIME_MESSAGES = [
+  // src/lib/promo.ts
+  'This promo code is not active',
+  'This promo code is not yet valid',
+  'This promo code has expired',
+  'This promo code has reached its usage limit',
+  'Minimum purchase amount of {amount}€ required',
+  'This promo code does not apply to the items in your cart',
+  'This promo code requires purchasing at least {count} frames',
+  // /api/promo-codes/validate and PromoContext
+  'Please enter a promo code',
+  'Promo code is required',
+  'Invalid promo code',
+  'Failed to validate promo code. Please try again.',
+];
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -61,8 +81,24 @@ function propertyNameOf(expr: ts.Expression): string | null {
 
 function extractFromFile(file: string, strings: Set<string>) {
   const source = fs.readFileSync(file, 'utf8');
-  if (!source.includes('TranslatableText')) return;
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+
+  // t('Literal') calls
+  const visitCalls = (node: ts.Node) => {
+    if (
+      ts.isCallExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === 't' &&
+      node.arguments[0] &&
+      (ts.isStringLiteral(node.arguments[0]) || ts.isNoSubstitutionTemplateLiteral(node.arguments[0]))
+    ) {
+      strings.add(node.arguments[0].text);
+    }
+    ts.forEachChild(node, visitCalls);
+  };
+  visitCalls(sf);
+
+  if (!source.includes('TranslatableText')) return;
 
   const wantedProps = new Set<string>();
 
@@ -133,6 +169,7 @@ function main() {
   const check = process.argv.includes('--check');
   const strings = new Set<string>();
   for (const file of walk(SRC)) extractFromFile(file, strings);
+  RUNTIME_MESSAGES.forEach((m) => strings.add(m));
 
   const keys = [...strings].filter(isTranslatable).sort((a, b) => a.localeCompare(b));
   const catalog: Record<string, string> = Object.fromEntries(keys.map((k) => [k, k]));

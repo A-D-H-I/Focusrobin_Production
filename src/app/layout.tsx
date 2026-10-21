@@ -5,6 +5,7 @@ import SessionProvider from "@/components/providers/SessionProvider";
 import { CurrencyProvider } from "@/context/CurrencyContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
+import { PromoProvider } from "@/context/PromoContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { SupportChat } from "@/components/chat/SupportChat";
 import { OverflowDetector } from "@/components/dev/overflow-detector";
@@ -239,6 +240,7 @@ export default async function RootLayout({
             <LanguageProvider initialLanguage={locale} messages={getMessages(locale)}>
               <PageTranslationProvider>
                 <CurrencyProvider>
+                  <PromoProvider>
                   <CartProvider>
                     <WishlistProvider>
                       <Header initialBanners={banners} />
@@ -252,6 +254,7 @@ export default async function RootLayout({
                       <CookieConsentBanner />
                     </WishlistProvider>
                   </CartProvider>
+                  </PromoProvider>
                 </CurrencyProvider>
               </PageTranslationProvider>
             </LanguageProvider>

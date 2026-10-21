@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { useCallback, useState, useEffect, useMemo, useRef } from "react";
-import { SlidersHorizontal, ChevronDown, ChevronUp, X } from "lucide-react";
+import { SlidersHorizontal, ChevronDown, ChevronUp, X, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type GenderCount } from "@/app/actions/getAvailableGenderCounts";
 import { type PriceRange } from "@/app/actions/getPriceRange";
@@ -75,6 +75,7 @@ export default function FilterSidebar({
   const brandParams = searchParams.getAll('brand');
   const minPriceParam = searchParams.get('minPrice');
   const maxPriceParam = searchParams.get('maxPrice');
+  const saleParam = searchParams.get('sale') === '1';
 
   // Create stable string representation of search params to use as dependency
   const searchParamsStr = useMemo(() => searchParams.toString(), [searchParams]);
@@ -83,6 +84,7 @@ export default function FilterSidebar({
   // Initialize directly from URL params to avoid race conditions on mobile
   const [pendingGenders, setPendingGenders] = useState<string[]>(() => genderParams.map(g => g.toLowerCase()));
   const [pendingBrands, setPendingBrands] = useState<string[]>(() => [...brandParams]);
+  const [pendingSale, setPendingSale] = useState<boolean>(saleParam);
 
   // Initialize pending price range
   const initialMin = minPriceParam ? parseInt(minPriceParam) : priceRangeData.min;
@@ -113,6 +115,7 @@ export default function FilterSidebar({
 
     setPendingGenders(currentGenders);
     setPendingBrands(currentBrands);
+    setPendingSale(searchParams.get('sale') === '1');
     setPendingPriceRange([currentMin, currentMax]);
     setPendingMinPrice(currentMin.toString());
     setPendingMaxPrice(currentMax.toString());
@@ -198,6 +201,7 @@ export default function FilterSidebar({
     params.delete('brand');
     params.delete('minPrice');
     params.delete('maxPrice');
+    params.delete('sale');
 
     // Restore filter type if it existed
     if (filterType) {
@@ -205,6 +209,7 @@ export default function FilterSidebar({
     }
 
     // Add pending filters
+    if (pendingSale) params.set('sale', '1');
     pendingGenders.forEach(g => params.append('gender', g));
     pendingBrands.forEach(b => params.append('brand', b));
 
@@ -230,12 +235,13 @@ export default function FilterSidebar({
 
     const newUrl = params.toString() ? `${baseUrl}?${params.toString()}` : baseUrl;
     navigateWithRefresh(newUrl);
-  }, [searchParams, pendingGenders, pendingBrands, pendingPriceRange, priceRangeData, navigateWithRefresh, isPrescriptionGlassesPage, pathname]);
+  }, [searchParams, pendingGenders, pendingBrands, pendingSale, pendingPriceRange, priceRangeData, navigateWithRefresh, isPrescriptionGlassesPage, pathname]);
 
   // Clear all filters
   const handleClearFilters = useCallback(() => {
     setPendingGenders([]);
     setPendingBrands([]);
+    setPendingSale(false);
     setPendingPriceRange([priceRangeData.min, priceRangeData.max]);
     setPendingMinPrice(priceRangeData.min.toString());
     setPendingMaxPrice(priceRangeData.max.toString());
@@ -248,6 +254,7 @@ export default function FilterSidebar({
     params.delete('brand');
     params.delete('minPrice');
     params.delete('maxPrice');
+    params.delete('sale');
 
     // Restore filter type if it existed
     if (filterType) {
@@ -286,10 +293,11 @@ export default function FilterSidebar({
     return (
       pendingGendersStr !== currentGendersStr ||
       pendingBrandsStr !== currentBrandsStr ||
+      pendingSale !== saleParam ||
       currentMin !== pendingPriceRange[0] ||
       currentMax !== pendingPriceRange[1]
     );
-  }, [genderParams, brandParams, minPriceParam, maxPriceParam, priceRangeData, pendingGenders, pendingBrands, pendingPriceRange]);
+  }, [genderParams, brandParams, minPriceParam, maxPriceParam, saleParam, priceRangeData, pendingGenders, pendingBrands, pendingSale, pendingPriceRange]);
 
 
   return (
@@ -308,7 +316,7 @@ export default function FilterSidebar({
         >
           <TranslatableText text="Apply Filters" />
         </Button>
-        {(hasPendingChanges || pendingGenders.length > 0 || (pendingPriceRange[0] !== priceRangeData.min || pendingPriceRange[1] !== priceRangeData.max)) && (
+        {(hasPendingChanges || pendingGenders.length > 0 || pendingSale || (pendingPriceRange[0] !== priceRangeData.min || pendingPriceRange[1] !== priceRangeData.max)) && (
           <Button
             onClick={handleClearFilters}
             variant="outline"
@@ -318,6 +326,20 @@ export default function FilterSidebar({
             <TranslatableText text="Clear All Filters" />
           </Button>
         )}
+      </div>
+
+      {/* Deals: products with their own discount or an available coupon */}
+      <div className="mb-6 flex items-center space-x-3 rounded-lg border border-green-200 bg-green-50 p-3">
+        <Checkbox
+          id="filter-on-sale"
+          checked={pendingSale}
+          onCheckedChange={(checked) => setPendingSale(checked === true)}
+          className="border-green-700/50 data-[state=checked]:bg-green-700 data-[state=checked]:border-green-700"
+        />
+        <Label htmlFor="filter-on-sale" className="flex items-center gap-1.5 text-sm font-semibold text-green-800 cursor-pointer">
+          <Tag className="h-4 w-4" />
+          <TranslatableText text="On sale" />
+        </Label>
       </div>
 
       {/* Price Range */}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { parsePromoScopeInput } from "@/lib/promo";
 
 // GET - Fetch all promo codes
 export async function GET(request: NextRequest) {
@@ -102,6 +103,7 @@ export async function POST(request: NextRequest) {
         minFrameQuantity: minFrameQuantity ? parseInt(minFrameQuantity) : null,
         bulkFrameDiscountPercentage: bulkFrameDiscountPercentage ? parseFloat(bulkFrameDiscountPercentage) : null,
         applyToFramesOnly: applyToFramesOnly || false,
+        ...parsePromoScopeInput(body),
       },
     });
 

@@ -151,7 +151,10 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
   const isFocusRobin = (prismaProduct.brand || 'FocusRobin').trim().toLowerCase() === 'focusrobin';
   let originalPriceValue: number | undefined = undefined;
   
-  if (!isFocusRobin) {
+  if (discountPctFromDb > 0) {
+    // A real admin discount: cross out the actual pre-discount price
+    originalPriceValue = basePrice;
+  } else if (!isFocusRobin) {
     originalPriceValue = discountedPrice * 1.30;
   } else {
     // @ts-ignore
@@ -165,9 +168,8 @@ export function mapPrismaProductToProduct(prismaProduct: ProductWithRelations): 
   
   const originalPrice = originalPriceValue ? `€${originalPriceValue.toFixed(2)}` : undefined;
   
-  // The UI discount badge will naturally show ~23% (since 30% markup is a 23% discount)
-  // User requested: do not show the percentage badge, just the crossed out price
-  const computedDiscountPct = undefined;
+  // Badge only for a real admin-set discount, never for the reference "was" price above
+  const computedDiscountPct = discountPctFromDb > 0 ? discountPctFromDb : undefined;
 
   const finalPrice = `€${discountedPrice.toFixed(2)}`;
 

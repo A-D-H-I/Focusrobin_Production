@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Edit, Trash2, Check, X } from "lucide-react";
+import { Plus, Edit, Trash2, Check, X, Tag } from "lucide-react";
+import { getAvailableBrands } from "@/app/actions/getAvailableBrands";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,10 @@ interface PromoCode {
   minFrameQuantity: number | null;
   bulkFrameDiscountPercentage: number | null;
   applyToFramesOnly: boolean;
+  applicableBrands: string[];
+  applicableGenders: string[];
+  applicableProductTypes: string[];
+  showAsCoupon: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -65,7 +70,35 @@ export default function PromoCodeManagement() {
     minFrameQuantity: "",
     bulkFrameDiscountPercentage: "",
     applyToFramesOnly: false,
+    applicableBrands: [] as string[],
+    applicableGenders: [] as string[],
+    applicableProductTypes: [] as string[],
+    showAsCoupon: false,
   });
+  const [allBrands, setAllBrands] = useState<string[]>([]);
+  const [brandSearch, setBrandSearch] = useState("");
+
+  // Brand list for the "Where it applies" picker (sunglasses + prescription glasses)
+  useEffect(() => {
+    Promise.all([getAvailableBrands("sunglasses"), getAvailableBrands("eyeglasses")])
+      .then(([sun, rx]) => {
+        const names = new Set([...sun, ...rx].map((b) => b.brand).filter(Boolean));
+        setAllBrands([...names].sort((a, b) => a.localeCompare(b)));
+      })
+      .catch((error) => console.error("Error loading brands:", error));
+  }, []);
+
+  const filteredBrands = useMemo(() => {
+    const q = brandSearch.trim().toLowerCase();
+    return q ? allBrands.filter((b) => b.toLowerCase().includes(q)) : allBrands;
+  }, [allBrands, brandSearch]);
+
+  const toggleInList = (field: "applicableBrands" | "applicableGenders" | "applicableProductTypes", value: string) => {
+    setFormData((prev) => {
+      const list = prev[field];
+      return { ...prev, [field]: list.includes(value) ? list.filter((v) => v !== value) : [...list, value] };
+    });
+  };
 
   useEffect(() => {
     fetchPromoCodes();
@@ -209,6 +242,10 @@ export default function PromoCodeManagement() {
       minFrameQuantity: promoCode.minFrameQuantity?.toString() || "",
       bulkFrameDiscountPercentage: promoCode.bulkFrameDiscountPercentage?.toString() || "",
       applyToFramesOnly: promoCode.applyToFramesOnly || false,
+      applicableBrands: promoCode.applicableBrands || [],
+      applicableGenders: promoCode.applicableGenders || [],
+      applicableProductTypes: promoCode.applicableProductTypes || [],
+      showAsCoupon: promoCode.showAsCoupon || false,
     });
     setIsDialogOpen(true);
   };
@@ -229,7 +266,12 @@ export default function PromoCodeManagement() {
       minFrameQuantity: "",
       bulkFrameDiscountPercentage: "",
       applyToFramesOnly: false,
+      applicableBrands: [],
+      applicableGenders: [],
+      applicableProductTypes: [],
+      showAsCoupon: false,
     });
+    setBrandSearch("");
   };
 
   if (loading) {
@@ -477,6 +519,120 @@ export default function PromoCodeManagement() {
               )}
             </div>
 
+            {/* Where the code applies */}
+            <div className="border-t pt-4 space-y-4">
+              <div>
+                <p className="font-semibold">Where it applies</p>
+                <p className="text-xs text-muted-foreground">
+                  Leave a group empty to include everything in it. Products outside these choices pay full price.
+                </p>
+              </div>
+
+              <div>
+                <Label>Product type</Label>
+                <div className="mt-2 flex flex-wrap gap-4">
+                  {[
+                    { value: "SUNGLASSES", label: "Sunglasses" },
+                    { value: "EYEGLASSES", label: "Prescription glasses" },
+                  ].map((opt) => (
+                    <label key={opt.value} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={formData.applicableProductTypes.includes(opt.value)}
+                        onChange={() => toggleInList("applicableProductTypes", opt.value)}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label>Category</Label>
+                <div className="mt-2 flex flex-wrap gap-4">
+                  {[
+                    { value: "MEN", label: "Men" },
+                    { value: "WOMEN", label: "Women" },
+                    { value: "KIDS", label: "Kids" },
+                    { value: "UNISEX", label: "Unisex" },
+                  ].map((opt) => (
+                    <label key={opt.value} className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={formData.applicableGenders.includes(opt.value)}
+                        onChange={() => toggleInList("applicableGenders", opt.value)}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      {opt.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="brandSearch">Brands</Label>
+                {formData.applicableBrands.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {formData.applicableBrands.map((brand) => (
+                      <button
+                        key={brand}
+                        type="button"
+                        onClick={() => toggleInList("applicableBrands", brand)}
+                        className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium"
+                      >
+                        {brand}
+                        <X className="h-3 w-3" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <Input
+                  id="brandSearch"
+                  className="mt-2"
+                  value={brandSearch}
+                  onChange={(e) => setBrandSearch(e.target.value)}
+                  placeholder={formData.applicableBrands.length ? "Add more brands..." : "All brands - search to limit"}
+                />
+                <div className="mt-2 max-h-40 overflow-y-auto rounded border p-2 space-y-1">
+                  {filteredBrands.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No brands found</p>
+                  ) : (
+                    filteredBrands.map((brand) => (
+                      <label key={brand} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={formData.applicableBrands.includes(brand)}
+                          onChange={() => toggleInList("applicableBrands", brand)}
+                          className="h-4 w-4 rounded border-gray-300"
+                        />
+                        {brand}
+                      </label>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-start space-x-2 rounded-lg bg-green-50 p-3">
+                <input
+                  type="checkbox"
+                  id="showAsCoupon"
+                  checked={formData.showAsCoupon}
+                  onChange={(e) => setFormData({ ...formData, showAsCoupon: e.target.checked })}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                />
+                <div>
+                  <Label htmlFor="showAsCoupon" className="font-semibold">
+                    Show as coupon on products
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Eligible products show &quot;Save X% with coupon&quot; with an Apply button, like Amazon.
+                    Only works with a discount percentage. Unticked codes stay private: customers must type them.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="flex justify-end space-x-2">
               <Button
                 type="button"
@@ -516,6 +672,7 @@ export default function PromoCodeManagement() {
                   <TableHead>Discount</TableHead>
                   <TableHead>Cashback</TableHead>
                   <TableHead>Frame Discount</TableHead>
+                  <TableHead>Applies to</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Used</TableHead>
                   <TableHead>Valid Until</TableHead>
@@ -544,6 +701,14 @@ export default function PromoCodeManagement() {
                       {promoCode.applyToFramesOnly && promoCode.bulkFrameDiscountPercentage && promoCode.minFrameQuantity
                         ? `${promoCode.bulkFrameDiscountPercentage}% off (${promoCode.minFrameQuantity}+ frames)`
                         : "-"}
+                    </TableCell>
+                    <TableCell className="max-w-[220px] text-xs">
+                      {describeScope(promoCode)}
+                      {promoCode.showAsCoupon && (
+                        <span className="mt-1 flex w-fit items-center gap-1 rounded bg-green-100 px-1.5 py-0.5 font-semibold text-green-800">
+                          <Tag className="h-3 w-3" /> Coupon
+                        </span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {promoCode.isActive ? (
@@ -595,3 +760,14 @@ export default function PromoCodeManagement() {
   );
 }
 
+const TYPE_LABELS: Record<string, string> = { SUNGLASSES: "Sunglasses", EYEGLASSES: "Prescription glasses" };
+const GENDER_LABELS: Record<string, string> = { MEN: "Men", WOMEN: "Women", KIDS: "Kids", UNISEX: "Unisex" };
+
+function describeScope(promo: PromoCode): string {
+  const parts = [
+    promo.applicableProductTypes?.length ? promo.applicableProductTypes.map((t) => TYPE_LABELS[t] || t).join(", ") : null,
+    promo.applicableGenders?.length ? promo.applicableGenders.map((g) => GENDER_LABELS[g] || g).join(", ") : null,
+    promo.applicableBrands?.length ? promo.applicableBrands.join(", ") : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "Everything";
+}

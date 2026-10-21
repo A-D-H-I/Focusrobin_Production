@@ -13,6 +13,7 @@ import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 import { usePrice } from "@/hooks/usePrice";
 import TranslatableText from "@/components/ui/TranslatableText";
+import PromoPrice from './PromoPrice';
 
 type ProductPurchaseFormProps = {
   product: Product;
@@ -100,8 +101,6 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
   }, [product.id, selectedVariant, isInWishlist]);
 
   // Parse EUR prices from product
-  const priceInEur = parseEurPrice(product.price);
-  const originalPriceInEur = product.originalPrice ? parseEurPrice(product.originalPrice) : null;
   const cashbackInEur = product.cashback ? parseEurPrice(product.cashback) : null;
 
   // Sync selectedColor when external variant changes
@@ -228,18 +227,13 @@ export default function ProductPurchaseForm({ product, onVariantChange, selected
       </div>
 
       {/* Price Section */}
-      <div className="flex items-center gap-2 flex-wrap overflow-hidden">
-        <span className="text-2xl font-semibold text-primary">{formatPrice(priceInEur)}</span>
-        {originalPriceInEur && originalPriceInEur !== priceInEur && (
-          <>
-            <span className="text-base text-muted-foreground line-through">{formatPrice(originalPriceInEur)}</span>
-            {product.discountPct ? (
-              <Badge className="bg-red-500 hover:bg-red-500 text-white text-sm px-2 py-0 h-6">
-                -{product.discountPct}%
-              </Badge>
-            ) : null}
-          </>
-        )}
+      <div className="flex items-start gap-2 flex-wrap overflow-hidden">
+        <PromoPrice
+          product={product}
+          priceClassName="text-2xl font-semibold text-primary"
+          strikeClassName="text-base"
+          badgeClassName="text-sm"
+        />
         {cashbackInEur !== null && cashbackInEur > 0 && (
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-sm px-2 py-0 h-6">
             🎁 {formatPrice(cashbackInEur)} cashback

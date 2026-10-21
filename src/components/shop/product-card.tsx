@@ -15,6 +15,7 @@ import { useWishlist } from "@/context/WishlistContext";
 import { useToast } from "@/hooks/use-toast";
 import { usePrice } from "@/hooks/usePrice";
 import TranslatableText from "@/components/ui/TranslatableText";
+import PromoPrice from './PromoPrice';
 
 type ProductCardProps = {
   product: Product;
@@ -85,16 +86,10 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
   const { toast } = useToast();
   const { formatPrice, parseEurPrice } = usePrice();
 
-  const priceInEur = parseEurPrice(product.price);
-  const originalPriceInEur = product.originalPrice ? parseEurPrice(product.originalPrice) : null;
   const cashbackInEur = product.cashback ? parseEurPrice(product.cashback) : null;
 
   const isWishlisted = isInWishlist(product.id, selectedVariant.hex);
   const badgeType = getBadgeType(product);
-
-  // Calculate discount percentage
-  // User requested to hide percentage badge
-  const discountPct = undefined;
 
   // Determine which image to display
   const displayVariant = hoveredVariant || selectedVariant;
@@ -220,23 +215,13 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
                   <StarRating rating={product.averageRating} count={product.reviewCount} />
                 )}
 
-                <div className="flex items-center gap-2 mt-2">
-                  <p className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground">
-                    {formatPrice(priceInEur)}
-                  </p>
-                  {originalPriceInEur && originalPriceInEur !== priceInEur && (
-                    <>
-                      <p className="text-base sm:text-lg md:text-xl text-muted-foreground line-through">
-                        {formatPrice(originalPriceInEur)}
-                      </p>
-                      {discountPct && (
-                        <span className="text-sm sm:text-base font-semibold text-rose-500">
-                          -{discountPct}%
-                        </span>
-                      )}
-                    </>
-                  )}
-                </div>
+                <PromoPrice
+                  product={product}
+                  className="mt-2"
+                  priceClassName="text-xl sm:text-2xl md:text-3xl"
+                  strikeClassName="text-base sm:text-lg md:text-xl"
+                  badgeClassName="text-sm sm:text-base"
+                />
 
                 {/* Color Swatches - only for FocusRobin products */}
                 {showTryOn && (
@@ -414,23 +399,13 @@ function ProductCard({ product, onColorClick, priority = false, viewMode = "grid
             ) : null}
 
             {/* Price Section */}
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-              <p className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">
-                {formatPrice(priceInEur)}
-              </p>
-              {originalPriceInEur && originalPriceInEur !== priceInEur && (
-                <>
-                  <p className="text-sm sm:text-base md:text-lg text-muted-foreground line-through">
-                    {formatPrice(originalPriceInEur)}
-                  </p>
-                  {discountPct ? (
-                    <span className="text-sm sm:text-base font-semibold text-rose-500">
-                      -{discountPct}%
-                    </span>
-                  ) : null}
-                </>
-              )}
-            </div>
+            <PromoPrice
+              product={product}
+              className="mb-1.5"
+              priceClassName="text-lg sm:text-xl md:text-2xl"
+              strikeClassName="text-sm sm:text-base md:text-lg"
+              badgeClassName="text-sm sm:text-base"
+            />
 
             {/* Color Swatches - only for FocusRobin products */}
             {showTryOn && (

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { parsePromoScopeInput } from "@/lib/promo";
 
 // PUT - Update promo code
 export async function PUT(
@@ -77,6 +78,7 @@ export async function PUT(
           bulkFrameDiscountPercentage: bulkFrameDiscountPercentage ? parseFloat(bulkFrameDiscountPercentage) : null,
         }),
         ...(applyToFramesOnly !== undefined && { applyToFramesOnly }),
+        ...parsePromoScopeInput(body),
       },
     });
 

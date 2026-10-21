@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/context/CartContext";
 import { useCurrency } from "@/context/CurrencyContext";
@@ -13,6 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { getCart } from "@/app/actions/user";
 import { usePrice } from "@/hooks/usePrice";
 import TranslatableText from "@/components/ui/TranslatableText";
+import CartPromoCode from "@/components/shop/CartPromoCode";
+import { usePromo } from "@/context/PromoContext";
+import { applyPromoPercent, computePromoDiscount } from "@/lib/promo";
+import { cartItemsToPromoLines } from "@/lib/promo-client";
 
 export default function CartPage() {
   const { data: session, status } = useSession();
@@ -35,7 +39,15 @@ export default function CartPage() {
 
   const subtotal = getCartTotal(); // This returns EUR value
   const shipping = 0; // Free shipping
-  const total = subtotal + shipping;
+
+  // Applied promo code: same rules as checkout and the server
+  const { appliedPromo, getProductPromo } = usePromo();
+  const promoResult = useMemo(
+    () => (appliedPromo ? computePromoDiscount(appliedPromo, cartItemsToPromoLines(cartItems)) : null),
+    [appliedPromo, cartItems]
+  );
+  const promoDiscount = promoResult?.applied ? promoResult.discount : 0;
+  const total = Math.max(0, subtotal + shipping - promoDiscount);
 
   // Check if any items are out of stock
   const hasOutOfStockItems = cartItems.some(item => {
@@ -123,6 +135,8 @@ export default function CartPage() {
                     // Calculate total price: frame + prescription (if any)
                     const itemPrice = hasPrescription ? prescriptionPrice : framePrice;
                     const itemTotalEur = itemPrice * item.quantity;
+                    const linePromoPct = promoResult?.applied ? getProductPromo(item.product).appliedPercent : null;
+                    const lineTotalEur = linePromoPct ? applyPromoPercent(itemTotalEur, linePromoPct) : itemTotalEur;
 
                     // Create unique key that includes prescription data hash
                     const prescriptionKey = item.prescriptionData
@@ -172,7 +186,12 @@ export default function CartPage() {
                               )}
                               <div className="flex items-center justify-between mt-1.5">
                                 <p className="text-base font-bold text-brand-blue">
-                                  {formatPrice(itemTotalEur)}
+                                  {formatPrice(lineTotalEur)}
+                                  {linePromoPct ? (
+                                    <span className="ml-1.5 text-xs font-normal text-muted-foreground line-through">
+                                      {formatPrice(itemTotalEur)}
+                                    </span>
+                                  ) : null}
                                 </p>
                                 {item.variant.stock !== undefined && item.variant.stock !== null && item.variant.stock === 0 && (
                                   <Badge variant="destructive" className="text-[10px] px-1.5 py-0.5">
@@ -349,7 +368,12 @@ export default function CartPage() {
                                   </div>
                                 )}
                                 <p className="text-lg font-bold text-brand-blue">
-                                  {formatPrice(itemTotalEur)}
+                                  {formatPrice(lineTotalEur)}
+                                  {linePromoPct ? (
+                                    <span className="ml-2 text-sm font-normal text-muted-foreground line-through">
+                                      {formatPrice(itemTotalEur)}
+                                    </span>
+                                  ) : null}
                                 </p>
                               </div>
                             </div>
@@ -466,6 +490,13 @@ export default function CartPage() {
                           <span className="text-muted-foreground">Shipping</span>
                           <span className="font-semibold text-brand-blue">Free</span>
                         </div>
+                        {promoDiscount > 0 && (
+                          <div className="flex justify-between text-sm text-green-700">
+                            <span><TranslatableText text="Promo discount" /> ({appliedPromo?.code})</span>
+                            <span className="font-semibold">-{formatPrice(promoDiscount)}</span>
+                          </div>
+                        )}
+                        <CartPromoCode result={promoResult} />
                         {totalCashback > 0 && (
                           <div className="bg-brand-teal/10 border border-brand-teal/20 rounded-lg p-3 mt-2">
                             <p className="text-xs text-brand-blue font-semibold">
@@ -511,6 +542,13 @@ export default function CartPage() {
                           <span className="text-muted-foreground">Shipping</span>
                           <span className="font-semibold text-brand-blue">Free</span>
                         </div>
+                        {promoDiscount > 0 && (
+                          <div className="flex justify-between text-sm text-green-700">
+                            <span><TranslatableText text="Promo discount" /> ({appliedPromo?.code})</span>
+                            <span className="font-semibold">-{formatPrice(promoDiscount)}</span>
+                          </div>
+                        )}
+                        <CartPromoCode result={promoResult} />
                         <div className="border-t border-border pt-4 flex justify-between">
                           <span className="text-lg font-headline font-bold text-brand-blue">Total</span>
                           <span className="text-lg font-headline font-bold text-brand-blue">

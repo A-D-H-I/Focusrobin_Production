@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { usePrice } from "@/hooks/usePrice";
 import Link from "next/link";
 import TranslatableText from "@/components/ui/TranslatableText";
+import PromoPrice from './PromoPrice';
 
 interface TryOnProductDetailsProps {
   product: Product;
@@ -36,8 +37,6 @@ export default function TryOnProductDetails({
   const { toast } = useToast();
   const { formatPrice, parseEurPrice } = usePrice();
 
-  const priceInEur = parseEurPrice(product.price);
-  const originalPriceInEur = product.originalPrice ? parseEurPrice(product.originalPrice) : null;
   const cashbackInEur = product.cashback ? parseEurPrice(product.cashback) : null;
 
   const isWishlisted = isInWishlist(product.id, selectedVariant.hex);
@@ -140,19 +139,12 @@ export default function TryOnProductDetails({
       </div>
 
       {/* Price Section */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <p className="text-lg font-bold text-primary">{formatPrice(priceInEur)}</p>
-        {originalPriceInEur && originalPriceInEur !== priceInEur && (
-          <>
-            <p className="text-xs text-muted-foreground line-through">{formatPrice(originalPriceInEur)}</p>
-            {product.discountPct ? (
-              <Badge variant="destructive" className="text-xs px-1.5 py-0 h-5">
-                -{product.discountPct}%
-              </Badge>
-            ) : null}
-          </>
-        )}
-      </div>
+      <PromoPrice
+        product={product}
+        priceClassName="text-lg text-primary"
+        strikeClassName="text-xs"
+        badgeClassName="text-xs"
+      />
 
       {/* Cashback */}
       {cashbackInEur !== null && cashbackInEur > 0 && (

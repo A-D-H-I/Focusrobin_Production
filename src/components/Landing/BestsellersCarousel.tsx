@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { usePrice } from "@/hooks/usePrice";
 import TranslatableText from "@/components/ui/TranslatableText";
+import PromoPrice from '@/components/shop/PromoPrice';
 
 interface BestsellersCarouselProps {
   products: Product[];
@@ -362,23 +363,13 @@ export default function BestsellersCarousel({ products }: BestsellersCarouselPro
                         {product.name}
                       </h3>
 
-                      <div className="flex items-center justify-center gap-2 mb-4 sm:mb-6 flex-wrap px-2 sm:px-4">
-                        <p className="text-lg font-medium text-brand-blue/80 drop-shadow-md">
-                          {formatPrice(parseEurPrice(product.price))}
-                        </p>
-                        {product.originalPrice && product.originalPrice !== product.price && (
-                          <>
-                            <p className="text-sm text-muted-foreground line-through drop-shadow-md">
-                              {formatPrice(parseEurPrice(product.originalPrice))}
-                            </p>
-                            {product.discountPct ? (
-                              <span className="text-xs font-semibold text-destructive bg-white/90 px-2 py-0.5 rounded drop-shadow-md">
-                                -{product.discountPct}%
-                              </span>
-                            ) : null}
-                          </>
-                        )}
-                      </div>
+                      <PromoPrice
+                        product={product}
+                        className="items-center mb-4 sm:mb-6 px-2 sm:px-4 [&>div]:justify-center"
+                        priceClassName="text-lg font-medium text-brand-blue/80 drop-shadow-md"
+                        strikeClassName="text-sm drop-shadow-md"
+                        badgeClassName="text-xs bg-white/90 px-2 py-0.5 rounded drop-shadow-md"
+                      />
 
                       {product.cashback && parseEurPrice(product.cashback) > 0 && (
                         <div className="flex justify-center mb-3 sm:mb-4 relative z-40 px-2 sm:px-4">

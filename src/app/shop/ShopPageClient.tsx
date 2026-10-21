@@ -22,6 +22,7 @@ import {
 import FilterSidebar from "@/components/shop/filter-sidebar";
 import ProductGrid from "@/components/shop/product-grid";
 import type { Product } from "@/lib/productData";
+import { usePromo } from "@/context/PromoContext";
 import { type GenderCount } from "@/app/actions/getAvailableGenderCounts";
 import { type AvailableBrand } from "@/app/actions/getAvailableBrands";
 import { type PriceRange } from "@/app/actions/getPriceRange";
@@ -133,11 +134,24 @@ export default function ShopPageClient({
     if (searchParams.get('filter')) count += 1;
     if (searchParams.get('minPrice') || searchParams.get('maxPrice')) count += 1;
     if (searchParams.get('search')) count += 1;
+    if (searchParams.get('sale') === '1') count += 1;
     setFiltersApplied(count);
   }, [searchParams]);
 
+  // "On sale" filter: the product's own discount, or a coupon/promo code that covers it
+  const { getProductPromo } = usePromo();
+  const onSaleOnly = searchParams.get('sale') === '1';
+  const visibleProducts = useMemo(() => {
+    if (!onSaleOnly) return products;
+    return products.filter((p) => {
+      if (p.discountPct && p.discountPct > 0) return true;
+      const promo = getProductPromo(p);
+      return !!(promo.appliedPercent || promo.couponPercent);
+    });
+  }, [products, onSaleOnly, getProductPromo]);
+
   // Store original order (newest first, as fetched from server)
-  const originalOrder = useMemo(() => [...products], [products]);
+  const originalOrder = useMemo(() => [...visibleProducts], [visibleProducts]);
 
   // Helper function to extract numeric price from price string (e.g., "€150.00" -> 150)
   const getPriceValue = (priceStr: string): number => {
@@ -149,7 +163,7 @@ export default function ShopPageClient({
 
   // Sort products based on selected option
   const sortedProducts = useMemo(() => {
-    const productsCopy = [...products];
+    const productsCopy = [...visibleProducts];
 
     switch (sortBy) {
       case "price-asc":
@@ -182,7 +196,7 @@ export default function ShopPageClient({
           return reviewCountB - reviewCountA;
         });
     }
-  }, [products, sortBy, originalOrder]);
+  }, [visibleProducts, sortBy, originalOrder]);
 
   // Reset to page 1 when the viewed collection's identity (URL filters/search,
   // or sort order) actually changes - not on mount, and not when unrelated
