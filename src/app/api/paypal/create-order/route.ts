@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { createPayPalOrder } from '@/lib/paypal';
 import { getShippingProvider } from '@/lib/shipping-provider';
-import { calculateRetailPrice } from '@/lib/price-utils';
+import { getCartForPricing, priceCartItems, resolvePromo, orderTotal, totalsMatch, PRICE_CHANGED_ERROR } from '@/lib/order-pricing';
 
 interface CreatePayPalOrderRequest {
   shippingAddress: {
@@ -63,50 +63,6 @@ async function generateUniqueOrderNumber(): Promise<string> {
   return `ORD-${year}-${timestamp}`;
 }
 
-// Helper function to convert Google Drive links
-function convertGoogleDriveLink(url: string): string {
-  const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (driveFileMatch) {
-    return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}`;
-  }
-  const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
-  if (driveOpenMatch) {
-    return `https://lh3.googleusercontent.com/d/${driveOpenMatch[1]}`;
-  }
-  const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
-  if (ucMatch) {
-    return `https://lh3.googleusercontent.com/d/${ucMatch[1]}`;
-  }
-  if (url.includes('googleusercontent.com')) {
-    return url;
-  }
-  return url;
-}
-
-// Helper function to normalize image URLs
-function normalizeImageUrl(url: string | null): string | null {
-  if (!url) return null;
-  if (url.startsWith('/')) return url;
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    if (url.includes('drive.google.com')) {
-      return convertGoogleDriveLink(url);
-    }
-    return url;
-  }
-
-  const publicPathMatch = url.match(/[\\/]public[\\/](.+)$/i);
-  if (publicPathMatch) {
-    return '/' + publicPathMatch[1].replace(/\\/g, '/');
-  }
-
-  const filenameMatch = url.match(/[\\/]([^\\/]+\.(jpg|jpeg|png|gif|webp|svg|glb))$/i);
-  if (filenameMatch) {
-    return '/' + filenameMatch[1];
-  }
-
-  return url.startsWith('./') ? url.slice(1) : '/' + url;
-}
-
 export async function POST(request: Request) {
   try {
     const session = await auth();
@@ -120,71 +76,8 @@ export async function POST(request: Request) {
 
     console.log('[PayPal] Creating order for user:', userId);
 
-    // Get user's cart
-    const cart = await prisma.cart.findUnique({
-      where: { userId },
-      select: {
-        id: true,
-        items: {
-          select: {
-            id: true,
-            productId: true,
-            prescriptionGlassesId: true,
-            variantId: true,
-            quantity: true,
-            prescriptionData: true,
-            Product: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                brand: true,
-                basePrice: true,
-                discountPct: true,
-                ProductVariant: {
-                  select: {
-                    id: true,
-                    name: true,
-                    sku: true,
-                    price: true,
-                    stock: true,
-                    ProductAsset: {
-                      where: { isPrimary: true },
-                      take: 1,
-                      select: { url: true },
-                    },
-                  },
-                },
-              },
-            },
-            PrescriptionGlasses: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                brand: true,
-                basePrice: true,
-                discountPct: true,
-                PrescriptionGlassesVariant: {
-                  select: {
-                    id: true,
-                    name: true,
-                    sku: true,
-                    price: true,
-                    stock: true,
-                    PrescriptionGlassesAsset: {
-                      where: { isPrimary: true },
-                      take: 1,
-                      select: { url: true },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    // Get user's cart (with everything needed to price it server-side)
+    const cart = await getCartForPricing(userId);
 
     if (!cart || cart.items.length === 0) {
       return NextResponse.json(
@@ -213,7 +106,6 @@ export async function POST(request: Request) {
       }
     }
 
-    // Use the orderTotal from frontend
     const orderTotalFromFrontend = Number(body.orderTotal);
     if (!orderTotalFromFrontend || orderTotalFromFrontend <= 0) {
       return NextResponse.json(
@@ -222,149 +114,23 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('[PayPal] Using order total from frontend: €' + orderTotalFromFrontend.toFixed(2));
-
-    // Build order items from database cart
-    const orderItems: {
-      productId?: string | null;
-      prescriptionGlassesId?: string | null;
-      variantId: string;
-      productName: string;
-      variantName: string;
-      sku: string;
-      quantity: number;
-      price: number;
-      total: number;
-      imageUrl: string | null;
-      prescriptionData: any;
-    }[] = [];
-
-    let subtotal = 0;
-    for (const cartItem of cart.items) {
-      const product = cartItem.Product || cartItem.PrescriptionGlasses;
-      const variants = cartItem.Product ? cartItem.Product.ProductVariant : (cartItem.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
-      const variant = variants.find((v: any) => v.id === cartItem.variantId);
-
-      if (!product || !variant) continue;
-
-      const prescriptionData = cartItem.prescriptionData ? (cartItem.prescriptionData as any) : null;
-
-      let price: number;
-      if (prescriptionData?.rxPriceBreakdown?.totalNet) {
-        price = Number(prescriptionData.rxPriceBreakdown.totalNet);
-      } else {
-        const basePrice = variant.price
-          ? Number(variant.price)
-          : calculateRetailPrice(Number(product.basePrice), (product as any).brand);
-        const discountPct = product.discountPct || 0;
-        price = basePrice * (1 - discountPct / 100);
-      }
-
-      const itemTotal = price * cartItem.quantity;
-      subtotal += itemTotal;
-
-      const primaryAsset = cartItem.Product ? variant.ProductAsset?.[0] : (variant as any).PrescriptionGlassesAsset?.[0];
-      const imageUrl = normalizeImageUrl(primaryAsset?.url || null);
-
-      orderItems.push({
-        productId: cartItem.productId,
-        prescriptionGlassesId: cartItem.prescriptionGlassesId,
-        variantId: cartItem.variantId,
-        productName: product.name,
-        variantName: variant.name,
-        sku: variant.sku,
-        quantity: cartItem.quantity,
-        price,
-        total: itemTotal,
-        imageUrl,
-        prescriptionData,
-      });
-    }
-
+    // Price the order from the database. The browser's total is only checked against
+    // this, never charged directly.
+    const { orderItems, promoLines, subtotal } = priceCartItems(cart);
     const shipping = 0; // Free shipping
-    const total = orderTotalFromFrontend;
-    const orderTotalBeforePromo = subtotal + shipping;
+    const { promoCodeId, promoDiscount, promoCashback } = await resolvePromo(body.promoCodeId, promoLines);
+    const orderTotalAfterPromo = Math.max(0, subtotal + shipping - promoDiscount);
 
-    // Calculate frame quantity and frame subtotal (for frame-only discounts)
-    // IMPORTANT: Count ALL frames (both regular frames AND frames from prescription glasses)
-    // Discount applies to frame prices only, not prescription lens prices
-    let frameQuantity = 0;
-    let frameSubtotal = 0;
-    for (const orderItem of orderItems) {
-      // Count ALL frames (every item has a frame, whether it's regular or prescription)
-      frameQuantity += orderItem.quantity;
-
-      // Extract frame price (base product price, before prescription lenses)
-      // For ALL items (both regular and prescription), use the base product price
-      const cartItem = cart.items.find((ci: any) =>
-        ci.variantId === orderItem.variantId &&
-        ((ci.productId && ci.productId === orderItem.productId) || (ci.prescriptionGlassesId && ci.prescriptionGlassesId === orderItem.prescriptionGlassesId))
-      );
-
-      if (cartItem) {
-        const product = cartItem.Product || cartItem.PrescriptionGlasses;
-        const variants = cartItem.Product ? cartItem.Product.ProductVariant : (cartItem.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
-        const variant = variants.find((v: any) => v.id === orderItem.variantId);
-
-        if (product && variant) {
-          // Get base frame price (before any prescription lenses)
-          const basePrice = variant.price
-            ? Number(variant.price)
-            : calculateRetailPrice(Number(product.basePrice), (product as any).brand);
-          const discountPct = product.discountPct || 0;
-          const framePrice = basePrice * (1 - discountPct / 100);
-          frameSubtotal += framePrice * orderItem.quantity;
-        }
-      }
-    }
-
-    // Validate and apply promo code if provided
-    let promoDiscount = 0;
-    let promoCashback = 0;
-    let promoCodeId: string | null = null;
-
-    if (body.promoCodeId) {
-      const promoCode = await prisma.promoCode.findUnique({
-        where: { id: body.promoCodeId },
-      });
-
-      if (promoCode && promoCode.isActive) {
-        const now = new Date();
-        if (promoCode.startDate <= now && (!promoCode.endDate || promoCode.endDate >= now)) {
-          if (!promoCode.usageLimit || promoCode.usedCount < promoCode.usageLimit) {
-            if (!promoCode.minPurchaseAmount || orderTotalBeforePromo >= Number(promoCode.minPurchaseAmount)) {
-              // Check if this is a frame-only discount
-              if (promoCode.applyToFramesOnly && promoCode.bulkFrameDiscountPercentage && promoCode.minFrameQuantity) {
-                // Frame-only discount: check minimum frame quantity
-                if (frameQuantity >= Number(promoCode.minFrameQuantity)) {
-                  // Apply discount only to frames
-                  promoDiscount = (frameSubtotal * Number(promoCode.bulkFrameDiscountPercentage)) / 100;
-                  promoDiscount = Math.min(promoDiscount, frameSubtotal);
-                  promoCodeId = promoCode.id;
-                }
-              } else {
-                // Regular discount: applies to entire order
-                if (promoCode.discountPercentage) {
-                  promoDiscount = (orderTotalBeforePromo * Number(promoCode.discountPercentage)) / 100;
-                } else if (promoCode.discountAmount) {
-                  promoDiscount = Number(promoCode.discountAmount);
-                }
-                promoDiscount = Math.min(promoDiscount, orderTotalBeforePromo);
-
-                if (promoCode.cashbackPercentage) {
-                  promoCashback = (orderTotalBeforePromo * Number(promoCode.cashbackPercentage)) / 100;
-                }
-
-                promoCodeId = promoCode.id;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    const orderTotalAfterPromo = Math.max(0, orderTotalBeforePromo - promoDiscount);
     const walletAmount = body.walletAmount || 0;
+    if (walletAmount < 0) {
+      return NextResponse.json({ error: 'Invalid wallet amount.' }, { status: 400 });
+    }
+    const total = orderTotal(subtotal, shipping, promoDiscount, walletAmount);
+
+    if (!totalsMatch(orderTotalFromFrontend, total)) {
+      console.warn(`[PayPal] Total mismatch for user ${userId}: client €${orderTotalFromFrontend.toFixed(2)}, server €${total.toFixed(2)}`);
+      return NextResponse.json({ error: PRICE_CHANGED_ERROR }, { status: 409 });
+    }
 
     // Validate wallet amount
     if (walletAmount > 0) {

@@ -33,6 +33,8 @@ export function mapDbCartItemToCartItem(dbItem: any): CartItem | null {
     }
 
     const product = mapPrismaProductToProduct(dbItem.Product);
+    // The mapper assumes sunglasses; cart items for prescription glasses carry prescriptionGlassesId
+    if (dbItem.prescriptionGlassesId) product.productType = 'eyeglasses';
     
     // Find the variant that matches the variantId from database
     const dbVariant = dbItem.Product.ProductVariant.find(

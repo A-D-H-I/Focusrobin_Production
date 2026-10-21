@@ -6,7 +6,7 @@ import Stripe from 'stripe';
 import { requireAuth, safeAction } from "@/lib/security";
 import { rateLimit, getIdentifier } from "@/lib/rate-limit";
 import { getShippingProvider } from "@/lib/shipping-provider";
-import { calculateRetailPrice } from "@/lib/price-utils";
+import { getCartForPricing, priceCartItems, resolvePromo, orderTotal, totalsMatch, PRICE_CHANGED_ERROR } from "@/lib/order-pricing";
 
 interface CheckoutData {
   shippingAddress: {
@@ -49,50 +49,6 @@ function generateOrderNumber(): string {
   return `ORD-${year}-${random}`;
 }
 
-// Helper function to convert Google Drive links
-function convertGoogleDriveLink(url: string): string {
-  const driveFileMatch = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
-  if (driveFileMatch) {
-    return `https://lh3.googleusercontent.com/d/${driveFileMatch[1]}`;
-  }
-  const driveOpenMatch = url.match(/drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/);
-  if (driveOpenMatch) {
-    return `https://lh3.googleusercontent.com/d/${driveOpenMatch[1]}`;
-  }
-  const ucMatch = url.match(/drive\.google\.com\/uc\?.*id=([a-zA-Z0-9_-]+)/);
-  if (ucMatch) {
-    return `https://lh3.googleusercontent.com/d/${ucMatch[1]}`;
-  }
-  if (url.includes('googleusercontent.com')) {
-    return url;
-  }
-  return url;
-}
-
-// Helper function to normalize image URLs
-function normalizeImageUrl(url: string | null): string | null {
-  if (!url) return null;
-  if (url.startsWith('/')) return url;
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    if (url.includes('drive.google.com')) {
-      return convertGoogleDriveLink(url);
-    }
-    return url;
-  }
-
-  const publicPathMatch = url.match(/[\\/]public[\\/](.+)$/i);
-  if (publicPathMatch) {
-    return '/' + publicPathMatch[1].replace(/\\/g, '/');
-  }
-
-  const filenameMatch = url.match(/[\\/]([^\\/]+\.(jpg|jpeg|png|gif|webp|svg|glb))$/i);
-  if (filenameMatch) {
-    return '/' + filenameMatch[1];
-  }
-
-  return url.startsWith('./') ? url.slice(1) : '/' + url;
-}
-
 /**
  * Create a Stripe Checkout Session and Order
  */
@@ -110,71 +66,8 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       return { error: `Too many checkout attempts. Please try again in ${rateLimitResult.retryAfter} seconds.` };
     }
 
-    // Get user's cart to verify it exists and get items for order creation
-    const cart = await prisma.cart.findUnique({
-      where: { userId },
-      select: {
-        id: true,
-        items: {
-          select: {
-            id: true,
-            productId: true,
-            prescriptionGlassesId: true,
-            variantId: true,
-            quantity: true,
-            prescriptionData: true,
-            Product: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                brand: true,
-                basePrice: true,
-                discountPct: true,
-                ProductVariant: {
-                  select: {
-                    id: true,
-                    name: true,
-                    sku: true,
-                    price: true,
-                    stock: true,
-                    ProductAsset: {
-                      where: { isPrimary: true },
-                      take: 1,
-                      select: { url: true },
-                    },
-                  },
-                },
-              },
-            },
-            PrescriptionGlasses: {
-              select: {
-                id: true,
-                name: true,
-                slug: true,
-                brand: true,
-                basePrice: true,
-                discountPct: true,
-                PrescriptionGlassesVariant: {
-                  select: {
-                    id: true,
-                    name: true,
-                    sku: true,
-                    price: true,
-                    stock: true,
-                    PrescriptionGlassesAsset: {
-                      where: { isPrimary: true },
-                      take: 1,
-                      select: { url: true },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    // Get user's cart (with everything needed to price it server-side)
+    const cart = await getCartForPricing(userId);
 
     if (!cart) {
       return { error: "Your cart is empty. Please add items to your cart first." };
@@ -215,86 +108,30 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
       // Note: We don't check if stock < quantity anymore - we allow it because item was already in cart
     }
 
-    // Use the orderTotal from frontend (Order Summary total)
-    // This is the EXACT amount shown to the user
     const orderTotalFromFrontend = Number(checkoutData.orderTotal);
     if (!orderTotalFromFrontend || orderTotalFromFrontend <= 0) {
       return { error: "Invalid order total. Please refresh and try again." };
     }
 
-    console.log('[CHECKOUT] Using order total from frontend (Order Summary): €' + orderTotalFromFrontend.toFixed(2));
+    // Price the order from the database. The browser's total is only checked against
+    // this, never charged directly.
+    const { orderItems, promoLines, subtotal } = priceCartItems(cart);
+    const shipping = 0; // Free shipping
+    const { promoCodeId, promoDiscount, promoCashback } = await resolvePromo(checkoutData.promoCodeId, promoLines);
+    const orderTotalAfterPromo = Math.max(0, subtotal + shipping - promoDiscount);
 
-    // Build order items from database cart (for order record)
-    const orderItems: {
-      productId?: string | null;
-      prescriptionGlassesId?: string | null;
-      variantId: string;
-      productName: string;
-      variantName: string;
-      sku: string;
-      quantity: number;
-      price: number;
-      total: number;
-      imageUrl: string | null;
-      prescriptionData: any;
-    }[] = [];
+    const walletAmount = checkoutData.walletAmount || 0;
+    if (walletAmount < 0) {
+      return { error: "Invalid wallet amount." };
+    }
+    const total = orderTotal(subtotal, shipping, promoDiscount, walletAmount);
 
-    // NOTE: We only use prescription data from cartItem.prescriptionData
-    // Do NOT fetch from UserPrescription table - that was causing wrong prescription data
-    // to be applied to non-prescription items
-
-    let subtotal = 0;
-    for (const cartItem of cart.items) {
-      const product = cartItem.Product || cartItem.PrescriptionGlasses;
-      const variants = cartItem.Product ? cartItem.Product.ProductVariant : (cartItem.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
-      const variant = variants.find((v: any) => v.id === cartItem.variantId);
-
-      if (!product || !variant) continue;
-
-      // IMPORTANT: Only use prescription data directly from the cart item
-      // This was stored when the user added the item with prescription to cart
-      const prescriptionData = cartItem.prescriptionData ? (cartItem.prescriptionData as any) : null;
-
-      let price: number;
-      // Only use prescription pricing if the item has valid prescription data with totalNet
-      if (prescriptionData?.rxPriceBreakdown?.totalNet) {
-        price = Number(prescriptionData.rxPriceBreakdown.totalNet);
-        console.log(`[CHECKOUT] Item ${product.name}: Using prescription price €${price}`);
-      } else {
-        // No prescription or no totalNet - use regular frame price
-        const basePrice = variant.price
-          ? Number(variant.price)
-          : calculateRetailPrice(Number(product.basePrice), (product as any).brand);
-        const discountPct = product.discountPct || 0;
-        price = basePrice * (1 - discountPct / 100);
-        console.log(`[CHECKOUT] Item ${product.name}: Using frame price €${price} (base: €${basePrice}, discount: ${discountPct}%)`);
-      }
-
-      const itemTotal = price * cartItem.quantity;
-      subtotal += itemTotal;
-
-      const primaryAsset = cartItem.Product ? variant.ProductAsset?.[0] : (variant as any).PrescriptionGlassesAsset?.[0];
-      const imageUrl = normalizeImageUrl(primaryAsset?.url || null);
-
-      orderItems.push({
-        productId: cartItem.productId,
-        prescriptionGlassesId: cartItem.prescriptionGlassesId,
-        variantId: cartItem.variantId,
-        productName: product.name,
-        variantName: variant.name,
-        sku: variant.sku,
-        quantity: cartItem.quantity,
-        price,
-        total: itemTotal,
-        imageUrl,
-        prescriptionData, // Only include actual prescription data from cart item
-      });
-
-      console.log(`[CHECKOUT] Added order item: ${product.name} - ${variant.name}, qty: ${cartItem.quantity}, price: €${price}, total: €${itemTotal}, hasPrescription: ${!!prescriptionData}`);
+    if (!totalsMatch(orderTotalFromFrontend, total)) {
+      console.warn(`[CHECKOUT] Total mismatch for user ${userId}: client €${orderTotalFromFrontend.toFixed(2)}, server €${total.toFixed(2)}`);
+      return { error: PRICE_CHANGED_ERROR };
     }
 
-    // Create a SINGLE Stripe line item with the total from Order Summary
-    // This ensures Stripe amount ALWAYS matches what user sees
+    // A single Stripe line item for the server-computed total
     const stripeLineItems = [{
       price_data: {
         currency: 'eur',
@@ -302,105 +139,12 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
           name: `Order - ${cart.items.length} item(s)`,
           description: `Order from FocusRobin`,
         },
-        unit_amount: Math.round(orderTotalFromFrontend * 100), // Convert to cents
+        unit_amount: Math.round(total * 100), // Convert to cents
       },
       quantity: 1,
     }];
 
-    console.log('[CHECKOUT] Stripe will charge: €' + orderTotalFromFrontend.toFixed(2) + ' (from Order Summary)');
-
-    const shipping = 0; // Free shipping
-
-    // Use the orderTotal from frontend (Order Summary total)
-    // This already includes all discounts, wallet deductions, etc.
-    const total = orderTotalFromFrontend;
-
-    // Calculate frame quantity and frame subtotal (for frame-only discounts)
-    // IMPORTANT: Count ALL frames (both regular frames AND frames from prescription glasses)
-    // Discount applies to frame prices only, not prescription lens prices
-    let frameQuantity = 0;
-    let frameSubtotal = 0;
-    for (const orderItem of orderItems) {
-      // Count ALL frames (every item has a frame, whether it's regular or prescription)
-      frameQuantity += orderItem.quantity;
-
-      // Extract frame price (base product price, before prescription lenses)
-      // For ALL items (both regular and prescription), use the base product price
-      const cartItem = cart.items.find((ci: any) =>
-        ci.variantId === orderItem.variantId &&
-        ((ci.productId && ci.productId === orderItem.productId) || (ci.prescriptionGlassesId && ci.prescriptionGlassesId === orderItem.prescriptionGlassesId))
-      );
-
-      if (cartItem) {
-        const product = cartItem.Product || cartItem.PrescriptionGlasses;
-        const variants = cartItem.Product ? cartItem.Product.ProductVariant : (cartItem.PrescriptionGlasses?.PrescriptionGlassesVariant || []);
-        const variant = variants.find((v: any) => v.id === orderItem.variantId);
-
-        if (product && variant) {
-          // Get base frame price (before any prescription lenses)
-          const basePrice = variant.price
-            ? Number(variant.price)
-            : calculateRetailPrice(Number(product.basePrice), (product as any).brand);
-          const discountPct = product.discountPct || 0;
-          const framePrice = basePrice * (1 - discountPct / 100);
-          frameSubtotal += framePrice * orderItem.quantity;
-        }
-      }
-    }
-
-    // Calculate promo discount and wallet amount for order record
-    // (These are already factored into orderTotalFromFrontend)
-    const orderTotalBeforePromo = subtotal + shipping;
-
-    // Validate and apply promo code if provided (for order record)
-    let promoDiscount = 0;
-    let promoCashback = 0;
-    let promoCodeId: string | null = null;
-
-    if (checkoutData.promoCodeId) {
-      const promoCode = await prisma.promoCode.findUnique({
-        where: { id: checkoutData.promoCodeId },
-      });
-
-      if (promoCode && promoCode.isActive) {
-        const now = new Date();
-        if (promoCode.startDate <= now && (!promoCode.endDate || promoCode.endDate >= now)) {
-          if (!promoCode.usageLimit || promoCode.usedCount < promoCode.usageLimit) {
-            if (!promoCode.minPurchaseAmount || orderTotalBeforePromo >= Number(promoCode.minPurchaseAmount)) {
-              // Check if this is a frame-only discount
-              if (promoCode.applyToFramesOnly && promoCode.bulkFrameDiscountPercentage && promoCode.minFrameQuantity) {
-                // Frame-only discount: check minimum frame quantity
-                if (frameQuantity >= Number(promoCode.minFrameQuantity)) {
-                  // Apply discount only to frames
-                  promoDiscount = (frameSubtotal * Number(promoCode.bulkFrameDiscountPercentage)) / 100;
-                  promoDiscount = Math.min(promoDiscount, frameSubtotal);
-                  promoCodeId = promoCode.id;
-                }
-              } else {
-                // Regular discount: applies to entire order
-                if (promoCode.discountPercentage) {
-                  promoDiscount = (orderTotalBeforePromo * Number(promoCode.discountPercentage)) / 100;
-                } else if (promoCode.discountAmount) {
-                  promoDiscount = Number(promoCode.discountAmount);
-                }
-                promoDiscount = Math.min(promoDiscount, orderTotalBeforePromo);
-
-                if (promoCode.cashbackPercentage) {
-                  promoCashback = (orderTotalBeforePromo * Number(promoCode.cashbackPercentage)) / 100;
-                }
-
-                promoCodeId = promoCode.id;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Calculate order total after promo discount (for validation)
-    const orderTotalAfterPromo = Math.max(0, orderTotalBeforePromo - promoDiscount);
-
-    const walletAmount = checkoutData.walletAmount || 0;
+    console.log(`[CHECKOUT] Stripe will charge: €${total.toFixed(2)}`);
 
     // Validate wallet amount if provided
     if (walletAmount > 0) {

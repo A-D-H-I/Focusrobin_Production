@@ -774,6 +774,12 @@ model PromoCode {
   minFrameQuantity            Int?
   bulkFrameDiscountPercentage Decimal?  @db.Decimal(5, 2)
   applyToFramesOnly           Boolean   @default(false)
+  // Scope: empty list = no restriction on that dimension
+  applicableBrands            String[]  @default([])
+  applicableGenders           Gender[]  @default([])
+  applicableProductTypes      String[]  @default([]) // "SUNGLASSES" | "EYEGLASSES"
+  // Advertise on eligible products as an Amazon-style "Save X% with coupon" chip
+  showAsCoupon                Boolean   @default(false)
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt
   Order                       Order[]
