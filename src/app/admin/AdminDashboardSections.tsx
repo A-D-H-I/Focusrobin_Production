@@ -13,6 +13,62 @@ export function AdminDashboardSections() {
 
   return (
     <div className="space-y-6">
+      {/* Discounts & Promotions - kept at the top so it's easy to find */}
+      <Card className="border-green-300 bg-green-50/60">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Tags className="h-5 w-5 text-green-700" />
+            <CardTitle>Discounts &amp; Promotions</CardTitle>
+          </div>
+          <CardDescription>Promo codes, Amazon-style coupons and product discounts</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Ticket className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Promo Codes &amp; Coupons</CardTitle>
+                </div>
+                <CardDescription>
+                  Create a code with a discount % (or fixed €), choose which brands, categories and product
+                  types it applies to, and tick &quot;Show as coupon on products&quot; to show it on product pages.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/admin/promo-codes">
+                  <Button className="w-full bg-green-700 hover:bg-green-800 text-white">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create / Manage Promo Codes
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-shadow">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  <CardTitle className="text-lg">Product Discount %</CardTitle>
+                </div>
+                <CardDescription>
+                  Put a single product on sale without a code: open the product, click Edit, and set
+                  &quot;Discount Percentage (%)&quot;. It shows as a red -X% badge with the old price crossed out.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-2">
+                <Link href="/admin/products">
+                  <Button variant="outline" className="w-full">Sunglasses</Button>
+                </Link>
+                <Link href="/admin/prescription-glasses">
+                  <Button variant="outline" className="w-full">Prescription</Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Sunglasses Section */}
       <Collapsible open={isProductsOpen} onOpenChange={setIsProductsOpen}>
         <Card>
@@ -473,22 +529,6 @@ export function AdminDashboardSections() {
           <CardContent>
             <Link href="/admin/users">
               <Button variant="outline" className="w-full">Manage Users</Button>
-            </Link>
-          </CardContent>
-        </Card>
-
-        {/* Promo Codes Card */}
-        <Card className="hover:shadow-lg transition-shadow">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Ticket className="h-5 w-5 text-primary" />
-              <CardTitle>Promo Codes</CardTitle>
-            </div>
-            <CardDescription>Create and manage discount and cashback codes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link href="/admin/promo-codes">
-              <Button variant="outline" className="w-full">Manage Promo Codes</Button>
             </Link>
           </CardContent>
         </Card>
