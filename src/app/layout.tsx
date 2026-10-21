@@ -186,6 +186,7 @@ const baseMetadata: Omit<Metadata, 'viewport'> = {
   },
   other: {
     'google-site-verification': 'verification_code_placeholder',
+    google: 'notranslate',
   },
   // Icons are handled by the file convention (src/app/icon.svg)
 };
@@ -225,7 +226,10 @@ export default async function RootLayout({
   const locale = await getLocale();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    // translate="no": the site ships its own LT/RU/EN versions. Browser auto-translation
+    // (e.g. Chrome on a lang="lt" page) rewrites React-managed text nodes and crashes
+    // the app with "Failed to execute 'removeChild' on 'Node'".
+    <html lang={locale} translate="no" suppressHydrationWarning>
       <body className={`${chillax.variable} font-body antialiased`}>
         <CookieConsentProvider>
           <GoogleAnalytics />
