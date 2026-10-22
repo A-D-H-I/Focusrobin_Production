@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { ShoppingCart, Menu, Search, Heart, User, Loader2 } from "lucide-react";
+import { ShoppingCart, Menu, Search, Heart, User, Loader2, Shield } from "lucide-react";
 import { useSession } from "next-auth/react";
 import UserMenu from "@/components/auth/UserMenu";
 
@@ -1490,6 +1490,20 @@ export default function Header({ initialBanners = [] }: HeaderProps) {
                           </div>
                         );
                       })}
+                      {/* The desktop account dropdown (with its admin link) is hidden on phones */}
+                      {(session?.user as any)?.role === 'ADMIN' && (
+                        <div>
+                          <div className="border-t border-gray-200 my-3"></div>
+                          <Link
+                            href="/admin"
+                            className="font-body text-lg font-bold hover:text-primary transition-colors text-brand-teal py-2 flex items-center gap-2"
+                            onClick={() => setIsSidebarOpen(false)}
+                          >
+                            <Shield className="h-5 w-5" />
+                            Admin Dashboard
+                          </Link>
+                        </div>
+                      )}
                     </nav>
                   </div>
                 </SheetContent>
