@@ -279,8 +279,8 @@ export async function createCheckoutSession(checkoutData: CheckoutData) {
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === undefined;
 
     if (isDevelopment) {
-      // Always use localhost:3001 in development
-      baseUrl = 'http://localhost:3001';
+      // localhost:3001 unless NEXT_PUBLIC_URL points elsewhere (e.g. a tunnel for remote testers)
+      baseUrl = process.env.NEXT_PUBLIC_URL || 'http://localhost:3001';
       console.log('[Checkout] Development mode, using:', baseUrl);
     } else {
       // Production - use NEXT_PUBLIC_URL
