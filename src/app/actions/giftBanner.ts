@@ -34,7 +34,67 @@ function getKeyFromUrl(url: string | null | undefined): string | null {
   }
 }
 
-// ... (createGiftBanner stays same) ...
+/**
+ * Create a gift banner (Admin only)
+ */
+export async function createGiftBanner(formData: FormData) {
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
+    if (!prisma.giftBanner || typeof prisma.giftBanner.create !== 'function') {
+      return { error: 'GiftBanner model not available. Please regenerate Prisma client.' };
+    }
+
+    const imageUrl = formData.get('imageUrl') as string;
+    const mobileTabletImageUrlRaw = formData.get('mobileTabletImageUrl') as string;
+    // Validate URL - if invalid or empty, set to null
+    let mobileTabletImageUrl: string | null = null;
+    if (mobileTabletImageUrlRaw && mobileTabletImageUrlRaw.trim()) {
+      try {
+        new URL(mobileTabletImageUrlRaw.trim());
+        mobileTabletImageUrl = mobileTabletImageUrlRaw.trim();
+      } catch {
+        // Invalid URL, treat as null
+        mobileTabletImageUrl = null;
+      }
+    }
+    const title = formData.get('title') as string || 'Gift for your loved ones';
+    const subtitle = formData.get('subtitle') as string || '';
+    const link = formData.get('link') as string || '/shop/unisex';
+    const isActive = formData.get('isActive') === 'true';
+
+    // Validate input
+    const validatedInput = giftBannerSchema.safeParse({ 
+      imageUrl, 
+      mobileTabletImageUrl,
+      title, 
+      subtitle, 
+      link, 
+      isActive 
+    });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
+    }
+
+    // @ts-ignore
+    const giftBanner = await prisma.giftBanner.create({
+      data: {
+        imageUrl: validatedInput.data.imageUrl,
+        mobileTabletImageUrl: validatedInput.data.mobileTabletImageUrl || null,
+        title: validatedInput.data.title,
+        subtitle: validatedInput.data.subtitle || null,
+        link: validatedInput.data.link,
+        isActive: validatedInput.data.isActive,
+      },
+    });
+
+    revalidatePath('/');
+    revalidatePath('/admin/gift-banner');
+
+    return { success: true, giftBannerId: giftBanner.id };
+  });
+}
 
 /**
  * Update a gift banner (Admin only)

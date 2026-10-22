@@ -32,7 +32,56 @@ function getKeyFromUrl(url: string | null | undefined): string | null {
   }
 }
 
-// ... (createIconicImage stays same) ...
+/**
+ * Create an iconic image (Admin only)
+ */
+export async function createIconicImage(formData: FormData) {
+  return safeAction(async () => {
+    await requireAdmin();
+
+    // @ts-ignore
+    if (!prisma.iconicImage || typeof prisma.iconicImage.create !== 'function') {
+      return { error: 'IconicImage model not available. Please regenerate Prisma client.' };
+    }
+
+    const imageUrl = formData.get('imageUrl') as string;
+    const mobileTabletImageUrlRaw = formData.get('mobileTabletImageUrl') as string;
+    // Validate URL - if invalid or empty, set to null
+    let mobileTabletImageUrl: string | null = null;
+    if (mobileTabletImageUrlRaw && mobileTabletImageUrlRaw.trim()) {
+      try {
+        new URL(mobileTabletImageUrlRaw.trim());
+        mobileTabletImageUrl = mobileTabletImageUrlRaw.trim();
+      } catch {
+        // Invalid URL, treat as null
+        mobileTabletImageUrl = null;
+      }
+    }
+    const alt = formData.get('alt') as string;
+    const isActive = formData.get('isActive') === 'true';
+
+    // Validate input
+    const validatedInput = iconicImageSchema.safeParse({ 
+      imageUrl, 
+      mobileTabletImageUrl,
+      alt, 
+      isActive 
+    });
+    if (!validatedInput.success) {
+      return { error: validatedInput.error.errors[0]?.message || "Invalid input" };
+    }
+
+    // @ts-ignore
+    const iconicImage = await prisma.iconicImage.create({
+      data: validatedInput.data,
+    });
+
+    revalidatePath('/');
+    revalidatePath('/admin/iconic');
+
+    return { success: true, iconicImageId: iconicImage.id };
+  });
+}
 
 /**
  * Update an iconic image (Admin only)
@@ -54,7 +103,6 @@ export async function updateIconicImage(formData: FormData) {
 
     const imageUrl = formData.get('imageUrl') as string;
     const mobileTabletImageUrlRaw = formData.get('mobileTabletImageUrl') as string;
-    // ... (rest of formData extraction) ...
     let mobileTabletImageUrl: string | null = null;
     if (mobileTabletImageUrlRaw && mobileTabletImageUrlRaw.trim()) {
       try {
