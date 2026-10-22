@@ -412,3 +412,34 @@
     }
   }
 }
+
+/* Admin panel on phones. The admin pages were laid out for desktop; these rules keep
+   them usable at phone width without changing desktop or the storefront.
+   Dialogs render outside .admin-area (in a portal), so they are matched through
+   body:has(.admin-area). */
+@media (max-width: 639px) {
+  .admin-area .text-brand-h1 { font-size: 1.875rem; line-height: 1.2; }
+  .admin-area .text-brand-h2 { font-size: 1.5rem; line-height: 1.25; }
+  .admin-area .text-brand-h3 { font-size: 1.25rem; line-height: 1.3; }
+  .admin-area h1,
+  .admin-area h2,
+  .admin-area h3 { overflow-wrap: anywhere; }
+
+  /* Rows of titles, badges and action buttons wrap instead of running off-screen */
+  .admin-area .flex:not(.flex-col):not(.flex-col-reverse):not(.flex-nowrap),
+  body:has(.admin-area) [role="dialog"] .flex:not(.flex-col):not(.flex-col-reverse):not(.flex-nowrap) {
+    flex-wrap: wrap;
+  }
+
+  /* Form fields side by side are too narrow on a phone: stack them */
+  .admin-area form .grid-cols-2,
+  .admin-area form .grid-cols-3,
+  body:has(.admin-area) [role="dialog"] .grid-cols-2,
+  body:has(.admin-area) [role="dialog"] .grid-cols-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Long unbroken text such as emails, SKUs and URLs */
+  .admin-area p,
+  .admin-area td { overflow-wrap: break-word; }
+}

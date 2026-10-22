@@ -673,8 +673,8 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                   <div key={user.id} className="border rounded-lg">
                     <Collapsible open={isExpanded} onOpenChange={() => toggleUser(user.id)}>
                       <CollapsibleTrigger asChild>
-                        <div className="flex items-center justify-between p-4 hover:bg-muted/50 cursor-pointer">
-                          <div className="flex items-center gap-4 flex-1">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-4 hover:bg-muted/50 cursor-pointer">
+                          <div className="flex flex-nowrap items-center gap-3 sm:gap-4 flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               {isExpanded ? (
                                 <ChevronDown className="h-4 w-4" />
@@ -682,32 +682,32 @@ export default function UserManagement({ users, currentUserId }: UserManagementP
                                 <ChevronRight className="h-4 w-4" />
                               )}
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex flex-nowrap items-center gap-3 min-w-0">
                               {user.image ? (
                                 <Image
                                   src={normalizeImageUrl(user.image)}
                                   alt={user.name || user.email}
                                   width={40}
                                   height={40}
-                                  className="rounded-full"
+                                  className="rounded-full shrink-0"
                                 />
                               ) : (
-                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                <div className="w-10 h-10 shrink-0 rounded-full bg-primary/10 flex items-center justify-center">
                                   <User className="h-5 w-5 text-primary" />
                                 </div>
                               )}
-                              <div>
+                              <div className="min-w-0">
                                 <div className="flex items-center gap-2">
                                   <p className="font-medium">{user.name || 'No name'}</p>
                                   <Badge variant={user.role === 'ADMIN' ? 'default' : 'secondary'}>
                                     {user.role}
                                   </Badge>
                                 </div>
-                                <p className="text-sm text-muted-foreground">{user.email}</p>
+                                <p className="text-sm text-muted-foreground break-all">{user.email}</p>
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 pl-7 sm:pl-0 text-sm text-muted-foreground">
                             <div className="flex items-center gap-1">
                               <ShoppingCart className="h-4 w-4" />
                               <span>{cartItemCount} items</span>

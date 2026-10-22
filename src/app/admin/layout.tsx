@@ -26,7 +26,7 @@ export default async function AdminLayout({
   return (
     <div className="flex flex-col min-h-screen">
 
-      <main className="flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
+      <main className="admin-area flex-grow pt-[120px] sm:pt-[124px] xl:pt-[124px] bg-background">
         {children}
       </main>
       <Footer />

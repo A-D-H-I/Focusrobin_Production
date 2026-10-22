@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,7 @@ interface RefundEligibility {
 }
 
 export function SupportChat() {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
@@ -416,6 +418,9 @@ export function SupportChat() {
       );
     });
   };
+
+  // Customer support widget: not needed in the admin panel, where it covers buttons on phones
+  if (pathname?.startsWith('/admin')) return null;
 
   return (
     <>

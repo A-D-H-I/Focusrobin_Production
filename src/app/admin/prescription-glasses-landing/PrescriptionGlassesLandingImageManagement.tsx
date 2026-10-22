@@ -16,6 +16,7 @@ import { Plus, Edit, Trash2, Loader2, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import Image from 'next/image';
+import { ImageUploader } from '@/components/admin/ImageUploader';
 import {
   Dialog,
   DialogContent,
