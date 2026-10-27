@@ -48,6 +48,14 @@ async function fetchInventoryMap(): Promise<Map<string, InventoryRow>> {
   return map;
 }
 
+// Variant ids grouped by their new stock level, so all changes are written with a
+// handful of updateMany calls instead of one round trip per variant.
+function addStockChange(groups: Map<number, string[]>, stock: number, id: string) {
+  const ids = groups.get(stock);
+  if (ids) ids.push(id);
+  else groups.set(stock, [id]);
+}
+
 export async function GET(req: NextRequest) {
   if (!CRON_SECRET) {
     return NextResponse.json({ error: 'CRON_SECRET not configured' }, { status: 500 });
@@ -68,6 +76,17 @@ export async function GET(req: NextRequest) {
     let unmatched = 0;
     const changedSlugs = new Set<string>();
 
+    // Latest flagged Blueberry price per SKU, so a difference that is already recorded
+    // isn't written again on every scheduled run
+    const lastFlagged = new Map<string, number>();
+    const flaggedRows = await prisma.priceHistory.findMany({
+      where: { source: 'blueberry-sync' },
+      distinct: ['sku'],
+      orderBy: [{ sku: 'asc' }, { changedAt: 'desc' }],
+      select: { sku: true, newPrice: true },
+    });
+    for (const row of flaggedRows) lastFlagged.set(row.sku, Number(row.newPrice));
+
     // ── Sunglasses (Product / ProductVariant) ──
     const variants = await prisma.productVariant.findMany({
       where: { Product: { supplier: 'BLUEBERRY' } },
@@ -79,6 +98,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const sunStockChanges = new Map<number, string[]>();
     for (const v of variants) {
       const entry = inventory.get(v.sku);
       if (!entry) {
@@ -87,13 +107,14 @@ export async function GET(req: NextRequest) {
       }
 
       if (entry.stock !== v.stock) {
-        await prisma.productVariant.update({ where: { id: v.id }, data: { stock: entry.stock } });
+        addStockChange(sunStockChanges, entry.stock, v.id);
         stockUpdated++;
         changedSlugs.add(v.Product.slug);
       }
 
       const currentBase = Number(v.Product.basePrice);
-      if (entry.priceNet > 0 && Math.abs(entry.priceNet - currentBase) > 0.01) {
+      const alreadyFlagged = Math.abs((lastFlagged.get(v.sku) ?? NaN) - entry.priceNet) <= 0.01;
+      if (entry.priceNet > 0 && Math.abs(entry.priceNet - currentBase) > 0.01 && !alreadyFlagged) {
         await prisma.priceHistory.create({
           data: {
             productId: v.Product.id,
@@ -108,6 +129,10 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    for (const [stock, ids] of sunStockChanges) {
+      await prisma.productVariant.updateMany({ where: { id: { in: ids } }, data: { stock } });
+    }
+
     // ── Optical Frames (PrescriptionGlasses / PrescriptionGlassesVariant) ──
     const rxVariants = await prisma.prescriptionGlassesVariant.findMany({
       where: { PrescriptionGlasses: { supplier: 'BLUEBERRY' } },
@@ -119,6 +144,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    const rxStockChanges = new Map<number, string[]>();
     for (const v of rxVariants) {
       const entry = inventory.get(v.sku);
       if (!entry) {
@@ -126,10 +152,13 @@ export async function GET(req: NextRequest) {
         continue;
       }
       if (entry.stock !== v.stock) {
-        await prisma.prescriptionGlassesVariant.update({ where: { id: v.id }, data: { stock: entry.stock } });
+        addStockChange(rxStockChanges, entry.stock, v.id);
         stockUpdated++;
         changedSlugs.add(v.PrescriptionGlasses.slug);
       }
+    }
+    for (const [stock, ids] of rxStockChanges) {
+      await prisma.prescriptionGlassesVariant.updateMany({ where: { id: { in: ids } }, data: { stock } });
     }
 
     // Bust caches so the storefront reflects the new stock immediately,
