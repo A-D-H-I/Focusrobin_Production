@@ -121,19 +121,6 @@ async function secureRedirect(request: NextRequest, path: string): Promise<NextR
 }
 
 /**
- * Validate session user object has required fields
- */
-function isValidSession(session: any): session is { user: { id: string; role?: string } } {
-  return (
-    session &&
-    typeof session === "object" &&
-    session.user &&
-    typeof session.user === "object" &&
-    typeof session.user.id === "string"
-  );
-}
-
-/**
  * Resolve the locale for this request.
  * - /lt/... and /ru/... are rewritten to the unprefixed route with x-locale set
  * - /en/... redirects to the unprefixed (default) URL
@@ -303,30 +290,12 @@ export async function middleware(request: NextRequest) {
     return await addSecurityHeaders(response, true); // Set CSRF for admin pages
   }
 
-  // === User Profile/Account Routes Protection ===
-  if (pathname.startsWith("/account") || pathname.startsWith("/profile")) {
-    const session = await auth();
-
-    if (!isValidSession(session)) {
-      console.warn(`[Security] Unauthenticated access attempt to protected route: ${pathname}`);
-      return await secureRedirect(request, "/");
-    }
-
-    // User is authenticated
+  // === User Profile/Account and Checkout ===
+  // These pages show their own sign-in screen to logged-out visitors (and their
+  // server actions require a session), so they are not redirected here.
+  if (pathname.startsWith("/account") || pathname.startsWith("/profile") || pathname.startsWith("/checkout")) {
     const response = next();
-    return await addSecurityHeaders(response, true); // Set CSRF for user pages
-  }
-
-  // === Checkout Protection (must be logged in) ===
-  if (pathname.startsWith("/checkout")) {
-    const session = await auth();
-
-    if (!isValidSession(session)) {
-      return await secureRedirect(request, "/");
-    }
-
-    const response = next();
-    return await addSecurityHeaders(response, true); // Set CSRF for checkout pages
+    return await addSecurityHeaders(response, true); // Set CSRF for user and checkout pages
   }
 
   // === Public routes - add security headers ===
